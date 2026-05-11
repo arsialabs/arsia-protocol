@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: BUSL-1.1
+# Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda)
+name: Validate Test Vectors
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-vectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Validate vectors (meta-schema + per-vector)
+        run: python3 scripts/validate_vectors.py --check-meta --format summary
+
+      - name: Error-path verification
+        run: python3 scripts/validate_vectors.py --check-errors --format summary
+
+      - name: Generate JUnit report
+        run: python3 scripts/validate_vectors.py --check-errors --format junit > vector-results.xml
+        if: always()
+
+      - name: Upload JUnit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: vector-validation-results
+          path: vector-results.xml
+        if: always()

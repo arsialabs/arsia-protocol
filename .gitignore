@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+
+# OS
+.DS_Store
+*.swp
+*~
+
+# Editors
+.vscode/
+.idea/
+PROGRESS.md
+docs/arsia_protocol_context.md
+docs/arsia_protocol_instructions.md
+docs/diagnostics/*
+docs/plans/*
+*.pyc
