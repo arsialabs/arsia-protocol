@@ -5,10 +5,10 @@
 
 **EU regulatory compliance as a protocol primitive for AI agents.**
 
-[![Spec License](https://img.shields.io/badge/spec-CC%20BY--SA%204.0-brightgreen.svg)](LICENSE-SPEC.md)
-[![Artifacts License](https://img.shields.io/badge/artifacts-Apache%202.0-green.svg)](LICENSE-ARTIFACTS.md)
-[![Code License](https://img.shields.io/badge/code-BSL%201.1-blue.svg)](LICENSE-CODE.md)
-[![Version](https://img.shields.io/badge/version-1.0.0--draft-orange.svg)](CHANGELOG.md)
+[![Spec License](https://img.shields.io/badge/spec-CC%20BY--SA%204.0-brightgreen.svg)](licenses/LICENSE-SPEC.md)
+[![Artifacts License](https://img.shields.io/badge/artifacts-Apache%202.0-green.svg)](licenses/LICENSE-ARTIFACTS.md)
+[![Code License](https://img.shields.io/badge/code-BSL%201.1-blue.svg)](licenses/LICENSE-CODE.md)
+[![Version](https://img.shields.io/badge/version-Draft--01-orange.svg)](CHANGELOG.md)
 [![Status](https://img.shields.io/badge/status-draft-yellow.svg)](spec/ARSIA-Core.md)
 
 ---
@@ -144,20 +144,20 @@ ARSIA Protocol uses different licenses for different types of materials.
 
 Human-readable specification and documentation materials are licensed under
 the Creative Commons Attribution-ShareAlike 4.0 International License
-(CC BY-SA 4.0). See [LICENSE-SPEC.md](LICENSE-SPEC.md).
+(CC BY-SA 4.0). See [LICENSE-SPEC.md](licenses/LICENSE-SPEC.md).
 
 Machine-readable interoperability artifacts, including schemas, profiles,
 and test vectors, are licensed under the Apache License 2.0. See
-[LICENSE-ARTIFACTS.md](LICENSE-ARTIFACTS.md).
+[LICENSE-ARTIFACTS.md](licenses/LICENSE-ARTIFACTS.md).
 
 Software components, including SDKs, reference implementations, scripts,
 tools, CI/CD workflows, automation code, and `.github/workflows/validate-vectors.yml`,
 are licensed under the Business Source License 1.1. Production use is
 permitted except for competitive offerings, as described in
-[LICENSE-CODE.md](LICENSE-CODE.md). Each version converts to the Mozilla
+[LICENSE-CODE.md](licenses/LICENSE-CODE.md). Each version converts to the Mozilla
 Public License Version 2.0 (MPL-2.0) four years after release.
 
-See [LICENSE.md](LICENSE.md) for an overview and [LICENSING-FAQ.md](LICENSING-FAQ.md)
+See [LICENSE.md](LICENSE.md) for an overview and [LICENSING-FAQ.md](licenses/LICENSING-FAQ.md)
 for practical examples.
 
 ---

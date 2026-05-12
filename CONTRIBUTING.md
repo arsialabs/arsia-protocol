@@ -33,7 +33,7 @@ This includes, unless otherwise stated:
 - `CLA.md`
 - other human-readable protocol documentation
 
-See [`LICENSE-SPEC.md`](LICENSE-SPEC.md).
+See [`LICENSE-SPEC.md`](licenses/LICENSE-SPEC.md).
 
 ### 1.2 Technical Interoperability Artifacts
 
@@ -49,7 +49,7 @@ This includes, unless otherwise stated:
 - conformance fixtures
 - other machine-readable protocol artifacts
 
-See [`LICENSE-ARTIFACTS.md`](LICENSE-ARTIFACTS.md).
+See [`LICENSE-ARTIFACTS.md`](licenses/LICENSE-ARTIFACTS.md).
 
 ### 1.3 Software Components
 
@@ -72,7 +72,7 @@ This includes, unless otherwise stated:
 
 Each covered version converts to Mozilla Public License Version 2.0 (MPL-2.0), without the Exhibit B "Incompatible With Secondary Licenses" notice, after the applicable Change Date.
 
-See [`LICENSE-CODE.md`](LICENSE-CODE.md).
+See [`LICENSE-CODE.md`](licenses/LICENSE-CODE.md).
 
 ## 2. Contributor License Agreement
 
@@ -311,7 +311,7 @@ For JavaScript or TypeScript files:
 // Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda)
 ```
 
-For JSON files, do not add comments because JSON does not support comments. Licensing for JSON schemas, profiles, and test vectors is handled by `LICENSE-ARTIFACTS.md`, repository metadata, and any applicable REUSE/SPDX annotations.
+For JSON files, do not add comments because JSON does not support comments. Licensing for JSON schemas, profiles, and test vectors is handled by `licenses/LICENSE-ARTIFACTS.md`, repository metadata, and any applicable REUSE/SPDX annotations.
 
 ## 9. Review Process
 

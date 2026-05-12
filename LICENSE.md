@@ -25,7 +25,7 @@ This includes, unless otherwise stated:
 - CLA.md
 - other human-readable protocol documentation
 
-See LICENSE-SPEC.md for the applicable terms and scope.
+See [licenses/LICENSE-SPEC.md](licenses/LICENSE-SPEC.md) for the applicable terms and scope.
 
 ## 2. Technical Interoperability Artifacts
 
@@ -43,7 +43,7 @@ This includes, unless otherwise stated:
 - conformance fixtures
 - other machine-readable protocol artifacts
 
-See LICENSE-ARTIFACTS.md for the applicable terms and scope.
+See [licenses/LICENSE-ARTIFACTS.md](licenses/LICENSE-ARTIFACTS.md) for the applicable terms and scope.
 
 ## 3. Software Components
 
@@ -75,7 +75,7 @@ Each version of the software converts to the Mozilla Public License Version
 2.0 (MPL-2.0), without the Exhibit B "Incompatible With Secondary Licenses"
 notice, four years after the date of that version's release.
 
-See LICENSE-CODE.md for the applicable terms and scope.
+See [licenses/LICENSE-CODE.md](licenses/LICENSE-CODE.md) for the applicable terms and scope.
 
 ## 4. No Trademark License
 

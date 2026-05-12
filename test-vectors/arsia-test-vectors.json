@@ -1,6 +1,6 @@
 {
   "$schema": "https://arsiaprotocol.org/schemas/test-vectors/v1.0.json",
-  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See LICENSE-ARTIFACTS.md.",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "version": "1.0.0",
   "generated": "2026-04-10T00:00:00.000Z",
   "vectors": [
