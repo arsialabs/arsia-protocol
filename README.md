@@ -8,7 +8,7 @@
 [![Spec License](https://img.shields.io/badge/spec-CC%20BY--SA%204.0-brightgreen.svg)](licenses/LICENSE-SPEC.md)
 [![Artifacts License](https://img.shields.io/badge/artifacts-Apache%202.0-green.svg)](licenses/LICENSE-ARTIFACTS.md)
 [![Code License](https://img.shields.io/badge/code-BSL%201.1-blue.svg)](licenses/LICENSE-CODE.md)
-[![Version](https://img.shields.io/badge/version-Draft--01-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-Draft--02-orange.svg)](CHANGELOG.md)
 [![Status](https://img.shields.io/badge/status-draft-yellow.svg)](spec/ARSIA-Core.md)
 
 ---
@@ -19,13 +19,14 @@ ARSIA Protocol embeds compliance into the message envelope — the same way TLS 
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "from": "agent:acme.risk-assessor",
   "to": "agent:acme.compliance-checker",
   "intent": "request",
+  "authorization": { "token_hash": "sha-256:…", "proof_type": "dpop" },
   "compliance": {
     "profile": "MIFID-II",
-    "retention_days": 1827,
+    "retention": "P1827D",
     "data_residency": "EU",
     "human_oversight": "required_before_execution",
     "audit_required": true,
@@ -44,7 +45,7 @@ ARSIA Protocol embeds compliance into the message envelope — the same way TLS 
 
 ### For Developers
 
-**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [31 JSON Schemas](schemas/) (Draft 2020-12) and [613 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
+**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [31 JSON Schemas](schemas/) (Draft 2020-12) and [649 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
 
 ARSIA defines three [conformance levels](spec/ARSIA-Core.md#12-conformance-levels) — pick the one that fits your deployment:
 
@@ -64,9 +65,9 @@ Key protocol sections for regulatory review: human oversight workflow ([Actions 
 
 ### For Regulators
 
-Six [Requirements Traceability Matrices](docs/rtm/) (2,086 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
+Six [Requirements Traceability Matrices](docs/rtm/) (1,903 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
 
-All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [613 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The [Security Model](docs/security.md) provides a standalone summary of the threat model, cryptographic foundation, authorization, and data protection — designed for evaluation without reading the full spec suite.
+All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [649 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
 
 ---
 
@@ -87,15 +88,15 @@ The protocol follows a **5+1 architecture**: one foundational spec — Core — 
 
 Seven normative profiles map EU regulation directly to protocol fields:
 
-| Profile                  | Regulation                      | Retention           | Human Oversight           | Audit    |
-| ------------------------ | ------------------------------- | ------------------- | ------------------------- | -------- |
-| `GDPR-STANDARD`          | GDPR Art. 5, 6                  | Per operator        | Not required              | Optional |
-| `EU-AI-ACT-HIGH-RISK`    | EU AI Act Art. 13, 14, 17, 26   | 180 days            | Required before execution | Required |
-| `EU-AI-ACT-LIMITED-RISK` | EU AI Act Art. 50               | 90 days             | Not required              | Required |
-| `MIFID-II`               | MiFID II Art. 16(7), DORA, PSD2 | 1827 days (5 years) | Required before execution | Required |
-| `PAC-AGRICULTURE`        | CAP Reg. 2021/2116              | 1096 days (3 years) | Required post-execution   | Required |
-| `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | 730 days (2 years)  | Required within 24h       | Required |
-| `DORA`                   | DORA Art. 5, 17, 19, 28         | 1827 days (5 years) | Required within 24h       | Required |
+| Profile                  | Regulation                      | Retention minimum        | Human Oversight           | Audit    |
+| ------------------------ | ------------------------------- | ------------------------ | ------------------------- | -------- |
+| `GDPR-STANDARD`          | GDPR Art. 5, 6                  | Per operator             | Not required              | Optional |
+| `EU-AI-ACT-HIGH-RISK`    | EU AI Act Art. 13, 14, 17, 26   | `P6M` (6 calendar months)| Required before execution | Required |
+| `EU-AI-ACT-LIMITED-RISK` | EU AI Act Art. 50               | `P90D` (90 days)         | Not required              | Required |
+| `MIFID-II`               | MiFID II Art. 16(7), DORA, PSD2 | `P1827D` (5 years)       | Required before execution | Required |
+| `PAC-AGRICULTURE`        | CAP Reg. 2021/2116              | `P1096D` (3 years)       | Required post-execution   | Required |
+| `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | `P731D` (2 years)        | Required within 24h       | Required |
+| `DORA`                   | DORA Art. 5, 17, 19, 28         | `P1827D` (5 years)       | Required within 24h       | Required |
 
 Source: [arsia-compliance-profiles.json](profiles/arsia-compliance-profiles.json) — defined normatively in [ARSIA-State §6](spec/ARSIA-State.md).
 
@@ -108,8 +109,8 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 31 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 613 test vectors (514 valid, 99 invalid, 73 runtime-only) |
-| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,086 rows) |
+| [`test-vectors/`](test-vectors/) | 649 test vectors (418 schema-valid, 137 expected-invalid, 94 runtime-only) |
+| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (1,903 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
 9 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.

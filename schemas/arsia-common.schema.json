@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "arsia-common.schema.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-common.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "description": "Shared definitions for the ARSIA protocol schema suite.",
   "$defs": {
     "agent-id": {
       "type": "string",
-      "description": "Agent identifier per ARSIA-Core.md \u00a73.3 Rule 8.",
+      "description": "Agent identifier per ARSIA-Core.md §3.3 Rule 8.",
       "maxLength": 256,
       "pattern": "^agent:[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(\\/[a-zA-Z0-9][a-zA-Z0-9_-]*)?$"
     },

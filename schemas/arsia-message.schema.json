@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/message/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-message.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Message",
-  "description": "Message envelope for the ARSIA Protocol v1.0. Runtime constraints not expressible in JSON Schema: (1) When a receiving agent downgrades capabilities (Actions \u00a71.3), the response MUST include effective_capabilities in payload.result. This array MUST be a subset of the original request's capabilities and MUST contain at least one capability. Enforced at runtime \u2014 schema cannot validate cross-message state. (2) Rollback requests (Actions \u00a74.2) use intent 'request' with payload.type formatted as '{action_id}/rollback'. The payload.args SHOULD include original_message_id. This is a naming convention, not a distinct wire format. (3) Long-running actions (Actions \u00a74.3) SHOULD use the asynchronous execution pattern. The initial response uses intent 'response' with payload.result containing status_url. Status polling responses are separate HTTP GET responses outside the ARSIA message envelope.",
+  "description": "Message envelope for the ARSIA Protocol wire version 2.0. Runtime constraints not expressible in JSON Schema: (1) When a receiving agent downgrades capabilities (Actions §1.3), the response MUST include effective_capabilities in payload.result. This array MUST be a subset of the original request's capabilities and MUST contain at least one capability. Enforced at runtime — schema cannot validate cross-message state. (2) Rollback requests (Actions §4.2) use intent 'request' with payload.type formatted as '{action_id}/rollback'. The payload.args SHOULD include original_message_id. This is a naming convention, not a distinct wire format. (3) Long-running actions (Actions §4.3) SHOULD use the asynchronous execution pattern. The initial response uses intent 'response' with payload.result containing status_url. Status polling responses are separate HTTP GET responses outside the ARSIA message envelope.",
   "type": "object",
   "$defs": {
     "transport-error-response": {
       "type": "object",
-      "description": "Machine-readable transport-level error body per Core \u00a711.1.1. Used for HTTP-level errors (401, 403, etc.) outside the ARSIA message envelope.",
+      "description": "Machine-readable transport-level error body per Core §11.1.1. Used for HTTP-level errors (401, 403, etc.) outside the ARSIA message envelope.",
       "required": [
         "status",
         "reason"
@@ -27,7 +27,7 @@
     },
     "error-details-forbidden": {
       "type": "object",
-      "description": "Error details for forbidden \u2014 Core \u00a76.4, \u00a711.2",
+      "description": "Error details for forbidden — Core §6.4, §11.2",
       "required": [
         "required_capabilities",
         "provided_capabilities"
@@ -51,7 +51,7 @@
     },
     "error-details-not-implemented": {
       "type": "object",
-      "description": "Error details for not_implemented \u2014 Core \u00a711.2",
+      "description": "Error details for not_implemented — Core §11.2",
       "required": [
         "supported_versions"
       ],
@@ -66,24 +66,24 @@
           "properties": {
             "min": {
               "type": "string",
-              "pattern": "^\\d+\\.\\d+$"
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
             },
             "max": {
               "type": "string",
-              "pattern": "^\\d+\\.\\d+$"
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
             }
           },
           "additionalProperties": false
         },
         "unsupported_type": {
           "type": "string",
-          "description": "SHOULD be included when error is due to unsupported payload type \u2014 Core \u00a711.2"
+          "description": "SHOULD be included when error is due to unsupported payload type — Core §11.2"
         }
       }
     },
     "error-details-service-unavailable-residency": {
       "type": "object",
-      "description": "Error details for service_unavailable caused by data residency violation \u2014 Core \u00a711.2, Routing \u00a71.2.2, \u00a77.3 Rule 2",
+      "description": "Error details for service_unavailable caused by data residency violation — Core §11.2, Routing §1.2.2, §7.3 Rule 2",
       "required": [
         "data_residency_violation",
         "required_zone"
@@ -102,7 +102,7 @@
               "$ref": "arsia-common.schema.json#/$defs/iso-3166-1-alpha-2"
             },
             {
-              "description": "Broker's actual jurisdiction when rejecting for zone mismatch \u2014 Routing \u00a77.3 Rule 2"
+              "description": "Broker's actual jurisdiction when rejecting for zone mismatch — Routing §7.3 Rule 2"
             }
           ]
         },
@@ -111,13 +111,13 @@
           "items": {
             "type": "string"
           },
-          "description": "Zones the implementation can serve \u2014 Routing \u00a71.2.2"
+          "description": "Zones the implementation can serve — Routing §1.2.2"
         }
       }
     },
     "error-details-certificate": {
       "type": "object",
-      "description": "Error details for certificate errors (certificate_invalid, certificate_expired, key_mismatch, certificate_revoked) \u2014 Identity \u00a76.4.3",
+      "description": "Error details for certificate errors (certificate_invalid, certificate_expired, key_mismatch, certificate_revoked) — Identity §6.4.3",
       "required": [
         "reason"
       ],
@@ -131,7 +131,7 @@
     },
     "error-details-relay-failed": {
       "type": "object",
-      "description": "Error details for broker relay failure \u2014 Routing \u00a72.3.3, \u00a77.3",
+      "description": "Error details for broker relay failure — Routing §2.3.3, §7.3",
       "required": [
         "relay_failed",
         "relay_id"
@@ -153,7 +153,7 @@
         },
         "reason": {
           "type": "string",
-          "description": "Relay failure reason (e.g. relay_timeout) \u2014 Routing \u00a72.3.4"
+          "description": "Relay failure reason (e.g. relay_timeout) — Routing §2.3.4"
         },
         "original_error": {
           "type": "object",
@@ -171,7 +171,7 @@
     },
     "error-details-rate-limited": {
       "type": "object",
-      "description": "Error details for rate_limited \u2014 Core \u00a711.2. All fields SHOULD-level.",
+      "description": "Error details for rate_limited — Core §11.2. All fields SHOULD-level.",
       "properties": {
         "retry_after_seconds": {
           "type": "integer",
@@ -199,7 +199,7 @@
     },
     "error-details-payload-too-large": {
       "type": "object",
-      "description": "Error details for payload_too_large \u2014 Core \u00a711.2. All fields SHOULD-level.",
+      "description": "Error details for payload_too_large — Core §11.2. All fields SHOULD-level.",
       "properties": {
         "max_message_bytes": {
           "type": "integer",
@@ -213,7 +213,7 @@
     },
     "error-details-conflict-version": {
       "type": "object",
-      "description": "Error details for conflict caused by optimistic concurrency \u2014 State \u00a78.4",
+      "description": "Error details for conflict caused by optimistic concurrency — State §8.4",
       "required": [
         "current_version",
         "expected_version"
@@ -241,7 +241,7 @@
     },
     "error-details-oversight-denied": {
       "type": "object",
-      "description": "Error details for forbidden caused by human oversight denial \u2014 Actions \u00a73.4 Path 2, \u00a76 ACTIONS-06",
+      "description": "Error details for forbidden caused by human oversight denial — Actions §3.4 Path 2, §6 ACTIONS-06",
       "required": [
         "oversight_decision",
         "approver_id",
@@ -268,7 +268,7 @@
     },
     "error-details-oversight-expired": {
       "type": "object",
-      "description": "Error details for forbidden caused by approval deadline expiry \u2014 Actions \u00a73.4 Path 3, \u00a76 ACTIONS-07",
+      "description": "Error details for forbidden caused by approval deadline expiry — Actions §3.4 Path 3, §6 ACTIONS-07",
       "required": [
         "oversight_decision",
         "deadline"
@@ -292,7 +292,7 @@
     },
     "error-details-rollback-conflict": {
       "type": "object",
-      "description": "Error details for conflict when rolling back an already rolled-back action \u2014 Actions \u00a74.2",
+      "description": "Error details for conflict when rolling back an already rolled-back action — Actions §4.2",
       "required": [
         "already_rolled_back"
       ],
@@ -305,7 +305,7 @@
     },
     "error-details-rollback-partial": {
       "type": "object",
-      "description": "Details for partial rollback response \u2014 Actions \u00a74.2",
+      "description": "Details for partial rollback response — Actions §4.2",
       "required": [
         "partial_rollback",
         "rolled_back",
@@ -334,7 +334,7 @@
     },
     "pending-approval-args": {
       "type": "object",
-      "description": "Payload args for pending_approval intent \u2014 Actions \u00a73.2",
+      "description": "Payload args for pending_approval intent — Actions §3.2",
       "required": [
         "action_id",
         "original_request_id",
@@ -365,7 +365,7 @@
               "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
             },
             {
-              "description": "Latest time approval will be accepted \u2014 must equal envelope expires_at"
+              "description": "Latest time approval will be accepted — must equal envelope expires_at"
             }
           ]
         },
@@ -382,7 +382,7 @@
         },
         "risk_level": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": 0,
           "maximum": 10,
           "description": "Risk level from the ActionDescriptor"
         },
@@ -390,13 +390,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 1024,
-          "description": "Human-readable summary of the operation for the approver. MUST be present for financial operations per ARSIA-Assets.md \u00a75.2."
+          "description": "Human-readable summary of the operation for the approver. MUST be present for financial operations per ARSIA-Assets.md §5.2."
         }
       }
     },
     "approval-decision-result": {
       "type": "object",
-      "description": "Payload result for approval_decision intent (oversight) \u2014 Actions \u00a73.3",
+      "description": "Payload result for approval_decision intent (oversight) — Actions §3.3",
       "required": [
         "decision",
         "approver_id"
@@ -418,7 +418,7 @@
         "reason": {
           "type": "string",
           "maxLength": 512,
-          "description": "Human-readable explanation \u2014 RECOMMENDED when decision is denied"
+          "description": "Human-readable explanation — RECOMMENDED when decision is denied"
         },
         "conditions": {
           "type": "array",
@@ -431,7 +431,7 @@
     },
     "long-running-status": {
       "type": "object",
-      "description": "Status response for long-running actions \u2014 Actions \u00a74.3",
+      "description": "Status response for long-running actions — Actions §4.3",
       "required": [
         "status"
       ],
@@ -459,14 +459,13 @@
   "additionalProperties": false,
   "properties": {
     "v": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+$",
-      "description": "Protocol version"
+      "const": "2.0",
+      "description": "Protocol version — this schema validates the 2.0 wire exactly (Core §4.1.1 version handling model)"
     },
     "id": {
       "type": "string",
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-      "description": "Message identifier (UUID v4)"
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "Message identifier (UUID v4) Uppercase hex accepted; implementations SHOULD produce lowercase (Core §4.1.2)."
     },
     "ts": {
       "allOf": [
@@ -511,7 +510,18 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "Correlation identifier for request-response pairs (UUID v4)"
+          "description": "Correlation identifier: the id of the immediately preceding message in the interaction (immediate causal parent), per Core §4.2.1"
+        }
+      ]
+    },
+    "root_request_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        {
+          "$comment": "Draft-02: REQUIRED whenever correlation_id is required; the conditional requirement is enforced from the v2 vector regeneration onward (Core §4.2.4)",
+          "description": "Root request identifier: the id of the request that initiated the interaction, per Core §4.2.4"
         }
       ]
     },
@@ -527,7 +537,7 @@
     },
     "min_v": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+$",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
       "description": "Minimum protocol version supported"
     },
     "capabilities": {
@@ -621,11 +631,11 @@
         },
         "enc_alg": {
           "type": "string",
-          "description": "JWE key agreement algorithm (Core \u00a75.3). RECOMMENDED: ECDH-ES. Also permitted: ECDH-ES+A256KW (MAY), RSA-OAEP-256 (MAY). Implementations SHOULD default to ECDH-ES unless interoperability requires an alternative."
+          "description": "JWE key agreement algorithm (Core §5.3). RECOMMENDED: ECDH-ES. Also permitted: ECDH-ES+A256KW (MAY), RSA-OAEP-256 (MAY). Implementations SHOULD default to ECDH-ES unless interoperability requires an alternative."
         },
         "enc_method": {
           "type": "string",
-          "description": "JWE content encryption algorithm (Core \u00a75.3). The only defined value is A256GCM. Future spec versions may define additional methods."
+          "description": "JWE content encryption algorithm (Core §5.3). The only defined value is A256GCM. Future spec versions may define additional methods."
         }
       },
       "allOf": [
@@ -653,164 +663,8 @@
       ]
     },
     "compliance": {
-      "type": "object",
-      "description": "Compliance metadata for this message. See arsia-compliance-field.schema.json for the full definition. additionalProperties is enabled by design to support profile-specific extension fields.",
-      "additionalProperties": true,
-      "properties": {
-        "profile": {
-          "type": "string"
-        },
-        "data_residency": {
-          "$ref": "arsia-common.schema.json#/$defs/iso-3166-1-alpha-2"
-        },
-        "audit_required": {
-          "type": "boolean"
-        },
-        "retention_days": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "human_oversight": {
-          "type": "string",
-          "enum": [
-            "not_required",
-            "required_before_execution",
-            "required_within_24h",
-            "required_post_execution"
-          ]
-        },
-        "explainability_required": {
-          "type": "boolean"
-        },
-        "pii_involved": {
-          "type": "boolean"
-        },
-        "legal_basis": {
-          "type": "string",
-          "enum": [
-            "consent",
-            "contract",
-            "legal_obligation",
-            "vital_interests",
-            "public_task",
-            "legitimate_interests",
-            "explicit_consent",
-            "employment_social_security",
-            "vital_interests_incapacity",
-            "legitimate_activities",
-            "manifestly_public",
-            "legal_claims",
-            "substantial_public_interest",
-            "health_medicine",
-            "public_health",
-            "archiving_research"
-          ]
-        },
-        "ai_system_classification": {
-          "type": "string",
-          "enum": [
-            "minimal-risk",
-            "limited-risk",
-            "high-risk",
-            "unacceptable-risk"
-          ]
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "pii_involved": {
-                "const": true
-              }
-            },
-            "required": [
-              "pii_involved"
-            ]
-          },
-          "then": {
-            "required": [
-              "legal_basis"
-            ]
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "profile": {
-                "const": "MIFID-II"
-              }
-            },
-            "required": [
-              "profile"
-            ]
-          },
-          "then": {
-            "properties": {
-              "retention_days": {
-                "minimum": 1827
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "profile": {
-                "const": "PAC-AGRICULTURE"
-              }
-            },
-            "required": [
-              "profile"
-            ]
-          },
-          "then": {
-            "properties": {
-              "retention_days": {
-                "minimum": 1096
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "profile": {
-                "const": "DSA-VLOP"
-              }
-            },
-            "required": [
-              "profile"
-            ]
-          },
-          "then": {
-            "properties": {
-              "retention_days": {
-                "minimum": 730
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "profile": {
-                "const": "DORA"
-              }
-            },
-            "required": [
-              "profile"
-            ]
-          },
-          "then": {
-            "properties": {
-              "retention_days": {
-                "minimum": 1827
-              }
-            }
-          }
-        }
-      ]
+      "$ref": "arsia-compliance-field.schema.json",
+      "description": "Compliance metadata (Core §4.3.6) — single source: arsia-compliance-field.schema.json (Draft-02 dedup; envelope-level cross-field rules remain in this schema's allOf)"
     },
     "payload": {
       "oneOf": [
@@ -826,7 +680,7 @@
             },
             "version": {
               "type": "string",
-              "pattern": "^\\d+\\.\\d+$"
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
             },
             "args": {},
             "result": {},
@@ -903,7 +757,7 @@
                       "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*)+$"
                     }
                   ],
-                  "description": "Standard ARSIA error code or application-specific code in reverse domain notation. Standard codes use snake_case (e.g. invalid_request). Custom codes use dot-separated reverse domain notation with hyphens (e.g. com.example.insufficient-funds). Per ARSIA-Core.md \u00a711.2."
+                  "description": "Standard ARSIA error code or application-specific code in reverse domain notation. Standard codes use snake_case (e.g. invalid_request). Custom codes use dot-separated reverse domain notation with hyphens (e.g. com.example.insufficient-funds). Per ARSIA-Core.md §11.2."
                 },
                 "description": {
                   "type": "string"
@@ -1252,6 +1106,29 @@
           "description": "JWE compact serialization when security.encrypted = true"
         }
       ]
+    },
+    "authorization": {
+      "type": "object",
+      "description": "Authorization binding per Core §4.3.9: hash-binds the signed envelope to the sender's end-to-end access token. REQUIRED when compliance.data_residency is set (runtime rule; enforced with the v2 regeneration).",
+      "required": [
+        "token_hash",
+        "proof_type"
+      ],
+      "properties": {
+        "token_hash": {
+          "type": "string",
+          "pattern": "^sha-256:[0-9a-f]{64}$",
+          "description": "SHA-256 over the exact octets of the presented access token"
+        },
+        "proof_type": {
+          "type": "string",
+          "enum": [
+            "bearer",
+            "dpop"
+          ]
+        }
+      },
+      "additionalProperties": false
     }
   },
   "allOf": [
@@ -1286,7 +1163,8 @@
       },
       "then": {
         "required": [
-          "correlation_id"
+          "correlation_id",
+          "root_request_id"
         ]
       }
     },
@@ -1303,7 +1181,8 @@
       },
       "then": {
         "required": [
-          "correlation_id"
+          "correlation_id",
+          "root_request_id"
         ]
       }
     },
@@ -1342,7 +1221,8 @@
       },
       "then": {
         "required": [
-          "correlation_id"
+          "correlation_id",
+          "root_request_id"
         ]
       }
     },
@@ -1360,7 +1240,8 @@
       "then": {
         "required": [
           "expires_at",
-          "correlation_id"
+          "correlation_id",
+          "root_request_id"
         ]
       }
     },
@@ -1415,35 +1296,6 @@
           "compliance": {
             "required": [
               "legal_basis"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "compliance": {
-            "type": "object",
-            "properties": {
-              "ai_system_classification": {
-                "const": "high-risk"
-              }
-            },
-            "required": [
-              "ai_system_classification"
-            ]
-          }
-        },
-        "required": [
-          "compliance"
-        ]
-      },
-      "then": {
-        "properties": {
-          "compliance": {
-            "required": [
-              "human_oversight"
             ]
           }
         }
@@ -1911,113 +1763,152 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "compliance": {
+            "type": "object",
+            "required": [
+              "data_residency"
+            ],
+            "properties": {
+              "data_residency": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "compliance"
+        ]
+      },
+      "then": {
+        "required": [
+          "authorization"
+        ]
+      },
+      "$comment": "Core §4.3.9: authorization binding REQUIRED for residency-constrained (brokered) messages"
+    },
+    {
+      "if": {
+        "properties": {
+          "intent": {
+            "const": "request"
+          }
+        },
+        "required": [
+          "intent"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "root_request_id"
+          ]
+        }
+      },
+      "$comment": "Core §4.2.4: root_request_id MUST be absent on the interaction-initiating request"
     }
   ],
   "examples": [
     {
-      "v": "1.0",
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "ts": "2026-03-24T10:15:30.000Z",
-      "from": "agent:acme.billing",
-      "to": "agent:acme.payments",
+      "v": "2.0",
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "ts": "2026-03-24T10:00:00.000Z",
+      "from": "agent:acme.echo-client",
+      "to": "agent:acme.echo-server",
       "intent": "request",
-      "expires_at": "2026-03-24T10:16:00.000Z",
+      "expires_at": "2026-03-24T10:00:30.000Z",
       "capabilities": [
-        "payments.charge"
+        "echo.ping"
       ],
       "payload": {
-        "type": "com.acme.payments/charge",
+        "type": "com.acme.echo/ping",
         "args": {
-          "amount": 100.0,
-          "currency": "EUR"
+          "message": "hello"
         }
       },
       "security": {
         "alg": "EdDSA",
-        "kid": "agent:acme.billing#key1",
-        "sig": "base64url-encoded-signature-placeholder"
+        "kid": "agent:acme.echo-client#key1",
+        "sig": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag"
       }
     },
     {
-      "v": "1.0",
-      "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-      "ts": "2026-03-24T14:30:00.000Z",
+      "v": "2.0",
+      "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a",
+      "ts": "2026-03-24T09:00:00.000Z",
       "from": "agent:arsialabs.demo.risk-assessor",
-      "to": "agent:arsialabs.demo.compliance-checker",
+      "to": "agent:arsialabs.demo.settlement-agent",
       "intent": "request",
-      "expires_at": "2026-03-24T14:30:30.000Z",
+      "expires_at": "2026-03-24T09:00:30.000Z",
       "min_v": "1.0",
       "capabilities": [
-        "compliance.check",
-        "risk.assess"
+        "assets.transfer",
+        "assets.settle"
       ],
-      "idempotency": {
-        "key": "risk-check-2026-03-24-001",
-        "expires_at": "2026-03-24T15:30:00.000Z"
-      },
       "context": {
-        "trace_id": "0af7651916cd43dd8448eb211c80319c",
-        "span_id": "b7ad6b7169203331",
+        "trace_id": "1bf8651916cd43dd8448eb211c80320d",
+        "span_id": "c8be7c8270314442",
         "flags": 1,
-        "locale": "pt-PT",
-        "priority": 8
+        "locale": "en-GB",
+        "priority": 9
       },
       "payload": {
-        "type": "arsiaprotocol.compliance/check",
+        "type": "arsiaprotocol.assets/transfer-request",
         "version": "1.0",
         "args": {
-          "client_id": "C-2026-0042",
-          "instrument": "equity",
-          "amount": 50000.0,
-          "currency": "EUR"
+          "asset_type": "equity",
+          "isin": "DE0007164600",
+          "quantity": 100,
+          "unit_price": 85.42,
+          "currency": "EUR",
+          "counterparty": "agent:arsialabs.demo.clearing-house"
         }
       },
-      "security": {
-        "alg": "EdDSA",
-        "kid": "agent:arsialabs.demo.risk-assessor#key1",
-        "sig": "base64url-encoded-signature-placeholder"
-      },
       "compliance": {
-        "profile": "EU-AI-ACT-HIGH-RISK",
+        "profile": "MIFID-II",
         "data_residency": "EU",
         "audit_required": true,
-        "retention_days": 180,
         "human_oversight": "required_before_execution",
         "explainability_required": true,
         "pii_involved": true,
         "legal_basis": "contract",
-        "ai_system_classification": "high-risk"
+        "ai_system_classification": "high-risk",
+        "retention": "P1827D"
+      },
+      "security": {
+        "alg": "EdDSA",
+        "kid": "agent:arsialabs.demo.risk-assessor#key1",
+        "sig": "VF_2U9xDD94lyMPKfe3HPD56Aoj7XFyAylgRI4Zb5ZHQWu-nuYQrnh1qdE6qQFOL-EFYkn5oBRmxPs-NINLEAw"
+      },
+      "authorization": {
+        "token_hash": "sha-256:0a9e678b24f71692b71b6dfaec666f9856859b9934218d8a022806c85512b068",
+        "proof_type": "bearer"
       }
     },
     {
-      "v": "1.0",
-      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-      "ts": "2026-03-24T10:15:30.500Z",
-      "from": "agent:acme.payments",
-      "to": "agent:acme.billing",
-      "intent": "error",
-      "correlation_id": "550e8400-e29b-41d4-a716-446655440000",
+      "v": "2.0",
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "ts": "2026-03-24T10:00:01.000Z",
+      "from": "agent:arsialabs.demo.compliance-checker",
+      "to": "agent:acme.echo-client",
+      "intent": "response",
+      "correlation_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
       "payload": {
-        "type": "arsiaprotocol.error",
-        "error": {
-          "code": "forbidden",
-          "description": "Insufficient capabilities for requested action",
-          "details": {
-            "required_capabilities": [
-              "payments.charge",
-              "payments.refund"
-            ],
-            "provided_capabilities": [
-              "payments.charge"
-            ]
-          }
+        "type": "com.acme.echo/ping",
+        "result": {
+          "echo": "hello",
+          "server_ts": "2026-03-24T10:00:00.500Z"
         }
       },
       "security": {
         "alg": "EdDSA",
-        "kid": "agent:acme.payments#key1",
-        "sig": "base64url-encoded-signature-placeholder"
-      }
+        "kid": "agent:arsialabs.demo.compliance-checker#key1",
+        "sig": "_kKuFPNFPHMtbljc9CCcStSI1R-fMKateuxqyYNJ_MuOuvdP9k5ZdVAFdKWxnVeJXLi5ev8WtuvLbtwy3IcxAA"
+      },
+      "root_request_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
     }
   ]
 }

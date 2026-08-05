@@ -27,6 +27,21 @@ jobs:
       - name: Error-path verification
         run: python3 scripts/validate_vectors.py --check-errors --format summary
 
+      - name: Cryptographic verification (v2 signing profile)
+        run: python3 scripts/validate_vectors.py --check-crypto --format summary
+
+      - name: Schema meta-validation + profiles catalog validation
+        run: python3 scripts/check_consistency.py
+
+      - name: Runtime-rule harness (deterministic spec algorithms)
+        run: python3 scripts/runtime_harness.py
+
+      - name: Normative example extraction + validation
+        run: python3 scripts/extract_examples.py
+
+      - name: Cross-reference link check (M-14 anchor sweep)
+        run: python3 scripts/check_links.py
+
       - name: Generate JUnit report
         run: python3 scripts/validate_vectors.py --check-errors --format junit > vector-results.xml
         if: always()

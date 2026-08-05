@@ -229,12 +229,12 @@
 | ASSETS-§6.1.2-02 | 6.1.2 | MUST_NOT | deployment | behavioural_negative | MiFID II audit records MUST NOT be modified or deleted after creation | — | — |
 | ASSETS-§6.1.2-03 | 6.1.2 | MUST | deployment | procedural | Audit corrections MUST be appended as new records referencing the original | — | — |
 | ASSETS-§6.1.2-04 | 6.1.2 | MUST | deployment | behavioural_positive | Implementations MUST support extending retention beyond 1827 days when required by authority | — | — |
-| ASSETS-§6.1.2-05 | 6.1.2 | MAY | sdk_enabled | informational | compliance.retention_days MAY specify a retention period longer than 1827 days | — | — |
+| ASSETS-§6.1.2-05 | 6.1.2 | MAY | sdk_enabled | informational | compliance.retention MAY specify a retention period longer than 1827 days | — | — |
 | ASSETS-§6.1.3-01 | 6.1.3 | SHOULD | sdk_enabled | behavioural_positive | EU-regulated agents SHOULD set compliance.data_residency to EU | — | — |
 | ASSETS-§6.1.3-02 | 6.1.3 | MUST | deployment | behavioural_positive | Messages with data_residency set MUST be routed through a Compliance Broker in that zone | — | — |
 | ASSETS-§6.1.4-01 | 6.1.4 | MUST | deployment | behavioural_positive | MiFID II audit records MUST be queryable by payment_reference, agents, dates, profile, status, and amount | — | — |
 | ASSETS-§6.1.4-02 | 6.1.4 | MUST | deployment | behavioural_positive | Implementations MUST support at minimum the seven specified MiFID II query fields | — | — |
-| ASSETS-§6.2-01 | 6.2 | MUST | sdk_enabled | behavioural_positive | Infrastructure failures during financial operations MUST generate a DORA incident event | — | — |
+| ASSETS-§6.2-01 | 6.2 | MUST | sdk_enabled | behavioural_positive | Infrastructure failures meeting the incident-candidate criteria MUST generate an ICT incident candidate event (ict_incident) | — | — |
 | ASSETS-§6.2.1-01 | 6.2.1 | MUST | sdk | behavioural_positive | Receiving agent MUST classify each failure as infrastructure or business logic | — | — |
 | ASSETS-§6.2.1-02 | 6.2.1 | MUST | sdk | behavioural_negative | DORA incident events MUST only be generated for infrastructure failures, not business logic | — | — |
 | ASSETS-§6.2.2-01 | 6.2.2 | MUST | sdk_enabled | behavioural_positive | Agent MUST generate a DORA incident event message on infrastructure failure | arsia-dora-incident | ITV-41 |
@@ -269,104 +269,43 @@
 
 ## Coverage Gaps
 
-### Requirements with no enforcement (no schema, no vector)
-| ID | § | Modal | Kind |
-|----|---|-------|------|
-| ASSETS-§Abstract-01 | Abstract | MUST | procedural |
-| ASSETS-§1.2.5-01 | 1.2.5 | MAY | informational |
-| ASSETS-§1.2.6-01 | 1.2.6 | MUST | procedural |
-| ASSETS-§1.3-01 | 1.3 | MUST_NOT | behavioural_negative |
-| ASSETS-§1.3-03 | 1.3 | MUST | behavioural_positive |
-| ASSETS-§2-03 | 2 | MAY | informational |
-| ASSETS-§2.1-07 | 2.1 | MUST | behavioural_positive |
-| ASSETS-§2.2-03 | 2.2 | SHOULD | behavioural_positive |
-| ASSETS-§2.3-04 | 2.3 | SHOULD | procedural |
-| ASSETS-§2.5-01 | 2.5 | MUST | behavioural_positive |
-| ASSETS-§3.1.1-17 | 3.1.1 | MUST | behavioural_positive |
-| ASSETS-§3.1.1-21 | 3.1.1 | MUST | behavioural_positive |
-| ASSETS-§3.1.1-27 | 3.1.1 | SHOULD | behavioural_positive |
-| ASSETS-§3.1.1-29 | 3.1.1 | MUST | behavioural_positive |
-| ASSETS-§3.1.1-30 | 3.1.1 | MUST | behavioural_positive |
-| ASSETS-§3.1.1-35 | 3.1.1 | OPTIONAL | informational |
-| ASSETS-§3.1.1-40 | 3.1.1 | MUST | behavioural_positive |
-| ASSETS-§3.2.1-05 | 3.2.1 | SHOULD | procedural |
-| ASSETS-§3.2.1-13 | 3.2.1 | SHOULD | behavioural_positive |
-| ASSETS-§3.2.1-23 | 3.2.1 | SHOULD | behavioural_positive |
-| ASSETS-§3.3.2-01 | 3.3.2 | RECOMMENDED | behavioural_positive |
-| ASSETS-§3.3.2-02 | 3.3.2 | MAY | behavioural_positive |
-| ASSETS-§3.3.2-03 | 3.3.2 | RECOMMENDED | behavioural_positive |
-| ASSETS-§3.3.2-08 | 3.3.2 | MUST | behavioural_positive |
-| ASSETS-§3.3.2-09 | 3.3.2 | RECOMMENDED | structural |
-| ASSETS-§4.1-05 | 4.1 | SHOULD | behavioural_positive |
-| ASSETS-§4.1-14 | 4.1 | RECOMMENDED | informational |
-| ASSETS-§4.1-15 | 4.1 | RECOMMENDED | informational |
-| ASSETS-§4.1-16 | 4.1 | MAY | behavioural_positive |
-| ASSETS-§4.2.2-01 | 4.2.2 | MUST | behavioural_positive |
-| ASSETS-§4.2.2-02 | 4.2.2 | MUST | behavioural_positive |
-| ASSETS-§4.2.2-03 | 4.2.2 | SHOULD_NOT | behavioural_negative |
-| ASSETS-§4.2.4-01 | 4.2.4 | MUST | behavioural_positive |
-| ASSETS-§4.2.4-02 | 4.2.4 | MUST | behavioural_negative |
-| ASSETS-§4.2.4-03 | 4.2.4 | MUST | structural |
-| ASSETS-§5.1.1-02 | 5.1.1 | MAY | informational |
-| ASSETS-§5.1.1-03 | 5.1.1 | SHOULD | procedural |
-| ASSETS-§5.1.2-01 | 5.1.2 | MUST | behavioural_positive |
-| ASSETS-§5.1.2-02 | 5.1.2 | SHOULD | procedural |
-| ASSETS-§5.1.2-03 | 5.1.2 | SHOULD | procedural |
-| ASSETS-§5.1.2-05 | 5.1.2 | MUST | behavioural_positive |
-| ASSETS-§5.1.2-06 | 5.1.2 | MUST_NOT | behavioural_negative |
-| ASSETS-§5.1.2-07 | 5.1.2 | MAY | informational |
-| ASSETS-§5.1.3-01 | 5.1.3 | MUST | behavioural_positive |
-| ASSETS-§5.1.3-02 | 5.1.3 | MAY | informational |
-| ASSETS-§5.1.3-03 | 5.1.3 | MUST | behavioural_positive |
-| ASSETS-§5.1.4-01 | 5.1.4 | MUST | behavioural_positive |
-| ASSETS-§5.1.4-02 | 5.1.4 | MAY | informational |
-| ASSETS-§5.1.5-01 | 5.1.5 | MUST | behavioural_positive |
-| ASSETS-§5.1.5-02 | 5.1.5 | SHOULD | procedural |
-| ASSETS-§5.1.5-03 | 5.1.5 | RECOMMENDED | informational |
-| ASSETS-§5.1.6-01 | 5.1.6 | MUST | behavioural_positive |
-| ASSETS-§5.1.6-02 | 5.1.6 | MAY | informational |
-| ASSETS-§5.1.7-01 | 5.1.7 | SHOULD | procedural |
-| ASSETS-§5.1.7-02 | 5.1.7 | MAY | informational |
-| ASSETS-§5.1.7-03 | 5.1.7 | SHOULD | behavioural_positive |
-| ASSETS-§5.1.7-04 | 5.1.7 | RECOMMENDED | informational |
-| ASSETS-§5.1.7-05 | 5.1.7 | MUST | behavioural_positive |
-| ASSETS-§5.1.7-06 | 5.1.7 | MAY | informational |
-| ASSETS-§5.2-02 | 5.2 | SHOULD | procedural |
-| ASSETS-§5.2-05 | 5.2 | MAY | informational |
-| ASSETS-§6.1.2-01 | 6.1.2 | MUST | behavioural_positive |
-| ASSETS-§6.1.2-02 | 6.1.2 | MUST_NOT | behavioural_negative |
-| ASSETS-§6.1.2-03 | 6.1.2 | MUST | procedural |
-| ASSETS-§6.1.2-04 | 6.1.2 | MUST | behavioural_positive |
-| ASSETS-§6.1.2-05 | 6.1.2 | MAY | informational |
-| ASSETS-§6.1.3-01 | 6.1.3 | SHOULD | behavioural_positive |
-| ASSETS-§6.1.3-02 | 6.1.3 | MUST | behavioural_positive |
-| ASSETS-§6.1.4-01 | 6.1.4 | MUST | behavioural_positive |
-| ASSETS-§6.1.4-02 | 6.1.4 | MUST | behavioural_positive |
-| ASSETS-§6.2-01 | 6.2 | MUST | behavioural_positive |
-| ASSETS-§6.2.1-01 | 6.2.1 | MUST | behavioural_positive |
-| ASSETS-§6.2.1-02 | 6.2.1 | MUST | behavioural_negative |
-| ASSETS-§6.2.2-09 | 6.2.2 | SHOULD | behavioural_positive |
-| ASSETS-§6.2.2-10 | 6.2.2 | SHOULD | behavioural_positive |
-| ASSETS-§6.2.2-11 | 6.2.2 | RECOMMENDED | informational |
-| ASSETS-§6.2.3-01 | 6.2.3 | MUST | behavioural_positive |
-| ASSETS-§6.3-01 | 6.3 | MUST | behavioural_positive |
-| ASSETS-§6.3-02 | 6.3 | MUST | behavioural_positive |
-| ASSETS-§6.3-03 | 6.3 | MUST | behavioural_positive |
-| ASSETS-§6.3.1-01 | 6.3.1 | MUST | behavioural_positive |
-| ASSETS-§6.3.1-02 | 6.3.1 | MUST_NOT | behavioural_negative |
-| ASSETS-§6.3.1-03 | 6.3.1 | RECOMMENDED | informational |
-| ASSETS-§6.3.1-04 | 6.3.1 | MAY | informational |
-| ASSETS-§6.3.2-01 | 6.3.2 | RECOMMENDED | informational |
-| ASSETS-§6.3.2-02 | 6.3.2 | SHOULD | procedural |
-| ASSETS-§6.3.2-03 | 6.3.2 | MUST | behavioural_positive |
-| ASSETS-§6.3.3-01 | 6.3.3 | MAY | behavioural_positive |
-| ASSETS-§6.3.3-02 | 6.3.3 | MUST | behavioural_positive |
-| ASSETS-§7-01 | 7 | MUST | behavioural_positive |
-| ASSETS-§7-02 | 7 | MAY | informational |
+Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproducible via scripts/rtm_counts.py. Earlier Draft-02 figures counted 91 duplicate rows — the stale Draft-01 "no enforcement" listing had been left in 8-column form and was double-counted; the duplicates are removed and the counts below reflect the deduplicated table.)
 
 ### Summary
-- Total requirements: 256
-- Schema coverage: 128 / 256 (50%)
-- Vector coverage: 141 / 256 (55%)
-- Both: 101 / 256
-- Neither: 88 / 256 ← these are the gaps
+
+| Metric | Count |
+|--------|------:|
+| Total requirements | 262 |
+| Schema ≠ — | 129 |
+| Vector ≠ — | 141 |
+| Both ≠ — | 101 |
+| Both = — (gaps) | 93 |
+
+### Per-section breakdown
+
+| § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
+|---|-------|-----------|-----------|---------|---------|
+| 1 | 9 | 5 | 3 | 3 | 4 |
+| 2 | 25 | 18 | 19 | 17 | 5 |
+| 3 | 105 | 70 | 66 | 46 | 15 |
+| 4 | 33 | 12 | 21 | 12 | 12 |
+| 5 | 36 | 5 | 10 | 5 | 26 |
+| 6 | 49 | 19 | 20 | 18 | 28 |
+| 7 | 4 | 0 | 2 | 0 | 2 |
+| Abstract | 1 | 0 | 0 | 0 | 1 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| amounts = canonical decimal strings; fixed ISO 4217 scale; no negatives | §2, §3.1.1 | 4 asset schemas + audit-record | ITV-573..576, INV-33..36, 68 converted |
+| 1827 standardized | §6.1.2 etc. | — | consistency check |
+| §5.2 rewritten on canonical oversight contract | §5.2 | arsia-message | ASSETS-06 rewrite |
+| human_oversight_status enum → denied/expired | §6.1.1 | mifid-audit-record | ITV-123/145 |
+| MiFID record immutable: updated_at removed; append corrections | §6.1.1 | mifid-audit-record | 6 vectors |
+| Subsequent-receipt delivery mechanism (new request + original_request_id + idempotency) | §3.2.1 | — | integration |
+| regulated_entity trigger for MiFID audit | §6.1 | identity-record | — |
+| audit_id universal: every receipt has a record | §3.2.1 | — | — |
+| escrow taxonomy: 2 terminal states; record base field names | §4.2, §4.3 | audit-record | — |
+| ICT incident candidate (renamed, trigger reworded) | §6.2.2 | arsia-dora-incident (payload arsiaprotocol.ict/incident) | renamed vectors |
+| PSD2/SCA claims qualified | §5.2, §6.3 | — | — |

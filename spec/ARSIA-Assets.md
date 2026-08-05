@@ -3,13 +3,13 @@
 # ARSIA-Assets — Assets Primitive Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4 (message envelope), §10 (idempotency),
+**Draft-02 | July 2026 | References: ARSIA-Core.md §4 (message envelope), §10 (idempotency),
 §11 (error handling), ARSIA-Actions.md §2 (risk levels), §3 (human oversight —
 pending_approval/approval_decision), ARSIA-Identity.md §3.3 (DPoP for proof of possession),
 ARSIA-State.md §6 (compliance profiles), §7 (audit trail format)**
@@ -35,13 +35,13 @@ how do agents transact, under what constraints, and with what accountability.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Assets Primitive. This specification is
+This document specifies Draft-02 of the ARSIA Assets Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/assets/draft-01
+    https://arsiaprotocol.org/spec/assets/draft-02
 
 Comments and issues should be directed to:
 
@@ -111,7 +111,7 @@ account management) require licences under PSD2 Article 11 and national transpos
 ARSIA occupies the first side of that boundary and explicitly excludes the second.
 
 This scope boundary is permanent for the Assets primitive. It is not a limitation of
-Draft-01 that will be relaxed in future versions. It is a design decision that reflects
+Draft-02 that will be relaxed in future versions. It is a design decision that reflects
 the protocol's architectural position: ARSIA sits above transport protocols and below
 the application layer. Payment execution is an application-layer concern that is
 delegated to licensed providers.
@@ -214,10 +214,11 @@ customer authentication when a payer initiates an electronic payment transaction
 customer authentication requires at least two of three factors: knowledge (something the
 user knows), possession (something the user has), and inherence (something the user is).
 ARSIA's existing `pending_approval` and `approval_decision` mechanism (ARSIA-Actions.md
-§3) already provides two of these factors through EdDSA signature verification. This
-section maps the existing mechanism to PSD2 requirements, demonstrating that ARSIA's
-human oversight flow satisfies SCA at the protocol level without requiring additional
-authentication infrastructure.
+§3) provides technical controls that can serve as authentication elements in an
+operator's SCA design. This section maps the existing mechanism to PSD2 requirements.
+Whether a given deployment satisfies SCA is a legal determination for the payment
+service provider, not a property this protocol can confer (§5.1.2, §6.3 — statement
+subject to legal review).
 
 ### 1.2 Explicitly Out of Scope
 
@@ -279,7 +280,7 @@ reconciliation. ARSIA does not prescribe which clearing network the provider use
 Transfer of cryptocurrency, digital assets on distributed ledgers, or interaction with
 decentralised finance (DeFi) protocols.
 
-**Excluded because:** ARSIA v1.0 focuses on regulated fiat currency transfers and
+**Excluded because:** ARSIA v2.0 focuses on regulated fiat currency transfers and
 application-defined value units (tokens, entitlements, service units). Cryptocurrency
 and DeFi protocols introduce regulatory ambiguity (the MiCA Regulation, Regulation
 2023/1114/EU, is still in phased implementation), technical complexity (blockchain
@@ -346,14 +347,14 @@ the declared `asset_type`.
 ASCII letters). Examples: `"EUR"` (Euro), `"USD"` (United States Dollar), `"GBP"`
 (Pound Sterling), `"CHF"` (Swiss Franc), `"SEK"` (Swedish Krona).
 
-**Precision.** The `amount` field MUST have at most 2 decimal places for currency
-transfers. This constraint is REQUIRED and non-negotiable: implementations MUST reject
-AssetTransferRequest messages with `asset_type: "currency"` where the `amount` has more
-than 2 decimal places. The 2-decimal-place constraint reflects the minor unit of the
-vast majority of ISO 4217 currencies. For the small number of currencies with 0 or 3
-minor units (e.g., JPY with 0, KWD with 3), implementations SHOULD use the ISO 4217
-minor unit count but MUST NOT exceed 2 decimal places in the ARSIA message. Rounding
-is the responsibility of the payment provider.
+**Precision.** The `amount` string carries exactly the currency's ISO 4217
+minor-unit digits — a fixed scale with one canonical representation per value
+(§3.1.1). This constraint is REQUIRED and non-negotiable: implementations MUST
+reject `asset_type: "currency"` amounts whose fraction length differs from the
+currency's minor-unit exponent — EUR requires exactly 2 fraction digits
+(`"1500.00"`), JPY exactly 0 (`"1500"`), KWD exactly 3 (`"1500.000"`). No rounding
+is ever performed by any party: an amount at the wrong scale is rejected, never
+adjusted.
 
 **Regulatory applicability.** Currency transfers are subject to:
 
@@ -370,7 +371,7 @@ is the responsibility of the payment provider.
 asset_type = "currency"
 currency_or_unit MUST match ^[A-Z]{3}$
 amount MUST be > 0
-amount MUST have ≤ 2 decimal places
+amount string MUST carry exactly the ISO 4217 minor-unit digits of the currency
 ```
 
 ### 2.2 Token
@@ -383,11 +384,11 @@ general-purpose value units whose semantics are defined by the issuing applicati
 Examples: API credits, compute units, SaaS subscription tokens, loyalty points,
 in-application virtual currency.
 
-**Precision.** The `amount` field MAY have up to 8 decimal places. Implementations MUST
-reject amounts with more than 8 decimal places.
+**Precision.** The `amount` string MAY have up to 8 fraction digits. Implementations MUST
+reject amounts with more than 8 fraction digits.
 
 **Regulatory applicability.** Token transfers are subject to general ARSIA audit
-requirements (audit_required, retention_days) as determined by the applicable compliance
+requirements (audit_required, retention) as determined by the applicable compliance
 profile. Tokens are NOT subject to financial regulation under MiFID II, PSD2, or DORA
 unless the token qualifies as an electronic money instrument under the Electronic Money
 Directive (EMD2, Directive 2009/110/EC) or as a payment instrument under PSD2. The
@@ -406,7 +407,7 @@ of the operator.
 asset_type = "token"
 currency_or_unit MUST be a non-empty string, maxLength 32
 amount MUST be > 0
-amount MUST have ≤ 8 decimal places
+amount string MUST have ≤ 8 fraction digits
 ```
 
 ### 2.3 Entitlement
@@ -419,7 +420,7 @@ are discrete grants — they are typically counted in integer units (seats, mont
 licences) rather than fractional amounts. Examples: SaaS seat licences, data feed
 subscriptions, premium tier access grants, conference passes, support plan activations.
 
-**Precision.** The `amount` field SHOULD be an integer (no decimal places). Fractional
+**Precision.** The `amount` string SHOULD be an integer (no fraction part). Fractional
 entitlements are permitted (e.g., 0.5 of a licence representing a half-year
 subscription) but are NOT RECOMMENDED. When fractional amounts are used, precision
 MUST NOT exceed 2 decimal places.
@@ -437,7 +438,7 @@ asset_type = "entitlement"
 currency_or_unit MUST be a non-empty string, maxLength 32
 amount MUST be > 0
 amount SHOULD be an integer
-amount MUST have ≤ 2 decimal places if fractional
+amount string MUST have ≤ 2 fraction digits if fractional
 ```
 
 ### 2.4 Service Unit
@@ -449,7 +450,7 @@ being allocated. Service units represent measurable work or resource usage. Exam
 API calls completed, compute hours consumed, storage GB-months provisioned, bandwidth
 TB transferred, inference tokens processed, GPU-hours allocated.
 
-**Precision.** The `amount` field MAY have up to 4 decimal places. This accommodates
+**Precision.** The `amount` string MAY have up to 4 fraction digits. This accommodates
 fine-grained metering (e.g., 0.0001 GPU-hours) while preventing excessive precision
 that would complicate reconciliation.
 
@@ -466,16 +467,16 @@ end-to-end audit trail reconstruction.
 asset_type = "service_unit"
 currency_or_unit MUST be a non-empty string, maxLength 32
 amount MUST be > 0
-amount MUST have ≤ 4 decimal places
+amount string MUST have ≤ 4 fraction digits
 ```
 
 ### 2.5 Asset Type Registry
 
 The following table summarises the normative properties of each asset type:
 
-| Asset Type     | Identifier       | Unit Format         | Max Decimals | MiFID II | PSD2 | DORA | Audit |
-|----------------|------------------|---------------------|--------------|----------|------|------|-------|
-| Currency       | `"currency"`     | ISO 4217 code       | 2            | YES      | YES  | YES  | MUST  |
+| Asset Type     | Identifier       | Unit Format         | Decimals (scale) | MiFID II | PSD2 | DORA | Audit |
+|----------------|------------------|---------------------|------------------|----------|------|------|-------|
+| Currency       | `"currency"`     | ISO 4217 code       | exactly the ISO 4217 minor-unit exponent (0–3; §2.1, §3.1.1) | YES      | YES  | YES  | MUST  |
 | Token          | `"token"`        | Application-defined | 8            | NO*      | NO*  | NO*  | SHOULD |
 | Entitlement    | `"entitlement"`  | Application-defined | 2            | NO       | NO   | NO   | SHOULD |
 | Service Unit   | `"service_unit"` | Application-defined | 4            | NO       | NO   | NO   | SHOULD |
@@ -523,19 +524,56 @@ every field is REQUIRED.
 
 ##### `amount`
 
-- **Type:** number
+- **Type:** string (canonical decimal)
 - **REQUIRED.**
-- **Constraints:** A positive number representing the value to transfer. The value MUST
-  be strictly greater than zero. Precision constraints depend on the `asset_type`:
-  - `"currency"`: maximum 2 decimal places.
-  - `"token"`: maximum 8 decimal places.
-  - `"entitlement"`: SHOULD be integer; maximum 2 decimal places if fractional.
-  - `"service_unit"`: maximum 4 decimal places.
-- **Validation:** Implementations MUST reject requests where `amount` ≤ 0 with error
-  code `invalid_request` and description `"amount must be greater than zero"`.
-  Implementations MUST reject requests where the decimal precision exceeds the maximum
-  for the declared `asset_type` with error code `invalid_request` and description
-  `"amount precision exceeds maximum for asset type {asset_type}"`.
+- **Grammar (ABNF):**
+
+  ```
+  amount          = integer [fraction]
+  integer         = "0" / non-zero-digit *DIGIT
+  fraction        = "." 1*DIGIT
+  non-zero-digit  = %x31-39
+  ```
+
+  Exponent notation, a leading `+`, a sign, whitespace, thousands separators,
+  decimal commas, leading zeros (other than the single `"0"` of a zero integer
+  part), `NaN`, and `Infinity` MUST NOT be used. The total length MUST NOT exceed
+  36 characters and the integer part MUST NOT exceed 16 digits.
+
+- **Constraints:** A positive decimal string representing the value to transfer —
+  the value MUST be strictly greater than zero. Amounts are strings, not JSON
+  numbers, because JSON numbers are IEEE-754 doubles and their canonical form (RFC
+  8785) does not preserve decimal scale (`1500.00` → `1500`) — unacceptable for
+  financial amounts inside signed messages and audit records (RFC 8785 §3.1
+  recommends strings for values requiring such precision). Implementations MUST
+  process amounts with arbitrary-precision decimal or integer minor-unit
+  arithmetic and MUST NOT convert them through binary floating point.
+
+  Scale (number of fraction digits) depends on the `asset_type`:
+  - `"currency"`: the fraction MUST contain **exactly** the ISO 4217 minor-unit
+    digits of the declared currency — fixed scale, one canonical representation
+    per value: EUR `"1500.00"`, JPY `"1500"` (scale 0: no fraction part), KWD
+    `"1500.000"`. If the applicable ISO 4217 entry defines no numeric minor-unit
+    exponent, the amount MUST be rejected unless a profile or the ActionDescriptor
+    defines an explicit scale. The ISO 4217 catalog edition in force is declared
+    in the agent's discovery metadata (`iso4217_edition`, ARSIA-Core.md §7.1);
+    when sender and receiver declare different editions, the receiver's edition
+    governs validation and the mismatch SHOULD be logged.
+  - `"token"`: maximum 8 fraction digits.
+  - `"entitlement"`: SHOULD be an integer; maximum 2 fraction digits if
+    fractional.
+  - `"service_unit"`: maximum 4 fraction digits.
+
+- **Validation:** Implementations MUST reject requests whose `amount` violates the
+  grammar or the applicable scale with error code `invalid_request` and description
+  `"amount precision exceeds maximum for asset type {asset_type}"` (or
+  `"amount must be greater than zero"` for zero/absent value). Negative amounts do
+  not exist in this protocol: reversals are expressed by the reversal operation
+  type with a positive `reversal_amount` (§3.3), never by a negative transfer.
+
+  *Draft-01 compatibility:* Draft-01 encoded `amount` as a JSON number; Draft-02
+  (wire 2.0) rejects numeric amounts with a schema type error so legacy senders
+  fail loudly at validation. `1500.00` (number) migrates to `"1500.00"` (string).
 
 ##### `currency_or_unit`
 
@@ -677,12 +715,13 @@ currency transfer:
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "ts": "2026-03-24T14:30:00.000Z",
   "from": "agent:acme.billing",
   "to": "agent:acme.transfer-processor",
   "intent": "request",
+  "authorization": { "token_hash": "sha-256:abababababababababababababababababababababababababababababababab", "proof_type": "bearer" },
   "expires_at": "2026-03-24T14:35:00.000Z",
   "capabilities": ["arsiaprotocol.assets.transfer.initiate"],
   "idempotency": {
@@ -702,14 +741,14 @@ currency transfer:
     "profile": "MIFID-II",
     "data_residency": "EU",
     "audit_required": true,
-    "retention_days": 1825,
+    "retention": "P1827D",
     "human_oversight": "required_before_execution"
   },
   "payload": {
     "type": "arsiaprotocol.assets/transfer-request",
     "version": "1.0",
     "args": {
-      "amount": 1500.00,
+      "amount": "1500.00",
       "currency_or_unit": "EUR",
       "asset_type": "currency",
       "from_agent": "agent:acme.billing",
@@ -733,7 +772,7 @@ The following example shows an AssetTransferRequest for a token transfer (API cr
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "a1b2c3d4-5678-4abc-9012-def345678901",
   "ts": "2026-03-24T15:00:00.000Z",
   "from": "agent:acme.billing",
@@ -754,7 +793,7 @@ The following example shows an AssetTransferRequest for a token transfer (API cr
     "type": "arsiaprotocol.assets/transfer-request",
     "version": "1.0",
     "args": {
-      "amount": 50000,
+      "amount": "50000",
       "currency_or_unit": "api-credits",
       "asset_type": "token",
       "from_agent": "agent:acme.billing",
@@ -801,9 +840,38 @@ every field is REQUIRED.
 
   - **`"pending"`**: The transfer request has been accepted and forwarded to the payment
     provider for execution. The transfer has not yet settled. A subsequent
-    AssetTransferReceipt with status `"completed"` or `"failed"` SHOULD follow when
-    the provider reports the outcome. The `"pending"` status is transient: it indicates
+    AssetTransferReceipt with status `"completed"` or `"failed"` MUST follow when
+    the provider reports the outcome, delivered per the subsequent-receipt
+    mechanism below. The `"pending"` status is transient: it indicates
     that the protocol has accepted the request but cannot yet confirm the outcome.
+
+    **Subsequent-receipt delivery (normative).** Because an interaction has exactly
+    one direct response per request (ARSIA-Core.md §4.1.6/§8.1), every receipt
+    after the first is delivered as a **new `request` message** from the transfer
+    processor to the original requester:
+
+    | Field             | Value                                                        |
+    |-------------------|--------------------------------------------------------------|
+    | `intent`          | `"request"`                                                  |
+    | `from` / `to`     | processor → original requester                               |
+    | `root_request_id` | absent on this new request; instead `payload.args.original_request_id` MUST equal the ORIGINAL transfer request's `id`, tying the receipt to the interaction for audit queries |
+    | `payload.type`    | `"arsiaprotocol.assets/transfer-receipt"`                    |
+    | `payload.args`    | the AssetTransferReceipt object (same shape as the first receipt's `payload.result`), plus `original_request_id` |
+    | `idempotency.key` | `"receipt:{payment_reference}:{status}"` — re-delivery of the same terminal receipt deduplicates (ARSIA-Core.md §10) |
+    | `capabilities`    | `["arsiaprotocol.assets.transfer.initiate"]` (the processor reports on the flow this capability opened) |
+
+    The requester MUST acknowledge with a `response` (empty `result` object is
+    sufficient). **Delivery failure:** the processor retries per
+    ARSIA-Core.md §11.3; after retries are exhausted it MUST record a
+    `delivery_failed` audit event and MUST keep the receipt retrievable via the
+    status URL of the original response (ARSIA-Actions.md §4.3) until the
+    receipt's retention period expires — polling is the fallback channel, not the
+    primary one. **Terminal statuses:** exactly one of `"completed"` or
+    `"failed"` terminates a `"pending"` transfer; for escrow, `"escrowed"` is
+    followed by exactly one release/return/cancellation receipt (§4.2), delivered
+    by this same mechanism. A subsequent receipt whose `original_request_id`
+    matches no known transfer MUST be rejected with `invalid_request`; duplicates
+    are absorbed by idempotency.
 
   - **`"completed"`**: The transfer has been executed and settled at the payment
     provider. The funds (or tokens, entitlements, service units) have been credited to
@@ -843,7 +911,7 @@ every field is REQUIRED.
 
 ##### `amount`
 
-- **Type:** number
+- **Type:** string (canonical decimal, same grammar and scale rules as the request `amount`, §3.1.1)
 - **REQUIRED.**
 - **Constraints:** The actual amount processed by the provider. In the common case,
   this equals the requested amount. It MAY differ from the requested amount in cases
@@ -904,10 +972,16 @@ every field is REQUIRED.
 - **Format:** UUID version 4 per [RFC 9562].
 - **REQUIRED.**
 - **Constraints:** References the audit record for this transfer in the agent's audit
-  trail. For asset transfers that meet the conditions in §6.1, an audit record MUST be
-  generated regardless of the `audit_required` flag in the compliance object. The `audit_id` provides a direct link from the receipt message to
-  the audit storage, enabling auditors to retrieve the full audit record without
-  searching by payment_reference or date range.
+  trail. **Every AssetTransferReceipt MUST have a corresponding audit record** — an
+  `ArsiaAuditRecord` with the applicable asset event type (ARSIA-State.md §7.1) —
+  regardless of asset type, compliance profile, or the `audit_required` flag:
+  because `audit_id` is REQUIRED on every receipt, the record it references must
+  exist for every transfer, not only for those meeting the §6.1 MiFID conditions
+  (which additionally require the richer MiFID record). For transfers outside any
+  compliance profile, the record's retention follows the platform default
+  (`retention_source: "platform-default"`). The `audit_id` provides a direct link
+  from the receipt message to the audit storage, enabling auditors to retrieve the
+  full audit record without searching by payment_reference or date range.
 
 #### 3.2.2 Complete AssetTransferReceipt Example
 
@@ -916,13 +990,15 @@ transfer:
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "b2c3d4e5-6789-4bcd-a012-ef4567890123",
   "ts": "2026-03-24T14:30:12.345Z",
   "from": "agent:acme.transfer-processor",
   "to": "agent:acme.billing",
   "intent": "response",
+  "authorization": { "token_hash": "sha-256:abababababababababababababababababababababababababababababababab", "proof_type": "bearer" },
   "correlation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "root_request_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "security": {
     "alg": "EdDSA",
     "kid": "agent:acme.transfer-processor#key1",
@@ -932,7 +1008,7 @@ transfer:
     "profile": "MIFID-II",
     "data_residency": "EU",
     "audit_required": true,
-    "retention_days": 1825
+    "retention": "P1827D"
   },
   "payload": {
     "type": "arsiaprotocol.assets/transfer-receipt",
@@ -941,7 +1017,7 @@ transfer:
       "status": "completed",
       "payment_reference": "acme-2026-00042",
       "provider_reference": "SEPA-UETR-2026-03-24-abcdef12",
-      "amount": 1500.00,
+      "amount": "1500.00",
       "currency_or_unit": "EUR",
       "initiated_at": "2026-03-24T14:30:05.123Z",
       "settled_at": "2026-03-24T14:30:11.456Z",
@@ -955,13 +1031,14 @@ transfer:
 
 ```json
 {
-  "v": "1.0",
-  "id": "d4e5f6a7-8901-4def-c234-567890123456",
+  "v": "2.0",
+  "id": "d4e5f6a7-8901-4def-8234-567890123456",
   "ts": "2026-03-24T14:30:35.678Z",
   "from": "agent:acme.transfer-processor",
   "to": "agent:acme.billing",
   "intent": "response",
   "correlation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "root_request_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "security": {
     "alg": "EdDSA",
     "kid": "agent:acme.transfer-processor#key1",
@@ -973,7 +1050,7 @@ transfer:
     "result": {
       "status": "failed",
       "payment_reference": "acme-2026-00042",
-      "amount": 1500.00,
+      "amount": "1500.00",
       "currency_or_unit": "EUR",
       "initiated_at": "2026-03-24T14:30:05.123Z",
       "failure_reason": "Provider timeout — SEPA Credit Transfer endpoint unreachable after 30s. Provider: agent:europa.payments.sepa. HTTP status: 504.",
@@ -1042,7 +1119,7 @@ that the chain of events from original transfer through reversal is fully tracea
 
 ##### `reversal_amount`
 
-- **Type:** number
+- **Type:** string (canonical decimal, same grammar and scale rules as `amount`, §3.1.1; always positive — the reversal direction is expressed by the operation, never by a sign)
 - **OPTIONAL.**
 - **Constraints:** The amount to reverse. When present and less than the original
   transfer's `amount`, this is a partial reversal. When present and equal to the
@@ -1115,8 +1192,8 @@ The reversal audit record MUST reference the original transfer's `audit_id` and
 
 ```json
 {
-  "v": "1.0",
-  "id": "f6a7b8c9-0123-4f01-e456-789012345678",
+  "v": "2.0",
+  "id": "f6a7b8c9-0123-4f01-a456-789012345678",
   "ts": "2026-03-25T09:15:00.000Z",
   "from": "agent:acme.compliance-officer",
   "to": "agent:acme.transfer-processor",
@@ -1135,7 +1212,7 @@ The reversal audit record MUST reference the original transfer's `audit_id` and
   "compliance": {
     "profile": "MIFID-II",
     "audit_required": true,
-    "retention_days": 1825
+    "retention": "P1827D"
   },
   "payload": {
     "type": "arsiaprotocol.assets/transfer-reversal",
@@ -1262,7 +1339,11 @@ every field is REQUIRED.
 
 ### 4.2 Escrow Lifecycle
 
-An escrow has exactly one initial state and three possible terminal states. The
+An escrow has exactly one initial state (`ESCROWED`), one intermediate state
+(`DISPUTED` — the timeout clock is suspended while a dispute is open, §4.2.3), and
+exactly two terminal states: `RELEASED` and `RETURNED`. Cancellation (§4.2.4) is a
+transition path that terminates in `RETURNED`, not a distinct terminal state; a
+dispute resolves to `RELEASED` or `RETURNED`. The
 lifecycle is deterministic: given the escrow conditions and the sequence of messages
 received, the terminal state is uniquely determined.
 
@@ -1380,7 +1461,7 @@ The dispute message's `payload.args` MUST include:
 protocol provides the signaling infrastructure; the dispute resolution logic is an
 application-layer concern.
 
-#### 4.2.4 ESCROWED → CANCELLED
+#### 4.2.4 ESCROWED → RETURNED (cancellation)
 
 **Trigger.** The agent that created the escrow (`from_agent`) sends a cancellation
 message to the escrow holder.
@@ -1420,7 +1501,8 @@ requests from other agents MUST be rejected with error code `"forbidden"`.
 ### 4.3 Escrow Audit Trail
 
 Every escrow state transition MUST generate an audit record. These audit records form a
-complete, immutable history of the escrow lifecycle that can be reconstructed by
+append-only history of the escrow lifecycle (tamper evidence bounded per
+ARSIA-State.md §7.2) that can be reconstructed by
 auditors and compliance officers.
 
 #### 4.3.1 Escrow Creation
@@ -1438,8 +1520,8 @@ Generated when the initial AssetTransferReceipt with `status: "escrowed"` is pro
 | `to_agent`         | The payee's agent-id                                        |
 | `release_agent`    | The authorised release agent's agent-id                     |
 | `timeout_at`       | The escrow deadline                                         |
-| `audit_id`         | UUID v4 — the audit record identifier                       |
-| `timestamp`        | RFC 3339 — when the escrow was created                      |
+| `record_id`        | UUID v4 — the audit record identifier (ArsiaAuditRecord base field; Draft-01's `audit_id` label) |
+| `processed_at`     | RFC 3339 — when the escrow was created (ArsiaAuditRecord base field) |
 
 #### 4.3.2 Escrow Release
 
@@ -1452,9 +1534,9 @@ Generated when the escrow transitions from `ESCROWED` to `RELEASED`.
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `released_by`      | The agent-id that sent the release trigger                  |
 | `release_trigger`  | The payload.type of the release message                     |
-| `original_audit_id`| The `audit_id` from the escrow creation record              |
-| `audit_id`         | UUID v4 — new audit record identifier for the release event |
-| `timestamp`        | RFC 3339 — when the release occurred                        |
+| `original_audit_id`| The `record_id` of the escrow creation record (§4.3.1)      |
+| `record_id`        | UUID v4 — new audit record identifier for the release event (ArsiaAuditRecord base field) |
+| `processed_at`     | RFC 3339 — when the release occurred (ArsiaAuditRecord base field) |
 
 #### 4.3.3 Escrow Timeout/Return
 
@@ -1467,9 +1549,9 @@ Generated when the escrow transitions from `ESCROWED` to `RETURNED`.
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `timeout_at`       | The original deadline that was reached                      |
 | `actual_timeout`   | RFC 3339 — the actual time the timeout was processed        |
-| `original_audit_id`| The `audit_id` from the escrow creation record              |
-| `audit_id`         | UUID v4 — new audit record identifier for the timeout event |
-| `timestamp`        | RFC 3339 — when the return was processed                    |
+| `original_audit_id`| The `record_id` of the escrow creation record (§4.3.1)      |
+| `record_id`        | UUID v4 — new audit record identifier for the timeout event (ArsiaAuditRecord base field) |
+| `processed_at`     | RFC 3339 — when the return was processed (ArsiaAuditRecord base field) |
 
 #### 4.3.4 Escrow Dispute
 
@@ -1483,9 +1565,9 @@ Generated when the escrow transitions from `ESCROWED` to `DISPUTED`.
 | `disputed_by`      | The agent-id of the disputing party                         |
 | `dispute_reason`   | The human-readable dispute reason                           |
 | `arbitration_agent`| The agent-id of the arbitration agent                       |
-| `original_audit_id`| The `audit_id` from the escrow creation record              |
-| `audit_id`         | UUID v4 — new audit record identifier for the dispute event |
-| `timestamp`        | RFC 3339 — when the dispute was raised                      |
+| `original_audit_id`| The `record_id` of the escrow creation record (§4.3.1)      |
+| `record_id`        | UUID v4 — new audit record identifier for the dispute event (ArsiaAuditRecord base field) |
+| `processed_at`     | RFC 3339 — when the dispute was raised (ArsiaAuditRecord base field) |
 
 ---
 
@@ -1705,22 +1787,26 @@ The receiving agent responds with a `pending_approval` message (ARSIA-Actions.md
 {
   "intent": "pending_approval",
   "correlation_id": "<AssetTransferRequest.id>",
+  "root_request_id": "<AssetTransferRequest.id>",
   "expires_at": "<approval deadline>",
   "payload": {
     "type": "arsiaprotocol.oversight/pending",
-    "result": {
+    "args": {
       "action_id": "arsiaprotocol.assets/transfer-request",
-      "risk_level": 8,
-      "reason": "Transfer amount EUR 1,500.00 exceeds threshold for automatic execution",
-      "human_oversight_required": true,
-      "summary": "Transfer EUR 1,500.00 from agent:acme.billing to agent:contoso.treasury via agent:europa.payments.sepa. Purpose: MiFID II suitability assessment fee."
+      "original_request_id": "<AssetTransferRequest.id>",
+      "approval_deadline": "<RFC 3339 timestamp — latest time approval will be accepted>",
+      "approver_capability": "arsiaprotocol.oversight.approve",
+      "context": "Transfer EUR 1500.00 from agent:acme.billing to agent:contoso.treasury via agent:europa.payments.sepa. Purpose: MiFID II suitability assessment fee. Amount exceeds threshold for automatic execution.",
+      "risk_level": 8
     }
   }
 }
 ```
 
-The `pending_approval` message MUST include a human-readable `summary` of the transfer
-to enable the approver to make an informed decision without consulting the original
+The payload uses `payload.args` with exactly the canonical field set of
+ARSIA-Actions.md §3.2 — there is no Assets-specific `pending_approval` shape. The
+`context` field MUST carry a human-readable description of the transfer sufficient
+for the approver to make an informed decision without consulting the original
 request.
 
 #### Step 4: Approval Decision
@@ -1732,19 +1818,30 @@ capabilities sends an `approval_decision` message (ARSIA-Actions.md §3.3):
 {
   "intent": "approval_decision",
   "correlation_id": "<pending_approval.id>",
+  "root_request_id": "<AssetTransferRequest.id>",
+  "capabilities": ["arsiaprotocol.oversight.approve"],
   "payload": {
     "type": "arsiaprotocol.oversight/decision",
     "result": {
       "decision": "approved",
-      "approver": "agent:acme.senior-compliance",
-      "justification": "Transfer approved — within MiFID II client suitability parameters"
+      "approver_id": "agent:acme.senior-compliance",
+      "reason": "Transfer approved — within MiFID II client suitability parameters",
+      "conditions": null
     }
   }
 }
 ```
 
+The payload uses the canonical `approval_decision` result of ARSIA-Actions.md §3.3
+(`decision` ∈ `"approved" | "denied"`, `approver_id`, `reason`, `conditions`); the
+envelope carries `arsiaprotocol.oversight.approve` in `capabilities` and correlates
+to the `pending_approval` message, per Actions §3.3.
+
 The `approval_decision` message MUST be signed by the approver's Ed25519 key. The
-signature provides the possession factor for PSD2 Strong Customer Authentication (§6.3).
+signature is a technical control that CAN serve as a possession element in an
+operator's PSD2 Strong Customer Authentication design (§6.3); whether a given
+deployment satisfies SCA is a legal determination for the payment service provider,
+not a property this protocol can confer (statement subject to legal review).
 
 #### Step 5: Execution
 
@@ -1752,34 +1849,52 @@ Only after receiving an `approval_decision` with `decision: "approved"` does the
 transfer processor forward the transfer to the payment provider for execution. The
 transfer proceeds through the normal receipt flow (§3.2).
 
-If the `approval_decision` has `decision: "rejected"`, the transfer processor responds
+If the `approval_decision` has `decision: "denied"`, the transfer processor responds
 with an AssetTransferReceipt with `status: "failed"` and `failure_reason: "Transfer
-rejected by human oversight — {justification}"`.
+denied by human oversight — {reason}"`. An `approval_decision` whose `decision`
+value is not `"approved"` or `"denied"`, whose `correlation_id` does not match the
+outstanding `pending_approval`, or whose token lacks the required capabilities MUST
+be rejected with `invalid_request`/`forbidden` per ARSIA-Actions.md §3.4 and MUST
+NOT execute the transfer.
 
 If no `approval_decision` is received before the `pending_approval`'s `expires_at`
 deadline, the transfer processor responds with an AssetTransferReceipt with
 `status: "failed"` and `failure_reason: "Approval timeout — no approval_decision
 received within deadline"`.
 
-#### Two-Party Authorisation and PSD2
+#### Two-Party Authorisation and PSD2 (qualified)
 
-This flow satisfies PSD2 Article 97 (Strong Customer Authentication) at the protocol
-level. The two authentication factors provided are:
+This flow provides technical controls that an operator MAY use as building blocks
+in a PSD2 Article 97 Strong Customer Authentication design. The protocol does NOT,
+by itself, satisfy SCA, and this specification makes no legal claim that it does
+(statement subject to legal review). In particular, the RTS on SCA (Commission
+Delegated Regulation (EU) 2018/389) requires elements that the protocol layer
+cannot demonstrate on its own:
 
-1. **Knowledge factor:** The approver's agent identity is verified through the
-   `approval_decision` message's `from` field and the corresponding access token's
-   `sub` claim. The Authorization Server has authenticated the approver's identity
-   before issuing the token (ARSIA-Core.md §6.2).
+- **Payer authentication:** SCA authenticates the payment service USER. The
+  Authorization Server authenticating an approver AGENT (ARSIA-Core.md §6.2) is
+  evidence only insofar as the operator's identity proofing binds that agent to
+  the natural person and meets the RTS knowledge/possession/inherence element
+  definitions — an operator-side property.
+- **Element independence:** the RTS requires that breach of one element does not
+  compromise the others. An agent holding both its token and its signing key does
+  not automatically provide two independent elements.
+- **Dynamic linking (Art. 97(2)/RTS Art. 5):** the authentication code must be
+  specific to the amount and the payee and visibly presented to the payer. The
+  signed `approval_decision`'s chain to the transfer (`root_request_id`,
+  `payload.args.context` carrying amount and payee) provides material an operator
+  can use for dynamic linking, but presentation to the payer happens in the
+  operator's UI, outside the protocol.
+- **Exemptions (RTS Arts. 10-18):** low-value, trusted-beneficiary, and recurring
+  exemptions have conditions (cumulative limits, counters) that the protocol does
+  not track; `exemption_reason` (§6.1.1) records the operator's determination, it
+  does not make it.
 
-2. **Possession factor:** The approver's Ed25519 private key is used to sign the
-   `approval_decision` message. The signature proves that the approver possesses the
-   private key corresponding to the public key published in their JWKS endpoint
-   (ARSIA-Core.md §7.3). The private key is the possession factor.
-
-The protocol does NOT mandate a third factor (inherence — biometric verification).
-Implementations MAY add biometric verification in the approval user interface (e.g.,
-fingerprint or face recognition before the approval agent sends the `approval_decision`).
-This is an implementation concern, not a protocol concern.
+What the protocol DOES provide: an authenticated, signed, capability-gated,
+audit-recorded human approval step with cryptographic binding to the specific
+transfer — evidence an operator's compliance programme can build on. Inherence
+(biometrics) is an implementation concern in the approval interface, outside the
+protocol.
 
 ---
 
@@ -1797,7 +1912,11 @@ For ALL AssetTransferRequest messages where one or more of the following conditi
 
 - The message's `compliance.profile` field is `"MIFID-II"`, OR
 - The `asset_type` is `"currency"` AND either the `from_agent` or `to_agent` is an
-  EU-regulated entity (as declared in their IdentityRecord per ARSIA-Identity.md §1.2),
+  EU-regulated financial entity, as declared by the `regulated_entity` field of its
+  IdentityRecord (ARSIA-Identity.md §1.2). When `regulated_entity` is absent on both
+  parties, this condition is met only if the message's resolved compliance profile is
+  `MIFID-II` (a party transacting under MiFID II treats itself as regulated for this
+  purpose),
   OR
 - The `compliance.audit_required` field is `true` AND the transfer relates to
   investment services or activities as defined in MiFID II Annex I Section A
@@ -1814,8 +1933,8 @@ All fields are REQUIRED unless marked OPTIONAL.
 | `receipt_message_id`     | UUID v4    | The `id` of the AssetTransferReceipt message. OPTIONAL — absent if the receipt has not yet been generated. | Receipt envelope `id`     |
 | `from_agent`             | string     | The payer's agent-id.                                                                           | `payload.args.from_agent`             |
 | `to_agent`               | string     | The payee's agent-id.                                                                           | `payload.args.to_agent`               |
-| `amount`                 | number     | The requested transfer amount.                                                                  | `payload.args.amount`                 |
-| `actual_amount`          | number     | The actual amount processed. OPTIONAL — absent if the transfer has not yet completed.            | Receipt `payload.result.amount`       |
+| `amount`                 | string     | The requested transfer amount (canonical decimal string, §3.1.1).                               | `payload.args.amount`                 |
+| `actual_amount`          | string     | The actual amount processed (canonical decimal string). OPTIONAL — absent if the transfer has not yet completed. | Receipt `payload.result.amount`       |
 | `currency_or_unit`       | string     | The currency code or unit identifier.                                                           | `payload.args.currency_or_unit`       |
 | `asset_type`             | string     | The asset type enum value.                                                                      | `payload.args.asset_type`             |
 | `payment_reference`      | string     | The unique payment reference.                                                                   | `payload.args.payment_reference`      |
@@ -1827,12 +1946,11 @@ All fields are REQUIRED unless marked OPTIONAL.
 | `compliance_profile`     | string     | The compliance profile applied to this transfer.                                                | Envelope `compliance.profile`         |
 | `data_residency`         | string     | The data residency zone. OPTIONAL.                                                              | Envelope `compliance.data_residency`  |
 | `payload_hash`           | string     | SHA-256 hash of the RFC 8785 canonicalized payload. NOT the raw payload — the canonical form ensures deterministic hashing. | Computed                              |
-| `human_oversight_status` | string     | `"not_required"`, `"pending"`, `"approved"`, `"rejected"`, or `"timeout"`. Indicates whether human oversight was triggered and its outcome. | Derived from oversight flow           |
+| `human_oversight_status` | string     | `"not_required"`, `"pending"`, `"approved"`, `"denied"`, or `"expired"`. Indicates whether human oversight was triggered and its outcome. Values align with the canonical oversight enums of ARSIA-Actions.md §3.3 and ARSIA-State.md §7.1. | Derived from oversight flow           |
 | `approver_id`            | string     | The agent-id of the agent that approved the transfer. OPTIONAL — present only when oversight was required and approval was granted. | `approval_decision` envelope `from`   |
 | `approval_timestamp`     | RFC 3339   | When the approval was granted. OPTIONAL — present only when `approver_id` is present.           | `approval_decision` envelope `ts`     |
 | `exemption_reason`       | string     | SCA exemption justification. OPTIONAL — present when the transfer was exempt from Strong Customer Authentication per §6.3. Records the reason the exemption was applied (e.g., `"low_value_transaction"`, `"trusted_beneficiary"`, `"recurring_transaction"`). | Compliance officer |
-| `created_at`             | RFC 3339   | When this audit record was created.                                                             | Generated                             |
-| `updated_at`             | RFC 3339   | When this audit record was last updated. Updated when the receipt is received.                   | Generated                             |
+| `created_at`             | RFC 3339   | When this audit record was created. MiFID audit records are immutable (§6.1.2): lifecycle progress (e.g. receipt arrival) is recorded by APPENDING a correction/completion record referencing the original via `original_audit_id`, never by updating in place. | Generated                             |
 
 #### 6.1.2 Retention
 
@@ -1840,7 +1958,7 @@ MiFID II Article 16(7), as implemented through Commission Delegated Regulation (
 2017/565, Article 72, requires investment firms to retain records of all services,
 activities, and transactions for a period of at least five years.
 
-**Retention period:** 1825 days (5 years) MINIMUM.
+**Retention period:** 1827 days (5 years) MINIMUM.
 
 This retention period applies to:
 
@@ -1855,14 +1973,14 @@ Implementations MUST ensure that retained audit records are immutable — once w
 they MUST NOT be modified or deleted. Corrections MUST be implemented by appending a
 new audit record that references the original (similar to accounting journal entries).
 
-Implementations MUST support extending the retention period beyond 1825 days when
+Implementations MUST support extending the retention period beyond 1827 days when
 required by national transposition of MiFID II or by the competent authority's specific
-requirements. The `retention_days` field in the compliance object (ARSIA-Core.md
+requirements. The `retention` field in the compliance object (ARSIA-Core.md
 §4.3.6) MAY specify a longer period.
 
 #### 6.1.3 Data Residency
 
-When agents are EU-regulated entities, the `compliance.data_residency` field SHOULD be
+When agents declare `regulated_entity` status, the `compliance.data_residency` field SHOULD be
 set to `"EU"`. This ensures that the audit records are stored within the European Union,
 satisfying both MiFID II record-keeping requirements (which require records to be
 accessible to competent authorities) and GDPR data transfer restrictions (which limit
@@ -1935,10 +2053,18 @@ failures (which indicate normal operational outcomes).
 The receiving agent MUST classify each failure as infrastructure or business logic and
 MUST only generate DORA incident events for infrastructure failures.
 
-#### 6.2.2 DORA Incident Event Format
+#### 6.2.2 ICT Incident Candidate Event Format
 
-When an infrastructure failure occurs during a financial operation, the agent MUST
-generate a DORA incident event message with the following structure:
+When an infrastructure (ICT) failure occurs during a financial operation and meets
+the agent's incident-candidate criteria — the failure persists after the configured
+retries (ARSIA-Core.md §11.3), or affects multiple operations, or the operator's
+incident policy so directs — the agent MUST generate an **ICT incident candidate**
+event with the structure below. The event name is deliberately NOT "DORA incident":
+the event records a candidate for the operator's DORA incident-management process;
+whether it constitutes a reportable DORA incident (major/significant classification,
+notification duties) is the operator's compliance function's determination (§6.2.4),
+never the protocol's. A single transient provider timeout that succeeds on retry is
+NOT, by itself, an incident candidate unless the operator's policy says so.
 
 **Envelope configuration:**
 
@@ -1947,7 +2073,7 @@ generate a DORA incident event message with the following structure:
 | `intent` | `"event"`                                                                |
 | `to`     | The operator's DORA reporting agent (implementation-defined)             |
 
-**Payload type:** `"arsiaprotocol.dora/incident"`
+**Payload type:** `"arsiaprotocol.ict/incident"`
 
 **Payload version:** `"1.0"`
 
@@ -2053,11 +2179,11 @@ mechanism for this routing is implementation-defined. Common approaches include:
    system.
 
 3. **Audit trail query.** DORA incident events are stored in the audit trail with
-   `event_type: "dora_incident"` and can be queried by compliance officers and
+   `event_type: "ict_incident"` and can be queried by compliance officers and
    regulators through the audit trail query interface.
 
 Regardless of the routing mechanism, the agent generating the DORA incident event MUST
-also log the event in its local audit trail with `event_type: "dora_incident"`.
+also log the event in its local audit trail with `event_type: "ict_incident"`.
 
 #### 6.2.4 DORA Reporting Obligations
 
@@ -2077,8 +2203,8 @@ scope (number of affected clients, duration, economic impact, etc.).
 
 ```json
 {
-  "v": "1.0",
-  "id": "a7b8c9d0-1234-4a12-f567-890123456789",
+  "v": "2.0",
+  "id": "a7b8c9d0-1234-4a12-9567-890123456789",
   "ts": "2026-03-24T14:30:35.789Z",
   "from": "agent:acme.transfer-processor",
   "to": "agent:acme.dora-reporter",
@@ -2089,7 +2215,7 @@ scope (number of affected clients, duration, economic impact, etc.).
     "sig": "..."
   },
   "payload": {
-    "type": "arsiaprotocol.dora/incident",
+    "type": "arsiaprotocol.ict/incident",
     "version": "1.0",
     "data": {
       "incident_type": "provider_unavailable",
@@ -2118,9 +2244,11 @@ is based on the use of two or more elements categorised as:
 These elements MUST be independent — the breach of one does not compromise the others
 — and MUST be designed to protect the confidentiality of the authentication data.
 
-ARSIA provides two compliant approaches for satisfying PSD2 SCA at the protocol level.
-Implementations MUST use one of these approaches for any financial capability with
-risk_level ≥ 7 (§5.1).
+ARSIA provides two approaches whose technical controls can serve as SCA elements in an
+operator's PSD2 design. The protocol does not, by itself, satisfy SCA (§5.1.2 —
+statement subject to legal review): whether either approach satisfies SCA in a given
+deployment is the payment service provider's legal determination. Implementations MUST
+use one of these approaches for any financial capability with risk_level ≥ 7 (§5.1).
 
 #### 6.3.1 Option A: Human Oversight Flow
 
@@ -2148,10 +2276,12 @@ Article 14.
 
 **Limitations.** Option A does not provide an inherence factor. PSD2 Article 97(1)
 requires "two or more" elements from the three categories — it does not require all
-three. Two factors (knowledge + possession) satisfy the legal requirement.
-Implementations MAY add biometric verification (fingerprint, face recognition) in the
-approval user interface to provide a third factor, but this is not mandated by the
-ARSIA protocol.
+three. Two elements (knowledge + possession) can meet that structural requirement,
+subject to the RTS conditions of §5.1.2 (payer authentication, element independence,
+dynamic linking) — whether they do in a given deployment is a legal determination
+(statement subject to legal review). Implementations MAY add biometric verification
+(fingerprint, face recognition) in the approval user interface to provide a third
+element, but this is not mandated by the ARSIA protocol.
 
 #### 6.3.2 Option B: Multi-Factor Token with `cnf` Claim
 
@@ -2223,7 +2353,9 @@ the audit record's metadata.
 
 This section defines eight conformance tests for the Assets primitive. Implementations
 claiming conformance with this specification MUST pass all eight tests. Test execution
-is performed by the ARSIA Conformance Test Runner (`@arsia-protocol/conformance-test`).
+is performed by the in-repo conformance runner (ARSIA-Core.md §12.3: `scripts/`
+validators and runtime harness, versioned with this repository — no external,
+unversioned package is part of the conformance criteria).
 
 Each test specifies a unique identifier, a human-readable description, preconditions,
 the action to perform, and the expected result.
@@ -2247,7 +2379,7 @@ produces a successful AssetTransferReceipt with all required fields.
 
 Agent A sends an AssetTransferRequest to Agent B with:
 
-- `amount`: `100.00`
+- `amount`: `"100.00"`
 - `currency_or_unit`: `"EUR"`
 - `asset_type`: `"currency"`
 - `from_agent`: Agent A's agent-id
@@ -2263,7 +2395,7 @@ Agent A sends an AssetTransferRequest to Agent B with:
 3. `payload.type` is `"arsiaprotocol.assets/transfer-receipt"`.
 4. `payload.result.status` is `"completed"`.
 5. `payload.result.payment_reference` is `"test-assets-01-001"`.
-6. `payload.result.amount` is `100.00`.
+6. `payload.result.amount` is `"100.00"`.
 7. `payload.result.currency_or_unit` is `"EUR"`.
 8. `payload.result.initiated_at` is a valid RFC 3339 timestamp.
 9. `payload.result.audit_id` is a valid UUID v4.
@@ -2435,14 +2567,21 @@ Agent A sends an AssetTransferRequest to Agent B with:
 **Expected Result:**
 
 1. Agent B responds with intent `"pending_approval"` (NOT `"response"`).
-2. `correlation_id` equals Agent A's request `id`.
+2. `correlation_id` equals Agent A's request `id`, and `root_request_id` equals the
+   same request `id` (ARSIA-Core.md §4.2.4).
 3. `payload.type` is `"arsiaprotocol.oversight/pending"`.
-4. `payload.result.action_id` is `"arsiaprotocol.assets/transfer-request"`.
-5. `payload.result.risk_level` is `9`.
-6. `payload.result.human_oversight_required` is `true`.
-7. `payload.result.summary` contains a human-readable description of the transfer.
-8. No transfer is executed — the payment provider is NOT called.
-9. `expires_at` is present and is a valid RFC 3339 timestamp in the future.
+4. The payload uses `payload.args` with the canonical field set of
+   ARSIA-Actions.md §3.2: `payload.args.action_id` is
+   `"arsiaprotocol.assets/transfer-request"`, `payload.args.original_request_id`
+   equals the request `id`, `payload.args.approval_deadline` is present,
+   `payload.args.approver_capability` is `"arsiaprotocol.oversight.approve"`.
+5. `payload.args.risk_level` is `9`.
+6. `payload.args.context` contains a human-readable description of the transfer.
+7. No transfer is executed — the payment provider is NOT called.
+8. `expires_at` is present and is a valid RFC 3339 timestamp in the future.
+9. After `expires_at` passes with no `approval_decision`: the processor sends an
+   AssetTransferReceipt with `status: "failed"` and records
+   `human_oversight_status: "expired"` in the MiFID audit record (no execution).
 
 ### Test ASSETS-07: MiFID II Audit Record Retention
 
@@ -2477,7 +2616,7 @@ Query the audit trail for the `payment_reference` of the completed transfer.
    - `payload_hash` (SHA-256 of canonicalized payload)
    - `human_oversight_status`
    - `created_at`
-3. The `retention_days` is ≥ 1825 (5 years).
+3. The effective retention satisfies the `"P1827D"` profile minimum (5 years) per ARSIA-Core.md §4.3.6.4.1.
 4. The record is queryable by `payment_reference`, `from_agent`, `to_agent`,
    `initiated_at` range, and `compliance_profile`.
 
@@ -2507,7 +2646,7 @@ payment provider call times out (simulated infrastructure failure).
    - `status`: `"failed"`
    - `failure_reason`: Contains a reference to the provider timeout.
 2. Agent B ALSO generates a DORA incident event (intent: `"event"`) with:
-   - `payload.type`: `"arsiaprotocol.dora/incident"`
+   - `payload.type`: `"arsiaprotocol.ict/incident"`
    - `payload.data.incident_type`: `"provider_unavailable"`
    - `payload.data.affected_service`: The payment provider's agent-id.
    - `payload.data.started_at`: A valid RFC 3339 timestamp.
@@ -2517,7 +2656,7 @@ payment provider call times out (simulated infrastructure failure).
      `payment_reference`.
 3. The DORA incident event is routed to the configured DORA reporting agent.
 4. The DORA incident event is logged in the audit trail with
-   `event_type: "dora_incident"`.
+   `event_type: "ict_incident"`.
 
 ---
 
@@ -2526,7 +2665,7 @@ payment provider call times out (simulated infrastructure failure).
 ### 8.1 Normative References
 
 **[ARSIA-Core]**
-ARSIA Protocol — Core Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA Protocol — Core Specification, Draft-02. Arsia Labs, July 2026.
 - §4: Message Envelope
 - §10: Idempotency
 - §11: Error Handling
@@ -2538,19 +2677,19 @@ ARSIA Protocol — Core Specification, Draft-01. Arsia Labs, March 2026.
 - §4.3.6: Compliance Field Definition
 
 **[ARSIA-Actions]**
-ARSIA-Actions — Actions Primitive Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-Actions — Actions Primitive Specification, Draft-02. Arsia Labs, July 2026.
 - §1: Capability Model
 - §2: Action Registry (§2.2: Risk Level to EU AI Act Mapping)
 - §3: Human Oversight Signaling (pending_approval / approval_decision)
 - §4: Action Execution Semantics
 
 **[ARSIA-Identity]**
-ARSIA-Identity — Identity Primitive Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-Identity — Identity Primitive Specification, Draft-02. Arsia Labs, July 2026.
 - §1.2: IdentityRecord
 - §3.3: DPoP for Proof of Possession
 
 **[ARSIA-State]**
-ARSIA-State — State Extension Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-State — State Extension Specification, Draft-02. Arsia Labs, July 2026.
 - §6: Compliance Profiles
 - §7: Audit Trail Format
 

@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/jwk-entry/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-jwk-entry.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA JWK Key Entry",
-  "description": "Schema for a single JWK entry in an ARSIA agent's JWKS. Supports Ed25519 signing keys (MUST), P-256 signing keys (SHOULD), and encryption keys (X25519 or P-256). Per ARSIA-Core.md \u00a77.3 and ARSIA-Identity.md \u00a72.1\u20132.5.",
+  "description": "Schema for a single JWK entry in an ARSIA agent's JWKS. Supports Ed25519 signing keys (MUST), P-256 signing keys (SHOULD), and encryption keys (X25519 or P-256). Per ARSIA-Core.md §7.3 and ARSIA-Identity.md §2.1–2.5.",
   "not": {
     "required": [
       "d"
     ],
-    "description": "Private key parameter 'd' MUST NOT be present in any JWK published via ARSIA Protocol. Per ARSIA-Identity.md \u00a76.8."
+    "description": "Private key parameter 'd' MUST NOT be present in any JWK published via ARSIA Protocol. Per ARSIA-Identity.md §6.8."
   },
   "oneOf": [
     {
@@ -24,13 +24,13 @@
   "$defs": {
     "kid-format": {
       "type": "string",
-      "description": "Key identifier. MUST follow {agent-id}#{key-index} format per ARSIA-Identity.md \u00a72.2. Globally unique within the agent's JWKS. MUST NOT be reused after key retirement.",
+      "description": "Key identifier. MUST follow {agent-id}#{key-index} format per ARSIA-Identity.md §2.2. Globally unique within the agent's JWKS. MUST NOT be reused after key retirement.",
       "pattern": "^agent:[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(\\/[a-zA-Z0-9][a-zA-Z0-9_-]*)?#[a-zA-Z0-9][a-zA-Z0-9_-]*$"
     },
     "ed25519-signing-key": {
       "type": "object",
       "title": "Ed25519 Signing Key",
-      "description": "OKP/Ed25519 signing key. This is the REQUIRED algorithm for ARSIA Protocol v1.0. ARSIA-Core.md \u00a77.3, ARSIA-Identity.md \u00a72.1, \u00a72.3.",
+      "description": "OKP/Ed25519 signing key. This is the REQUIRED algorithm for ARSIA Protocol v1.0. ARSIA-Core.md §7.3, ARSIA-Identity.md §2.1, §2.3.",
       "properties": {
         "kty": {
           "type": "string",
@@ -47,7 +47,7 @@
         },
         "x": {
           "type": "string",
-          "description": "Base64url-encoded 32-byte public key, no padding. ARSIA-Core.md \u00a77.3."
+          "description": "Base64url-encoded 32-byte public key, no padding. ARSIA-Core.md §7.3."
         },
         "use": {
           "type": "string",
@@ -67,7 +67,7 @@
     "p256-signing-key": {
       "type": "object",
       "title": "P-256 Signing Key (ES256)",
-      "description": "EC/P-256 signing key for ES256. SHOULD be supported. ARSIA-Core.md \u00a77.3.",
+      "description": "EC/P-256 signing key for ES256. SHOULD be supported. ARSIA-Core.md §7.3.",
       "properties": {
         "kty": {
           "type": "string",
@@ -84,11 +84,11 @@
         },
         "x": {
           "type": "string",
-          "description": "Base64url-encoded x-coordinate. ARSIA-Core.md \u00a77.3."
+          "description": "Base64url-encoded x-coordinate. ARSIA-Core.md §7.3."
         },
         "y": {
           "type": "string",
-          "description": "Base64url-encoded y-coordinate. ARSIA-Core.md \u00a77.3."
+          "description": "Base64url-encoded y-coordinate. ARSIA-Core.md §7.3."
         },
         "use": {
           "type": "string",
@@ -109,7 +109,7 @@
     "encryption-key": {
       "type": "object",
       "title": "Encryption Key",
-      "description": "Encryption key for payload encryption (\u00a75.3). Supports X25519 (ECDH-ES with Curve25519) or P-256. ARSIA-Core.md \u00a77.3.",
+      "description": "Encryption key for payload encryption (§5.3). Supports X25519 (ECDH-ES with Curve25519) or P-256. ARSIA-Core.md §7.3.",
       "properties": {
         "kty": {
           "type": "string",

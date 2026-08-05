@@ -40,9 +40,9 @@ The 300-second ceiling is a security bound. Loosening it would widen the replay 
 
 Ed25519 provides 128-bit security with 64-byte signatures and 32-byte public keys — significantly smaller than RSA-2048 (256-byte signatures) or ECDSA P-256 (variable-length DER signatures). For a protocol where every message is signed and signatures are included in the envelope, size matters. Ed25519 also has deterministic signing (no random nonce), which eliminates a class of implementation bugs that have historically affected ECDSA. ES256 and RS256 are supported (SHOULD/MAY respectively) for interoperability with existing JOSE infrastructure, but Ed25519 is the normative baseline.
 
-### Why does ARSIA sign the entire envelope minus security, not just the payload?
+### Why does ARSIA sign the whole envelope (minus only security.sig), not just the payload?
 
-Signing only the payload would leave envelope fields (from, to, intent, capabilities, compliance) unprotected. An attacker could modify routing, capabilities, or compliance metadata without invalidating the signature. By signing the canonical form of the complete envelope (with security removed), ARSIA ensures that every field the recipient relies on for processing is integrity-protected.
+Signing only the payload would leave envelope fields (from, to, intent, capabilities, compliance) unprotected. An attacker could modify routing, capabilities, or compliance metadata without invalidating the signature. The Draft-02 signing input is the canonical form of the complete envelope with the `security` object present and **only the `security.sig` property removed** (Core §5.1) — so `security.alg`, `security.kid`, encryption metadata, and the `authorization` binding are themselves integrity-protected. (Draft-01 removed the whole `security` object, which left the algorithm and key identifiers unsigned — corrected in Draft-02.)
 
 ### Why publish test keypairs? Isn't that a security risk?
 
@@ -66,7 +66,7 @@ Yes. Wildcard matching is prefix-based with no depth limit. A token scope entry 
 
 ### Why can't wildcards grant arsiaprotocol.state.purge or arsiaprotocol.oversight.approve?
 
-These capabilities are designated as non-delegable (Actions §1.4). Purge permanently and irreversibly destroys data (bypassing retention safeguards), snapshot exposes historical data that may have been logically deleted, and oversight.approve authorises decisions for high-risk operations. A token with arsiaprotocol.* covers all delegable capabilities but MUST NOT satisfy non-delegable ones — they require an exact string match in the token scope. This is enforced at both the Authorization Server (token issuance) and the receiving agent (PEP). See Actions §1.2 condition 3.
+These capabilities are designated as non-delegable (Actions §1.4). Purge permanently and irreversibly destroys data (bypassing retention safeguards), snapshot exposes historical data that may have been logically deleted, and oversight.approve authorises decisions for high-risk operations. In Draft-02 EVERY arsiaprotocol. capability is non-delegable: scope entries containing a wildcard within the reserved namespace (e.g. arsiaprotocol.*, arsiaprotocol.state.*) MUST NOT be issued and satisfy nothing; each reserved capability requires an exact string match in the token scope. This is enforced at both the Authorization Server (token issuance) and the receiving agent (PEP). See Actions §1.2 condition 3.
 
 ### Why doesn't Core §6.4 mention wildcard matching?
 
@@ -76,9 +76,9 @@ Core §6.4 defines capability enforcement at the envelope layer, where matching 
 
 ## Compliance Profiles
 
-### Why does GDPR-STANDARD have retention_days: null?
+### Why does GDPR-STANDARD have retention_minimum: null?
 
-GDPR does not prescribe a specific retention period for audit records. Art. 5(1)(e) establishes the "storage limitation" principle — data should be kept only as long as necessary for the processing purpose — but does not mandate a numeric duration. When retention_days is null, retention is governed by expires_at from the message envelope or by the platform's default policy (90 days recommended). Profiles with explicit regulatory retention requirements (MIFID-II: 1827 days, DORA: 1827 days, PAC-AGRICULTURE: 1096 days) set concrete values.
+GDPR does not prescribe a specific retention period for audit records. Art. 5(1)(e) establishes the "storage limitation" principle — data should be kept only as long as necessary for the processing purpose — but does not mandate a numeric duration. When retention_minimum is null, retention is governed by expires_at from the message envelope or by the platform's default policy (P90D recommended). Profiles with explicit regulatory retention requirements (MIFID-II: P1827D, DORA: P1827D, PAC-AGRICULTURE: P1096D) set concrete values, and EU-AI-ACT-HIGH-RISK uses the calendar duration P6M because the AI Act's "at least six months" is a calendar period, not a day count (Core §4.3.6.4.1).
 
 ### Why do retention values use 1827 instead of 1825 for 5-year retention?
 
@@ -122,7 +122,7 @@ The verification procedure (Identity §3.1, step 2) parses the kid to extract th
 
 ### Why doesn't ARSIA execute payments?
 
-By design. The Assets spec (§1) establishes a permanent scope boundary between protocol-level concerns (intent, receipt, audit) and provider-level concerns (execution, settlement, account management). Payment execution requires licences under PSD2 Article 11. ARSIA defines the message envelope for value transfer intent and the audit trail format — it is infrastructure, not a payment processor. This separation is not a limitation of Draft-01; it is an architectural decision.
+By design. The Assets spec (§1) establishes a permanent scope boundary between protocol-level concerns (intent, receipt, audit) and provider-level concerns (execution, settlement, account management). Payment execution requires licences under PSD2 Article 11. ARSIA defines the message envelope for value transfer intent and the audit trail format — it is infrastructure, not a payment processor. This separation is not a limitation of the protocol; it is an architectural decision.
 
 ### Why is escrow dispute resolution out of scope?
 
@@ -154,7 +154,7 @@ The pii_classification field supports "sensitive" (State §2.1.10), which inheri
 
 ### Why can PURGE override retention? Doesn't that violate MiFID II?
 
-GDPR Article 17 (right to erasure) and MiFID II Article 16(7) (5-year retention) can genuinely conflict. The ARSIA Protocol does not resolve this conflict — it provides the mechanisms for both (retention enforcement via retention_days, erasure via PURGE) and leaves the legal determination to the data controller. State §5.3 documents this tension. The PURGE audit event records that erasure occurred (without the purged value) to maintain accountability even when data is destroyed.
+GDPR Article 17 (right to erasure) and MiFID II Article 16(7) (5-year retention) can genuinely conflict. The ARSIA Protocol does not resolve this conflict — it provides the mechanisms for both (retention enforcement via the retention duration model, erasure via PURGE) and leaves the legal determination to the data controller. State §5.3 documents this tension. The PURGE audit event records that erasure occurred (without the purged value) to maintain accountability even when data is destroyed.
 
 ---
 
@@ -180,9 +180,9 @@ Transport-layer headers are visible to intermediaries (load balancers, brokers) 
 
 This follows the standard conformance tier pattern used in protocol specifications. OPTIONAL at the protocol level means an implementation may choose not to support the feature. REQUIRED at the Full conformance tier means an implementation that claims Full conformance must support it. An implementation can be conformant at the Core tier without these features. The tiers provide a progression path: Core → Compliance → Full.
 
-### Why does ARSIA publish 613 test vectors?
+### Why does ARSIA publish 649 test vectors?
 
-Comprehensive test vectors enable deterministic conformance testing across languages and platforms. Each vector tests a specific constraint — valid vectors exercise real schema and protocol rules, invalid vectors verify that implementations correctly reject malformed input. The vectors are the executable specification: if an implementation passes all vectors, it handles the same edge cases as every other conformant implementation. 70+ vectors are marked skip_schema for constraints that require runtime enforcement (cross-object validation, temporal logic, token context).
+Comprehensive test vectors enable deterministic conformance testing across languages and platforms. Each vector tests a specific constraint — valid vectors exercise real schema and protocol rules, invalid vectors verify that implementations correctly reject malformed input. The vectors are the executable specification: if an implementation passes all vectors, it handles the same edge cases as every other conformant implementation. 94 vectors are marked skip_schema for constraints that require runtime enforcement (cross-object validation, temporal logic, token context), each individually classified in docs/draft-02-skip-classification.md.
 
 ---
 

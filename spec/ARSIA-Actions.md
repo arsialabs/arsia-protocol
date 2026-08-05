@@ -3,13 +3,13 @@
 # ARSIA-Actions — Actions Primitive Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4.1 (intent enum), §4.2 (conditional
+**Draft-02 | July 2026 | References: ARSIA-Core.md §4.1 (intent enum), §4.2 (conditional
 required fields), §4.4 (payload structure), §6.4 (capability enforcement)**
 **Arsia Labs — arsiaprotocol.org**
 
@@ -35,13 +35,13 @@ accountability.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Actions Primitive. This specification is
+This document specifies Draft-02 of the ARSIA Actions Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/actions/draft-01
+    https://arsiaprotocol.org/spec/actions/draft-02
 
 Comments and issues should be directed to:
 
@@ -158,7 +158,7 @@ capabilities are used in access token scopes to grant broad access (§1.2).
 arsiaprotocol.broker.relay
 ```
 
-A multi-segment capability in the reserved `arsia` namespace. This capability grants
+A multi-segment capability in the reserved `arsiaprotocol.` namespace. This capability grants
 authority to relay messages as a Compliance Broker (ARSIA-Routing.md §7).
 
 ```
@@ -173,7 +173,7 @@ payments.charge
 ```
 
 An application-defined capability for initiating payment charges. Application developers
-define their own capability namespaces outside the reserved `arsia` prefix.
+define their own capability namespaces outside the reserved `arsiaprotocol.` prefix.
 
 ```
 eu.mifid.risk.assess
@@ -247,12 +247,16 @@ only if one of the following conditions holds:
    expression `^{P}\..*$` where `{P}` is the literal prefix with any regex-special
    characters escaped.
 
-3. **Non-delegable exception.** If `R` is designated as non-delegable (§1.4), then
-   `S` satisfies `R` if and only if condition 1 holds (exact match). Wildcard
-   matching (condition 2) MUST NOT satisfy a non-delegable capability. A token scope
-   entry `arsiaprotocol.*` does NOT satisfy a request for
-   `arsiaprotocol.state.purge`, `arsiaprotocol.state.snapshot`, or
-   `arsiaprotocol.oversight.approve`.
+3. **Reserved-namespace exception (non-delegable capabilities).** If `R` is in the
+   reserved `arsiaprotocol.` namespace (§1.4), then `S` satisfies `R` if and only
+   if condition 1 holds (exact match). Every reserved capability is non-delegable
+   in this sense: wildcard matching (condition 2) MUST NOT satisfy any
+   `arsiaprotocol.` capability. Authorization Servers MUST NOT issue scope entries
+   containing a wildcard within the reserved namespace (e.g. `arsiaprotocol.*`,
+   `arsiaprotocol.state.*`); receiving agents MUST treat such scope entries as
+   satisfying nothing. Rationale: each reserved capability carries role-restricted
+   authority (§1.4) — approver, broker, gateway, administrator — and a wildcard
+   grant would silently confer roles the Authorization Server never evaluated.
 
 **Direction of matching.** The token scope is the AUTHORITY. The message's `capabilities`
 field is the REQUEST. The receiving agent compares each requested capability against the
@@ -270,9 +274,9 @@ request.
 | `notes.read`      | `notes.read`         | ACCEPTED | Exact string match                        |
 | `notes.read`      | `notes.*`            | REJECTED | Specific scope does not grant wildcard    |
 | `notes.read`      | `notes.write`        | REJECTED | No match — different terminal segment     |
-| `arsiaprotocol.*`         | `arsiaprotocol.broker.relay` | ACCEPTED | Wildcard `arsiaprotocol.*` covers all delegable `arsiaprotocol.` capabilities |
-| `arsiaprotocol.*`         | `arsiaprotocol.state.purge` | REJECTED | Non-delegable — requires exact match (§1.4) |
-| `arsiaprotocol.*`         | `arsiaprotocol.oversight.approve` | REJECTED | Non-delegable — requires exact match (§1.4) |
+| `arsiaprotocol.*`         | `arsiaprotocol.broker.relay` | REJECTED | Reserved namespace — wildcard never satisfies `arsiaprotocol.` capabilities (condition 3) |
+| `arsiaprotocol.*`         | `arsiaprotocol.state.purge` | REJECTED | Reserved namespace — requires exact match (condition 3) |
+| `arsiaprotocol.*`         | `arsiaprotocol.oversight.approve` | REJECTED | Reserved namespace — requires exact match (condition 3) |
 | `payments.*`      | `payments.charge`    | ACCEPTED | Wildcard covers `payments.charge`         |
 | `payments.charge` | `payments.refund`    | REJECTED | Exact match fails                         |
 
@@ -354,12 +358,22 @@ delete operations within this interaction without issuing a new request.
 the effective capabilities that were granted. This provides auditors with visibility
 into authorization decisions.
 
-### 1.4 Reserved System Capabilities
+### 1.4 Reserved System Capabilities (Normative Registry)
 
-The following capabilities are defined by the ARSIA Protocol and use the reserved
-`arsiaprotocol.` prefix. Application-defined capabilities MUST NOT use this prefix.
-Implementations MUST recognise these capabilities and enforce their semantics as
-described below.
+This section is the **single normative registry** of capabilities in the reserved
+`arsiaprotocol.` namespace. A capability with the `arsiaprotocol.` prefix is valid if
+and only if it appears in this registry; per §1.1 Rule 5, implementations MUST reject
+capability requests using the `arsiaprotocol.` prefix for any name not registered
+here. Application-defined capabilities MUST NOT use this prefix. Implementations MUST
+recognise the registered capabilities and enforce their semantics as described below.
+
+**Extension rule.** New `arsiaprotocol.` capabilities are registered only by a
+revision of this specification. There is no runtime or out-of-band extension
+mechanism for the reserved namespace: a name not in this registry is unknown, and
+unknown reserved names are rejected — never ignored, never treated as
+application-defined. Examples and conformance materials in the ARSIA specifications
+MUST only use reserved names from this registry; illustrative application
+capabilities use unreserved names (e.g. `code.review`, `com.example.notes.read`).
 
 #### `arsiaprotocol.oversight.approve`
 
@@ -462,20 +476,24 @@ containing personal data. The purge mechanism is defined in ARSIA-State.md §3.2
 
 #### Non-Delegable Capabilities
 
-The following capabilities are designated as **non-delegable**. They MUST NOT be
-satisfied by wildcard matching (§1.2, condition 3). They MUST be explicitly listed in
-the access token's `scope` claim as exact strings.
+**Every capability in the reserved `arsiaprotocol.` namespace is non-delegable**
+(§1.2, condition 3): none may be satisfied by wildcard matching, and each MUST be
+explicitly listed in the access token's `scope` claim as an exact string.
+Particularly sensitive examples and their rationale:
 
 | Capability | Rationale |
 |------------|-----------|
 | `arsiaprotocol.state.purge` | Irreversible physical erasure that bypasses retention safeguards. |
 | `arsiaprotocol.state.snapshot` | Access to historical data that may have been logically deleted. |
 | `arsiaprotocol.oversight.approve` | Authorises approval of human oversight decisions for high-risk actions. |
+| `arsiaprotocol.broker.relay` | Confers the Compliance Broker role (Routing §7). |
+| `arsiaprotocol.identity.admin` | Key rotation and IdentityRecord control — identity takeover if abused. |
 
-Authorization Servers MUST NOT issue tokens that rely on wildcard expansion to grant
-non-delegable capabilities. Receiving agents (PEP) MUST reject capability requests for
-non-delegable capabilities unless the exact capability string is present in the token's
-`scope` claim.
+Authorization Servers MUST NOT issue scope entries containing a wildcard within the
+reserved namespace and MUST NOT rely on wildcard expansion to grant reserved
+capabilities. Receiving agents (PEP) MUST reject capability requests for reserved
+capabilities unless the exact capability string is present in the token's `scope`
+claim.
 
 #### `arsiaprotocol.state.snapshot`
 
@@ -621,6 +639,62 @@ notification mechanism is defined in ARSIA-State.md §5.7.
   an operational step outside the protocol.
 
 ---
+
+#### `arsiaprotocol.echo`
+
+The ARSIA echo capability, used for connectivity checks and conformance testing
+(ARSIA-Core.md §12, Appendix A.1). A request declaring this capability asks the
+recipient to return the request payload unchanged in the response.
+
+**Constraints:**
+
+- Implementations at Core conformance level MUST support `arsiaprotocol.echo`.
+- Echo handling MUST NOT have side effects beyond standard message processing
+  (audit, idempotency); it MUST NOT read or write agent state.
+- Authorization Servers MAY grant this capability freely; it carries no elevated
+  authority.
+
+#### `arsiaprotocol.health`
+
+Grants access to an agent's health/liveness check (ARSIA-Core.md Appendix A.3). A
+request declaring this capability asks the recipient to report its operational
+status.
+
+**Constraints:**
+
+- Health responses MUST NOT disclose internal configuration, key material, or
+  deployment topology; they report liveness and protocol-level readiness only.
+- Authorization Servers MAY grant this capability freely; it carries no elevated
+  authority.
+
+#### `arsiaprotocol.onboarding.evaluate`
+
+Grants authority to evaluate onboarding requests as an Onboarding Gateway
+(ARSIA-Identity.md §7). The gateway declares this capability when processing an
+agent's onboarding flow.
+
+**Constraints:**
+
+- MUST only be granted to agents that operate as Onboarding Gateways for an
+  organisation's agent infrastructure.
+- Agents with this capability MUST apply the deny-by-default policy of
+  ARSIA-Identity.md §7 and MUST record onboarding decisions in the audit trail.
+
+#### `arsiaprotocol.broker.use`
+
+Grants authority to **submit** messages to a Compliance Broker for relay
+(ARSIA-Routing.md §2.3). This capability is intentionally distinct from
+`arsiaprotocol.broker.relay`: `broker.use` authorises an agent to *use* a broker as
+a sender; `broker.relay` authorises an agent to *operate as* a broker.
+
+**Constraints:**
+
+- Delegable: MAY be granted to any agent whose compliance context requires brokered
+  routing (e.g. `compliance.data_residency` set).
+- Possession of `broker.use` grants no authority to relay, read, or re-sign other
+  agents' messages.
+- The full brokered-authorization model, including the token audiences and the relay
+  attestation, is defined in ARSIA-Routing.md §2.3.
 
 ## 2. Action Registry
 
@@ -771,16 +845,35 @@ semantics.
   audit logging is OPTIONAL for this action, though the agent's compliance profile
   MAY still require it.
 
-#### `retention_days` — Audit Retention Override
+#### `retention` — Audit Retention Override
 
-- **Type:** integer
+- **Type:** string
 - **OPTIONAL.**
-- **Minimum:** 1
-- **Constraints:** When present, this value overrides the default retention period from
-  the applicable compliance profile for audit records generated by this action. This
-  field is only meaningful when `audit_required` is `true`. If absent, the retention
-  period is determined by the compliance profile. If no compliance profile is active,
-  the default retention period is 90 days.
+- **Format:** ISO 8601 calendar duration per ARSIA-Core.md §4.3.6.4 (e.g. `"P1827D"`,
+  `"P6M"`).
+- **Constraints:** When present, this value overrides the retention minimum from
+  the applicable compliance profile for audit records generated by this action —
+  upward only: a value explicitly below the profile's `retention_minimum` (calendar
+  comparison per ARSIA-Core.md §4.3.6.4.1) MUST cause the action registration or the
+  message to be rejected per ARSIA-Core.md §4.3.8 Rule 4; it is never silently
+  clamped. This field is only meaningful when `audit_required` is `true`. If absent,
+  the retention period is determined by the compliance profile. If no compliance
+  profile is active, a retention of `"P90D"` is the RECOMMENDED platform default.
+
+#### `supported_versions` — Supported Payload Versions
+
+- **Type:** array of strings
+- **OPTIONAL.** Default: `["1.0"]`.
+- **Format:** Each entry matches `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`; entries MUST be
+  unique.
+- **Constraints:** The payload schema versions this agent accepts for this action.
+  This is the **proactive discovery surface** for action versioning (§2.4): during
+  a migration window the agent lists both versions here (e.g. `["1.0", "2.0"]`) in
+  a SINGLE descriptor entry — the version distinction is carried in
+  `payload.version`, never in `action_id`. Requests declaring a version not in
+  this list are rejected with `not_implemented` and
+  `details.supported_versions` (§2.4). Senders SHOULD consult this field before
+  invoking a non-base version rather than relying on the reactive error.
 
 #### `explainability_required` — Explainability Flag
 
@@ -822,7 +915,7 @@ action:
   "optional_capabilities": ["mifid.client.read"],
   "human_oversight_required": true,
   "audit_required": true,
-  "retention_days": 1825,
+  "retention": "P1827D",
   "explainability_required": true,
   "max_execution_ms": 60000
 }
@@ -1018,7 +1111,8 @@ components are non-negative integers. For example: `"1.0"`, `"2.3"`, `"1.12"`.
 **Coexistence during migration.** When a major version bump occurs:
 
 - Both versions of the action MAY coexist in the action registry during a migration
-  period. The agent advertises both versions as separate ActionDescriptor entries.
+  period. The agent advertises both versions in the `supported_versions` array of the
+action's single ActionDescriptor entry (§2.1).
 - The old version's `action_id` remains unchanged. The new version's `action_id` also
   remains unchanged — the version distinction is carried in `payload.version`, not in
   `action_id`.
@@ -1026,8 +1120,10 @@ components are non-negative integers. For example: `"1.0"`, `"2.3"`, `"1.12"`.
 - The migration period SHOULD be documented in the action's `description` field.
 
 **Version negotiation.** When a requesting agent sends a message without a
-`payload.version` field, the receiving agent MUST process the message using the latest
-supported version of the action. When a `payload.version` field is present and the
+`payload.version` field, the version is exactly `"1.0"` (ARSIA-Core.md §4.4.2) — the
+receiving agent MUST process the message under version `1.0` semantics, and MUST
+respond with `not_implemented` if it no longer supports `1.0`. (Draft-01's "latest
+supported version" default was non-deterministic between peers and is removed.) When a `payload.version` field is present and the
 receiving agent does not support that version, it MUST respond with error code
 `not_implemented` (ARSIA-Core.md §11.2) and include the supported version range in the
 error details:
@@ -1121,13 +1217,14 @@ characteristics:
 
 | Field             | Value                                                         |
 |-------------------|---------------------------------------------------------------|
-| `v`               | `"1.0"` (current protocol version)                           |
+| `v`               | `"2.0"` (current protocol version)                           |
 | `id`              | A new UUID v4 (unique identifier for this pending_approval)   |
 | `ts`              | Current UTC timestamp with millisecond precision              |
 | `from`            | The receiving agent's agent-id                                |
 | `to`              | The original sender's agent-id (from the request's `from`)    |
 | `intent`          | `"pending_approval"`                                          |
-| `correlation_id`  | The `id` of the original request message                      |
+| `correlation_id`  | The `id` of the original request message (its immediate causal parent) |
+| `root_request_id` | The `id` of the original request message (ARSIA-Core.md §4.2.4) |
 | `expires_at`      | The approval deadline (see Step 3 below)                      |
 | `security`        | Signed by the receiving agent's Ed25519 key                   |
 
@@ -1157,7 +1254,9 @@ action being held for approval. This tells the approver which action is pending.
 
 **`original_request_id`** (string, REQUIRED): The `id` field from the original request
 message that triggered this oversight flow. This provides traceability from the
-approval back to the originating request.
+approval back to the originating request. It MUST equal the envelope's
+`root_request_id` (ARSIA-Core.md §4.2.4); receivers MUST reject a `pending_approval`
+whose two values differ with error code `invalid_request`.
 
 **`approval_deadline`** (string, REQUIRED): An RFC 3339 timestamp with millisecond
 precision (same format as ARSIA-Core.md §4.1.3) indicating the latest time at which
@@ -1166,7 +1265,7 @@ automatically denied (§3.4). The `approval_deadline` MUST equal the `expires_at
 of the `pending_approval` envelope.
 
 **`approver_capability`** (string, REQUIRED): The capability string required to approve
-this action. For v1.0, this MUST be `"arsiaprotocol.oversight.approve"`. This field exists to
+this action. For v2.0, this MUST be `"arsiaprotocol.oversight.approve"`. This field exists to
 support future versions where different actions may require different approval
 capabilities.
 
@@ -1236,13 +1335,14 @@ the human oversight decision: approve or deny.
 
 | Field             | Value                                                           |
 |-------------------|-----------------------------------------------------------------|
-| `v`               | `"1.0"` (current protocol version)                             |
+| `v`               | `"2.0"` (current protocol version)                             |
 | `id`              | A new UUID v4 (unique identifier for this decision)            |
 | `ts`              | Current UTC timestamp with millisecond precision                |
 | `from`            | The approver agent's agent-id                                   |
 | `to`              | The executing agent's agent-id (the agent that sent `pending_approval`) |
 | `intent`          | `"approval_decision"`                                           |
 | `correlation_id`  | The `id` of the `pending_approval` message (NOT the original request's `id`) |
+| `root_request_id` | The `id` of the original request that initiated the interaction (equal to the `pending_approval`'s `root_request_id`, ARSIA-Core.md §4.2.4) |
 | `capabilities`    | `["arsiaprotocol.oversight.approve"]`                                   |
 | `security`        | Signed by the APPROVER's Ed25519 key, NOT the original agent's key |
 
@@ -1289,7 +1389,7 @@ The executing agent MUST honour all conditions. Examples:
 
 Conditions are free-text strings intended for the executing agent's operator to
 interpret and implement. The ARSIA Protocol does not define a structured condition
-language in v1.0. Implementations SHOULD document their supported condition formats.
+language in v2.0. Implementations SHOULD document their supported condition formats.
 
 **Capability requirement.** The `approval_decision` message MUST include
 `"arsiaprotocol.oversight.approve"` in its `capabilities` array. The receiving agent MUST
@@ -1344,7 +1444,13 @@ matches the `id` of a `pending_approval` message that the executing agent previo
 sent. If no matching `pending_approval` is found — for example, because the pending
 state was already resolved or because the `correlation_id` is spurious — the executing
 agent MUST reject the `approval_decision` with error code `invalid_request` and MUST NOT
-execute the action.
+execute the action. The executing agent MUST additionally verify that the
+`root_request_id` of the `approval_decision` equals the `root_request_id` of the
+matched `pending_approval` (ARSIA-Core.md §4.2.4); on mismatch it MUST reject with
+error code `invalid_request` and MUST NOT execute the action. Duplicate and late
+decisions are handled per the correlation handling rules of ARSIA-Core.md §4.2.1: a
+decision for a `pending_approval` that was already resolved (approved, denied, or
+expired) MUST NOT change the recorded outcome.
 
 **Step 4: Execute the action.**
 
@@ -1386,6 +1492,7 @@ following structure:
 {
   "intent": "error",
   "correlation_id": "<id of the original request>",
+  "root_request_id": "<id of the original request>",
   "payload": {
     "type": "<original request's payload.type>",
     "error": {
@@ -1428,6 +1535,7 @@ following structure:
 {
   "intent": "error",
   "correlation_id": "<id of the original request>",
+  "root_request_id": "<id of the original request>",
   "payload": {
     "type": "<original request's payload.type>",
     "error": {
@@ -1486,6 +1594,7 @@ This record captures the initiating event — what was requested, by whom, and w
 | `from`         | The executing agent's agent-id                               |
 | `to`           | The original requester's agent-id                            |
 | `correlation_id` | The `id` of the original request                           |
+| `root_request_id` | The `id` of the original request                          |
 | `approval_deadline` | The approval deadline timestamp                          |
 | `payload_hash` | SHA-256 hash of the canonicalized pending_approval payload   |
 
@@ -1503,6 +1612,7 @@ autonomously.
 | `from`         | The approver's agent-id                                      |
 | `to`           | The executing agent's agent-id                               |
 | `correlation_id` | The `id` of the pending_approval message                   |
+| `root_request_id` | The `id` of the original request                          |
 | `decision`     | `"approved"` or `"denied"`                                   |
 | `approver_id`  | The approver's agent-id (from payload.result.approver_id)    |
 | `reason`       | The reason field from the decision (if provided, else null)  |
@@ -1522,6 +1632,7 @@ case of a deadline expiry (Path 3), this record is replaced by a record with
 | `from`         | The executing agent's agent-id                               |
 | `to`           | The original requester's agent-id                            |
 | `correlation_id` | The `id` of the original request                           |
+| `root_request_id` | The `id` of the original request                          |
 | `outcome`      | `"success"`, `"denied"`, `"expired"`, or `"error"`           |
 | `payload_hash` | SHA-256 hash of the canonicalized response/error payload     |
 
@@ -1535,16 +1646,24 @@ These four audit records satisfy the following regulatory requirements:
 **EU AI Act Art. 17 (Quality management system).** Article 17(1)(d) requires that
 providers of high-risk AI systems establish a quality management system that includes
 procedures for record-keeping and documentation. The four-record chain provides a
-complete, tamper-evident record of every oversight decision, from request through
-approval to outcome.
+record of every oversight decision, from request through approval to outcome, with
+tamper evidence within the scope defined by ARSIA-State.md §7.2 (mid-chain
+modification and removal against an independently held head; see its explicit
+exclusions).
 
 **EU AI Act Art. 26(6) (Deployer logging obligations).** Article 26(6) requires
 deployers to keep logs automatically generated by the high-risk AI system, to the
 extent such logs are under their control, for a period appropriate to the intended
 purpose of the high-risk AI system, of at least six months. The ARSIA audit trail
-retention mechanism (configured via `retention_days` in the ActionDescriptor or the
-compliance profile) ensures that these records are retained for the required duration.
-The minimum retention period for high-risk actions (risk_level ≥ 7) is 180 days.
+retention mechanism (configured via `retention` in the ActionDescriptor or the
+compliance profile's `retention_minimum`) ensures that these records are retained for
+the required duration — for EU-AI-ACT-HIGH-RISK, `"P6M"`: six calendar months per
+ARSIA-Core.md §4.3.6.4.1, preserving the calendar semantics of Article 26(6).
+There is no risk-level-based retention floor: retention minimums come exclusively
+from the applicable compliance profile (`retention_minimum`, ARSIA-State.md §6) or
+an explicit `retention` override. A high-risk action under EU-AI-ACT-HIGH-RISK is
+therefore retained for at least `"P6M"` because of the profile, not because of its
+`risk_level`.
 
 **EU AI Act Art. 14(4)(d) (Ability to override).** The denied path (Path 2 in §3.4)
 and the expired path (Path 3 in §3.4) prove that a human can prevent an AI system's
@@ -1573,7 +1692,7 @@ modification to a message after it was audited will produce a different hash.
 For actions with `risk_level` of 10, implementations MAY require multiple independent
 approvals before execution. This section defines the protocol-level semantics for
 multi-approval workflows. Support for multiple approval levels is OPTIONAL in ARSIA
-Protocol v1.0; implementations SHOULD support single-approval for all risk levels at
+Protocol v2.0; implementations SHOULD support single-approval for all risk levels at
 minimum.
 
 **ActionDescriptor extension.** To support multiple approvals, the ActionDescriptor MAY
@@ -1902,7 +2021,11 @@ that value overrides the default timeout for the specific action.
 pattern:
 
 1. **Immediate acknowledgment.** The executing agent responds immediately with a
-   `response` message containing a status URL:
+   `response` message containing a status URL. This is the envelope surface of the
+   protocol's single asynchronous pattern (ARSIA-Core.md §8.1): over HTTP the
+   acknowledgment MUST use 202 + `Location`, and when the envelope-level
+   `status_url` is also present the two URLs MUST be identical; over transports
+   without HTTP status semantics the envelope surface is the only one.
 
    ```json
    {
@@ -2334,7 +2457,7 @@ tests at the applicable conformance level.
 
 ### 7.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-02.
   §4.1 (Required Fields — intent enum), §4.1.6 (intent field definition),
   §4.2 (Conditional Required Fields — correlation_id, expires_at, capabilities),
   §4.3.6 (compliance metadata), §4.4 (Payload Structure — type, version, args, result,
@@ -2342,11 +2465,11 @@ tests at the applicable conformance level.
   Endpoint), §8 (Transport Bindings), §8.3 (Request/Response Timing — clock skew
   tolerance), §10 (Idempotency), §11.2 (Standard Error Codes).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-02.
   §1.2 (Agent Identity Record), §2.4 (Key Rotation), §3.1 (Message-Level Authentication),
   §4 (Identity in the Compliance Context), §4.2 (Classification Consistency Rule).
 
-- **ARSIA-Routing.md** — ARSIA Routing Primitive Specification, Draft-01.
+- **ARSIA-Routing.md** — ARSIA Routing Primitive Specification, Draft-02.
   §7 (Compliance Broker specification).
 
 - **ARSIA-State.md** — ARSIA State Primitive Specification (forward reference).
@@ -2397,7 +2520,7 @@ tests at the applicable conformance level.
 
 - **MiFID II** — Directive 2014/65/EU of the European Parliament and of the Council
   of 15 May 2014 on markets in financial instruments.
-  - Record retention requirements (minimum 5 years / 1825 days).
+  - Record retention requirements (minimum 5 years / 1827 days).
 
 - **NIST AI Risk Management Framework 1.0** — National Institute of Standards and
   Technology. January 2023.

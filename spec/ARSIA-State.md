@@ -3,13 +3,13 @@
 # ARSIA-State — State Primitive Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4 (message envelope), §4.3.6 (compliance
+**Draft-02 | July 2026 | References: ARSIA-Core.md §4 (message envelope), §4.3.6 (compliance
 field definition), §4.3.7 (field inheritance), §4.3.8 (validation rules), §6.4 (capability
 enforcement), §9.2 (brokered routing — data residency), ARSIA-Identity.md §1.2 (IdentityRecord)**
 **Arsia Labs — arsiaprotocol.org**
@@ -32,13 +32,13 @@ data. This separation is deliberate: ARSIA is a protocol, not a database.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA State Primitive. This specification is
+This document specifies Draft-02 of the ARSIA State Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/state/draft-01
+    https://arsiaprotocol.org/spec/state/draft-02
 
 Comments and issues should be directed to:
 
@@ -176,8 +176,11 @@ the implementation MUST delete the session state entries upon session terminatio
 MUST NOT include session state in backup or replication processes.
 
 **Compliance obligations.** Session state carries no retention obligation. Session
-state entries MUST NOT generate audit events. Session state entries are not subject to
-`compliance.retention_days` or `compliance.data_residency` from the message envelope.
+state entries MUST NOT generate audit events by default; the single exception is an
+envelope with explicit `compliance.audit_required: true`, which takes precedence
+(§8.3 rule 4) — compliance obligations are never silently dropped because of a
+storage scope. Session state entries are otherwise not subject to
+`compliance.retention` or `compliance.data_residency` from the message envelope.
 Session state is ephemeral by design — its entire purpose is to hold data that does
 not need to outlive the interaction that created it.
 
@@ -208,7 +211,7 @@ scope for long-lived data.
 2. The owning agent explicitly purges the entry via the PURGE operation (§3.2).
 3. The entry's `expires_at` timestamp is reached, and the retention period has also
    elapsed.
-4. The retention period (either the entry's `retention_days` or the compliance
+4. The retention period (either the entry's `retention` or the compliance
    profile's default retention) expires, and no regulatory hold prevents deletion.
 
 Agent-scoped state MUST survive agent restarts, infrastructure migrations, and routine
@@ -234,8 +237,8 @@ requires only that the data is not lost under normal operational conditions.
 rules:
 
 1. **Retention.** The entry's effective retention period is governed by
-   `StateEntry.retention_days` (if set) or the active compliance profile's
-   `retention_days` (if the entry was created in a compliance context). The entry
+   `StateEntry.retention` (if set) or the active compliance profile's
+   `retention_minimum` (if the entry was created in a compliance context). The entry
    MUST NOT be physically deleted before the effective retention period expires,
    except via PURGE for GDPR erasure (§5.3). See §4.1 for the complete retention
    policy.
@@ -384,13 +387,24 @@ The following table summarises the four scopes:
 |----------------------|----------------------|----------------------|----------------------|----------------------|
 | **Creator**          | Any agent            | Owning agent         | Owning agent         | Platform operator    |
 | **Writable by**      | Participating agents | Owning agent         | Owner + grantees     | Platform operator    |
-| **Readable by**      | Participating agents | Owning agent         | Owner + grantees     | All agents           |
+| **Readable by**      | Participating agents | Owning agent + grantees (via GRANT, §3.3) | Owner + grantees     | All agents           |
 | **Persistence**      | Volatile (memory)    | Durable              | Durable              | Platform-managed     |
 | **Max lifetime**     | Session duration     | Until deleted/expired| Until deleted/expired| Platform-managed     |
 | **Retention**        | None                 | Profile-governed     | Profile-governed     | Operator-governed    |
-| **Audit required**   | Never                | If profile says so   | If profile says so   | Operator-managed     |
+| **Audit required**   | Only if envelope sets `audit_required: true` (§8.3 r4) | If profile says so   | If profile says so   | Operator-managed     |
 | **Data residency**   | N/A                  | If set               | If set               | Operator-managed     |
 | **PII allowed**      | Yes (ephemeral)      | Yes                  | Yes                  | Not recommended      |
+
+> **Choosing between `shared` scope and `agent` scope with grants.** The two
+> mechanisms overlap; the normative distinction is directional and lifecycle-bound:
+> use **`shared`** for entries that are co-owned from creation — both named agents
+> hold symmetric rights for the entry's lifetime, and neither can unilaterally
+> revoke the other. Use **`agent` + GRANT** for entries with a single accountable
+> owner who extends revocable, auditable, time-boxed access to specific grantees
+> (§3.3): the owner retains PURGE/retention accountability and every grant and
+> revocation generates an audit event. When in doubt, prefer `agent` + GRANT — it
+> preserves single-owner accountability, which the compliance obligations of §5-§6
+> assume.
 
 ---
 
@@ -462,12 +476,28 @@ The StateEntry object contains the following fields:
 - **Maximum serialized size:** 1,048,576 bytes (1 MiB) when serialized to a UTF-8
   JSON string.
 - **Constraints:** The value is the stored data. It is opaque to the ARSIA protocol —
-  the protocol does not interpret, validate, or transform the value in any way. The
-  semantics of the value are entirely application-defined. Implementations MUST store
-  and return the value exactly as provided, preserving JSON type fidelity (e.g., a
-  number stored as `1.0` MUST NOT be returned as `1` if the original serialization
-  included the decimal point — however, implementations MAY normalize numbers per
-  standard JSON parsing rules).
+  the protocol does not interpret or transform the value's application semantics.
+  Implementations MUST preserve **JSON value semantics and JSON types** per I-JSON
+  [RFC 7493]: the stored value compares equal, value-by-value and type-by-type, to
+  the value provided. Implementations are NOT required to preserve the original
+  **lexical representation** of JSON numbers: `1.0` and `1` denote the same JSON
+  number, and a value stored from the source text `1.0` MAY be returned as `1`.
+  Values returned by the protocol MAY use the canonical number serialization
+  defined by RFC 8785 (JCS) — which is also the form the signing layer operates on
+  (ARSIA-Core.md §5.1), making lexical round-tripping through a sign/verify cycle
+  impossible by construction. Consequences:
+
+  1. JSON numbers are interoperable only within IEEE-754 double precision
+     (I-JSON): integers outside ±2^53−1 MUST NOT be encoded as JSON numbers in
+     values — SET operations containing them MUST be rejected with
+     `invalid_request`.
+  2. Any value in which trailing zeros, exact decimal precision, or magnitude
+     beyond IEEE-754 double range is semantically significant MUST be encoded as a
+     JSON **string** by the application (RFC 8785 §3.1 gives the same guidance).
+     Monetary amounts in the Assets primitive use decimal strings normatively
+     (ARSIA-Assets.md §2).
+  3. Version history (§2.4) and SNAPSHOT (§3.2) compare and return values by JSON
+     value, not by source text.
 
   Implementations MUST reject SET operations where the serialized value exceeds the
   maximum size with error code `payload_too_large` (ARSIA-Core.md §11.2).
@@ -538,7 +568,7 @@ The StateEntry object contains the following fields:
   the entry MAY be garbage-collected by the implementation, subject to the following
   rules:
 
-  1. If the entry has an effective retention period (from `retention_days` or the
+  1. If the entry has an effective retention period (from `retention` or the
      compliance profile), the entry MUST NOT be removed until BOTH the `expires_at`
      timestamp has passed AND the retention period (measured from `created_at`) has
      elapsed.
@@ -555,34 +585,40 @@ The StateEntry object contains the following fields:
      MAY be returned by SNAPSHOT operations (§3.2) if they existed at the requested
      point in time and the retention period has not elapsed.
 
-#### 2.1.8 `retention_days` — Retention Override
+#### 2.1.8 `retention` — Retention Override
 
-- **Type:** integer
+- **Type:** string
 - **OPTIONAL.**
-- **Minimum value:** 1
-- **Constraints:** An explicit retention period in days for this specific entry,
-  overriding the compliance profile's default retention. The effective retention
-  period is calculated as follows:
+- **Format:** ISO 8601 calendar duration, restricted to the subset defined in
+  ARSIA-Core.md §4.3.6.4 (pattern `^P(?=\d)(\d+Y)?(\d+M)?(\d+D)?$`).
+- **Constraints:** An explicit retention period for this specific entry, overriding
+  the compliance profile's retention minimum. The effective retention is resolved as
+  follows, using calendar arithmetic anchored at the entry's `created_at`
+  (ARSIA-Core.md §4.3.6.4.1):
+
+  1. If `retention` is absent, the effective retention is the profile's
+     `retention_minimum` (§6).
+  2. If `retention` is declared and `created_at + retention >=
+     created_at + retention_minimum`, the declared value is the effective
+     retention. Declaring a longer retention than the profile minimum is permitted,
+     subject to data-minimisation and storage-limitation obligations.
+  3. If `retention` is declared and `created_at + retention <
+     created_at + retention_minimum`, the operation MUST be rejected with error
+     code `invalid_request` per ARSIA-Core.md §4.3.8 Rule 4. Implementations MUST
+     NOT silently raise ("clamp") the declared value to the minimum.
+
+  Retention is measured from the entry's `created_at` (the retention anchor). An
+  entry is "within retention" when:
 
   ```
-  effective_retention = max(
-    entry.retention_days ?? 0,
-    compliance_profile.retention_days ?? 0
-  )
-  ```
-
-  The effective retention MUST NOT be less than the compliance profile's minimum.
-  Setting `retention_days` on an individual entry can EXTEND retention beyond the
-  profile minimum but MUST NOT REDUCE it below the profile minimum.
-
-  Retention is measured from `created_at`. An entry is "within retention" when:
-
-  ```
-  now < created_at + (effective_retention * 86400 seconds)
+  now < created_at + effective_retention   (calendar arithmetic)
   ```
 
   Entries within retention MUST NOT be physically deleted, except via PURGE for GDPR
   erasure (§5.3).
+
+  *Draft-01 compatibility:* the Draft-01 integer field `retention_days: N` maps to
+  `retention: "PND"` (ARSIA-Core.md §4.3.6.4).
 
 #### 2.1.9 `data_residency` — Data Residency Zone
 
@@ -625,10 +661,11 @@ The StateEntry object contains the following fields:
   1. The `compliance.legal_basis` field MUST be set in the message envelope that
      creates or updates this entry (§5.2). SET operations for `"personal"` entries
      without a legal basis MUST be rejected.
-  2. `data_residency` MUST be set (either on the entry or inherited from the
+  2. `data_residency` SHOULD be set (either on the entry or inherited from the
      compliance profile). Personal data without a declared residency zone is a
-     compliance risk. Implementations SHOULD warn when personal data is stored
-     without an explicit residency constraint, though this is not a hard rejection
+     compliance risk: implementations MUST log a compliance warning when personal
+     data is stored without an explicit or inherited residency constraint, and the
+     stored entry remains valid — this is deliberately not a hard rejection
      to accommodate transitional deployments.
   3. The entry is subject to the right to erasure via PURGE (§5.3).
   4. The entry MUST be included in GDPR Art. 30 records of processing activities
@@ -770,8 +807,8 @@ Reserved key patterns include:
 
 ```
 arsiaprotocol.grants/{grant-id}        — Grant records (§3.3)
-arsia.meta/schema-version      — State schema version metadata
-arsia.meta/migration-log       — Migration history
+arsiaprotocol.meta/schema-version      — State schema version metadata
+arsiaprotocol.meta/migration-log       — Migration history
 ```
 
 Implementations MUST reject SET operations from agents that attempt to write to keys
@@ -957,7 +994,7 @@ The `payload.args` object for SET contains:
 | `scope`              | string   | REQUIRED    | One of: `"session"`, `"agent"`, `"shared"`. |
 | `pii_classification` | string   | REQUIRED    | One of: `"none"`, `"pseudonymised"`, `"personal"`, `"sensitive"`. |
 | `expires_at`         | string   | OPTIONAL    | RFC 3339 expiry timestamp.                  |
-| `retention_days`     | integer  | OPTIONAL    | Retention period override (minimum 1).     |
+| `retention`          | string   | OPTIONAL    | Retention override — ISO 8601 calendar duration per §2.1.8 (e.g. `"P1827D"`). |
 | `data_residency`     | string   | OPTIONAL    | ISO 3166 zone override.                    |
 | `expected_version`   | integer  | OPTIONAL    | For optimistic concurrency control.        |
 
@@ -1602,35 +1639,41 @@ sector, and use case.
 The effective retention period for a state entry is determined by the following
 hierarchy, from highest to lowest priority:
 
-1. **Regulatory minimum.** The compliance profile's `retention_days` value sets the
-   regulatory floor. This is the minimum retention required by the applicable
+1. **Profile retention minimum.** The compliance profile's `retention_minimum`
+   value (an ISO 8601 calendar duration, §6) sets the profile floor. This is the minimum retention required by the applicable
    regulation. The entry MUST NOT be physically deleted before this period expires,
    regardless of other settings.
 
-2. **Entry-level override.** The `StateEntry.retention_days` field, if set, overrides
-   the profile default — but only upward. The entry-level retention MUST NOT reduce
-   retention below the regulatory minimum.
+2. **Entry-level override.** The `StateEntry.retention` field, if set, overrides
+   the profile minimum — but only upward. An entry-level retention explicitly below
+   the profile minimum MUST be rejected per ARSIA-Core.md §4.3.8 Rule 4 (no
+   clamping, §2.1.8).
 
 3. **Entry expiry.** The `StateEntry.expires_at` field sets an explicit expiry
    timestamp. The entry becomes eligible for removal when BOTH `expires_at` has
    passed AND the effective retention period has elapsed.
 
-The effective retention is calculated as:
+The effective retention is resolved as (calendar arithmetic per ARSIA-Core.md
+§4.3.6.4.1, anchored at the entry's `created_at`):
 
 ```
-profile_retention   = compliance_profile.retention_days ?? 0
-entry_retention     = state_entry.retention_days ?? 0
-effective_retention = max(profile_retention, entry_retention)
+if entry.retention is absent:
+    effective_retention = profile.retention_minimum ?? none
+elif created_at + entry.retention >= created_at + (profile.retention_minimum ?? "P0D"):
+    effective_retention = entry.retention
+else:
+    reject invalid_request        # Core §4.3.8 Rule 4 — never clamp
 ```
 
 The entry is "within retention" when:
 
 ```
-now < state_entry.created_at + (effective_retention * 86400 seconds)
+now < state_entry.created_at + effective_retention   (calendar arithmetic)
 ```
 
-When the effective retention is zero (no compliance profile and no entry-level
-retention), the entry has no minimum retention period and may be deleted at any time.
+When no compliance profile retention minimum applies and no entry-level
+retention is set, the entry has no minimum retention period and may be deleted at
+any time.
 
 #### 4.1.2 Default Retention per Compliance Profile
 
@@ -1642,7 +1685,7 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | None (no mandatory minimum).           |
+| `retention_minimum`    | None (no mandatory minimum).           |
 | Behaviour              | Entries expire per their `expires_at` field. If no `expires_at` is set, the platform-defined default applies. |
 | RECOMMENDED default    | 90 days when no `expires_at` is set.   |
 | Rationale              | GDPR Art. 5(1)(e) — storage limitation principle. Data should not be kept longer than necessary. |
@@ -1651,16 +1694,16 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 180                                    |
-| Behaviour              | Entry data MUST NOT be physically removed before 180 days from creation. Logical deletion (§3.1.3) is permitted — it hides the entry from GET/QUERY but the data is retained in the temporal store. |
+| `retention_minimum`    | `"P6M"` (six calendar months)          |
+| Behaviour              | Entry data MUST NOT be physically removed before `created_at + P6M` (six calendar months, ARSIA-Core.md §4.3.6.4.1). Logical deletion (§3.1.3) is permitted — it hides the entry from GET/QUERY but the data is retained in the temporal store. |
 | Rationale              | EU AI Act Art. 26(6) — deployers of high-risk AI systems must keep automatically generated logs for a period appropriate to the intended purpose of the high-risk AI system, of at least six months. |
-| Exception              | PURGE for GDPR erasure (§5.3) overrides the 180-day minimum. |
+| Exception              | PURGE for GDPR erasure (§5.3) overrides the P6M minimum. |
 
 **MIFID-II:**
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 1827 (5 years, accounts for leap years) |
+| `retention_minimum`    | `"P1827D"` (5 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1827 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | MiFID II Art. 16(7) — investment firms must keep records of all services, activities, and transactions for a minimum of five years. |
 | Exception              | PURGE for GDPR erasure overrides, but the PURGE audit event itself is retained for the full 1827-day period. |
@@ -1669,7 +1712,7 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 1096 (3 years, accounts for leap years) |
+| `retention_minimum`    | `"P1096D"` (3 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1096 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | EU 2021/2116 Art. 60 — recovery of undue payments requires records for at least 3 years, covering the full cycle of payment verification and potential recovery actions. |
 | Exception              | PURGE for GDPR erasure overrides.      |
@@ -1678,7 +1721,7 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 90                                     |
+| `retention_minimum`    | `"P90D"`                               |
 | Behaviour              | Entry data MUST NOT be physically removed before 90 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | EU AI Act Art. 50 does not prescribe a retention period. 90 days covers a reasonable compliance verification period for transparency obligations. |
 | Exception              | PURGE for GDPR erasure overrides.      |
@@ -1687,16 +1730,16 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 730 (2 years)                          |
-| Behaviour              | Entry data MUST NOT be physically removed before 730 days from creation. Logical deletion is permitted — data is retained in temporal store. |
-| Rationale              | DSA Art. 37 — annual independent audit. 730 days covers two consecutive audit cycles, enabling cross-reference between risk assessments and verification of mitigation measures. |
+| `retention_minimum`    | `"P731D"` (2 years, accounts for leap years) |
+| Behaviour              | Entry data MUST NOT be physically removed before `created_at + P731D`. Logical deletion is permitted — data is retained in temporal store. |
+| Rationale              | DSA Art. 37 — annual independent audit. P731D (2 years, leap-safe) covers two consecutive audit cycles, enabling cross-reference between risk assessments and verification of mitigation measures. |
 | Exception              | PURGE for GDPR erasure overrides.      |
 
 **DORA:**
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_days`       | 1827 (5 years, accounts for leap years) |
+| `retention_minimum`    | `"P1827D"` (5 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1827 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | DORA Art. 6(5) — annual ICT risk management review. 5 years aligns with European financial sector retention floors (CRD IV, Solvency II, IORP II) and covers at least 5 review cycles. |
 | Exception              | PURGE for GDPR erasure overrides, but the PURGE audit event itself is retained for the full 1827-day period. |
@@ -1874,7 +1917,7 @@ populate Art. 30 records.
 | Purpose of processing            | `payload.type` of the message that created the entry |
 | Categories of recipients         | Active grants on the entry (§3.3) → grantee agent IDs → IdentityRecords |
 | Transfers to third countries     | `data_residency` + grantee jurisdictions (from IdentityRecords) |
-| Retention period                 | `retention_days` or compliance profile default      |
+| Retention period                 | `retention` or the profile's `retention_minimum`    |
 | Security measures                | Encryption at rest (§10.4), access control (§10.1)   |
 
 **Operator responsibility:** ARSIA provides the raw data elements listed above. The
@@ -1931,8 +1974,9 @@ details:
 }
 ```
 
-**Legal basis for pseudonymised data:** The `legal_basis` requirement applies only
-to entries with `pii_classification` of `"personal"`. Entries with
+**Legal basis for pseudonymised data:** The `legal_basis` requirement applies to
+entries with `pii_classification` of `"personal"` or `"sensitive"` (§3.1.2 —
+sensitive entries require an Article 9(2) condition). Entries with
 `pii_classification` of `"pseudonymised"` SHOULD include a legal basis but are not
 required to. This reflects the reduced (but not eliminated) GDPR obligations for
 pseudonymised data.
@@ -2060,21 +2104,21 @@ session ends. This is a structural data minimisation measure: data that is only 
 for a single interaction is automatically removed when the interaction completes.
 
 **Expiry defaults.** Implementations SHOULD apply a default expiry to entries that do
-not have an explicit `expires_at` or `retention_days`:
+not have an explicit `expires_at` or `retention`:
 
 - Session scope: session duration (MUST).
 - Agent scope: 90 days (RECOMMENDED).
 - Shared scope: 90 days (RECOMMENDED).
 
 These defaults ensure that forgotten data does not accumulate indefinitely. Agents
-that need longer retention MUST explicitly set `expires_at` or `retention_days`.
+that need longer retention MUST explicitly set `expires_at` or `retention`.
 
 > **Informative note — why State uses RECOMMENDED, not MUST, for the 90-day default.**
 > State entries serve application-level purposes, so the data owner controls retention
 > policy. By contrast, broker relay audit records (ARSIA-Routing.md §7.4) carry a
 > mandatory 90-day minimum within a MUST-level storage block, because they prove routing
 > compliance and carry regulatory weight. Compliance profiles can override both defaults
-> via the `retention_days` field.
+> via the `retention` field.
 
 **Warnings.** Implementations SHOULD issue warnings (via ARSIA event messages or
 operational logging) when an agent approaches its storage limits. The warning SHOULD
@@ -2188,13 +2232,14 @@ ARSIA agent with a `compliance` field defaults to this profile.
 | Field                     | Default Value     |
 |---------------------------|-------------------|
 | `audit_required`          | `false`           |
-| `retention_days`          | `null`            |
+| `retention_minimum`       | `null`            |
+| `retention_basis`         | `"technical_default"` |
 | `human_oversight`         | `"not_required"`  |
 | `explainability_required` | `false`           |
 | `pii_involved`            | `false`           |
 | `data_residency`          | `null`            |
 
-When `retention_days` is `null`, audit record retention (if audit records are generated)
+When `retention_minimum` is `null`, audit record retention (if audit records are generated)
 is governed by `expires_at` from the message envelope or by the platform's default
 retention policy. A retention period of 90 days is RECOMMENDED as a platform default.
 
@@ -2231,11 +2276,13 @@ as high-risk AI systems under EU AI Act Annex III.
 | Field                     | Default Value                    |
 |---------------------------|----------------------------------|
 | `audit_required`          | `true`                           |
-| `retention_days`          | `180`                            |
+| `retention_minimum`       | `"P6M"` (six calendar months)    |
+| `retention_basis`         | `"regulatory"` — EU AI Act Art. 26(6) |
 | `human_oversight`         | `"required_before_execution"`    |
 | `explainability_required` | `true`                           |
 | `pii_involved`            | `false`                          |
 | `data_residency`          | `null`                           |
+| `clock_skew_seconds`      | `120`                            |
 
 The `data_residency` default is `null` because the EU AI Act does not mandate data
 residency. However, `"EU"` is RECOMMENDED for agents deployed by EU-based operators, as
@@ -2271,8 +2318,9 @@ automatic event logging — the `ArsiaAuditRecord` structure implements this req
 Article 12 complements Article 17 (quality management): Article 17 mandates the
 management system, Article 12 mandates the technical logging within it.
 
-**EU AI Act Art. 26(6) — Deployer logging obligations.** `retention_days` defaults to
-`180`. Audit records are retained for a minimum of six months, satisfying Article 26(6):
+**EU AI Act Art. 26(6) — Deployer logging obligations.** `retention_minimum` is
+`"P6M"` — six **calendar** months, computed per ARSIA-Core.md §4.3.6.4.1 (not a fixed
+180 days: six calendar months can span up to 184 days). This satisfies Article 26(6):
 "deployers of high-risk AI systems shall keep the logs automatically generated by that
 high-risk AI system to the extent such logs are under their control, for a period
 appropriate to the intended purpose of the high-risk AI system, of at least six months."
@@ -2302,17 +2350,19 @@ services subject to the Markets in Financial Instruments Directive.
 | Field                     | Default Value                    |
 |---------------------------|----------------------------------|
 | `audit_required`          | `true`                           |
-| `retention_days`          | `1827`                           |
+| `retention_minimum`       | `"P1827D"`                       |
+| `retention_basis`         | `"regulatory"` — MiFID II Art. 16(7) / (EU) 2017/565 Art. 72 |
 | `human_oversight`         | `"required_before_execution"`    |
 | `explainability_required` | `true`                           |
 | `pii_involved`            | `true`                           |
 | `legal_basis`             | `"contract"`                     |
 | `data_residency`          | `"EU"`                           |
+| `clock_skew_seconds`      | `60`                             |
 
 **Regulatory mapping:**
 
-**MiFID II Art. 16(7) — Record-keeping obligations.** `retention_days` defaults to
-`1827` (5 years). Commission Delegated Regulation (EU) 2017/565, Article 72 (commonly
+**MiFID II Art. 16(7) — Record-keeping obligations.** `retention_minimum` is
+`"P1827D"` (5 years). Commission Delegated Regulation (EU) 2017/565, Article 72 (commonly
 cited as RTS 22), requires investment firms to "retain all the records required under
 this Regulation and under Directive 2014/65/EU for a period of at least five years."
 This applies to all services, activities, and transactions — including those executed
@@ -2357,7 +2407,8 @@ and conditionality verification.
 | Field                     | Default Value                |
 |---------------------------|------------------------------|
 | `audit_required`          | `true`                       |
-| `retention_days`          | `1096`                       |
+| `retention_minimum`       | `"P1096D"`                   |
+| `retention_basis`         | `"regulatory"` — EU 2021/2116 Art. 60 |
 | `human_oversight`         | `"required_post_execution"`  |
 | `explainability_required` | `true`                       |
 | `pii_involved`            | `false`                      |
@@ -2367,7 +2418,7 @@ and conditionality verification.
 
 **EU 2021/2116 Art. 60 — Recovery of undue payments.** Records must be retained for at
 least 3 years (1096 days) to support the recovery of undue payments by paying agencies.
-This is the basis for the `retention_days` default. The 3-year minimum aligns with the
+This is the basis for the `retention_minimum` value. The 3-year minimum aligns with the
 limitation period for recovery proceedings and ensures that audit evidence is available
 for the full cycle of payment verification, on-the-spot checks, and potential recovery
 actions. The value 1096 accounts for the worst case of one leap year within any three
@@ -2420,7 +2471,8 @@ classified as limited-risk AI systems under EU AI Act Art. 50.
 | Field                     | Default Value     |
 |---------------------------|-------------------|
 | `audit_required`          | `true`            |
-| `retention_days`          | `90`              |
+| `retention_minimum`       | `"P90D"`          |
+| `retention_basis`         | `"conservative_policy"` — EU AI Act Art. 50 prescribes no period |
 | `human_oversight`         | `"not_required"`  |
 | `explainability_required` | `true`            |
 | `pii_involved`            | `false`           |
@@ -2474,7 +2526,8 @@ behalf of Very Large Online Platforms under the Digital Services Act (EU 2022/20
 | Field                     | Default Value          |
 |---------------------------|------------------------|
 | `audit_required`          | `true`                 |
-| `retention_days`          | `730`                  |
+| `retention_minimum`       | `"P731D"`              |
+| `retention_basis`         | `"profile_floor"` — supports DSA Art. 37 annual audit cycles |
 | `human_oversight`         | `"required_within_24h"`|
 | `explainability_required` | `true`                 |
 | `pii_involved`            | `true`                 |
@@ -2494,8 +2547,8 @@ identified under Art. 34. The audit trail provides evidence that mitigation meas
 were implemented and effective.
 
 **DSA Art. 37 — Independent audit.** VLOPs must be subject to an independent audit at
-least once a year to assess compliance with Chapter III obligations. `retention_days`
-defaults to `730` (2 years) — this covers two consecutive annual audit cycles, enabling
+least once a year to assess compliance with Chapter III obligations. `retention_minimum`
+is `"P731D"` (2 years, worst case including a leap day — consistent with the 1827/1096 doctrine) — this covers two consecutive annual audit cycles, enabling
 cross-reference between risk assessments and verification that mitigation measures from
 the prior audit were implemented.
 
@@ -2541,7 +2594,8 @@ Resilience Act (EU 2022/2554).
 | Field                     | Default Value          |
 |---------------------------|------------------------|
 | `audit_required`          | `true`                 |
-| `retention_days`          | `1827`                 |
+| `retention_minimum`       | `"P1827D"`             |
+| `retention_basis`         | `"profile_floor"` — aligns with EU financial-sector retention floors |
 | `human_oversight`         | `"required_within_24h"`|
 | `explainability_required` | `false`                |
 | `pii_involved`            | `false`                |
@@ -2654,7 +2708,7 @@ REQUIRED unless marked OPTIONAL.
 - **Enum:** `"request"`, `"response"`, `"event"`, `"error"`, `"pending_approval"`,
   `"approval_decision"`, `"approval_expired"`, `"state_set"`, `"state_delete"`,
   `"state_grant"`, `"state_revoke"`, `"state_purge"`, `"asset_transfer"`,
-  `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"dora_incident"`
+  `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"ict_incident"`
 - **REQUIRED.**
 - **Description:** The type of event being audited. Values correspond to protocol
   operations:
@@ -2677,7 +2731,7 @@ REQUIRED unless marked OPTIONAL.
   `"key_rotation"` — A key rotation or revocation occurred
   (ARSIA-Identity.md §2.4, §2.5).
   `"rollback"` — An action was rolled back (ARSIA-Actions.md §4.2).
-  `"dora_incident"` — A DORA incident was recorded (ARSIA-Assets.md §6.2.3).
+  `"ict_incident"` — A DORA incident was recorded (ARSIA-Assets.md §6.2.3).
 
 #### `from_agent`
 
@@ -2726,12 +2780,62 @@ REQUIRED unless marked OPTIONAL.
   `plaintext_hash` values in both parties' audit records prove consensus on the
   communicated content. See ARSIA-Core.md §5.3.1.
 
-#### `compliance_profile`
+#### `compliance_profile_declared`
+
+- **Type:** string or null
+- **REQUIRED.**
+- **Description:** The compliance profile name **as declared** in the message's
+  `compliance.profile` field. `null` when the message carried a `compliance` field
+  without a `profile`, and the string `"none"` when the message had no `compliance`
+  field at all. This field records what the sender claimed, before any resolution.
+
+#### `compliance_profile_resolved`
 
 - **Type:** string
 - **REQUIRED.**
-- **Description:** The compliance profile name from the message's `compliance.profile`
-  field, or `"none"` if the message had no `compliance` field.
+- **Description:** The compliance profile name **actually applied** after the
+  precedence chain of ARSIA-Core.md §4.3.7: the declared profile when known; the
+  `GDPR-STANDARD` default when the message carried a `compliance` field without a
+  `profile` or with an unknown profile name in non-strict mode; and `"none"` when
+  the message had no `compliance` field and no profile-derived obligations were
+  applied. Together with `compliance_profile_declared`, this allows the audit trail
+  to prove which obligation set was actually enforced, and to expose any divergence
+  between declaration and application.
+
+#### `declared_retention`
+
+- **Type:** string (ISO 8601 calendar duration per ARSIA-Core.md §4.3.6.4) or null
+- **REQUIRED.**
+- **Description:** The `retention` value declared in the message's `compliance`
+  field, or `null` if none was declared.
+
+#### `effective_retention`
+
+- **Type:** string (ISO 8601 calendar duration per ARSIA-Core.md §4.3.6.4)
+- **REQUIRED** when any retention obligation applies; `null` otherwise.
+- **Description:** The retention actually applied to this record after resolution
+  (declared value if valid, otherwise the profile's `retention_minimum`). Because
+  below-minimum declarations are rejected (ARSIA-Core.md §4.3.8 Rule 4), a
+  non-null `effective_retention` always satisfies
+  `retention_anchor + effective_retention >= retention_anchor + retention_minimum`.
+
+#### `retention_anchor`
+
+- **Type:** string (RFC 3339 with millisecond precision and UTC timezone designator)
+- **REQUIRED** when `effective_retention` is non-null.
+- **Description:** The instant from which retention is measured for this record —
+  the record's own creation instant (`processed_at`), per ARSIA-Core.md §4.3.6.4.1.
+
+#### `retention_source`
+
+- **Type:** string
+- **Enum:** `"per-message"`, `"profile-minimum"`, `"platform-default"`, `"none"`
+- **REQUIRED.**
+- **Description:** How `effective_retention` was resolved: `"per-message"` when the
+  declared value was applied; `"profile-minimum"` when the field was absent and the
+  profile's `retention_minimum` was applied; `"platform-default"` when no profile
+  retention applied and a platform policy governs; `"none"` when no retention
+  obligation applies.
 
 #### `human_oversight_status`
 
@@ -2766,8 +2870,9 @@ REQUIRED unless marked OPTIONAL.
 - **Type:** string (RFC 3339 with millisecond precision and UTC timezone designator)
 - **REQUIRED.**
 - **Description:** The date until which this audit record MUST be retained. Computed
-  as `processed_at` + effective `retention_days`. After this date, the record MAY be
-  archived (§7.3) or deleted, subject to the archival rules.
+  as `retention_anchor + effective_retention` using calendar arithmetic
+  (ARSIA-Core.md §4.3.6.4.1). After this date, the record MAY be archived (§7.3) or
+  deleted, subject to the archival rules.
 
 #### `data_residency`
 
@@ -2785,6 +2890,23 @@ REQUIRED unless marked OPTIONAL.
   the agent that owns this audit log. This establishes legal accountability for the
   audit record.
 
+#### `counterparty_owner_id`
+
+- **Type:** string
+- **Condition:** REQUIRED when the audited message had effective
+  `compliance.audit_required: true` and the counterparty's IdentityRecord is
+  resolvable; OPTIONAL otherwise.
+- **Description:** The `owner_id` from the IdentityRecord of the **other** party to
+  the audited message (the sender's owner when this log belongs to the recipient,
+  and vice versa). Together with `operator_id`, this implements
+  ARSIA-Identity.md §4.1: audit records for audited interactions identify the
+  accountable owners of BOTH parties. When the counterparty's IdentityRecord
+  cannot be resolved at processing time, implementations MUST record the
+  counterparty agent-id (`from_agent`/`to_agent`) and SHOULD backfill
+  `counterparty_owner_id` when resolution succeeds — by appending a correction
+  record (§7.2), never by mutating the original. The pseudonymisation note on
+  `operator_id` applies equally here.
+
 > **Note.** Implementations SHOULD use organisational identifiers (LEI, VAT number,
 > DUNS) rather than personal identifiers for `operator_id`. When a personal identifier
 > is unavoidable (e.g., sole proprietor), deployments SHOULD use pseudonymisation
@@ -2793,6 +2915,34 @@ REQUIRED unless marked OPTIONAL.
 > (GDPR Art. 17). Where pseudonymisation is not feasible, retention obligations under
 > applicable financial regulation (e.g., MiFID II Art. 72) prevail over erasure
 > requests per GDPR Art. 17(3)(b).
+
+#### Per-event-type extension fields (normative)
+
+Beyond the base fields above, an `ArsiaAuditRecord` carries additional REQUIRED
+fields determined by its `event_type`. These extensions are normative — a record
+missing its event type's extensions is invalid — and are machine-enforced by
+`arsia-audit-record.schema.json`, which is the authoritative field-by-field
+definition. Summary:
+
+| `event_type` group | Extension fields (REQUIRED unless noted) |
+|--------------------|------------------------------------------|
+| `state_set`, `state_delete`, `state_purge` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp`; `state_set` with `pii_classification` of `personal`/`sensitive` additionally requires `legal_basis` (and `pii_special_categories` for `sensitive`) |
+| `state_grant`, `state_revoke` | `grant_id`, `grantee_agent_id`, plus grant metadata per §3.3 |
+| `pending_approval`, `approval_decision`, `approval_expired` | `approval_deadline` (pending), `decision`/`approver_id` (decision), `sub_type` where applicable |
+| `asset_transfer` (escrow transitions and reversals via `sub_type`) | `payment_reference`, `amount` (canonical decimal string), `original_audit_id` for corrections/reversals/escrow transitions, `timeout_at` for escrow |
+| `broker_relay` | `attestation_id`, `message_id`, `from_agent`, `to_agent`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` (ARSIA-Routing.md §7.4.2) |
+| `ict_incident` | incident classification fields per ARSIA-Assets.md §6.2 |
+| any signed compliance-relevant message | `jwks_fetched_at` — the JWKS fetch timestamp used for signature verification (ARSIA-Core.md §5.2, stale-key behaviour) |
+
+The lifecycle events of ARSIA-Routing.md §4.1 (`dispatch`, `dispatch_failed`,
+`delivery_failed`, `expired`, `request_received`, `response_sent`) belong to the
+operational routing log and are deliberately NOT part of this enum — see the audit
+classification note in ARSIA-Routing.md §4.1; `broker_relay` is the single
+crossover.
+
+Implementations implementing from this prose MUST consult the schema for the exact
+extension list per event type; the schema and this table are maintained together,
+and a divergence between them is a specification defect.
 
 ### 7.2 Immutability Requirements
 
@@ -2819,23 +2969,58 @@ provided they satisfy these constraints.
 
 **Cryptographic chain (RECOMMENDED).** Implementations SHOULD include a `hash_chain`
 field in each audit record containing the SHA-256 hash of the previous record's
-`record_id` concatenated with its `payload_hash`. This provides tamper detection: if any
-record in the chain is modified or removed, subsequent hash verifications will fail. The
-`hash_chain` field is OPTIONAL in v1.0 but is expected to become REQUIRED in a future
-version.
+`record_id` concatenated with its `payload_hash`. The `hash_chain` field is OPTIONAL
+(RECOMMENDED).
 
-**GDPR Art. 17 interaction.** Audit records are NOT subject to GDPR Article 17 (right
-to erasure) because they do not contain personal data — the `payload_hash` field stores
-a cryptographic hash, not the original payload. GDPR Recital 26 excludes information
-that "does not relate to an identified or identifiable natural person" or that has been
-"rendered anonymous in such a manner that the data subject is not or no longer
-identifiable." A SHA-256 hash of a canonicalized JSON payload is not reversible and does
-not identify a natural person. Furthermore, GDPR Article 17(3)(b) exempts processing
-that is "necessary for compliance with a legal obligation" — audit records required by
-the EU AI Act, MiFID II, or DORA fall under this exemption. If an operator determines
-that an audit record's `payload_hash` could theoretically be linked to personal data
-through correlation with other data sources, the record is still retained, but the
-operator MUST document this in their GDPR Article 30 register.
+**Tamper-evidence scope (normative honesty).** Append-only storage plus an optional
+local hash chain provides a bounded property. What IS detected, by a verifier who
+independently holds a chain head (or a later record) obtained before the attack:
+
+- modification of any earlier record in the chain;
+- removal of any record before the held head;
+- reordering of records before the held head.
+
+What is NOT detected by these mechanisms alone:
+
+- **complete rewrite** by the log owner: records are not individually signed, and
+  the chain is seeded only from record contents, so an owner (or an adversary with
+  write access to the store) can regenerate the entire chain consistently;
+- **tail truncation**: deleting the newest records and presenting the shortened
+  chain as current, when the verifier holds no later head;
+- **write-time omission**: events never recorded leave no chain evidence;
+- **fork/equivocation**: maintaining two internally consistent chains and showing
+  different ones to different auditors.
+
+Implementations MUST NOT claim stronger properties than the above. Deployments
+requiring protection against owner-level rewrite need external anchoring —
+periodic publication of the chain head to an independent witness (counterparty,
+regulator endpoint, or transparency log) and/or per-record signatures — which this
+specification permits but does not mandate; when such anchoring is deployed, its
+scope and cadence MUST be documented in the operator's audit policy. The relay
+attestation chain (ARSIA-Routing.md §7.4.1) and counterparty audit records provide
+partial cross-evidence: a record present in a counterparty's trail cannot be
+silently removed from one's own without creating a detectable discrepancy.
+
+**GDPR Art. 17 interaction (qualified).** Whether audit records fall within GDPR's
+scope is a fact-dependent legal question, not a protocol property. The design
+minimises personal data: `payload_hash` stores a one-way hash rather than the
+payload. However, a hash is not automatically anonymous — CJEU and EDPB guidance
+treat hashing as pseudonymisation where linkability remains, and audit records also
+carry agent identifiers (`operator_id`, `approver_id`, `from_agent`, `to_agent`)
+that, together with context, MAY relate to identifiable natural persons (see the
+`operator_id` pseudonymisation note, §7.1). Consequently:
+
+- Records that do contain or link to personal data are in GDPR scope; erasure
+  requests are then assessed under Article 17(3)(b), which exempts processing
+  necessary for compliance with a legal obligation — the usual outcome for records
+  mandated by the EU AI Act, MiFID II, or DORA is retention under that exemption,
+  documented case by case, not a blanket immunity.
+- Operators MUST assess linkability in context, record the assessment in their
+  Article 30 register, and apply §5.3 (erasure-vs-retention conflict rules) when a
+  data-subject request arrives.
+- Nothing in this section is legal advice or a compliance determination; it
+  describes the technical controls the protocol provides for operators' own GDPR
+  programmes (statement subject to legal review).
 
 ### 7.3 Audit Record Retention
 
@@ -2844,12 +3029,12 @@ record was created (§6):
 
 | Profile              | Minimum Retention          |
 |----------------------|----------------------------|
-| EU-AI-ACT-HIGH-RISK  | 180 days                   |
-| MIFID-II             | 1827 days (5 years)        |
-| PAC-AGRICULTURE      | 1096 days (3 years)        |
-| DSA-VLOP             | 730 days (2 years)         |
-| DORA                 | 1827 days (5 years)        |
-| Default              | 90 days                    |
+| EU-AI-ACT-HIGH-RISK  | `P6M` (six calendar months) |
+| MIFID-II             | `P1827D` (5 years)         |
+| PAC-AGRICULTURE      | `P1096D` (3 years)         |
+| DSA-VLOP             | `P731D` (2 years)          |
+| DORA                 | `P1827D` (5 years)         |
+| Default              | `P90D` (platform default)  |
 
 The **Default** row applies when no profile is active, or when the active profile is
 GDPR-STANDARD or EU-AI-ACT-LIMITED-RISK (neither of which defines a retention period
@@ -2865,7 +3050,7 @@ archived records is at the operator's discretion and SHOULD be documented in the
 operator's data retention policy.
 
 **Extending retention:** An operator MAY extend retention beyond the profile minimum by
-setting a higher `retention_days` value per-message or by configuring a platform-wide
+setting a higher `retention` value per-message or by configuring a platform-wide
 retention policy. Extended retention does not require protocol-level signaling — the
 operator simply retains the records for longer.
 
@@ -3018,14 +3203,14 @@ following inheritance rules are normative:
    `data_residency`, the entry MUST inherit the envelope's data residency value. If
    both are set, the `payload.args` value MUST take precedence.
 
-2. **Retention.** If the SET request envelope contains `compliance.retention_days` and
-   the `payload.args` does not contain `retention_days`, the entry MUST inherit the
-   envelope's retention value. If both are set, the effective retention MUST be
-   computed as:
-
-   ```
-   max(payload.args.retention_days, compliance.retention_days)
-   ```
+2. **Retention.** If the SET request envelope contains `compliance.retention` and
+   the `payload.args` does not contain `retention`, the entry MUST inherit the
+   envelope's retention value. If both are set, the `payload.args` value takes
+   precedence (mirroring rule 1). Whichever value applies is then resolved against
+   the profile's `retention_minimum` per §2.1.8: absent → profile minimum;
+   explicitly below the minimum (calendar comparison, ARSIA-Core.md §4.3.6.4.1) →
+   the operation MUST be rejected per ARSIA-Core.md §4.3.8 Rule 4. There is no
+   silent clamping.
 
 3. **Legal basis.** The `compliance.legal_basis` field from the envelope MUST be checked
    when `pii_classification` is `"personal"` (§5.2). The legal basis MUST NOT be stored
@@ -3034,7 +3219,10 @@ following inheritance rules are normative:
 
 4. **Audit.** If the envelope's `compliance.audit_required` is `true`, all state
    operations in that message MUST generate audit events, regardless of the
-   implementation's default audit configuration.
+   implementation's default audit configuration — **including operations on
+   session-scoped entries**: this rule takes precedence over the session-scope
+   no-audit default of §1.1. If the envelope does not set `audit_required: true`,
+   session-scoped operations generate no audit events (§1.1).
 
 5. **Compliance profile.** If the envelope references a `compliance.profile`, the
    profile's defaults MUST be applied for any compliance fields not explicitly set.
@@ -3125,9 +3313,9 @@ all tests at the applicable conformance level.
 |-----------------|--------------------------------------------------------------------|
 | **test_id**     | `STATE-05`                                                         |
 | **description** | Verify that entries are protected during their retention period.   |
-| **preconditions** | Entry created with `retention_days` = `180`. Compliance profile is `EU-AI-ACT-HIGH-RISK` (profile `retention_days` = `180`). Entry was created less than 180 days ago. Implementation supports SNAPSHOT. |
+| **preconditions** | Entry created with `retention` = `"P6M"`. Compliance profile is `EU-AI-ACT-HIGH-RISK` (profile `retention_minimum` = `"P6M"`). Entry was created less than six calendar months ago. Implementation supports SNAPSHOT. |
 | **action**      | 1. Agent A sends DELETE for the entry. 2. Agent A sends GET for the entry. 3. Agent A sends SNAPSHOT with `as_of` = 1 second after the entry's `created_at`. |
-| **expected**    | DELETE succeeds (returns `{ "deleted": true, ... }`). GET returns `null` (entry is logically deleted). SNAPSHOT returns the entry with its original value (entry's data is still retained in temporal storage). The implementation MUST NOT physically remove the entry before 180 days from `created_at`. |
+| **expected**    | DELETE succeeds (returns `{ "deleted": true, ... }`). GET returns `null` (entry is logically deleted). SNAPSHOT returns the entry with its original value (entry's data is still retained in temporal storage). The implementation MUST NOT physically remove the entry before `created_at + P6M` (calendar arithmetic). |
 
 ### STATE-06: Data residency violation rejected
 
@@ -3195,19 +3383,19 @@ all tests at the applicable conformance level.
 |-------------------|---------------------------------------------------------------------|
 | **test_id**       | `STATE-12`                                                          |
 | **description**   | Verify that per-message values override profile defaults            |
-| **preconditions** | Message has `compliance.profile = "EU-AI-ACT-HIGH-RISK"` and `compliance.retention_days = 365`. |
+| **preconditions** | Message has `compliance.profile = "EU-AI-ACT-HIGH-RISK"` and `compliance.retention = "P365D"`. |
 | **action**        | Receiving agent processes the message and computes `retained_until`. |
-| **expected**      | Audit record has `retained_until` = `processed_at` + 365 days (not 180). The per-message value of 365 exceeds the profile minimum of 180, so it is accepted. |
+| **expected**      | Audit record has `retained_until` = retention anchor + P365D (calendar arithmetic per ARSIA-Core.md §4.3.6.4.1), `declared_retention = "P365D"`, `effective_retention = "P365D"`, `retention_source = "per-message"`. P365D exceeds the profile minimum of P6M, so it is accepted. |
 
 ### STATE-13: MIFID-II retention floor enforced
 
 | Field             | Value                                                               |
 |-------------------|---------------------------------------------------------------------|
 | **test_id**       | `STATE-13`                                                          |
-| **description**   | Verify that MIFID-II retention floor of 1827 days is enforced       |
-| **preconditions** | Message has `compliance.profile = "MIFID-II"` and `compliance.retention_days = 365`. |
-| **action**        | Receiving agent validates retention per §8.3, Rule 2.               |
-| **expected**      | Message is rejected with error code `"invalid_request"` and `details: { "insufficient_retention": true, "required": 1827, "provided": 365 }`. |
+| **description**   | Verify that the MIFID-II retention floor of P1827D is enforced by rejection |
+| **preconditions** | Message has `compliance.profile = "MIFID-II"` and `compliance.retention = "P365D"`. |
+| **action**        | Receiving agent validates retention per ARSIA-Core.md §4.3.8 Rule 4 (profile retention floor). |
+| **expected**      | Message is rejected with error code `"invalid_request"` and details including `insufficient_retention: true`, `profile: "MIFID-II"`, `declared_retention: "P365D"`, `minimum_retention: "P1827D"`, `retention_anchor`, `declared_retained_until`, `minimum_retained_until`, `resolution_source: "per-message"`. No clamping occurs. |
 
 ### STATE-14: Audit record immutability
 
@@ -3293,10 +3481,12 @@ requesting agent, not the total number of entries in the system.
 
 ### 10.4 Encryption at Rest
 
-Implementations MUST encrypt state entry values at rest when `pii_classification` is
-`"sensitive"`. All obligations of `"personal"` apply, plus: implementations MUST use
-authenticated encryption (per §2.1.10). Implementations MUST encrypt state entry
-values at rest when `pii_classification` is `"personal"`. Implementations SHOULD
+Encryption-at-rest obligations scale with the PII classification. Implementations
+MUST encrypt state entry values at rest when `pii_classification` is `"personal"`;
+for `"sensitive"` entries all obligations of `"personal"` apply and, additionally,
+implementations MUST use **authenticated encryption** (an AEAD construction such as
+AES-GCM or ChaCha20-Poly1305 — defined here; §2.1.10 defines the classification
+levels, not the cipher requirements). Implementations SHOULD
 encrypt values at rest when `pii_classification` is `"pseudonymised"`. Encryption at
 rest for entries with `pii_classification` of `"none"` is RECOMMENDED but not
 required.
@@ -3348,7 +3538,8 @@ of entries. Several approaches are available:
 
 2. **Event sourcing.** Store every state change as an immutable event. Reconstruct
    state at any point in time by replaying events up to the desired timestamp. This
-   approach is more complex but provides a complete, immutable audit trail.
+   approach is more complex but preserves every state transition as an append-only
+   event log (tamper evidence remains bounded by §7.2).
 
 3. **Version table.** Maintain a separate table of (key, version, value, timestamp)
    tuples. SNAPSHOT queries filter by timestamp. Simpler than event sourcing but
@@ -3387,7 +3578,9 @@ is not sufficient for regulatory compliance.
 ### 11.4 Hash Chain (RECOMMENDED)
 
 This specification RECOMMENDS a `hash_chain` field linking each audit record to its
-predecessor via SHA-256, providing tamper evidence without external infrastructure
+predecessor via SHA-256, providing bounded tamper evidence (mid-chain modification
+and removal against an independently held head — see §7.2 for the normative scope
+statement and its explicit exclusions) without external infrastructure
 (§7.2). Implementations that include hash chain support enable offline tamper detection
 and cross-system audit verification.
 
@@ -3397,7 +3590,7 @@ and cross-system audit verification.
 
 ### 12.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-02.
   §3 (Agent Identifier Format), §4 (Message Envelope), §4.2.1 (Correlation ID),
   §4.2.2 (Expiration), §4.3.6 (Compliance Field Definition),
   §4.3.7 (Field Inheritance), §4.3.8 (Validation Rules),
@@ -3405,11 +3598,11 @@ and cross-system audit verification.
   §8.1 (HTTP/2 Transport), §8.3 (Timing),
   §9.2 (Brokered Routing — Data Residency), §11.2 (Error Codes).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive, Draft-02.
   §1.2 (IdentityRecord — `owner_id`, `owner_name` for Art. 30 records),
   §2.1 (Key Pair Requirements — key management for encryption at rest).
 
-- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.
+- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-02.
   §1.1 (Capability Naming).
 
 - **RFC 2119** — Key words for use in RFCs to Indicate Requirement Levels.

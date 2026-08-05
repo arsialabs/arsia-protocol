@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/test-vectors/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-test-vectors.meta.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Protocol Test Vectors",
   "description": "Meta-schema validating the structure of arsia-test-vectors.json",

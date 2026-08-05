@@ -68,9 +68,9 @@
 | STATE-§2.1.7-04 | 2.1.7 | SHOULD | sdk_enabled | behavioural_positive | Session entries' expires_at SHOULD match the request's expires_at or session timeout (earlier wins) | — | ITV-198 |
 | STATE-§2.1.7-05 | 2.1.7 | MUST_NOT | sdk | behavioural_negative | Expired entries MUST NOT be returned by GET or QUERY operations. | — | ITV-199 |
 | STATE-§2.1.7-06 | 2.1.7 | MAY | sdk_enabled | behavioural_positive | SNAPSHOT MAY return expired entries if they existed at the requested time and retention has not elapsed | — | — |
-| STATE-§2.1.8-01 | 2.1.8 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.retention_days field is OPTIONAL (integer, minimum 1) | arsia-state-entry | ITV-138 |
+| STATE-§2.1.8-01 | 2.1.8 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.retention field is OPTIONAL (integer, minimum 1) | arsia-state-entry | ITV-138 |
 | STATE-§2.1.8-02 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | The effective retention MUST NOT be less than the compliance profile's minimum. | arsia-state-entry | INV-08 |
-| STATE-§2.1.8-03 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entry-level retention_days MUST NOT reduce retention below the compliance profile minimum | — | INV-08 |
+| STATE-§2.1.8-03 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entry-level retention MUST NOT reduce retention below the compliance profile minimum | — | INV-08 |
 | STATE-§2.1.8-04 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entries within retention MUST NOT be physically deleted, except via PURGE for GDPR erasure | — | ITV-200 |
 | STATE-§2.1.9-01 | 2.1.9 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.data_residency field is OPTIONAL (ISO 3166-1 or supranational code) | arsia-state-entry | ITV-138 |
 | STATE-§2.1.9-02 | 2.1.9 | MUST | deployment | behavioural_positive | data_residency declares the geographic zone where the entry MUST be stored | arsia-state-entry | — |
@@ -133,7 +133,7 @@
 | STATE-§3.1.2-03 | 3.1.2 | REQUIRED | sdk | structural | SET payload.args.scope field is REQUIRED | arsia-state-operations | ITV-47, ITV-48, ITV-110, ITV-111 |
 | STATE-§3.1.2-04 | 3.1.2 | REQUIRED | sdk | structural | SET payload.args.pii_classification field is REQUIRED | arsia-state-operations | ITV-47, ITV-108, ITV-109 |
 | STATE-§3.1.2-05 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.expires_at field is OPTIONAL | arsia-state-operations | ITV-112 |
-| STATE-§3.1.2-06 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.retention_days field is OPTIONAL | arsia-state-operations | ITV-112 |
+| STATE-§3.1.2-06 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.retention field is OPTIONAL | arsia-state-operations | ITV-112 |
 | STATE-§3.1.2-07 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.data_residency field is OPTIONAL | arsia-state-operations | ITV-112 |
 | STATE-§3.1.2-08 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.expected_version field is OPTIONAL | arsia-state-operations | ITV-112 |
 | STATE-§3.1.2-09 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | SET scope MUST NOT be "global"; agents cannot create global-scoped entries via SET | arsia-state-operations | ITV-49, ITV-216 |
@@ -218,7 +218,7 @@
 | STATE-§3.3.2-08 | 3.3.2 | REQUIRED | sdk | structural | REVOKE payload.args.grant_id field is REQUIRED | arsia-state-operations | ITV-107 |
 | STATE-§4.1-01 | 4.1 | MUST | sdk | behavioural_positive | Retention policy governs how long state entries MUST be kept before physical removal | — | — |
 | STATE-§4.1.1-01 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entries MUST NOT be physically deleted before the regulatory minimum retention expires | — | ITV-250 |
-| STATE-§4.1.1-02 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entry-level retention_days MUST NOT reduce retention below the regulatory minimum | — | ITV-251 |
+| STATE-§4.1.1-02 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entry-level retention MUST NOT reduce retention below the regulatory minimum | — | ITV-251 |
 | STATE-§4.1.2-01 | 4.1.2 | RECOMMENDED | sdk_enabled | behavioural_positive | GDPR-STANDARD profile RECOMMENDED default retention is 90 days when no expires_at is set | — | — |
 | STATE-§4.1.2-02 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | EU-AI-ACT-HIGH-RISK entries MUST NOT be physically removed before 180 days from creation | arsia-compliance-field | — |
 | STATE-§4.1.2-03 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | MIFID-II entries MUST NOT be physically removed before 1827 days (5 years) from creation | arsia-compliance-field | — |
@@ -272,11 +272,11 @@
 | STATE-§5.4-03 | 5.4 | SHOULD | operational_policy | behavioural_positive | Per-agent storage limits SHOULD be configurable by the platform operator | — | — |
 | STATE-§5.4-04 | 5.4 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD apply per-agent limits as safeguards against unbounded data accumulation | — | — |
 | STATE-§5.4-05 | 5.4 | MUST | sdk | behavioural_positive | Session-scoped entries MUST expire when the session ends | — | ITV-259 |
-| STATE-§5.4-06 | 5.4 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD apply a default expiry to entries without explicit expires_at or retention_days | — | ITV-261 |
+| STATE-§5.4-06 | 5.4 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD apply a default expiry to entries without explicit expires_at or retention | — | ITV-261 |
 | STATE-§5.4-07 | 5.4 | MUST | sdk | behavioural_positive | Session scope default expiry is the session duration (MUST) | — | ITV-260 |
 | STATE-§5.4-08 | 5.4 | RECOMMENDED | operational_policy | behavioural_positive | Agent scope default expiry of 90 days is RECOMMENDED | — | ITV-261 |
 | STATE-§5.4-09 | 5.4 | RECOMMENDED | operational_policy | behavioural_positive | Shared scope default expiry of 90 days is RECOMMENDED | — | — |
-| STATE-§5.4-10 | 5.4 | MUST | sdk | behavioural_positive | Agents needing longer retention MUST explicitly set expires_at or retention_days | — | — |
+| STATE-§5.4-10 | 5.4 | MUST | sdk | behavioural_positive | Agents needing longer retention MUST explicitly set expires_at or retention | — | — |
 | STATE-§5.4-11 | 5.4 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD issue warnings when an agent approaches its storage limits | — | — |
 | STATE-§5.4-12 | 5.4 | SHOULD | operational_policy | behavioural_positive | Storage limit warnings SHOULD be issued at 80% of any configured limit | — | — |
 | STATE-§5.5-01 | 5.5 | MAY | operational_policy | behavioural_positive | Operators MAY transform exported entries into other formats (CSV, XML, etc.) for portability requests | — | — |
@@ -300,13 +300,13 @@
 | STATE-§6.3-02 | 6.3 | MUST | sdk | procedural | MIFID-II: all AssetTransferRequest messages MUST generate MiFID II audit records | arsia-compliance-field | — |
 | STATE-§6.3-03 | 6.3 | MUST | sdk | procedural | MIFID-II: asset transfer audit records MUST contain all fields per ARSIA-Assets §6.1.1 | arsia-compliance-field | — |
 | STATE-§6.4-01 | 6.4 | MUST | sdk | behavioural_positive | PAC-AGRICULTURE profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-262 |
-| STATE-§6.4-02 | 6.4 | MUST | sdk | behavioural_negative | PAC-AGRICULTURE: retention_days MUST NOT be less than 1096 (3-year CAP minimum) | arsia-compliance-field | — |
+| STATE-§6.4-02 | 6.4 | MUST | sdk | behavioural_negative | PAC-AGRICULTURE: retention MUST NOT be less than 1096 (3-year CAP minimum) | arsia-compliance-field | — |
 | STATE-§6.5-01 | 6.5 | MUST | sdk | behavioural_positive | EU-AI-ACT-LIMITED-RISK profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-558 |
 | STATE-§6.5-02 | 6.5 | MUST | sdk | behavioural_positive | EU-AI-ACT-LIMITED-RISK: transparency obligations per Art. 50 MUST be enforced | arsia-compliance-profiles | — |
 | STATE-§6.6-01 | 6.6 | MUST | sdk | behavioural_positive | DSA-VLOP profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-559 |
-| STATE-§6.6-02 | 6.6 | MUST | sdk | behavioural_negative | DSA-VLOP: retention_days MUST NOT be less than 730 (2-year DSA minimum) | arsia-compliance-field | — |
+| STATE-§6.6-02 | 6.6 | MUST | sdk | behavioural_negative | DSA-VLOP: retention MUST NOT be less than 730 (2-year DSA minimum) | arsia-compliance-field | — |
 | STATE-§6.7-01 | 6.7 | MUST | sdk | behavioural_positive | DORA profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-560 |
-| STATE-§6.7-02 | 6.7 | MUST | sdk | behavioural_negative | DORA: retention_days MUST NOT be less than 1827 (5-year DORA minimum) | arsia-compliance-field | — |
+| STATE-§6.7-02 | 6.7 | MUST | sdk | behavioural_negative | DORA: retention MUST NOT be less than 1827 (5-year DORA minimum) | arsia-compliance-field | — |
 | STATE-§7.1-01 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord fields are REQUIRED unless explicitly marked OPTIONAL | arsia-audit-record | — |
 | STATE-§7.1-02 | 7.1 | OPTIONAL | sdk | structural | Some ArsiaAuditRecord fields are marked OPTIONAL per individual field definitions | arsia-audit-record | — |
 | STATE-§7.1-03 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.record_id field is REQUIRED (string, UUID v4) | arsia-audit-record | — |
@@ -360,8 +360,8 @@
 | STATE-§8.3-01 | 8.3 | MUST | sdk | procedural | All state operations MUST generate audit events when the envelope's compliance.audit_required is true | — | ITV-269 |
 | STATE-§8.3-02 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit data_residency from envelope when payload.args does not set it | — | ITV-536 |
 | STATE-§8.3-03 | 8.3 | MUST | sdk | behavioural_positive | payload.args.data_residency MUST take precedence over compliance.data_residency | — | ITV-537 |
-| STATE-§8.3-04 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit retention_days from envelope when payload.args does not set it | — | ITV-538 |
-| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | Effective retention MUST be max(payload.args.retention_days, compliance.retention_days) | — | ITV-539 |
+| STATE-§8.3-04 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit retention from envelope when payload.args does not set it | — | ITV-538 |
+| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | Effective retention MUST be max(payload.args.retention, compliance.retention) | — | ITV-539 |
 | STATE-§8.3-06 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be checked when pii_classification is 'personal' or 'sensitive' | — | ITV-540, ITV-555 |
 | STATE-§8.3-07 | 8.3 | MUST_NOT | sdk | behavioural_negative | legal_basis MUST NOT be stored on the StateEntry itself | arsia-state-entry | — |
 | STATE-§8.3-08 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be recorded in the audit event | arsia-audit-record | ITV-542 |
@@ -407,30 +407,48 @@
 
 ## Coverage Gaps
 
-**Generated:** 2026-05-04
+Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproducible via scripts/check_consistency.py companion tooling)
 
 ### Summary
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 382 |
-| Schema ≠ — | 130 |
-| Vector ≠ — | 180 |
-| Both ≠ — | 75 |
-| Both = — (gaps) | 147 |
+| Total requirements | 400 |
+| Schema ≠ — | 149 |
+| Vector ≠ — | 195 |
+| Both ≠ — | 90 |
+| Both = — (gaps) | 146 |
 
 ### Per-section breakdown
 
-| § | Rows | Schema | Vector | Both ≠ — | Gaps |
-|---|-----:|-------:|-------:|---------:|-----:|
+| § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
+|---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
-| 2 | 73 | 27 | 40 | 17 | 23 |
-| 3 | 93 | 45 | 74 | 37 | 11 |
-| 4 | 34 | 2 | 8 | 0 | 24 |
-| 5 | 28 | 2 | 6 | 0 | 20 |
-| 6 | 19 | 10 | 1 | 1 | 9 |
+| 2 | 80 | 31 | 44 | 20 | 25 |
+| 3 | 94 | 46 | 75 | 38 | 11 |
+| 4 | 36 | 5 | 8 | 1 | 24 |
+| 5 | 35 | 8 | 12 | 6 | 21 |
+| 6 | 20 | 15 | 5 | 5 | 5 |
 | 7 | 45 | 26 | 12 | 8 | 15 |
 | 8 | 15 | 5 | 13 | 4 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
-| 10 | 22 | 3 | 3 | 1 | 17 |
-| 11 | 12 | 1 | 4 | 1 | 8 |
+| 10 | 23 | 3 | 3 | 1 | 18 |
+| 11 | 11 | 1 | 4 | 1 | 7 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| value semantics (I-JSON); lexical fidelity dropped; 2^53 rule | §2.1.2 | — | ITV-577/578; harness R8 |
+| entry retention override = duration; reject below floor | §2.1.8 | state-entry (Phase-5 note) | STATE-12/13 |
+| profile tables: retention_minimum durations + basis + clock_skew | §6.1-6.7 | catalog + profiles schema | consistency check |
+| DSA-VLOP P731D | §6.6 | catalog | consistency check |
+| audit record: declared/resolved profile, retention fields, counterparty_owner_id | §7.1 | audit-record | 45 migrated |
+| per-event-type extension fields documented in prose | §7.1 | audit-record | — |
+| tamper-evidence scope statement (detected vs not) | §7.2 | — | — |
+| GDPR language qualified | §7.2 | — | — |
+| session-scope audit precedence (audit_required wins) | §1.1, §8.3 r4 | — | integration |
+| shared vs agent+GRANT guidance; scope table fixed | §1.5 | — | — |
+| reserved prefix examples arsiaprotocol.meta/ | §2.2 | — | — |
+| §2.1.10 item 2: SHOULD-set + MUST-warn | §2.1.10 | state-entry | — |
+| §10.4 rewritten; AEAD defined; legal_basis personal+sensitive | §10.4, §5.2 | — | — |

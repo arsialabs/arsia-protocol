@@ -103,7 +103,7 @@
 | ACT-§2.1-25 | 2.1 | MUST | sdk | behavioural_positive | Audit record MUST include action_id, requester identity, timestamp, params, and result | arsia-audit-record | — |
 | ACT-§2.1-26 | 2.1 | OPTIONAL | sdk | informational | When audit_required is false, audit logging is OPTIONAL but compliance profile MAY require it | — | — |
 | ACT-§2.1-27 | 2.1 | MAY | sdk | informational | Compliance profile MAY still require audit logging even when audit_required is false | — | — |
-| ACT-§2.1-28 | 2.1 | OPTIONAL | sdk | informational | retention_days field is OPTIONAL in ActionDescriptor | arsia-action-descriptor | — |
+| ACT-§2.1-28 | 2.1 | OPTIONAL | sdk | informational | retention field is OPTIONAL in ActionDescriptor | arsia-action-descriptor | — |
 | ACT-§2.1-29 | 2.1 | REQUIRED | sdk | behavioural_positive | explainability_required field is REQUIRED in ActionDescriptor | arsia-action-descriptor | — |
 | ACT-§2.1-30 | 2.1 | MUST | sdk | behavioural_positive | When explainability_required is true, response MUST include payload.explanation object | arsia-action-descriptor | — |
 | ACT-§2.1-31 | 2.1 | SHOULD | sdk_enabled | behavioural_positive | pending_approval message SHOULD include preliminary explanation for human oversight | arsia-explanation | — |
@@ -335,21 +335,39 @@
 
 ## Coverage Gaps
 
+Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproducible via scripts/check_consistency.py companion tooling)
+
+### Summary
+
 | Metric | Count |
-|--------|-------|
-| Total requirements | 323 |
+|--------|------:|
+| Total requirements | 328 |
 | Schema ≠ — | 151 |
-| Vector ≠ — | 112 |
+| Vector ≠ — | 115 |
 | Both ≠ — | 59 |
-| Both = — (gaps) | 119 |
+| Both = — (gaps) | 121 |
 
-### Gaps by section
+### Per-section breakdown
 
-| Section | Gaps | Total |
-|---------|------|-------|
-| §1 (Capabilities) | 32 | 70 |
-| §2 (Action Descriptor) | 26 | 82 |
-| §3 (Human Oversight) | 23 | 85 |
-| §4 (Execution) | 31 | 52 |
-| §5 (Explainability) | 8 | 28 |
-| §6 (Conformance) | 0 | 9 |
+| § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
+|---|-------|-----------|-----------|---------|---------|
+| 1 | 72 | 21 | 26 | 8 | 33 |
+| 2 | 82 | 47 | 27 | 18 | 26 |
+| 3 | 85 | 41 | 40 | 19 | 23 |
+| 4 | 52 | 16 | 12 | 7 | 31 |
+| 5 | 28 | 18 | 7 | 5 | 8 |
+| 6 | 9 | 8 | 3 | 2 | 0 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| §1.4 = closed normative registry; +echo/health/onboarding.evaluate/broker.use | §1.4 | descriptor registry rule | ITV-568, ITV-281 |
+| Reserved namespace non-delegable (wildcard never matches) | §1.2 c3, §1.4 | — | ITV-567; harness R3 |
+| Example capabilities de-reserved (code.review etc.) | §1.1 exs | capability-policy desc | 16 vector renames |
+| pending_approval/approval_decision: root_request_id rows; §3.4 root check; duplicate/late rules | §3.2-§3.4 | arsia-message | regenerated corpus |
+| descriptor `retention` duration override (upward only) | §2.1 | action-descriptor | — |
+| NEW `supported_versions` on ActionDescriptor; single-entry migration | §2.1, §2.4 | descriptor + discovery | — |
+| risk_level minimum 0 in pending-approval args | §2.1/§3.2 | arsia-message | — |
+| async: one mechanism, two surfaces (202+Location ≡ status_url) | §4.3 | — | — |
+| risk-level retention-floor claim removed | §3.5 | — | — |

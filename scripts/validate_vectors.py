@@ -220,9 +220,11 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
         msg = vector.get("message", {})
         expected_valid = vector.get("valid", True)
 
-        # CHECK 1 — canonical bytes
+        # CHECK 1 — canonical bytes (Draft-02 signing profile, Core §5.1:
+        # security PRESENT, only the sig property removed)
         msg_copy = copy.deepcopy(msg)
-        msg_copy.pop("security", None)
+        if isinstance(msg_copy.get("security"), dict):
+            msg_copy["security"].pop("sig", None)
         if rfc8785:
             canonical = rfc8785.dumps(msg_copy)
         else:

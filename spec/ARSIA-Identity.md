@@ -3,13 +3,13 @@
 # ARSIA-Identity — Identity Primitive Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §3, §5, §7**
+**Draft-02 | July 2026 | References: ARSIA-Core.md §3, §5, §7**
 **Arsia Labs — arsiaprotocol.org**
 
 ---
@@ -32,13 +32,13 @@ Protocol implementations at Compliance Conformance level or above.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Identity Primitive. This specification is
+This document specifies Draft-02 of the ARSIA Identity Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/identity/draft-01
+    https://arsiaprotocol.org/spec/identity/draft-02
 
 Comments and issues should be directed to:
 
@@ -139,8 +139,9 @@ originated from the agent identified in the `from` field. Every outbound message
 a digital signature in the `security` field (ARSIA-Core.md §5.1), and the corresponding
 public key is retrievable from the JWKS endpoint.
 
-**Layer 3 — Compliance Identity.** The legal entity that owns and operates the agent,
-plus its regulatory classification under the EU AI Act. This is the accountability
+**Layer 3 — Compliance Identity.** The legal entity accountable for the agent (the
+owner — see §4.4 for the owner/deployer role model), plus its regulatory
+classification under the EU AI Act. This is the accountability
 layer. It tells regulators, auditors, and counterparty agents WHO is legally responsible
 for this agent's actions and what obligations apply to its operation.
 
@@ -171,7 +172,8 @@ The IdentityRecord contains the following fields:
     field binds the IdentityRecord to the technical identity layer.
 
 **`owner_id`** (string, REQUIRED)
-:   Legal entity identifier of the entity that owns and operates the agent. While the
+:   Legal entity identifier of the entity accountable for the agent (the owner; the
+    infrastructure operator may be a distinct `deployer_id` — see §4.4). While the
     ARSIA Protocol's compliance layer focuses on EU regulation, the identity layer is
     jurisdiction-agnostic — agents MAY be owned by entities registered in any country.
     The `owner_id` MUST be a verifiable legal entity identifier in one of the following
@@ -192,7 +194,7 @@ The IdentityRecord contains the following fields:
     standardized legal entity identifier. This field establishes legal accountability.
 
 **`owner_name`** (string, REQUIRED)
-:   Human-readable legal name of the entity that owns and operates the agent. This MUST
+:   Human-readable legal name of the entity accountable for the agent (the owner; see §4.4 for the role model). This MUST
     be the registered legal name, not a trading name or brand.
 
 **`jurisdiction`** (string, REQUIRED)
@@ -206,6 +208,18 @@ The IdentityRecord contains the following fields:
     the worst-case classification across all intended uses of this agent. Per-message
     classification (in the `compliance.ai_system_classification` envelope field) MAY be
     equal to or lower than this value but MUST NEVER be higher.
+
+**`regulated_entity`** (object, OPTIONAL)
+:   Declares the owner's status as a regulated entity. Structure:
+    `{ "regulated": <boolean>, "regimes": [<string>, ...] }` where `regimes` lists
+    the applicable regulatory regimes as uppercase identifiers (e.g. `"MIFID-II"`,
+    `"DORA"`, `"PSD2"`, `"CRD-IV"`). When present with `regulated: true`, the agent
+    asserts that its owner is subject to the listed regimes — this drives, among
+    others, the MiFID II audit-trail trigger of ARSIA-Assets.md §6.1. The
+    declaration is self-asserted like the rest of the IdentityRecord; counterparties
+    MAY require out-of-band verification (e.g. against national registers) before
+    relying on it. Absence of the field means "no declaration", not "not
+    regulated".
 
 **`deployer_id`** (string, OPTIONAL)
 :   Legal entity identifier of the deploying entity, when the deployer differs from the
@@ -264,7 +278,7 @@ If the signature does not verify, the identity record MUST be treated as untrust
 > HTTP-layer integrity mechanism: the server produces both the body and the signature,
 > so no canonicalization is needed, and any intermediary (CDN, proxy, TLS-terminating
 > load balancer) that alters the response bytes will be detected. For message
-> envelopes (ARSIA-Core.md §5.1), the JSON envelope minus the `security` block is
+> envelopes (ARSIA-Core.md §5.1), the JSON envelope minus only the `security.sig` property is
 > canonicalized via JCS ([RFC 8785]) and the canonical bytes are signed directly with
 > Ed25519 — no intermediate hash. JCS is necessary there because sender and recipient
 > may serialize identical JSON objects differently; canonicalization ensures both sides
@@ -286,7 +300,7 @@ identity updates.
 
 ### 2.1 Key Pair Requirements
 
-The REQUIRED signing algorithm for ARSIA Protocol v1.0 is Ed25519 (EdDSA over
+The REQUIRED signing algorithm for the ARSIA Protocol is Ed25519 (EdDSA over
 Curve25519). This is the only REQUIRED algorithm. Implementations MAY support additional
 algorithms listed in ARSIA-Core.md §5.1, but Ed25519 MUST be supported.
 
@@ -383,22 +397,27 @@ Key rotation SHOULD be automated. Recommended triggers:
 
 ### 2.5 Key Revocation
 
-ARSIA Protocol v1.0 does not define an explicit Certificate Revocation List (CRL) or
+ARSIA Protocol v2.0 does not define an explicit Certificate Revocation List (CRL) or
 OCSP-like revocation mechanism.
 
 Implementations SHOULD achieve revocation through the following approach:
 
 1. Use short key validity periods (90 days RECOMMENDED).
 2. For immediate revocation: remove the compromised key from the JWKS AND rotate to a
-   new key immediately, without an overlap period.
-3. Log a `key_rotation` audit event with `reason: "revocation"`.
+   new key immediately, without an overlap period. Removal from the published JWKS is
+   the authoritative revocation signal (ARSIA-Core.md §5.2, Verification Caching).
+3. SHOULD additionally emit a signed `event` with payload type
+   `arsiaprotocol.identity/key-revocation` to known counterparties, naming the revoked
+   `kid` and the effective instant (ARSIA-Core.md §5.2) — recipients processing it
+   MUST invalidate the cached key at once.
+4. Log a `key_rotation` audit event with `reason: "revocation"`.
 
-Recipients that cache JWKS responses (see §3.1) SHOULD refetch JWKS on signature
-verification failure. This provides near-immediate revocation propagation, bounded by
-the recipient's JWKS cache TTL (RECOMMENDED maximum: 1 hour).
-
-Future versions of this specification MAY define a formal revocation mechanism if
-operational experience demonstrates the need.
+Revocation propagation to caching recipients is bounded by the mandatory periodic
+JWKS refresh of ARSIA-Core.md §5.2 (at least once every 3600 seconds), NOT by
+refetch-on-verification-failure: a compromised key keeps producing valid signatures,
+so failure-triggered refetch never fires for exactly the keys that matter most.
+Refetching on verification failure (see §3.1) remains useful for the benign
+rotation-lag case only.
 
 ---
 
@@ -406,7 +425,15 @@ operational experience demonstrates the need.
 
 ### 3.1 Message-Level Authentication (EdDSA)
 
-Every ARSIA message MUST carry a `security` object with `alg`, `kid`, and `sig` fields
+Messages with `intent` of `"request"`, `"response"`, `"pending_approval"`, or
+`"approval_decision"` MUST carry a `security` object with `alg`, `kid`, and `sig`
+fields — the signature requirements per intent are defined by ARSIA-Core.md §5.2,
+which this section follows: signatures on `"event"` and `"error"` messages are
+RECOMMENDED, not required. Exception: `event` messages whose payload is
+compliance-relevant — payload types `arsiaprotocol.compliance/breach-notification`,
+`arsiaprotocol.ict/incident`, `arsiaprotocol.identity/key-revocation`, and audit
+events emitted on the wire — MUST be signed: their evidentiary value depends on
+authenticated origin. When present, the `security` object carries `alg`, `kid`, and `sig` fields
 as defined in ARSIA-Core.md §5.1.
 
 A recipient MUST verify the message signature using the following procedure:
@@ -416,21 +443,26 @@ A recipient MUST verify the message signature using the following procedure:
     character.
 3.  Verify that the extracted agent-id matches `message.from`. If it does not, reject
     the message with error code `"unauthorized"`.
-4.  Retrieve the sender's JWKS from `GET /.well-known/arsia/jwks.json` on the sender's
-    domain.
+4.  Retrieve the sender's JWKS from `GET /.well-known/arsia/jwks.json` at the origin
+    resolved from the sender's agent-id per ARSIA-Core.md §6.6 (agent identifier
+    resolution).
 5.  Find the JWK entry with a matching `kid`.
 6.  If no matching key is found, reject the message with error code `"unauthorized"`.
-7.  Clone the message object and remove the `"security"` field from the clone.
+7.  Clone the message object and remove ONLY the `security.sig` property from the
+    clone — `alg`, `kid`, and any encryption metadata remain in the signing input
+    (ARSIA-Core.md §5.1 Step 2).
 8.  Canonicalize the clone using JSON Canonicalization Scheme (JCS) per RFC 8785.
 9.  Verify the Ed25519 signature (from `security.sig`, base64url-decoded) over the
     canonicalized bytes using the public key from step 5.
 10. If signature verification fails, reject the message with error code `"unauthorized"`.
 
-**JWKS caching.** Recipients SHOULD cache JWKS responses for up to 1 hour (respecting
-`Cache-Control` headers if present). On signature verification failure with a cached
-key, the recipient SHOULD refetch the JWKS once before rejecting the message. This
-handles the case where the sender has recently rotated keys and the recipient's cache
-is stale.
+**JWKS caching.** Recipients MAY cache JWKS responses subject to the normative bounds
+of ARSIA-Core.md §5.2 (Verification Caching): refresh on unknown `kid`, on
+`Cache-Control` expiry, and in any case at least once every 3600 seconds. On signature
+verification failure with a cached key, the recipient SHOULD refetch the JWKS once
+before rejecting the message — this handles the benign case where the sender has
+recently rotated keys and the recipient's cache is stale (it is NOT the revocation
+mechanism; see §2.5).
 
 > **Note:** Implementations that support a sandbox or development mode (e.g., open
 > registration) MAY relax the EdDSA verification requirement for unauthenticated
@@ -510,10 +542,16 @@ For any message where `compliance.audit_required` is `true`:
 - The `IdentityRecord.owner_id` of BOTH the sender and receiver MUST be retrievable
   via their respective `/.well-known/arsia/identity` endpoints.
 - The `owner_id` of both parties MUST be included in the corresponding audit record
-  (ARSIA-State.md §7).
-- This satisfies EU AI Act Art. 26(1): deployers of high-risk AI systems must use AI
-  systems in accordance with the instructions for use, and the identity of the deployer
-  must be determinable.
+  (ARSIA-State.md §7): the log owner's as `operator_id` and the other party's as
+  `counterparty_owner_id`. When the counterparty's IdentityRecord is unresolvable at
+  processing time, the record carries the counterparty agent-id and the owner
+  identifier is appended by correction record once resolvable (ARSIA-State.md §7.1).
+- This supports the determinability of the accountable identity that EU AI Act
+  Art. 26(1) presupposes for deployers of high-risk AI systems. Whether the ARSIA
+  `owner` is the AI Act deployer in a given configuration is a role-allocation
+  question for the operator (§4.4); the IdentityRecord records accountability
+  identities, it does not adjudicate regulatory roles (statement subject to legal
+  review).
 
 Implementations SHOULD cache identity records with the same policy as JWKS (up to 1
 hour). For audit purposes, the identity record as retrieved at the time of message
@@ -548,7 +586,7 @@ When the sender's `jurisdiction` differs from the recipient's `jurisdiction`:
 - Data residency constraints (`compliance.data_residency`) still apply as defined in
   ARSIA-Core.md §9.2. The sender's jurisdiction does NOT automatically determine data
   residency — residency is declared per message in the `compliance` field.
-- No identity federation mechanism is defined in ARSIA Protocol v1.0. Cross-border
+- No identity federation mechanism is defined in ARSIA Protocol v2.0. Cross-border
   identity verification relies on each party independently fetching and verifying the
   other's IdentityRecord and JWKS.
 
@@ -557,19 +595,34 @@ When the sender's `jurisdiction` differs from the recipient's `jurisdiction`:
 When `deployer_id` is set and differs from `owner_id`, the IdentityRecord declares a
 split responsibility model:
 
-- The **deployer** is the entity that operates the agent infrastructure on behalf of the
-  owner. EU AI Act Art. 26 obligations (operational responsibilities — monitoring,
-  logging, human oversight) fall on the deployer.
-- The **owner** (referred to as "provider" in the EU AI Act) is the entity that designed
-  or commissioned the AI system. EU AI Act Art. 16 obligations (design-time
-  responsibilities — risk management, data governance, technical documentation) fall on
-  the owner.
-- Both `deployer_id` and `owner_id` MUST be recorded in audit events for messages
-  involving this agent.
-- **Example:** A SaaS company (`deployer_id: "DE812345678"`) operates a risk assessment
-  agent on behalf of a bank (`owner_id: "PT501234567"`). The SaaS company is responsible
-  for operational monitoring; the bank is responsible for the agent's design-time
-  compliance.
+- **ARSIA roles are accountability roles, not EU AI Act roles, and the mapping is
+  many-to-many.** `owner_id` identifies the legal entity accountable for the agent
+  — the accountability anchor every audit record resolves to. `deployer_id` (wire
+  name retained from Draft-01) identifies the entity operating the agent's
+  infrastructure when that differs from the owner — an outsourcing relationship.
+- **EU AI Act mapping (informative, per-deployment):** the AI Act's **provider**
+  (Art. 16 — design-time obligations) is the entity that develops the system or has
+  it developed and places it on the market under its own name; the AI Act's
+  **deployer** (Art. 26 — usage obligations: monitoring, logging, human oversight)
+  is the entity using the system under its own authority. In the common
+  configuration, the ARSIA `owner` is the AI Act **deployer** (it uses the agent
+  under its authority), and the AI Act provider is the upstream vendor — who may
+  not appear in the IdentityRecord at all. The ARSIA `deployer_id` (infrastructure
+  operator) is NOT automatically the AI Act deployer: hosting infrastructure does
+  not by itself constitute use under one's own authority. Operators MUST determine
+  their own AI Act role allocation; the IdentityRecord records accountability
+  identities, it does not adjudicate regulatory roles (statement subject to legal
+  review).
+- Both `deployer_id` (when set) and `owner_id` MUST be recorded in audit events for
+  messages involving this agent — via `operator_id`/`counterparty_owner_id`
+  (ARSIA-State.md §7.1) and, when the split model applies, a `deployer_id`
+  extension field.
+- **Example:** A bank (`owner_id: "PT501234567"`) uses a risk-assessment agent whose
+  infrastructure is run by a SaaS company (`deployer_id: "DE812345678"`). The bank
+  is the accountability anchor (and, using the agent under its own authority,
+  typically the AI Act deployer); the SaaS company operates infrastructure under
+  contract; the agent's software vendor — possibly a third entity — is typically
+  the AI Act provider.
 
 ---
 
@@ -867,8 +920,8 @@ MUST be to accept messages at all trust levels.
 #### 6.4.3 Error Handling
 
 The following error codes are defined for certificate-related verification failures.
-These error codes are used in the ARSIA error message format defined in
-ARSIA-Core.md §8.
+These error codes are standard codes registered in ARSIA-Core.md §11.2 and are used
+in the ARSIA error message format defined in ARSIA-Core.md §11.
 
 | Error Code               | Condition                                            |
 |--------------------------|------------------------------------------------------|
@@ -1149,8 +1202,10 @@ MUST be traceable through the audit trail.
 The onboarding flow does NOT define new message types, new envelope fields, or new error codes.
 It composes existing ARSIA primitives into a structured flow:
 
-- **`approval_decision` intent** (ARSIA-Core.md §4.1, ARSIA-Actions.md §3.3) is used for
-  the onboarding decision in Phase 5.
+- **The `request` intent with payload type `arsiaprotocol.onboarding/decision`** (§7.6)
+  delivers the onboarding decision in Phase 5. The decision deliberately does not reuse
+  the `approval_decision` intent (§7.6); the decision is recorded in the audit trail
+  with `event_type` `"approval_decision"` (ARSIA-State.md §7.1).
 - **`pending_approval` intent** (ARSIA-Core.md §4.1, ARSIA-Actions.md §3.2) is used for
   human oversight signaling during the conformance test in Phase 2.
 - **The `compliance` envelope field** (ARSIA-Core.md §4.3.6) carries regulatory metadata
@@ -1179,7 +1234,7 @@ identity record. The gateway MUST perform the following steps in order:
 **Step 1 — Discovery metadata.** Fetch `GET {agent_base_url}/.well-known/arsia` and
 verify that the response is valid JSON conforming to the ARSIA discovery response format
 (ARSIA-Core.md §7.1). The response MUST include `agent_id`, `protocol_version`, and
-`capabilities` fields. If the fetch fails or the response is invalid, the gateway MUST
+`capabilities_supported` fields (the field name defined by ARSIA-Core.md §7.1). If the fetch fails or the response is invalid, the gateway MUST
 deny onboarding with `denial_reason = "discovery_failed"`.
 
 **Step 2 — Identity record retrieval.** Fetch `GET {agent_base_url}/.well-known/arsia/identity`
@@ -1256,7 +1311,7 @@ ARSIA-Identity.md §3.1:
 1. Extract `security.kid` from the response.
 2. Verify that the kid prefix matches `message.from`.
 3. Look up the corresponding public key in the agent's JWKS.
-4. Remove the `security` field from a clone of the response, canonicalize per RFC 8785.
+4. Remove only the `security.sig` property from a clone of the response (keeping `alg`, `kid`, and any encryption metadata in place, per ARSIA-Core.md §5.1), canonicalize per RFC 8785.
 5. Verify the Ed25519 signature over the canonicalized bytes.
 
 If verification fails, the check fails.
@@ -1369,9 +1424,17 @@ oversight process MAY use provenance information as an input to the approval dec
 
 ### 7.6 Phase 5 — Onboarding Decision
 
-After completing Phases 1–4, the gateway emits an ARSIA message with intent
-`"approval_decision"` (ARSIA-Actions.md §3.3) to communicate the onboarding decision to
-the external agent.
+After completing Phases 1–4, the gateway communicates the onboarding decision to the
+external agent as a **new `request` message** carrying the dedicated payload type
+`arsiaprotocol.onboarding/decision` (machine-validated by
+`arsia-onboarding-decision.schema.json`). The decision deliberately does NOT reuse
+the `approval_decision` intent: that intent is the human-oversight contract of
+ARSIA-Actions.md §3.3, whose MUSTs (correlation to a `pending_approval`;
+`arsiaprotocol.oversight.approve` capability) do not and must not apply here.
+Onboarding introduces no new intent — it defines a payload type over the standard
+`request` intent, exactly like other multi-step deliveries (cf.
+ARSIA-Assets.md §3.2.1 subsequent receipts). The external agent MUST acknowledge
+with a `response`.
 
 The decision message MUST conform to the following structure:
 
@@ -1379,14 +1442,16 @@ The decision message MUST conform to the following structure:
 
 | Field            | Value                                                        |
 |------------------|--------------------------------------------------------------|
-| `v`              | `"1.0"`                                                      |
+| `v`              | `"2.0"`                                                      |
 | `id`             | Unique UUID v4                                               |
 | `ts`             | Current timestamp in RFC 3339 format                         |
 | `from`           | Gateway's agent-id                                           |
 | `to`             | External agent's agent-id                                    |
-| `intent`         | `"approval_decision"`                                        |
-| `correlation_id` | The `id` of the initial onboarding request message           |
-| `capabilities`   | `["arsiaprotocol.onboarding.evaluate"]`                              |
+| `intent`         | `"request"`                                                  |
+| `capabilities`   | `["arsiaprotocol.onboarding.evaluate"]`                      |
+| `payload.type`   | `"arsiaprotocol.onboarding/decision"`                        |
+| `payload.args.original_request_id` | The `id` of the initial onboarding request message (ties the decision to the onboarding interaction for audit queries) |
+| `idempotency.key`| `"onboarding-decision:{initial-request-id}"`                 |
 | `payload`        | See below                                                    |
 | `compliance`     | REQUIRED — with the organization's applicable profile        |
 | `security`       | REQUIRED — signed with gateway's Ed25519 key                 |
@@ -1396,11 +1461,12 @@ The decision message MUST conform to the following structure:
 ```json
 {
   "type": "arsiaprotocol.onboarding/decision",
-  "result": {
+  "args": {
+    "original_request_id": "9f1d2c3b-4a5e-4f60-8b7c-1d2e3f405060",
     "decision": "approved",
-    "effective_capabilities": ["arsiaprotocol.code.review", "arsiaprotocol.test.unit"],
-    "freely_allowed": ["arsiaprotocol.code.review"],
-    "oversight_required": ["arsiaprotocol.test.unit"],
+    "effective_capabilities": ["code.review", "test.unit"],
+    "freely_allowed": ["code.review"],
+    "oversight_required": ["test.unit"],
     "conformance_result": {
       "checks": [
         { "test_id": "CHECK-01", "status": "pass", "duration_ms": 42.5 },
@@ -1446,7 +1512,11 @@ The decision message MUST conform to the following structure:
 
 The gateway MUST record the onboarding decision as an ArsiaAuditRecord
 (ARSIA-State.md §7.1) with `event_type` set to `"approval_decision"` and
-`payload_type` set to `"arsiaprotocol.onboarding/decision"`.
+`payload_type` set to `"arsiaprotocol.onboarding/decision"`. Note the distinction:
+`"approval_decision"` here is the audit event label (making decisions queryable via
+`event_type` filters, §9.3); the wire message that delivers the decision uses intent
+`"request"` (see above — it deliberately does not reuse the `approval_decision`
+intent).
 
 ### 7.7 Phase 6 — Operational Phase
 
@@ -1509,8 +1579,8 @@ MiFID II deployment. The auditor agent requests a single capability:
 `arsiaprotocol.audit.read` (ARSIA-Actions.md §1.4).
 
 **Phase 1 — Discovery.** The auditor agent fetches the target agent's discovery endpoint
-at `/.well-known/arsia/agent.json` (ARSIA-Core.md §7.1). The response includes the
-target's `agent_id`, `protocol_version`, and `capabilities` array. The auditor also
+at `/.well-known/arsia` (ARSIA-Core.md §7.1). The response includes the
+target's `agent_id`, `protocol_version`, and `capabilities_supported` array. The auditor also
 retrieves the target's IdentityRecord at `/.well-known/arsia/identity` to confirm the
 `owner_id`, `jurisdiction`, and `ai_system_classification` fields. These fields inform
 the trust assessment performed by the auditor's own internal policy engine.
@@ -1586,17 +1656,17 @@ The policy is an input to Phase 3 of the onboarding flow.
   "token_lifetime_seconds": 3600,
   "capabilities": [
     {
-      "capability": "arsiaprotocol.code.review",
+      "capability": "code.review",
       "status": "allowed",
       "conditions": "Read-only analysis, no code modification"
     },
     {
-      "capability": "arsiaprotocol.code.refactor",
+      "capability": "code.refactor",
       "status": "prohibited",
       "conditions": "Code modification not permitted for external agents"
     },
     {
-      "capability": "arsiaprotocol.test.unit",
+      "capability": "test.unit",
       "status": "oversight_required",
       "max_risk_level": 3,
       "conditions": "Unit test execution requires human approval"
@@ -1628,7 +1698,7 @@ Each entry in the `capabilities` array defines the policy for a single capabilit
 
 **`capability`** (string, REQUIRED)
 :   The capability string, conforming to the ARSIA capability naming grammar
-    (ARSIA-Actions.md §1.1). Wildcard capabilities (e.g., `"arsiaprotocol.test.*"`) are NOT
+    (ARSIA-Actions.md §1.1). Wildcard capabilities (e.g., `"test.*"`) are NOT
     permitted in policy rules — each rule MUST specify an exact capability.
 
 **`status`** (string, REQUIRED)
@@ -1691,7 +1761,12 @@ additional capabilities. Tokens MUST have an `exp` claim set to the current time
 
 The token's `sub` claim MUST be set to the external agent's agent-id. The token's `iss`
 claim MUST be set to the gateway's agent-id. The token's `aud` claim SHOULD be set to the
-infrastructure router's agent-id or a wildcard audience representing all internal agents.
+infrastructure router's agent-id. Wildcard audiences are NOT defined by this
+protocol: ARSIA-Core.md §6.4 requires `aud` to equal the message's `to`, and the
+`arsia-jwt-claims` schema constrains `aud` to a single agent-id. A deployment whose
+router terminates authorization on behalf of internal agents models this by making
+the router the recipient (`to` = router agent-id) of externally originated
+messages, then re-issuing internal tokens — never by widening `aud`.
 
 ### 9.2 Token Theft Mitigation
 
@@ -1722,12 +1797,16 @@ ARSIA-State.md §7.1. The following events MUST be audited:
 | Onboarding decision            | `"approval_decision"` | `"arsiaprotocol.onboarding/decision"`     |
 | Token revocation               | `"response"`        | `"arsiaprotocol.onboarding/revocation"`     |
 
+> The onboarding decision's `event_type` is its audit label — the decision message
+> itself is delivered with intent `"request"` (§7.6), not the `approval_decision`
+> intent.
+
 All audit records MUST use `payload_hash` (a hash of the payload content), NOT the raw
 payload. This satisfies the immutability requirements of ARSIA-State.md §7.2.
 
 Audit records for onboarding decisions MUST be retained for at least the duration
-specified by the applicable compliance profile's `retention_days` field. For MiFID II
-deployments, this is 1825 days (5 years) per ARSIA-State.md §6.3.
+specified by the applicable compliance profile's `retention_minimum` field. For MiFID II
+deployments, this is 1827 days (5 years) per ARSIA-State.md §6.3.
 
 ### 9.4 Off-Boarding and Token Revocation
 
@@ -1762,7 +1841,7 @@ tests.
 | **description**   | Verify that a compliant external agent completes onboarding successfully |
 | **preconditions** | External agent serves valid discovery, identity, and JWKS endpoints. Agent correctly implements ARSIA envelope, EdDSA signatures, human oversight signaling, and audit trail. Gateway has a CapabilityPolicy with at least one `allowed` and one `oversight_required` capability matching the agent's declared capabilities. |
 | **action**        | Gateway executes the full six-phase onboarding flow against the external agent. |
-| **expected**      | Phase 1 passes (identity verified). Phase 2 passes (all 5 checks pass or skip). Phase 3 produces non-empty `effective_capabilities`. Phase 4 records provenance. Phase 5 emits `approval_decision` with `decision: "approved"`, a valid JWT token, `effective_capabilities`, `freely_allowed`, and `oversight_required` lists. An ArsiaAuditRecord with `event_type: "approval_decision"` is created. |
+| **expected**      | Phase 1 passes (identity verified). Phase 2 passes (all 5 checks pass or skip). Phase 3 produces non-empty `effective_capabilities`. Phase 4 records provenance. Phase 5 emits the onboarding decision (`request` with payload type `arsiaprotocol.onboarding/decision`, §7.6) with `decision: "approved"`, a valid JWT token, `effective_capabilities`, `freely_allowed`, and `oversight_required` lists. An ArsiaAuditRecord with `event_type: "approval_decision"` is created. |
 
 ### IDENTITY-14: Rejection — agent lacks required compliance profile
 
@@ -1772,7 +1851,7 @@ tests.
 | **description**   | Verify that a high-risk agent without compliance profile is rejected |
 | **preconditions** | External agent's IdentityRecord has `ai_system_classification: "high-risk"`. Agent sends response messages without `compliance.profile` field. |
 | **action**        | Gateway executes Phase 1 (passes) and Phase 2. CHECK-05 (classification consistency) evaluates the agent's responses. |
-| **expected**      | CHECK-05 fails. Phase 2 fails. Gateway emits `approval_decision` with `decision: "denied"` and `denial_reason: "conformance_failed"`. The `conformance_result` includes CHECK-05 with `status: "fail"`. |
+| **expected**      | CHECK-05 fails. Phase 2 fails. Gateway emits the onboarding decision (`request`, payload type `arsiaprotocol.onboarding/decision`) with `decision: "denied"` and `denial_reason: "conformance_failed"`. The `conformance_result` includes CHECK-05 with `status: "fail"`. |
 
 ### IDENTITY-15: Rejection — identity signature verification fails
 
@@ -1790,9 +1869,9 @@ tests.
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-16`                                                      |
 | **description**   | Verify that an agent that bypasses human oversight is rejected      |
-| **preconditions** | Gateway's CapabilityPolicy marks capability `arsiaprotocol.test.unit` as `oversight_required`. External agent is configured to respond directly with `intent: "response"` instead of `intent: "pending_approval"` when receiving a request for `arsiaprotocol.test.unit`. |
-| **action**        | Gateway executes Phase 2, CHECK-03 (human oversight compliance). Gateway sends a request for `arsiaprotocol.test.unit`. |
-| **expected**      | CHECK-03 fails because the agent responded with `intent: "response"` instead of `intent: "pending_approval"`. Phase 2 fails. Gateway emits `approval_decision` with `decision: "denied"` and `denial_reason: "conformance_failed"`. |
+| **preconditions** | Gateway's CapabilityPolicy marks capability `test.unit` as `oversight_required`. External agent is configured to respond directly with `intent: "response"` instead of `intent: "pending_approval"` when receiving a request for `test.unit`. |
+| **action**        | Gateway executes Phase 2, CHECK-03 (human oversight compliance). Gateway sends a request for `test.unit`. |
+| **expected**      | CHECK-03 fails because the agent responded with `intent: "response"` instead of `intent: "pending_approval"`. Phase 2 fails. Gateway emits the onboarding decision (`request`, payload type `arsiaprotocol.onboarding/decision`) with `decision: "denied"` and `denial_reason: "conformance_failed"`. |
 
 ### IDENTITY-17: Capability scoping — prohibited capability rejected post-onboarding
 
@@ -1800,9 +1879,9 @@ tests.
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-17`                                                      |
 | **description**   | Verify that a prohibited capability is rejected by the infra router |
-| **preconditions** | External agent has completed onboarding with `effective_capabilities: ["arsiaprotocol.code.review"]`. The CapabilityPolicy marks `arsiaprotocol.code.refactor` as `prohibited`. The agent attempts to send a request with `capabilities: ["arsiaprotocol.code.refactor"]` through the infrastructure router. |
+| **preconditions** | External agent has completed onboarding with `effective_capabilities: ["code.review"]`. The CapabilityPolicy marks `code.refactor` as `prohibited`. The agent attempts to send a request with `capabilities: ["code.refactor"]` through the infrastructure router. |
 | **action**        | Infrastructure router receives the request and checks the token's scope against the requested capabilities. |
-| **expected**      | Router determines that `arsiaprotocol.code.refactor` is not in the token's scope. Router rejects the request with error code `"forbidden"` (ARSIA-Core.md §11.2). |
+| **expected**      | Router determines that `code.refactor` is not in the token's scope. Router rejects the request with error code `"forbidden"` (ARSIA-Core.md §11.2). |
 
 ### IDENTITY-18: Capability scoping — oversight-required capability triggers pending_approval
 
@@ -1810,8 +1889,8 @@ tests.
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-18`                                                      |
 | **description**   | Verify that an oversight-required capability triggers the oversight flow |
-| **preconditions** | External agent has completed onboarding. Capability `arsiaprotocol.test.unit` is in the token's scope and marked as `oversight_required`. Agent sends a request with `capabilities: ["arsiaprotocol.test.unit"]` through the infrastructure router to an internal agent. |
-| **action**        | Internal agent receives the request and checks that `arsiaprotocol.test.unit` requires oversight. |
+| **preconditions** | External agent has completed onboarding. Capability `test.unit` is in the token's scope and marked as `oversight_required`. Agent sends a request with `capabilities: ["test.unit"]` through the infrastructure router to an internal agent. |
+| **action**        | Internal agent receives the request and checks that `test.unit` requires oversight. |
 | **expected**      | Internal agent responds with `intent: "pending_approval"` per ARSIA-Actions.md §3.2. The action is NOT executed until an `approval_decision` with `decision: "approved"` is received. |
 
 ### IDENTITY-19: Token expiry — expired token rejected by infrastructure router
@@ -1832,7 +1911,7 @@ tests.
 | **description**   | Verify that token revocation works and audit trail is preserved     |
 | **preconditions** | External agent has completed onboarding and has an active (non-expired) token. The organization revokes the agent's token through the gateway. |
 | **action**        | 1. Gateway revokes the token and records an audit event. 2. Agent attempts to send a request through the infrastructure router with the revoked token. 3. Verify that audit records from the agent's operational period are still accessible. |
-| **expected**      | 1. Gateway records an ArsiaAuditRecord with `payload_type: "arsiaprotocol.onboarding/revocation"`. 2. Router calls `/v1/arsia/verify-token`, receives revoked status, rejects the request with error code `"unauthorized"`. 3. Audit records from the agent's operational period remain accessible via the audit query endpoint and are retained per the compliance profile's `retention_days`. |
+| **expected**      | 1. Gateway records an ArsiaAuditRecord with `payload_type: "arsiaprotocol.onboarding/revocation"`. 2. Router calls `/v1/arsia/verify-token`, receives revoked status, rejects the request with error code `"unauthorized"`. 3. Audit records from the agent's operational period remain accessible via the audit query endpoint and are retained per the compliance profile's `retention_minimum`. |
 
 ---
 
@@ -1840,18 +1919,18 @@ tests.
 
 ### Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-02.
   §3 (Agent Identifier Format), §4.1 (intent — request, approval_decision),
   §4.2 (correlation_id, expires_at, capabilities), §5 (Message Security),
   §5.1 (Digital Signatures), §5.2 (Signature Verification), §6 (Authorization),
   §6.4 (Capability Enforcement), §7 (Discovery), §7.1 (Discovery Endpoint),
   §7.2 (Capability Discovery), §7.3 (JWKS Endpoint), §8 (Error Handling),
   §9.2 (Brokered Routing), §11.2 (Standard Error Codes), §12 (Conformance Levels).
-- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.
+- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-02.
   §1 (Capability Model), §1.1 (Capability Naming), §2.2 (Risk Level to EU AI Act
   Mapping), §3 (Human Oversight Signaling), §3.2 (The pending_approval Message),
   §3.3 (The approval_decision Message).
-- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.
+- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-02.
   §6 (Compliance Profiles), §6.3 (MIFID-II), §7 (Audit Trail),
   §7.1 (ArsiaAuditRecord Structure), §7.2 (Immutability Requirements),
   §7.4 (Audit Trail Query Endpoint).

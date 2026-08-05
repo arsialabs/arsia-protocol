@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/breach-notification/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-breach-notification.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Breach Notification",
-  "description": "Validates the payload data for a GDPR breach notification event message (ARSIA-State.md \u00a75.7). Carries structured breach information between agents for supervisory authority notification (Art. 33) or data subject notification (Art. 34). The notification_target discriminator selects the notification type; OPTIONAL fields carry SHOULD-level guidance in descriptions rather than structural enforcement.",
+  "description": "Validates the payload data for a GDPR breach notification event message (ARSIA-State.md §5.7). Carries structured breach information between agents for supervisory authority notification (Art. 33) or data subject notification (Art. 34). The notification_target discriminator selects the notification type; OPTIONAL fields carry SHOULD-level guidance in descriptions rather than structural enforcement.",
   "type": "object",
   "required": [
     "notification_target",
@@ -21,7 +21,7 @@
         "supervisory_authority",
         "data_subject"
       ],
-      "description": "Discriminator for the notification type. 'supervisory_authority' for controller-to-DPA notifications per Art. 33; 'data_subject' for controller-to-data-subject notifications per Art. 34. Per ARSIA-State.md \u00a75.7."
+      "description": "Discriminator for the notification type. 'supervisory_authority' for controller-to-DPA notifications per Art. 33; 'data_subject' for controller-to-data-subject notifications per Art. 34. Per ARSIA-State.md §5.7."
     },
     "breach_id": {
       "allOf": [
@@ -29,7 +29,7 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         }
       ],
-      "description": "Unique identifier for this breach. All notifications about the same breach share the same breach_id, enabling correlation of initial notifications and subsequent updates per Art. 33(4). Per ARSIA-State.md \u00a75.7."
+      "description": "Unique identifier for this breach. All notifications about the same breach share the same breach_id, enabling correlation of initial notifications and subsequent updates per Art. 33(4). Per ARSIA-State.md §5.7."
     },
     "nature_of_breach": {
       "type": "string",
@@ -43,7 +43,7 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         }
       ],
-      "description": "When the controller became aware of the breach. Art. 33 requires notification within 72 hours of this timestamp. Per ARSIA-State.md \u00a75.7."
+      "description": "When the controller became aware of the breach. Art. 33 requires notification within 72 hours of this timestamp. Per ARSIA-State.md §5.7."
     },
     "categories_of_data": {
       "type": "array",

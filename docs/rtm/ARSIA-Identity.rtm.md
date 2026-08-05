@@ -201,7 +201,7 @@
 | IDENT-§7.5-02 | 7.5 | SHOULD | sdk | behavioural_positive | Gateway SHOULD log a warning when provenance_verified is false | arsia-onboarding-decision | ITV-130 |
 | IDENT-§7.5-03 | 7.5 | MUST_NOT | sdk | behavioural_negative | Failed provenance verification MUST NOT automatically deny onboarding | — | — |
 | IDENT-§7.5-04 | 7.5 | MAY | operational_policy | informational | Organization's human oversight process MAY use provenance as an input to approval | — | — |
-| IDENT-§7.6-01 | 7.6 | MUST | sdk | structural | Onboarding decision message MUST conform to the approval_decision envelope structure | arsia-onboarding-decision | ITV-03, ITV-04, ITV-38, ITV-130 |
+| IDENT-§7.6-01 | 7.6 | MUST | sdk | structural | Onboarding decision message MUST conform to the §7.6 decision structure (request intent, arsiaprotocol.onboarding/decision payload) | arsia-onboarding-decision | ITV-03, ITV-04, ITV-38, ITV-130 |
 | IDENT-§7.6-02 | 7.6 | REQUIRED | sdk | structural | Decision message compliance field is REQUIRED with the organization's applicable profile | arsia-onboarding-decision | — |
 | IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | ITV-482 |
 | IDENT-§7.6-04 | 7.6 | MUST | sdk | behavioural_positive | Approval token MUST be a valid JWT with scope matching effective_capabilities | arsia-jwt-claims, arsia-onboarding-decision | ITV-38, ITV-130 |
@@ -247,7 +247,7 @@
 | IDENT-§9.1-04 | 9.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued without an expiry time | arsia-jwt-claims | — |
 | IDENT-§9.1-05 | 9.1 | MUST | sdk | behavioural_positive | Token sub claim MUST be the external agent's agent-id | arsia-jwt-claims | — |
 | IDENT-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Token iss claim MUST be the gateway's agent-id | arsia-jwt-claims | — |
-| IDENT-§9.1-07 | 9.1 | SHOULD | sdk | behavioural_positive | Token aud claim SHOULD be the infrastructure router's agent-id or a wildcard audience | arsia-jwt-claims | — |
+| IDENT-§9.1-07 | 9.1 | SHOULD | sdk | behavioural_positive | Token aud claim SHOULD be the infrastructure router's agent-id (a single agent-id; wildcard audiences are not defined by the protocol — §9.1, Core §6.4) | arsia-jwt-claims | — |
 | IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — |
 | IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — |
 | IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof before accepting the request | — | — |
@@ -256,7 +256,7 @@
 | IDENT-§9.3-01 | 9.3 | MUST | sdk | procedural | All onboarding events MUST be recorded as ArsiaAuditRecord entries | arsia-audit-record | — |
 | IDENT-§9.3-02 | 9.3 | MUST | sdk | procedural | Onboarding initiation, identity, conformance, capabilities, decision, and revocation MUST be audited | arsia-audit-record | — |
 | IDENT-§9.3-03 | 9.3 | MUST | sdk | behavioural_positive | Onboarding audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — |
-| IDENT-§9.3-04 | 9.3 | MUST | deployment | behavioural_positive | Onboarding audit records MUST be retained for at least the compliance profile's retention_days | — | — |
+| IDENT-§9.3-04 | 9.3 | MUST | deployment | behavioural_positive | Onboarding audit records MUST be retained for at least the compliance profile's retention | — | — |
 | IDENT-§9.4-01 | 9.4 | MAY | operational_policy | informational | Organization MAY revoke an external agent's token at any time | — | — |
 | IDENT-§9.4-02 | 9.4 | MUST | deployment | procedural | Gateway MUST record an arsiaprotocol.onboarding/revocation audit event on token revocation | arsia-audit-record | — |
 | IDENT-§9.4-03 | 9.4 | MUST | deployment | behavioural_positive | Gateway verify-token endpoint MUST return invalid/revoked status for revoked tokens | — | ITV-487 |
@@ -266,25 +266,44 @@
 
 ## Coverage Gaps
 
+Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproducible via scripts/check_consistency.py companion tooling)
+
+### Summary
+
 | Metric | Count |
-|--------|-------|
-| Total requirements | 257 |
-| Schema ≠ — | 114 |
+|--------|------:|
+| Total requirements | 259 |
+| Schema ≠ — | 115 |
 | Vector ≠ — | 78 |
-| Both ≠ — | 39 |
+| Both ≠ — | 38 |
 | Both = — (gaps) | 104 |
 
-### Gaps by section
+### Per-section breakdown
 
-| Section | Gaps | Total |
-|---------|------|-------|
-| §1 (Identity) | 15 | 38 |
-| §2 (Cryptographic) | 20 | 27 |
-| §3 (Verification) | 8 | 15 |
-| §4 (Compliance) | 6 | 11 |
-| §5 (Conformance L1) | 1 | 2 |
-| §6 (Certificate Trust) | 27 | 51 |
-| §7 (Onboarding) | 19 | 75 |
-| §8 (Capability Policy) | 2 | 16 |
-| §9 (Token & Audit) | 5 | 21 |
-| §10 (Conformance L2) | 1 | 1 |
+| § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
+|---|-------|-----------|-----------|---------|---------|
+| 1 | 38 | 20 | 11 | 8 | 15 |
+| 2 | 27 | 7 | 5 | 4 | 19 |
+| 3 | 15 | 4 | 3 | 0 | 8 |
+| 4 | 11 | 3 | 3 | 1 | 6 |
+| 5 | 2 | 0 | 1 | 0 | 1 |
+| 6 | 51 | 8 | 21 | 5 | 27 |
+| 7 | 77 | 46 | 27 | 16 | 20 |
+| 8 | 16 | 13 | 4 | 3 | 2 |
+| 9 | 21 | 14 | 3 | 1 | 5 |
+| 10 | 1 | 0 | 0 | 0 | 1 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| §3.1 signature requirement aligned to Core §5.2 + compliance-event carve-out | §3.1 | — | — |
+| verification step: remove only security.sig | §3.1 step 7 | — | crypto corpus |
+| owner accountability implementable: counterparty_owner_id | §4.1 | audit-record | — |
+| NEW regulated_entity field | §1.2 | identity-record | — |
+| onboarding decision = request + arsiaprotocol.onboarding/decision payload | §7.6 | onboarding-decision | — |
+| role model fixed (owner/deployer vs AI-Act provider/deployer) | §4.4 | — | — |
+| discovery field/path fixes (capabilities_supported, /.well-known/arsia) | §7.2, §7.8 | — | — |
+| wildcard audience removed; router-as-recipient pattern | §9.1 | jwt-claims | — |
+| certificate codes registered in Core §11.2 | §6.4.3 | — | — |
+| key revocation under cache: 3600 s ceiling, revocation event | §2.5 | — | integration |

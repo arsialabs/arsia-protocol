@@ -5,7 +5,7 @@
 
 This guide takes you from zero to a validated, signed ARSIA message in under 15 minutes. You will generate a keypair, create a message envelope, sign and verify it, apply a compliance profile, and validate the result against the protocol's JSON Schemas. Every step uses the Python SDK with references to the normative spec sections.
 
-**Prerequisites:** Python 3.12+, pip.
+**Prerequisites:** Python 3.12+, pip. The examples assume an SDK release implementing wire version 2.0 (Draft-02); earlier SDK releases implement the superseded Draft-01 wire format.
 
 ---
 
@@ -49,8 +49,9 @@ envelope = create_request(
 )
 
 # Sign the envelope (Core §5.1).
-# The SDK canonicalizes the envelope with JCS (RFC 8785), signs the
-# canonical bytes with Ed25519, and sets the security field.
+# The signing input is the envelope with the security object present and
+# only security.sig removed, canonicalized with JCS (RFC 8785) and signed
+# with Ed25519; the SDK then sets security.sig.
 signed = sign_message(envelope, private_key, kid)
 
 # Verify the signature (Core §5.2).
@@ -99,11 +100,11 @@ envelope = create_request(
     },
 )
 
-# Apply profile defaults (retention_days, human_oversight, etc.).
+# Apply profile defaults (retention_minimum, human_oversight, etc.).
 envelope = apply_profile(envelope)
 
 # The compliance field now has all regulatory defaults filled in:
-#   retention_days: 180
+#   retention_minimum: "P6M"  (six calendar months — EU AI Act Art. 26(6))
 #   human_oversight: "required_before_execution"
 #   audit_required: true
 #   explainability_required: true
@@ -183,7 +184,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 613 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that checks all 649 test vectors against the JSON Schemas, with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -192,7 +193,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 514 valid and 99 invalid cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 418 schema-valid, 137 expected-invalid, and 94 runtime-only cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 
@@ -227,7 +228,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
 - [Security model](security.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,086 rows)
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,903 rows)
 
 ---
 

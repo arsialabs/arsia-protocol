@@ -8,7 +8,7 @@
 | CORE-§2.2-01 | 2.2 | MUST | sdk | behavioural_positive | Agents MUST produce/consume ARSIA envelopes, verify signatures, and respond to discovery | arsia-message | — |
 | CORE-§2.2-02 | 2.2 | MUST | sdk | behavioural_positive | Receiving agent MUST apply profile defaults for unset compliance fields when profile is referenced | arsia-compliance-field | — |
 | CORE-§2.2-03 | 2.2 | MUST_NOT | external | behavioural_negative | Compliance broker MUST NOT modify message envelope contents | — | — |
-| CORE-§2.2-04 | 2.2 | MUST | external | behavioural_positive | Compliance broker MUST append an audit record for every relayed message | arsia-broker-relay-audit | — |
+| CORE-§2.2-04 | 2.2 | MUST | external | behavioural_positive | Compliance broker MUST append an audit record for every relayed message | arsia-audit-record | — |
 | CORE-§2.2-05 | 2.2 | MAY | external | informational | A single authorization server MAY serve multiple agents within an organisation | — | — |
 | CORE-§2.2-06 | 2.2 | MAY | deployment | informational | Each agent MAY use a dedicated authorization server | — | — |
 | CORE-§2.2-07 | 2.2 | MUST | sdk | behavioural_positive | Each agent MUST expose exactly one inbox endpoint for receiving messages | arsia-discovery-response | — |
@@ -99,10 +99,10 @@
 | CORE-§4.3.6.3-01 | 4.3.6.3 | MUST | sdk | behavioural_positive | audit_required declares whether the message MUST generate an ArsiaAuditRecord | arsia-compliance-field | — |
 | CORE-§4.3.6.3-02 | 4.3.6.3 | MUST | sdk_enabled | behavioural_positive | When audit_required is true, receiver MUST persist an audit record before acknowledging | — | — |
 | CORE-§4.3.6.3-03 | 4.3.6.3 | OPTIONAL | sdk | informational | When audit_required is false, audit record generation is OPTIONAL | arsia-compliance-field | — |
-| CORE-§4.3.6.4-01 | 4.3.6.4 | MUST | sdk | behavioural_positive | retention_days specifies the minimum days the audit record MUST be retained | arsia-compliance-field | ITV-419, ITV-28 |
-| CORE-§4.3.6.4-02 | 4.3.6.4 | MUST_NOT | sdk | behavioural_negative | Per-message retention_days MUST NOT be less than the profile minimum | arsia-compliance-field | — |
-| CORE-§4.3.6.4-03 | 4.3.6.4 | MUST | sdk | behavioural_positive | Receiving agent MUST use the profile minimum when per-message retention_days is lower | — | — |
-| CORE-§4.3.6.4-04 | 4.3.6.4 | SHOULD | sdk | behavioural_positive | Receiving agent SHOULD log a compliance warning when overriding retention_days | — | — |
+| CORE-§4.3.6.4-01 | 4.3.6.4 | MUST | sdk | behavioural_positive | retention specifies the minimum days the audit record MUST be retained | arsia-compliance-field | ITV-419, ITV-28 |
+| CORE-§4.3.6.4-02 | 4.3.6.4 | MUST_NOT | sdk | behavioural_negative | Per-message retention MUST NOT be less than the profile minimum | arsia-compliance-field | — |
+| CORE-§4.3.6.4-03 | 4.3.6.4 | MUST | sdk | behavioural_positive | Receiving agent MUST use the profile minimum when per-message retention is lower | — | — |
+| CORE-§4.3.6.4-04 | 4.3.6.4 | SHOULD | sdk | behavioural_positive | Receiving agent SHOULD log a compliance warning when overriding retention | — | — |
 | CORE-§4.3.6.5-01 | 4.3.6.5 | MAY | sdk | informational | human_oversight not_required: agent MAY execute actions autonomously | arsia-compliance-field | ITV-134 |
 | CORE-§4.3.6.5-02 | 4.3.6.5 | MUST_NOT | sdk_enabled | behavioural_negative | human_oversight required_before_execution: action MUST NOT execute until human approves | arsia-compliance-field | CTV-02 |
 | CORE-§4.3.6.5-03 | 4.3.6.5 | MUST | sdk_enabled | procedural | Agent MUST respond with pending_approval and await approval_decision for pre-execution oversight | — | CTV-08, CTV-09 |
@@ -119,8 +119,8 @@
 | CORE-§4.3.6.9-01 | 4.3.6.9 | MAY | sdk | informational | High-risk agent MAY send a minimal-risk message (downgrade allowed) | arsia-compliance-field | ITV-136 |
 | CORE-§4.3.6.9-02 | 4.3.6.9 | MUST_NOT | sdk | behavioural_negative | Minimal-risk agent MUST NOT send a high-risk message (escalation prohibited) | — | ITV-418 |
 | CORE-§4.3.7-01 | 4.3.7 | MUST | sdk | behavioural_negative | Classification escalation MUST cause rejection with invalid_request and classification_escalation detail | — | ITV-418 |
-| CORE-§4.3.7-02 | 4.3.7 | MUST | sdk | behavioural_positive | Per-message retention_days below profile minimum MUST default to the profile minimum | — | — |
-| CORE-§4.3.7-03 | 4.3.7 | SHOULD | sdk | behavioural_positive | Implementations SHOULD log a compliance warning when retention_days override occurs | — | — |
+| CORE-§4.3.7-02 | 4.3.7 | MUST | sdk | behavioural_positive | Per-message retention below profile minimum MUST default to the profile minimum | — | — |
+| CORE-§4.3.7-03 | 4.3.7 | SHOULD | sdk | behavioural_positive | Implementations SHOULD log a compliance warning when retention override occurs | — | — |
 | CORE-§4.3.8-01 | 4.3.8 | MUST | sdk | procedural | Receiving agents MUST validate the compliance field before processing | — | — |
 | CORE-§4.3.8-02 | 4.3.8 | MUST | sdk | procedural | Compliance validation MUST occur after signature verification and before payload processing | — | — |
 | CORE-§4.3.8-03 | 4.3.8 | MUST | sdk | behavioural_negative | Messages failing compliance validation MUST be rejected with the rule-specific error code | — | — |
@@ -130,8 +130,8 @@
 | CORE-§4.3.8-07 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 2: pii_involved=true without legal_basis MUST reject with invalid_request | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
 | CORE-§4.3.8-08 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 3: high-risk classification MUST have human_oversight set (not null) | arsia-message | CTV-03, ITV-421 |
 | CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | High-risk message without human_oversight MUST be rejected with invalid_request | — | ITV-421 |
-| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention_days >= 1827 (5 years) | arsia-compliance-field | CTV-03, ITV-417 |
-| CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention_days below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 |
+| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 (5 years) | arsia-compliance-field | CTV-03, ITV-417 |
+| CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 |
 | CORE-§4.3.8-12 | 4.3.8 | MUST | deployment | procedural | Rule 5: data_residency MUST trigger routing through an in-zone Compliance Broker | — | — |
 | CORE-§4.3.8-13 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 6: per-message ai_system_classification MUST NOT exceed agent-level classification | — | ITV-418 |
 | CORE-§4.3.8-14 | 4.3.8 | MUST | sdk | behavioural_negative | Classification escalation MUST reject with invalid_request and classification_escalation detail | — | ITV-418 |
@@ -332,8 +332,8 @@
 | CORE-§9.2-04 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT bypass broker routing even if direct connectivity is available | — | — |
 | CORE-§9.2-05 | 9.2 | MUST_NOT | external | behavioural_negative | Compliance brokers MUST NOT modify message envelope contents | — | — |
 | CORE-§9.2-06 | 9.2 | MUST | external | interoperability | Broker-forwarded message MUST be byte-identical to original after JSON canonicalization | — | — |
-| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every relayed message | arsia-broker-relay-audit | — |
-| CORE-§9.2-08 | 9.2 | MUST | external | behavioural_positive | Broker audit record MUST include message id, from, to, ts, broker id, relay timestamp, and zone | arsia-broker-relay-audit | — |
+| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every relayed message | arsia-audit-record | — |
+| CORE-§9.2-08 | 9.2 | MUST | external | behavioural_positive | Broker audit record MUST include message id, from, to, ts, broker id, relay timestamp, and zone | arsia-audit-record | — |
 | CORE-§9.2-09 | 9.2 | MAY | deployment | informational | Broker discovery endpoint MAY be hosted by any ARSIA infrastructure service | — | — |
 | CORE-§9.2-10 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT send the message if no broker is available for the required residency zone | — | — |
 | CORE-§9.2-11 | 9.2 | MUST | sdk | behavioural_negative | Missing broker MUST produce service_unavailable error with data_residency_violation details | arsia-message | — |
@@ -401,17 +401,17 @@
 
 ## Coverage Gaps
 
-Generated: 2026-05-04 (audited)
+Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproducible via scripts/check_consistency.py companion tooling)
 
 ### Summary
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 388 |
-| Schema ≠ — | 165 |
-| Vector ≠ — | 132 |
-| Both ≠ — | 71 |
-| Both = — (gaps) | 162 |
+| Total requirements | 392 |
+| Schema ≠ — | 168 |
+| Vector ≠ — | 137 |
+| Both ≠ — | 74 |
+| Both = — (gaps) | 161 |
 
 ### Per-section breakdown
 
@@ -420,7 +420,7 @@ Generated: 2026-05-04 (audited)
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 131 | 70 | 68 | 37 | 30 |
+| 4 | 136 | 73 | 73 | 40 | 30 |
 | 5 | 34 | 7 | 19 | 4 | 12 |
 | 6 | 34 | 19 | 12 | 5 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
@@ -431,4 +431,29 @@ Generated: 2026-05-04 (audited)
 | 12 | 4 | 0 | 0 | 0 | 4 |
 | 13 | 3 | 1 | 0 | 0 | 2 |
 | 14 | 2 | 0 | 2 | 0 | 0 |
-| 16 | 1 | 0 | 0 | 0 | 1 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| correlation = immediate causal parent; unknown/duplicate/late rules | §2.2, §4.2.1 | arsia-message | existing corr vectors |
+| NEW `root_request_id` envelope field (required with correlation) | §4.2.4 | arsia-message | regenerated corpus |
+| `retention_days` → `retention` ISO 8601 calendar duration; anchor + end-of-month arithmetic | §4.3.6.4, §4.3.6.4.1 | arsia-compliance-field | ITV-561/562, INV-26/27 |
+| Rule 4 generalized: profile retention floor, reject (no clamp) | §4.3.7, §4.3.8 R4 | runtime | ITV-563/564/565; harness R2 |
+| Rule 1: extension profiles via reverse-domain namespacing | §4.3.8 R1 | — | ITV-416 |
+| Rule 3: effective oversight (per-message OR profile default) | §4.3.8 R3 | conditional removed | ITV-421, ITV-579; harness R10 |
+| per-message classification enum drops `unacceptable-risk` | §4.3.6.9 | both compliance copies | ITV-137 |
+| NEW `authorization` binding (required w/ data_residency) | §4.3.9 | arsia-message | ITV-569..572 |
+| Content-field exclusivity: hard MUST-reject | §4.4.7 | arsia-message (unchanged) | existing not/anyOf vectors |
+| `payload.version` default = "1.0" (deterministic) | §4.4.2 | pattern tightened | — |
+| Signing input = envelope minus only `security.sig`; verification pipeline; alg/key coherence | §5.1, §5.2 | — | 83 crypto vectors re-signed; INV-37/38/39 |
+| Issuer trust configuration; iss validated | §6.5, §6.4 | — | harness/integration |
+| Agent-id resolution (registry-based, deterministic) | §6.6 | — | integration |
+| Matching delegated to Actions §1.2; reserved namespace exact-only | §6.4 step 5 | capability-name | ITV-566/567/568, INV-28/29/30; harness R3/R4 |
+| Version handling model; wire v2.0; v1 no-fallback policy | §4.1.1 | v const "2.0" | ITV-405 (2.1 forward-compat) |
+| Idempotency: signed envelope key authoritative | §10.4 | — | harness R6 |
+| Certificate error codes registered | §11.2 | arsia-message enum | existing |
+| Strict mode defined (`strict_compliance` discovery flag) | §4.3.8 R1 | discovery (Phase-5) | — |
+| JWKS cache ceiling 3600 s; revocation signal; key-revocation event | §5.2 caching, §7.3 | — | integration |
+| Threat model +6 adversaries | §13.1 | — | — |
+| CORE-COMPLIANCE-04..09 added; in-repo runner | §12.3, §12.4 | — | as listed per test |

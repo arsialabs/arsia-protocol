@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/identity-record/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-identity-record.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Identity Record",
-  "description": "Identity record for an ARSIA Protocol agent, binding technical identity, cryptographic identity, and compliance identity into a single verifiable object. Defined in ARSIA-Identity.md \u00a71.2.",
+  "description": "Identity record for an ARSIA Protocol agent, binding technical identity, cryptographic identity, and compliance identity into a single verifiable object. Defined in ARSIA-Identity.md §1.2.",
   "type": "object",
   "required": [
     "agent_id",
@@ -31,7 +31,7 @@
     "owner_name": {
       "type": "string",
       "minLength": 1,
-      "description": "Human-readable legal name of the entity that owns and operates the agent"
+      "description": "Human-readable legal name of the entity accountable for the agent (the owner; see Identity §4.4 for the owner/deployer role model)"
     },
     "jurisdiction": {
       "allOf": [
@@ -94,7 +94,28 @@
         "type": "string",
         "pattern": "^-----BEGIN CERTIFICATE-----"
       },
-      "description": "PEM-encoded X.509 certificate chain for Level 2/3 trust. Leaf certificate first, intermediates next, root last (or omitted if well-known). Defined in ARSIA-Identity.md \u00a76.5.1."
+      "description": "PEM-encoded X.509 certificate chain for Level 2/3 trust. Leaf certificate first, intermediates next, root last (or omitted if well-known). Defined in ARSIA-Identity.md §6.5.1."
+    },
+    "regulated_entity": {
+      "type": "object",
+      "required": [
+        "regulated"
+      ],
+      "properties": {
+        "regulated": {
+          "type": "boolean"
+        },
+        "regimes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false,
+      "description": "Self-asserted regulated-entity declaration (Identity §1.2); drives the MiFID II audit trigger (Assets §6.1)."
     }
   },
   "if": {

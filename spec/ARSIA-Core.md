@@ -3,14 +3,14 @@
 # ARSIA Protocol — Core Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01**
-**March 2026**
+**Draft-02**
+**July 2026**
 **Arsia Labs — arsiaprotocol.org**
 
 ---
@@ -33,14 +33,14 @@ features.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Protocol Core Specification. This
+This document specifies Draft-02 of the ARSIA Protocol Core Specification. This
 specification is a working draft published by Arsia Labs for review and comment by
 the developer and standards community. This draft is not intended for production
 deployment. Implementors should expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/core/draft-01
+    https://arsiaprotocol.org/spec/core/draft-02
 
 Comments and issues should be directed to:
 
@@ -83,7 +83,7 @@ See LICENSE-SPEC.md for full terms.
          1. [`profile`](#4361-profile)
          2. [`data_residency`](#4362-data_residency)
          3. [`audit_required`](#4363-audit_required)
-         4. [`retention_days`](#4364-retention_days)
+         4. [`retention`](#4364-retention)
          5. [`human_oversight`](#4365-human_oversight)
          6. [`explainability_required`](#4366-explainability_required)
          7. [`pii_involved`](#4367-pii_involved)
@@ -403,7 +403,7 @@ that pre-populate the compliance object fields in a message envelope. Each profi
 corresponds to a specific regulatory framework or industry vertical — for example,
 `EU-AI-ACT-HIGH-RISK`, `MIFID-II`, or `PAC-AGRICULTURE`. Profiles are defined in
 ARSIA-State.md §6 and specify default values for fields such as `audit_required`,
-`retention_days`, `human_oversight`, `explainability_required`, and
+`retention`, `human_oversight`, `explainability_required`, and
 `data_residency`. When a compliance profile is referenced in a message, the receiving
 agent MUST apply the profile's defaults for any compliance fields not explicitly
 overridden in the message.
@@ -431,12 +431,24 @@ and serves as the target for all HTTP-based message delivery (§8.1). Each agent
 expose exactly one inbox endpoint. The inbox endpoint accepts POST requests containing
 ARSIA message envelopes and returns ARSIA response envelopes.
 
-**Correlation ID.** A correlation identifier is a UUID v4 string that links a response
-message to its originating request message. When an agent sends a response, error,
+**Correlation ID.** A correlation identifier is a UUID v4 string that links a message
+to its immediate causal parent. When an agent sends a response, error,
 pending_approval, or approval_decision message, it MUST include a `correlation_id`
-field whose value equals the `id` field of the original request message. Correlation identifiers enable
-request-response matching in asynchronous communication patterns and provide the
-linkage necessary for audit trail reconstruction.
+field whose value equals the `id` field of the message to which it directly replies —
+the immediately preceding message in the interaction, NOT necessarily the request
+that initiated the interaction (§4.2.1). For example, an `approval_decision`
+correlates to the `pending_approval` it answers, not to the original request.
+Correlation identifiers enable hop-by-hop request-response matching; reconstruction
+of the full interaction uses the root request identifier defined below.
+
+**Root Request ID.** A root request identifier is a UUID v4 string that links every
+message of a multi-step interaction to the request that initiated it. All messages
+that carry a `correlation_id` MUST also carry a `root_request_id` equal to the `id`
+of the interaction's initiating request (§4.2.4). Together, `correlation_id` (the
+immediate causal parent) and `root_request_id` (the interaction root) allow any
+participant — including the original requester, who may never see intermediate
+messages — to reconstruct the complete causal chain without payload-type-specific
+knowledge.
 
 **Idempotency Key.** An idempotency key is a unique string, between 1 and 128
 characters in length, that ensures duplicate requests produce the same result without
@@ -513,8 +525,8 @@ The org-segment is "contoso", the sub-segment is "crm", and the resource-segment
 agent:arsialabs.demo.risk-assessor
 ```
 
-This identifies the risk assessor demo agent operated by "arsia". The org-segment is
-"arsia" and the sub-segments are "demo" and "risk-assessor", forming a three-level
+This identifies the risk assessor demo agent operated by "arsialabs". The org-segment is
+"arsialabs" and the sub-segments are "demo" and "risk-assessor", forming a three-level
 hierarchy.
 
 ```
@@ -603,16 +615,48 @@ is missing any of these fields is invalid and MUST be rejected with error code
 
 - **Type:** string
 - **Format:** Major and minor version, dot-separated.
-- **Pattern:** `^\d+\.\d+$`
-- **Current value:** `"1.0"`
+- **Pattern:** `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`
+- **Current value:** `"2.0"`
 - **Constraints:** The `v` field declares the protocol version used to construct this
   message. The version string consists of a major version number and a minor version
   number separated by a period. Both numbers are non-negative integers with no leading
-  zeros (except for the value "0" itself). The current protocol version is `"1.0"`.
-  Implementations MUST reject messages whose major version exceeds the maximum major
-  version they support. Minor version differences within the same major version MUST
-  be handled gracefully: unknown fields introduced in a later minor version SHOULD be
-  ignored by implementations that do not recognise them.
+  zeros (except for the value "0" itself) — the pattern above enforces this. The
+  current protocol version is `"2.0"`.
+
+  **Version handling model.** The division of labour between JSON Schema validation
+  and wire tolerance is explicit:
+
+  1. **Schemas validate exactly one minor version.** The published
+     `arsia-message.schema.json` validates the `2.0` wire strictly
+     (`additionalProperties: false` is intentional). A schema is not the mechanism
+     for forward compatibility — each minor version has its exact schema.
+  2. **Minimal parsing accepts any `2.x`.** An implementation's structural parser
+     MUST recognise every message whose major version is 2 and select the schema
+     matching the declared minor version when it has one.
+  3. **Unknown minor version.** When a message declares a minor version newer than
+     the implementation knows (e.g. `"2.1"` at a `2.0` implementation), the
+     implementation MUST apply the major-2 compatibility rules instead of exact
+     schema validation: validate the fields it knows, and accept unknown
+     **top-level and payload fields** introduced by minor evolution.
+  4. **Unknown fields and signatures.** Unknown fields are part of the signed
+     envelope: they MUST be preserved byte-for-value in the signing input (§5.1)
+     and when forwarding (§9.2). After signature verification they MUST be ignored
+     semantically.
+  5. **Security invariance.** Minor versions MUST NOT change the semantics of the
+     security-relevant fields (`v`, `id`, `from`, `to`, `intent`,
+     `correlation_id`, `root_request_id`, `security`, `authorization`,
+     `capabilities`, `idempotency`, `expires_at`) — an implementation processing a
+     newer minor version applies its known security rules unchanged; unknown
+     fields MUST NOT alter authorization, signing, or compliance behaviour.
+  6. **Different major version.** Implementations MUST reject messages whose major
+     version they do not support with `not_implemented` and
+     `details.supported_versions` (§11.2), or negotiate per §7.4. A verification
+     failure under the v2 rules MUST NOT be retried under v1 rules (no downgrade;
+     see §5.2). Draft-01 (`1.x`) support, when offered at all, is an explicitly
+     configured compatibility profile with an isolated verifier; implementations
+     MUST NOT claim v2 security properties for v1 messages, and conformance claims
+     are stated separately ("ARSIA v2 conformant"; "ARSIA v1 compatibility
+     enabled").
 
 #### 4.1.2 `id` — Message Identifier
 
@@ -710,11 +754,29 @@ and the field is absent, the message is invalid and MUST be rejected with error 
 - **Pattern:** `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`
 - **Condition:** REQUIRED when `intent` is `"response"`, `"error"`,
   `"pending_approval"`, or `"approval_decision"`.
-- **Constraints:** The `correlation_id` MUST equal the `id` field of the original
-  message to which this message is a reply. This linkage enables request-response
-  matching, audit trail reconstruction, and distributed tracing. An agent receiving a
-  response or error message with a `correlation_id` that does not match any known
-  outstanding request SHOULD log the discrepancy and MAY discard the message.
+- **Constraints:** The `correlation_id` MUST equal the `id` field of the message to
+  which this message directly replies — its immediate causal parent, which is the
+  immediately preceding message in the interaction. It is NOT necessarily the `id`
+  of the request that initiated the interaction: an `approval_decision` correlates
+  to the `pending_approval` it answers (ARSIA-Actions.md §3.3), and a `response`
+  produced after an approval flow correlates to the original `request` because that
+  request is the message it replies to. This linkage enables hop-by-hop
+  request-response matching and distributed tracing; interaction-level
+  reconstruction uses `root_request_id` (§4.2.4).
+
+  Handling rules for the receiving agent:
+  1. **Unknown correlation:** a message whose `correlation_id` does not match any
+     message the receiving agent has sent and still tracks MUST NOT be processed as
+     a reply. The receiver MUST log the discrepancy; for `approval_decision` it MUST
+     reject with error code `invalid_request` (ARSIA-Actions.md §3.4 Step 3); for
+     `response` and `error` it MAY discard the message silently.
+  2. **Duplicate correlation:** if a reply for the same `correlation_id` was already
+     accepted, subsequent replies with that `correlation_id` MUST NOT change the
+     recorded outcome. The receiver MUST log the duplicate and SHOULD respond (where
+     a response channel exists) with error code `invalid_request`.
+  3. **Late correlation:** a reply that arrives after the correlated message's
+     terminal state was reached (expired, completed, or failed) MUST NOT alter that
+     state. The receiver MUST log the late arrival and treat the reply per rule 2.
 
 #### 4.2.2 `expires_at` — Expiration Timestamp
 
@@ -750,6 +812,33 @@ and the field is absent, the message is invalid and MUST be rejected with error 
   that the sender's access token (§6.1) includes a scope that covers all listed
   capabilities (§6.4). If any listed capability is not covered by the token's scope,
   the receiving agent MUST reject the message with error code `forbidden` (§11.2).
+
+#### 4.2.4 `root_request_id` — Root Request Identifier
+
+- **Type:** string
+- **Format:** UUID version 4 per [RFC 9562].
+- **Pattern:** `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`
+- **Condition:** REQUIRED whenever `correlation_id` is REQUIRED — that is, when
+  `intent` is `"response"`, `"error"`, `"pending_approval"`, or
+  `"approval_decision"`. MUST be absent on the request that initiates an
+  interaction.
+- **Constraints:** The `root_request_id` MUST equal the `id` field of the request
+  that initiated the interaction. In a two-message interaction (request →
+  response), `root_request_id` and `correlation_id` are therefore equal. In
+  multi-step interactions (request → pending_approval → approval_decision →
+  response; asset transfers with subsequent receipts; timeouts; errors raised at
+  any step), every message after the initiating request carries the same
+  `root_request_id`, while each message's `correlation_id` points at its immediate
+  causal parent. This allows the original requester — who may never have seen the
+  intermediate messages — to match any message of the interaction to its request,
+  and allows audit queries to retrieve a complete interaction by a single
+  identifier without payload-type-specific knowledge. Receivers MUST verify that
+  the `root_request_id` of a reply equals the `root_request_id` (or, for direct
+  replies to the initiating request, the `id`) of the correlated message; on
+  mismatch they MUST reject the message with error code `invalid_request`. Payload
+  fields that reference the originating request (such as
+  `payload.args.original_request_id` in ARSIA-Actions.md §3.2) MUST equal the
+  envelope's `root_request_id`.
 
 ### 4.3 Optional Fields
 
@@ -842,13 +931,14 @@ When present, they MUST conform to the formats and constraints defined below.
 
   - **`kid`** (string, REQUIRED within this object): The key identifier of the signing
     key. The `kid` value MUST correspond to a key published in the sender's JWKS
-    endpoint (§7.3). The format MUST be `{agent-id}#{keyN}` (e.g.,
-    `"agent:acme.billing#key1"`).
+    endpoint (§7.3). The format MUST be `{agent-id}#{key-index}`, where `{key-index}`
+    is a short identifier matching `[a-zA-Z0-9][a-zA-Z0-9_-]*` (ARSIA-Identity.md §2.2)
+    — e.g., `"agent:acme.billing#key1"`, `"agent:acme.billing#2026q1"`.
 
   - **`sig`** (string, REQUIRED within this object): The digital signature, encoded as
     a base64url string without padding per [RFC 4648] §5. For Ed25519 signatures, this
     is a 64-byte value that encodes to 86 base64url characters. The signing input is
-    the RFC 8785 canonical form of the message with the `security` field removed, as
+    the RFC 8785 canonical form of the message with only the `security.sig` property removed (the rest of the `security` object stays in the signing input), as
     defined in §5.1.
 
   - **`encrypted`** (boolean, OPTIONAL): Indicates whether the `payload` field is
@@ -882,7 +972,7 @@ When present, they MUST conform to the formats and constraints defined below.
 
 > **Note (informative):** The `compliance` object permits additional properties beyond
 > the sub-fields listed below. This is intentional — compliance profiles (§1.2) can
-> define profile-specific fields (e.g., `clock_skew_seconds`) without requiring changes
+> carry profile-specific fields that this specification registers (e.g., `clock_skew_seconds`) without requiring changes
 > to this schema. Implementations are encouraged to validate known field names at the
 > application layer to detect typos in standard field names.
 
@@ -902,7 +992,7 @@ The `compliance` object contains the following sub-fields:
 #### 4.3.6.2 `data_residency`
 
 - **Type:** string
-- **Format:** ISO 3166-1 alpha-2 country code or supranational identifier (e.g.,
+- **Format:** ISO 3166-1 alpha-2 country code or a registered supranational identifier (closed registry, ARSIA-Routing.md §5.1 — currently `"EU"`) (e.g.,
   `"EU"`, `"DE"`, `"PT"`).
 - **OPTIONAL.**
 - **Description:** The geographic zone where this message MUST be processed and stored.
@@ -919,16 +1009,55 @@ The `compliance` object contains the following sub-fields:
   When `true`, the receiving agent MUST create and persist an audit record before
   acknowledging the message. When `false`, audit record generation is OPTIONAL.
 
-#### 4.3.6.4 `retention_days`
+#### 4.3.6.4 `retention`
 
-- **Type:** integer
-- **Minimum:** 1
-- **OPTIONAL.** Default: per profile (ARSIA-State.md §6).
-- **Description:** The minimum number of days that the audit record for this message
-  MUST be retained. Per-message values override the profile default but MUST NOT be
-  less than the profile's minimum. If a per-message value is lower than the profile
-  minimum, the receiving agent MUST use the profile minimum and SHOULD log a compliance
-  warning.
+- **Type:** string
+- **Format:** ISO 8601 duration, restricted to the subset
+  `P[nY][nM][nD]` — one or more of years, months, and days components, in that
+  order, with non-negative integer values and no time (`T`) components. Pattern:
+  `^P(?=\d)(\d+Y)?(\d+M)?(\d+D)?$`. Examples: `"P180D"`, `"P6M"`, `"P1827D"`,
+  `"P5Y"`.
+- **OPTIONAL.** Default: the profile's retention minimum (ARSIA-State.md §6).
+- **Description:** The minimum period for which the audit record for this message
+  MUST be retained, expressed as a typed calendar duration. Retention periods are
+  compared and applied using **calendar arithmetic** anchored at the retention
+  anchor of the retained object (§4.3.6.4.1), never by converting months or years
+  to a fixed day count. Per-message values override the profile default. If the
+  declared value is explicitly below the profile's retention minimum, the message
+  is rejected per §4.3.8 Rule 4 — the receiving agent MUST NOT silently raise
+  ("clamp") a declared value to the minimum. If the field is absent, the effective
+  retention is the profile's retention minimum. Values above the minimum are
+  accepted; senders SHOULD declare no more than their compliance obligations
+  require, in line with data-minimisation and storage-limitation principles.
+
+  *Draft-01 compatibility:* Draft-01 used an integer field `retention_days`. In
+  Draft-02 (wire version 2.0) the field is `retention` with a duration value; a
+  Draft-01 `retention_days: N` maps to `retention: "PND"` (e.g. `1827` →
+  `"P1827D"`). Verifiers operating a v1 compatibility profile translate
+  accordingly; v2 messages MUST use `retention`.
+
+##### 4.3.6.4.1 Calendar arithmetic and the retention anchor
+
+The **retention anchor** is the instant at which the retention-bearing object was
+created or registered by the party responsible for retaining it:
+
+- for audit records, the record's own `created_at`/`processed_at` timestamp;
+- for state entries, the entry's `created_at` timestamp;
+- a message's `ts` value never starts the retention clock of a record that was
+  only received or produced later.
+
+`retained_until = retention_anchor + retention`, computed with calendar
+arithmetic: day components add whole days; month and year components advance the
+calendar month/year keeping the day-of-month, clamping to the last day of the
+target month when the source day does not exist there. Examples:
+`2026-08-31T10:00:00.000Z + P6M = 2027-02-28T10:00:00.000Z`;
+`2028-08-31T10:00:00.000Z + P6M = 2029-02-28T10:00:00.000Z` (2029 is not a leap
+year). Two durations are compared by comparing the `retained_until` instants they
+produce from the same anchor: `declared_until = anchor + declared_retention`;
+`minimum_until = anchor + profile.retention_minimum`; the declaration satisfies
+the minimum if and only if `declared_until >= minimum_until`. This preserves the
+calendar semantics of regulatory periods (e.g. the EU AI Act's "at least six
+months", which is a calendar period of six months, not 180 days).
 
 #### 4.3.6.5 `human_oversight`
 
@@ -982,8 +1111,17 @@ The `compliance` object contains the following sub-fields:
 #### 4.3.6.8 `legal_basis`
 
 - **Type:** string
-- **Enum:** `"consent"`, `"contract"`, `"legal_obligation"`, `"vital_interests"`,
-  `"public_task"`, `"legitimate_interests"`
+- **Enum (Art. 6(1) bases):** `"consent"`, `"contract"`, `"legal_obligation"`,
+  `"vital_interests"`, `"public_task"`, `"legitimate_interests"`.
+- **Enum (Art. 9(2) conditions, for special-category data):**
+  `"explicit_consent"`, `"employment_social_security"`, `"vital_interests_incapacity"`,
+  `"legitimate_activities"`, `"manifestly_public"`, `"legal_claims"`,
+  `"substantial_public_interest"`, `"health_medicine"`, `"public_health"`,
+  `"archiving_research"`. These are REQUIRED instead of an Art. 6(1)
+  value when the processed data is special-category (State
+  `pii_classification: "sensitive"`, §4.3.8 Rule 8) — Article 9 processing needs an
+  Article 9(2) condition, not merely an Article 6(1) basis. The schemas enumerate
+  all sixteen values.
 - **OPTIONAL.** REQUIRED when `pii_involved` is `true`.
 - **Description:** The GDPR Article 6(1) legal basis for processing personal data.
   Each value maps to a specific sub-paragraph:
@@ -1027,7 +1165,12 @@ The `compliance` object contains the following sub-fields:
 #### 4.3.6.9 `ai_system_classification`
 
 - **Type:** string
-- **Enum:** `"minimal-risk"`, `"limited-risk"`, `"high-risk"`, `"unacceptable-risk"`
+- **Enum:** `"minimal-risk"`, `"limited-risk"`, `"high-risk"` — the per-message
+  field. `"unacceptable-risk"` is NOT a valid per-message value: an agent whose
+  IdentityRecord declares `unacceptable-risk` has ALL its messages rejected
+  (ARSIA-Identity.md §4.2), so a per-message declaration of that level is
+  logically unusable and MUST be rejected with `invalid_request`. The agent-level
+  classification (ARSIA-Identity.md §1.2) retains all four values.
 - **OPTIONAL.**
 - **Description:** Per-message EU AI Act risk classification. This field allows a
   message to declare a risk classification that differs from the agent-level
@@ -1079,9 +1222,15 @@ field interacts with the agent-level classification in
   classification per-message — this would allow agents to claim regulatory capabilities
   they have not been assessed for.
 
-**`retention_days` floor enforcement.** When a per-message `retention_days` value is
-lower than the profile's minimum, the effective value MUST be the profile's minimum.
-Implementations SHOULD log a compliance warning when this override occurs.
+**`retention` floor enforcement.** When the message declares no `retention` value,
+the effective retention is the profile's retention minimum (ARSIA-State.md §6).
+When the message explicitly declares a `retention` value below the profile's
+retention minimum (compared per §4.3.6.4.1), the message is rejected per §4.3.8
+Rule 4. Receiving agents MUST NOT silently raise a declared value to the minimum:
+clamping would make the declared and the applied obligation diverge, producing an
+audit trail that cannot prove which obligation was actually enforced. The audit
+record captures both the declared and the effective retention together with the
+resolution source (ARSIA-State.md §7.1).
 
 #### 4.3.8 Compliance Field Validation Rules
 
@@ -1090,14 +1239,38 @@ Validation MUST occur after message signature verification (§5.2) and
 before payload processing. A message that fails compliance validation MUST be rejected
 with the specified error code.
 
-**Rule 1 — Profile name validation.** If `compliance.profile` is set, it MUST be a
-known profile name as defined in ARSIA-State.md §6 or in a future extension of this specification. If
-the profile name is not known:
+**Rule 1 — Profile name validation.** If `compliance.profile` is set, it MUST be
+either (a) a **standard profile** name defined in ARSIA-State.md §6 — bare
+uppercase names, a registry extended only by revisions of this specification — or
+(b) an **extension profile** name in reverse-domain notation
+(`com.example.healthcare-profile`), following the same namespacing discipline as
+payload types (§4.4.1): the defining organisation controls its own namespace, so
+names cannot collide across organisations. Extension profiles MUST be published by
+their defining organisation as a catalog document conforming to
+`arsia-compliance-profiles.schema.json` at a stable HTTPS URL, and agents that
+support them MUST list them in `compliance_profiles_supported` (§7.1) — that list
+is the discovery mechanism; a sender MUST NOT assume a receiver knows an extension
+profile it does not advertise. An extension profile's semantics are defined
+entirely by its published catalog entry (defaults, retention minimum, oversight
+mode); the validation rules of this section apply to its resolved values exactly
+as to standard profiles. Extension profiles version by renaming (a changed
+obligation set is a new name), the same doctrine as standard profiles. If
+the profile name is not known to the receiver (neither standard nor an advertised
+extension):
 
 - In non-strict mode (default): the agent MUST log a compliance warning and apply
   `GDPR-STANDARD` defaults.
-- In strict mode (implementation-configurable): the agent MUST reject the message with
+- In strict mode: the agent MUST reject the message with
   error code `"invalid_request"` and `details: { "unknown_profile": true }`.
+
+  **Strict mode (normative definition).** Strict compliance mode is a per-agent
+  receiving-side configuration. An agent operating in strict mode MUST declare
+  `"strict_compliance": true` in its discovery document (§7.1); absence of the
+  field means non-strict. The declaration is informative for senders (it lets them
+  predict rejection behaviour before sending); the receiving agent's actual
+  configuration governs. Strict mode changes exactly the behaviours that
+  explicitly reference it (this rule and §4.3.6.1); it has no other effects. It
+  applies agent-wide, not per-message or per-profile.
 
 **Rule 2 — PII requires legal basis.** If `compliance.pii_involved` is `true` and
 `compliance.legal_basis` is not set, the message MUST be rejected with error code
@@ -1112,13 +1285,37 @@ with error code `"invalid_request"` and
 `details: { "high_risk_missing_oversight": true }`. This enforces EU AI Act
 Article 14.
 
-**Rule 4 — MiFID II retention floor.** If `compliance.profile` is `"MIFID-II"`, the
-effective `retention_days` (after applying per-message override or profile default)
-MUST be at least 1827 (5 years). If the effective value is less than 1827, the message
-MUST be rejected with error code `"invalid_request"` and
-`details: { "insufficient_retention": true, "required": 1827, "provided": N }` where
-`N` is the effective value. This enforces MiFID II Article 16(7) as implemented via
-Commission Delegated Regulation (EU) 2017/565, Article 72.
+**Rule 4 — Profile retention floor.** If the effective profile defines a retention
+minimum (`retention_minimum`, ARSIA-State.md §6) and the message **explicitly
+declares** a `retention` value, the receiving agent MUST compare the two per
+§4.3.6.4.1: `declared_until = retention_anchor + declared_retention`;
+`minimum_until = retention_anchor + retention_minimum`. If
+`declared_until < minimum_until`, the message MUST be rejected with error code
+`"invalid_request"` and details:
+
+```json
+{
+  "insufficient_retention": true,
+  "profile": "<profile name>",
+  "declared_retention": "<declared ISO 8601 duration>",
+  "minimum_retention": "<profile retention_minimum>",
+  "retention_anchor": "<RFC 3339 anchor instant used for the comparison>",
+  "declared_retained_until": "<anchor + declared_retention>",
+  "minimum_retained_until": "<anchor + retention_minimum>",
+  "resolution_source": "per-message"
+}
+```
+
+If `retention` is absent, the effective retention is the profile's retention
+minimum and this rule does not reject (`resolution_source: "profile-minimum"` in
+the audit record). This rule applies uniformly to every profile that declares a
+retention minimum — for example MIFID-II (`P1827D`, enforcing MiFID II
+Article 16(7) as implemented via Commission Delegated Regulation (EU) 2017/565,
+Article 72), DORA (`P1827D`), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
+EU-AI-ACT-HIGH-RISK (`P6M`, a calendar period), and EU-AI-ACT-LIMITED-RISK. A
+profile's retention minimum is a **profile floor**; whether it is also a legal
+minimum is recorded per profile in the catalog (`retention_basis`,
+ARSIA-State.md §6).
 
 **Rule 5 — Data residency triggers brokered routing.** If `compliance.data_residency`
 is set, the message MUST be routed through a Compliance Broker whose infrastructure
@@ -1153,6 +1350,29 @@ sensitive entry, the SET MUST be rejected with error code `"invalid_request"` an
 `details: { "sensitive_requires_art9_basis": true }`. This enforces GDPR Article 9(2):
 processing of special categories of personal data requires a stricter legal basis than
 ordinary personal data.
+
+#### 4.3.9 `authorization` — Authorization Binding
+
+- **Type:** object
+- **OPTIONAL** for directly routed messages. **REQUIRED** when
+  `compliance.data_residency` is set (brokered routing, §9.2 and
+  ARSIA-Routing.md §1.2.2).
+- **Structure:**
+
+  | Field        | Type   | Required | Description                                             |
+  |--------------|--------|----------|---------------------------------------------------------|
+  | `token_hash` | string | REQUIRED | `"sha-256:<lowercase hex>"` — SHA-256 over the exact octets of the access token the sender obtained for the recipient (`T_e2e`). |
+  | `proof_type` | string | REQUIRED | `"bearer"` or `"dpop"` — how the token is presented.    |
+
+- **Description:** Binds the signed envelope to the specific access token the
+  sender intends to authorise it — the envelope is signed over this field (§5.1),
+  so no intermediary (including a Compliance Broker) can pair the envelope with a
+  different token without invalidating the signature. Receiving agents MUST, when
+  the field is present, compute SHA-256 over the exact octets of the presented
+  access token and reject the message with `unauthorized` on mismatch. Together
+  with the relay attestation's `authorization_token_hash`
+  (ARSIA-Routing.md §7.4.1), this closes mix-and-match splicing of envelopes,
+  tokens, proofs, and attestations.
 
 ### 4.4 Payload Structure
 
@@ -1199,11 +1419,20 @@ contain additional fields depending on the message intent.
 - **Type:** string
 - **OPTIONAL.**
 - **Format:** Major and minor version, dot-separated.
-- **Pattern:** `^\d+\.\d+$`
+- **Pattern:** `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`
 - **Constraints:** The `version` field indicates the version of the payload schema
-  identified by `type`. When absent, the version is assumed to be the latest version
-  known to the receiving agent. Senders SHOULD include this field when communicating
-  with agents that may support multiple payload schema versions.
+  identified by `type`. **When absent, the version is exactly `"1.0"`** — the base
+  version of every payload type. (Draft-01's "latest version known to the receiving
+  agent" default was non-deterministic: two receivers knowing different versions
+  would execute different semantics for the same bytes; it is removed.) Senders
+  invoking any later payload version MUST declare it explicitly. The evolution
+  rules of ARSIA-Actions.md §2.4 — MAJOR/MINOR bump semantics, migration
+  coexistence, and the `not_implemented` + `supported_versions` error for
+  unsupported versions — apply uniformly to **every** payload type (actions,
+  receipts, events, notifications), not only to actions. Supported versions are
+  discoverable proactively via the ActionDescriptor's `supported_versions` field
+  (ARSIA-Actions.md §2.1) for actions, and via documentation for non-action
+  payload types.
 
 #### 4.4.3 `args` — Request Arguments
 
@@ -1252,7 +1481,7 @@ contain additional fields depending on the message intent.
 
 #### 4.4.7 Mutual Exclusivity of Content Fields
 
-Only one of `args`, `result`, `data`, or `error` SHOULD be present per message. The
+Exactly one of `args`, `result`, `data`, or `error` MUST be present per message. The
 correspondence between intent and content field is:
 
 | Intent               | Expected content field | Notes                        |
@@ -1264,9 +1493,13 @@ correspondence between intent and content field is:
 | `pending_approval`   | `args`                | Same as request              |
 | `approval_decision`  | `result`              | Approval or rejection result |
 
-Implementations SHOULD warn (via logging, not via protocol error) if more than one
-content field is present, but MUST process the field corresponding to the message
-intent and MUST ignore the others.
+A payload containing more than one content field is structurally invalid:
+implementations MUST reject it with error code `invalid_request`. This is a
+deliberate Draft-02 hardening — Draft-01's "warn and process the intent's field"
+rule made receivers diverge on which content they acted on while the message schema
+already rejected the combination; prose and schema now enforce the same hard rule.
+A payload with no content field at all is likewise rejected with
+`invalid_request`.
 
 ### 4.5 Message Size Limits
 
@@ -1320,11 +1553,22 @@ message:
 envelope as a JSON-compatible object. This copy will be modified for signing; the
 original message is preserved.
 
-**Step 2: Remove the `security` field.** Delete the `security` field from the cloned
-object. If the `security` field is not present in the clone (because the message has
-not yet been signed), this step is a no-op. The `security` field is excluded from the
-signing input because it will contain the signature itself; including it would create
-a circular dependency.
+**Step 2: Populate `security` and remove only `sig`.** Set the `security` object's
+metadata fields in the clone — `alg`, `kid`, and, when used, `encrypted`,
+`enc_alg`, and `enc_method` — to their final values, then delete **only the
+`security.sig` property** from the clone. The rest of the `security` object remains
+present in the signing input: `alg`, `kid`, and the encryption metadata are
+integrity-protected by the signature, so they cannot be altered in transit without
+invalidating it. Only the signature value itself is excluded, because including it
+would create a circular dependency. The exclusion is precisely the removal of the
+`sig` property — not `sig: null`, not `sig: ""`, and not a partially rebuilt
+`security` object; every other property is byte-semantically present before
+canonicalization.
+
+*Draft-01 compatibility:* Draft-01 removed the entire `security` object from the
+signing input, leaving `alg` and `kid` malleable. A Draft-01 signature never
+verifies under the Draft-02 procedure and vice versa; verifiers MUST NOT fall back
+to the Draft-01 input on failure (§4.1.1 rule 6, §5.2).
 
 **Step 3: Canonicalize the remaining object.** Apply the JSON Canonicalization Scheme
 [RFC 8785] to the modified clone. This produces a deterministic byte sequence (a
@@ -1343,12 +1587,11 @@ algorithm produces a 64-byte signature value.
 without padding, as specified in [RFC 4648] §5. The resulting string is 86 characters
 long.
 
-**Step 6: Populate the `security` object.** Set the following fields in the message's
-`security` object:
-- `alg`: Set to `"EdDSA"`.
-- `kid`: Set to the key identifier of the signing key, as published in the sender's
-  JWKS endpoint (§7.3).
-- `sig`: Set to the base64url-encoded signature string from Step 5.
+**Step 6: Insert the signature.** Set `security.sig` in the actual message to the
+base64url-encoded signature string from Step 5. The `alg` and `kid` values in the
+message MUST be byte-identical to the values that were present in the signing input
+at Step 2 (`alg` = `"EdDSA"` for Ed25519; `kid` = the identifier of the signing key
+as published in the sender's JWKS endpoint, §7.3).
 
 #### Supported Algorithms
 
@@ -1384,7 +1627,36 @@ Receiving agents MUST verify digital signatures on all messages with `intent` va
 of `"request"`, `"response"`, `"pending_approval"`, and `"approval_decision"`.
 Signature verification on `"event"` messages is RECOMMENDED but not required, to
 accommodate high-throughput event streams where verification latency may be
-prohibitive. Signature verification on `"error"` messages is RECOMMENDED.
+prohibitive — except for compliance-relevant event payloads (breach notification,
+ICT incident, key revocation, on-wire audit events), which MUST be signed and
+verified per ARSIA-Identity.md §3.1. Signature verification on `"error"` messages
+is RECOMMENDED.
+
+#### Message Processing Pipeline (Normative Order)
+
+Signature verification sits inside a staged pipeline. **Pre-signature validation is
+limited to what a safe verification needs**; full schema, authorization, and
+compliance validation run only after the signature verifies. This bounds the work an
+unsigned attacker can trigger, avoids leaking semantic validation errors to
+unauthenticated senders, avoids rejecting forward-compatible messages prematurely,
+and ensures profile resolution never runs over unauthenticated input. The order is:
+
+1. Enforce transport size limits (§8.1, `payload_too_large`).
+2. Parse the JSON document.
+3. Enforce I-JSON conformance (RFC 7493).
+4. Reject documents containing duplicate object member names.
+5. Check the minimal presence and shape of the fields required to verify: `v`,
+   `from`, and the `security` object (`alg`, `kid`, `sig`) when required by the
+   intent.
+6. Select the version and signing profile from `v` (§4.1.1) — a v2 verification
+   failure is never retried under v1 rules.
+7. Reconstruct the signing input (Steps 3-4 below).
+8. Resolve the signing key (Step 2 below).
+9. Enforce algorithm coherence (Step 5 below).
+10. Verify the signature (Step 5 below).
+11. Only then: full schema and semantic validation of the envelope and payload.
+12. Token, capability, and compliance validation (§6.4, §4.3.8).
+13. Payload processing.
 
 #### Verification Procedure (Normative)
 
@@ -1398,24 +1670,42 @@ produces an unexpected length, reject the message with error code `unauthorized`
 
 **Step 2: Resolve the public key.** Read the `security.kid` field from the message
 envelope. Resolve the corresponding public key by fetching the sender's JWKS endpoint
-(§7.3) — identified by the agent identifier in the `from` field — and locating the JWK
+(§7.3) at the origin resolved from the `from` agent identifier per §6.6 — and locating the JWK
 entry whose `kid` matches `security.kid`. If the key identifier cannot be resolved
 (sender's JWKS is unreachable, or no matching `kid` is found), reject the message with
 error code `unauthorized`. Implementations SHOULD cache JWKS responses according to
 the `Cache-Control` headers returned by the JWKS endpoint.
 
-**Step 3: Clone and strip.** Create a deep copy of the complete message envelope and
-remove the `security` field from the copy. This produces the same object that was used
-as signing input by the sender.
+**Step 3: Clone and strip only `sig`.** Create a deep copy of the complete message
+envelope and remove **only the `security.sig` property** from the copy — the
+`security` object itself, with `alg`, `kid`, and any encryption metadata, remains in
+place. This produces the same object that was used as signing input by the sender
+(§5.1 Step 2). Removing the whole `security` object (the Draft-01 procedure) yields
+a different input and MUST NOT be used, even as a fallback after failure.
 
 **Step 4: Canonicalize.** Apply the JSON Canonicalization Scheme [RFC 8785] to the
 modified clone, producing the canonical byte sequence.
 
-**Step 5: Verify.** Using the public key resolved in Step 2 and the algorithm
-identified by `security.alg`, verify the signature from Step 1 against the canonical
-byte sequence from Step 4. For Ed25519, use the Ed25519 verify function. For ES256,
-use ECDSA verify with P-256/SHA-256. For RS256, use RSASSA-PKCS1-v1_5 verify with
-SHA-256.
+**Step 5: Check algorithm coherence, then verify.** Before verifying:
+
+- `security.alg` MUST be in the implementation's algorithm allowlist (§5.1
+  Supported Algorithms); unknown or disallowed algorithms MUST be rejected with
+  `unauthorized`.
+- `security.alg` MUST be compatible with the resolved key's type (`kty`/`crv` from
+  the JWK): `EdDSA` requires OKP/Ed25519, `ES256` requires EC/P-256, `RS256`
+  requires RSA. The verification algorithm is never selected from untrusted input
+  alone — it is the intersection of the declared `alg`, the allowlist, and the
+  resolved key's type; any mismatch MUST be rejected with `unauthorized`.
+- The `security.kid` MUST identify a key belonging to `message.from` (the agent-id
+  prefix of the `kid` equals `from`, and the key is published in that agent's
+  JWKS).
+
+Then, using the public key resolved in Step 2, verify the signature from Step 1
+against the canonical byte sequence from Step 4. For Ed25519, use the Ed25519
+verify function. For ES256, use ECDSA verify with P-256/SHA-256. For RS256, use
+RSASSA-PKCS1-v1_5 verify with SHA-256. Note that `alg`, `kid`, and the encryption
+metadata are themselves part of the verified bytes (§5.1 Step 2): a signature that
+verifies proves those fields are the ones the sender signed.
 
 **Step 6: Accept or reject.** If verification succeeds, proceed with message
 processing. If verification fails, the receiving agent MUST reject the message with
@@ -1427,10 +1717,38 @@ implementation SHOULD log the failure with sufficient detail for operational deb
 #### Verification Caching
 
 Implementations MAY cache the result of JWKS lookups and public key resolution to
-avoid repeated network requests. Cached JWKS entries MUST be refreshed:
-- When a `kid` is encountered that is not present in the cached JWKS.
-- When the cached JWKS's `Cache-Control` max-age has expired.
-- At least once every 24 hours, regardless of cache headers.
+avoid repeated network requests. Caching interacts with key revocation: a
+compromised key continues to produce VALID signatures, so a refresh triggered only
+by verification failure never fires for exactly the keys that matter most. The
+following rules bound the exposure window:
+
+- **Maximum cache lifetime.** Cached JWKS entries MUST be refreshed when a `kid`
+  is encountered that is not present in the cached JWKS, when the cached JWKS's
+  `Cache-Control` max-age has expired, and in any case at least once every
+  **3600 seconds** — the JWKS endpoint's `max-age` ceiling (§7.3). (Draft-01
+  stated both 1 h and 24 h bounds; 3600 s is the single normative ceiling, and it
+  is also the worst-case revocation propagation delay for polling-only
+  recipients.)
+- **Revocation signal.** Removal of a key from the published JWKS is the
+  authoritative revocation signal (ARSIA-Identity.md §2.5). After a recipient
+  refreshes and no longer finds a `kid`, signatures by that key MUST be rejected —
+  including for messages already queued but not yet verified.
+- **Emergency rotation.** On compromise, the agent MUST remove the key
+  immediately, publish the successor key, and SHOULD additionally emit a signed
+  `event` with payload type `arsiaprotocol.identity/key-revocation` to its known
+  counterparties, naming the revoked `kid` and the effective instant. Recipients
+  that process this event MUST invalidate the cached key at once rather than
+  waiting for the next refresh.
+- **Stale-key behaviour.** A verification performed against a cached key is only
+  as fresh as the cache; implementations MUST record, in audit records for
+  compliance-relevant messages, the JWKS fetch timestamp used for verification, so
+  that post-incident review can bound which acceptances predate revocation
+  awareness.
+- **Compromise-window accounting.** Operators MUST treat all signatures produced
+  by a compromised key as invalid from the compromise instant
+  (ARSIA-Identity.md §2.5, §7.3): acceptance during the propagation window does
+  not legitimise them, and the audit trail (previous rule) identifies the affected
+  messages for remediation.
 
 ### 5.3 Payload Encryption (Optional)
 
@@ -1697,24 +2015,29 @@ message. The enforcement procedure is as follows:
 2. **Verify the token signature** using the Authorization Server's public key.
 
 3. **Validate standard JWT claims:**
+   - `iss` MUST exactly match a trusted issuer in the agent's issuer trust
+     configuration (§6.5); the signing key MUST be resolved from that issuer's
+     configured key origin.
    - `exp` MUST be in the future (with clock skew tolerance of ±300 seconds).
    - `iat` MUST be in the past (with clock skew tolerance).
    - `sub` MUST equal the message's `from` field.
-   - `aud` MUST equal the message's `to` field (the receiving agent's own identifier).
+   - `aud` MUST equal the message's `to` field (the receiving agent's own
+     identifier), and MUST be within the audience policy configured for the issuer
+     (§6.5).
 
 4. **Extract the granted scope** from the token's `scope` claim. Parse the
    space-separated string into a set of capability strings.
 
 5. **Compare against required capabilities.** For each capability listed in the
    message's `capabilities` array (§4.2.3), verify that the granted scope set
-   contains a matching capability string. Matching is exact string comparison (no
-   wildcards, no hierarchical expansion).
-
-> **Note (informative).** This exact-match rule applies to
-> the `capabilities` field in the message envelope.
-> Wildcard expansion for access token scopes is defined in
-> ARSIA-Actions.md §1.2 and operates at the authorization
-> layer, not at message validation.
+   satisfies it per the **capability matching algorithm of ARSIA-Actions.md §1.2**,
+   which is the single normative matching rule for this comparison: a scope entry
+   satisfies a requested capability by exact string match, or by single-trailing
+   wildcard expansion (`prefix.*`) for capabilities outside the reserved
+   `arsiaprotocol.` namespace. Reserved (`arsiaprotocol.`) capabilities are
+   satisfied ONLY by an exact scope entry — wildcard expansion never applies to the
+   reserved namespace. Requested capabilities are always concrete (§4.2.3);
+   wildcards appear only in token scopes.
 
 6. **Accept or reject:**
    - If all required capabilities are present in the granted scope: proceed with
@@ -1736,6 +2059,72 @@ message. The enforcement procedure is as follows:
      agent or its operator diagnose the authorization failure.
 
 ---
+
+### 6.5 Authorization Server Trust
+
+Verifying a token signature with a key published by the token's own issuer proves
+only self-consistency — it does not establish that the issuer is entitled to
+authorise anything. A receiving agent MUST therefore maintain an explicit **issuer
+trust configuration** and MUST evaluate every access token against it. For each
+trusted Authorization Server, the configuration records at minimum:
+
+1. **Issuer identifier** — the exact value expected in the token's `iss` claim.
+2. **Key origin** — the JWKS endpoint (or pinned keys) for this issuer, obtained
+   from explicit configuration or from the issuer's authorization-server metadata
+   [RFC 8414] retrieved over TLS from the configured issuer origin. Keys MUST NOT
+   be resolved from any URL carried inside the token itself.
+3. **Audience policy** — which of the recipient's own identifiers this issuer is
+   trusted to audience tokens for.
+4. **Allowed algorithms** — the signature algorithms accepted from this issuer.
+
+Token validation (§6.4 step 3) MUST include: the token's `iss` claim MUST exactly
+match a configured trusted issuer, and the signing key MUST be resolved from that
+issuer's configured key origin. A token whose `iss` is not in the trust
+configuration MUST be rejected with error code `unauthorized` — regardless of
+whether its signature verifies against any published key. If the configured key
+origin is unreachable and no valid cached keys are available, the agent MUST fail
+closed (reject with `unauthorized`); it MUST NOT fall back to keys from any other
+source. How the trust configuration is provisioned (static configuration,
+onboarding per ARSIA-Identity.md §7, or an operator-run registry) is
+deployment-specific, but it MUST be provisioned out-of-band from the messages being
+validated, over an authenticated channel. Key caching, revocation, and rotation
+interact with this configuration as specified in §7.3 and ARSIA-Identity.md §2.
+
+### 6.6 Agent Identifier Resolution
+
+Signature verification (§5.2), discovery (§7.1), and message delivery (§9.1) all
+require mapping an agent identifier (`agent:acme.billing`) to an **origin** — the
+`https` base URL that hosts that agent's `/.well-known/arsia` document, JWKS
+endpoint, and inbox. The `agent:` identifier is not a hostname, and the ARSIA wire
+protocol does not embed origins in identifiers. Resolution is therefore an explicit
+mapping with the following normative minimum requirements:
+
+1. **Mapping source.** Each deployment maintains an agent directory mapping
+   agent-ids to origins. Entries are provisioned by explicit configuration, by the
+   onboarding flow (ARSIA-Identity.md §7 — the gateway learns and records the
+   agent's origin), or by an operator-run directory service. Every entry MUST be
+   obtained over an authenticated TLS channel from a source the operator trusts,
+   out-of-band from the messages being validated.
+2. **Determinism.** For a given agent-id, resolution MUST be deterministic within a
+   deployment: one agent-id maps to exactly one origin at any time. Implementations
+   MUST NOT derive origins heuristically from the identifier's segments (e.g.
+   guessing DNS names from the org segment).
+3. **Consistency check.** The discovery document served at the resolved origin MUST
+   declare the same `agent_id` (§7.1); on mismatch, the resolution entry MUST be
+   treated as invalid and the message rejected with `unauthorized`.
+4. **Failure behavior.** A message whose `from` agent-id cannot be resolved MUST
+   NOT be accepted on the strength of an unverifiable signature: the receiving
+   agent MUST reject it with error code `unauthorized` (verification requires the
+   sender's keys, which require resolution). Resolution failures for the `to` side
+   (delivery) surface as `service_unavailable` per §11.2.
+5. **Caching.** Resolution entries MAY be cached; cached entries MUST be refreshed
+   or revalidated at least as often as the JWKS caching rules of §7.3 require, and
+   MUST be invalidated when onboarding revocation (ARSIA-Identity.md §7) removes
+   the agent.
+
+This minimal mechanism is deliberately registry-based. A future revision MAY add a
+standardised DNS-based convention; any such addition will be additive and MUST NOT
+weaken requirements 2-4.
 
 ## 7. Discovery
 
@@ -1764,7 +2153,7 @@ fields:
 | `agent_id`                      | string   | The agent's identifier (§3).                   |
 | `name`                          | string   | Human-readable display name of the agent.      |
 | `version`                       | string   | The agent's software version (e.g., `"2.1.0"`). |
-| `protocol_version`              | string   | The ARSIA protocol version supported (e.g., `"1.0"`). |
+| `protocol_version`              | string   | The ARSIA protocol version supported (e.g., `"2.0"`). |
 | `inbox`                         | string   | The absolute URL of the agent's inbox endpoint (§8.1). |
 | `jwks`                          | string   | The absolute URL of the agent's JWKS endpoint (§7.3). |
 | `capabilities_supported`        | array    | Array of capability strings that this agent accepts. |
@@ -1780,6 +2169,8 @@ fields:
 | `features`                      | object   | Feature flags indicating optional protocol support. |
 | `rate_limits`                   | object   | Rate limiting parameters.                      |
 | `compliance_profiles_supported` | array    | Array of compliance profile name strings.      |
+| `iso4217_edition` | string   | OPTIONAL. Edition/date of the ISO 4217 currency catalog used for fixed-scale amount validation (ARSIA-Assets.md §3.1.1), e.g. `"ISO4217:2024-06"`. The receiver's declared edition governs validation on receipt. |
+| `strict_compliance` | boolean | OPTIONAL (default `false`). Announces strict compliance mode (§4.3.8 Rule 1): unknown profiles rejected rather than defaulted. Informative for senders; the receiving agent's configuration governs. |
 
 The `features` object, when present, contains:
 
@@ -1824,7 +2215,7 @@ The discovery endpoint SHOULD set the following HTTP response headers:
   "agent_id": "agent:acme.billing",
   "name": "Acme Billing Service",
   "version": "2.1.0",
-  "protocol_version": "1.0",
+  "protocol_version": "2.0",
   "inbox": "https://billing.acme.example/v1/arsia/inbox",
   "jwks": "https://billing.acme.example/.well-known/arsia/jwks.json",
   "capabilities_supported": [
@@ -1938,8 +2329,8 @@ Each Ed25519 public key is represented as a JWK with the following fields:
 | `x`   | string | Base64url-encoded 32-byte public key (no padding). | REQUIRED |
 | `use` | string | `"sig"` for signing keys.                      | REQUIRED |
 
-The `kid` (key identifier) MUST follow the pattern `{agent-id}#{keyN}`,
-where `{agent-id}` is the agent's full identifier (§3) and `{keyN}` is a sequential
+The `kid` (key identifier) MUST follow the pattern `{agent-id}#{key-index}`,
+where `{agent-id}` is the agent's full identifier (§3) and `{key-index}` is a short alphanumeric identifier (`[a-zA-Z0-9][a-zA-Z0-9_-]*`, ARSIA-Identity.md §2.2) — sequential labels like `key1` and period labels like `2026q1` are both valid; it is NOT restricted to a sequential
 key label. For example:
 
 ```
@@ -2063,7 +2454,7 @@ envelope and the `server_min` and `server_max` fields in the discovery response.
    {
      "supported_versions": {
        "min": "1.0",
-       "max": "1.0"
+       "max": "2.0"
      },
      "requested_version": "2.0",
      "requested_min_version": "1.5"
@@ -2106,7 +2497,7 @@ Messages are delivered to the recipient's inbox via HTTP POST:
 ```http
 POST /v1/arsia/inbox HTTP/2
 Host: billing.acme.example
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 Authorization: Bearer eyJhbGciOiJFZERTQSIs...
 Idempotency-Key: acme-billing-inv-20260324-001
 X-Request-Priority: 7
@@ -2120,7 +2511,7 @@ X-Request-Priority: 7
 is advertised in the discovery metadata (§7.1). The path includes a version prefix
 (`/v1/`) to support future incompatible path changes.
 
-**Content-Type:** `application/arsia+json; v=1`. The media type is
+**Content-Type:** `application/arsia+json; v=2`. The media type is
 `application/arsia+json` (§14.1) with a required `v` parameter indicating the major
 protocol version. Implementations MUST reject requests with an unsupported Content-Type
 with HTTP status 415 (Unsupported Media Type).
@@ -2145,13 +2536,14 @@ When the receiving agent processes the request synchronously:
 
 ```http
 HTTP/2 200 OK
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 
 {ARSIA response envelope as JSON body}
 ```
 
 The response body MUST be a valid ARSIA message envelope with `intent` set to
-`"response"`, `"error"`, or `"pending_approval"`, and `correlation_id` set to the
+`"response"`, `"error"`, or `"pending_approval"`, with `correlation_id` and
+`root_request_id` (§4.2.4) set to the
 `id` of the request message.
 
 #### Response — Asynchronous
@@ -2166,7 +2558,21 @@ Retry-After: 5
 ```
 
 The `Location` header provides a URL where the sender can poll for the eventual
-response. The `Retry-After` header indicates the suggested interval (in seconds)
+response.
+
+> **Relationship to Actions §4.3 (`status_url`).** The protocol defines exactly one
+> asynchronous pattern with two equivalent surfaces: the transport surface (this
+> section — HTTP 202 + `Location`) and the envelope surface
+> (ARSIA-Actions.md §4.3 — an immediate `response` whose `payload.result` carries
+> `status_url`). When a receiving agent responds asynchronously over HTTP it MUST
+> use 202 + `Location`; it MAY additionally include the envelope-level `response`
+> with `status_url`, and when it does the two URLs MUST be identical. Over
+> transports without HTTP status semantics (WebSocket, §8.2), the envelope surface
+> is the only one and MUST be used. The two surfaces are the same mechanism —
+> implementations MUST NOT treat them as alternative protocols with different
+> semantics.
+
+The `Retry-After` header indicates the suggested interval (in seconds)
 between polling attempts.
 
 The status endpoint MUST return:
@@ -2441,10 +2847,16 @@ When a message envelope contains a `compliance.data_residency` value:
    residency zone. The sending agent MUST NOT send the message directly to the
    recipient, even if direct connectivity is available.
 
-2. **Broker capability.** A Compliance Broker is an ARSIA-conformant agent that
-   declares the capability `arsiaprotocol.broker.relay` in its discovery metadata (§7.1). The
-   `arsiaprotocol.broker.relay` capability indicates that the agent is authorised to receive
-   messages destined for other agents and relay them to the final recipient.
+2. **Broker capability and dual authorization.** A Compliance Broker is an
+   ARSIA-conformant agent that declares the capability `arsiaprotocol.broker.relay`
+   in its discovery metadata (§7.1) — the broker-only role capability. Senders never
+   hold `broker.relay`; a sender is authorised to *use* a broker by the delegable
+   capability `arsiaprotocol.broker.use` (ARSIA-Actions.md §1.4). The sender's
+   end-to-end token (audienced to the final recipient and hash-bound to the
+   envelope via `authorization`, §4.3.9) travels with the message; the broker
+   authenticates itself to the recipient with a signed relay attestation. The full
+   executable flow is defined in ARSIA-Routing.md §1.2.2/§2.3, and the recipient's
+   token validation (§6.4) is identical for direct and brokered delivery.
 
 3. **Envelope integrity.** Brokers MUST NOT modify the contents of the message
    envelope in any way. The message forwarded by the broker to the recipient MUST be
@@ -2453,10 +2865,13 @@ When a message envelope contains a `compliance.data_residency` value:
    end-to-end — the recipient verifies the signature against the sender's public key,
    not the broker's.
 
-4. **Audit obligation.** Brokers MUST append an audit record for every message they
-   relay. The audit record MUST include at minimum: the message `id`, `from`, `to`,
-   `ts`, the broker's own agent identifier, the relay timestamp, and the data
-   residency zone. The audit record format is defined in ARSIA-State.md §7.
+4. **Audit and attestation obligation.** Brokers MUST attach a signed relay
+   attestation to every forwarded message and MUST append an `ArsiaAuditRecord`
+   with `event_type: "broker_relay"` for every message they relay, including at
+   minimum: the message `id`, `from`, `to`, `ts`, the broker's own agent
+   identifier, the relay timestamps, and the data residency zone
+   (ARSIA-Routing.md §7.4; ARSIA-State.md §7). Recipients of residency-constrained
+   messages MUST require and verify the attestation (ARSIA-Routing.md §7.4.1).
 
 5. **Broker discovery.** Sending agents discover available brokers by querying:
 
@@ -2532,7 +2947,7 @@ A -> Local Broker -> Cross-Org Broker -> B
 
 A multi-hop topology for cross-organisational communication where both organisations
 operate their own broker infrastructure. The federated topology is OPTIONAL and is
-**out of scope for ARSIA v1.0**. Future versions of this specification may define the
+**out of scope for ARSIA v2.0**. Future versions of this specification may define the
 federated topology in ARSIA-Routing.md.
 
 ### 9.4 Topology Determination Procedure
@@ -2649,16 +3064,27 @@ stored association (same key, same `from`, same `to`, same `payload.type`):
 
 ### 10.4 Header vs. Envelope Precedence (HTTP Transport)
 
-When both the HTTP header `Idempotency-Key` and the envelope field `idempotency.key`
-are present in the same request:
+The envelope field `idempotency.key` is inside the signed envelope; the HTTP header
+`Idempotency-Key` is not. Because idempotency is part of the protocol's replay
+defence (§13.2.2), the unsigned transport value MUST NOT be able to override the
+signed one. When both are present in the same request:
 
-1. The HTTP header value takes precedence for duplicate detection purposes.
+1. **The signed envelope field is authoritative** for duplicate detection.
 
-2. If the header value and envelope value differ, the server MUST use the header value
-   and SHOULD log the discrepancy for operational monitoring.
+2. If the header value differs from the envelope value, the server MUST ignore the
+   header, MUST use the envelope value, and SHOULD log the discrepancy for
+   operational monitoring. Servers MAY instead reject mismatched requests with
+   `invalid_request` under a strict transport policy — but MUST NOT dedupe on the
+   header value. (Draft-01 gave the header precedence, which allowed an attacker
+   replaying a captured signed envelope to bypass deduplication for the entire
+   `expires_at` window simply by attaching a fresh header; Draft-02 closes this.)
 
-3. The `idempotency.expires_at` field from the envelope is used as the retention
-   duration regardless of which key source is used for detection.
+3. When the header is present WITHOUT an envelope `idempotency` field, the header
+   MAY be used for transport-level deduplication as a best-effort courtesy; it
+   provides no replay-defence guarantees.
+
+4. The `idempotency.expires_at` field from the envelope is used as the retention
+   duration.
 
 > **Note:** This section applies only to HTTP transport (§8.1). Over WebSocket
 > transport (§8.2), the `Idempotency-Key` header is not available and the envelope
@@ -2694,7 +3120,10 @@ The `payload.error` object contains:
 | `details`     | object | Structured error context (varies by code).     | OPTIONAL |
 
 The `description` field is intended for developers and operators. It MUST be written
-in English. It MUST NOT contain sensitive information such as internal implementation
+in English — the stable single language for cross-organisation tooling and audit
+review. When the originating request carried `context.locale` (§4.3.3), the error
+MAY additionally carry a localized rendering in `details.localized_description`;
+the English `description` remains authoritative. The `description` MUST NOT contain sensitive information such as internal implementation
 details, stack traces, database queries, file system paths, or credentials.
 
 The `details` field provides machine-readable context that helps the sender diagnose
@@ -2738,8 +3167,16 @@ application-specific error codes using the reverse domain notation (e.g.,
 | `internal_error`      | 500         | An unexpected error occurred during message processing. | Yes |
 | `not_implemented`     | 501         | The requested feature, capability, payload type, or protocol version is not supported by the recipient. | No |
 | `service_unavailable` | 503         | The recipient is temporarily unable to process requests (maintenance, overload, dependency failure). | Yes |
+| `certificate_invalid` | 401         | The presented certificate chain fails validation (ARSIA-Identity.md §6.4.3): malformed, untrusted issuer, or constraint violation. | No |
+| `certificate_expired` | 401         | A certificate in the presented chain is outside its validity period (ARSIA-Identity.md §6.4.3). | No |
+| `key_mismatch`        | 401         | The presented key does not match the certificate or the published JWKS entry (ARSIA-Identity.md §6.4.3). | No |
+| `certificate_revoked` | 401         | A certificate in the presented chain is revoked per OCSP/CRL (ARSIA-Identity.md §6.4.3). | No |
 
 † See §11.3 exception for idempotent in-progress signals.
+
+The four certificate codes are standard codes registered here for the Level 2/3
+identity verification flows of ARSIA-Identity.md §6.4; they follow the standard
+`snake_case` convention because they are part of this registry, not custom codes.
 
 #### Error-Specific Detail Requirements
 
@@ -2758,7 +3195,7 @@ The following error codes have specific requirements for the `details` object:
 {
   "supported_versions": {
     "min": "1.0",
-    "max": "1.0"
+    "max": "2.0"
   }
 }
 ```
@@ -2924,7 +3361,7 @@ conformance requirements (§12.2) and additionally implement the following:
 | WebSocket transport                | §8.2                            | Support persistent bidirectional communication. |
 | Payload encryption                 | §5.3                            | Support end-to-end payload encryption. |
 | ES256 signature support            | §5.1                            | Support ECDSA P-256 in addition to EdDSA. |
-| Conformance test runner            | @arsia-protocol/conformance-test         | Pass the conformance test suite at 100%. |
+| Conformance test runner            | in-repo: `scripts/validate_vectors.py` (+ `--check-meta`, `--check-errors`, `--check-crypto`), `scripts/check_consistency.py`, `scripts/runtime_harness.py` | Pass all executable checks at 100% (0 failures; runtime-only vectors classified per `docs/draft-02-skip-classification.md`). The runner is versioned with this repository — no external, unversioned package is part of the conformance criteria. |
 
 Full conformance represents a complete implementation of the ARSIA protocol, suitable
 for deployment as a reference implementation or as the basis for a commercial agent
@@ -2965,7 +3402,67 @@ a conformant implementation MUST pass all tests at the Compliance conformance le
 | **description**   | Verify that an MCP tool call wrapped in an ARSIA envelope retains compliance enforcement |
 | **preconditions** | An MCP tool call is wrapped in an ARSIA message with `payload.type = "arsiaprotocol.mcp/tool-call"` and `compliance.profile = "EU-AI-ACT-HIGH-RISK"`. |
 | **action**        | The ARSIA layer processes the message: validates compliance, generates an audit record, and forwards the MCP tool call to the MCP server. |
-| **expected**      | An `ArsiaAuditRecord` is generated with `compliance_profile = "EU-AI-ACT-HIGH-RISK"` and `payload_type = "arsiaprotocol.mcp/tool-call"`. The MCP tool call executes normally on the MCP server. Compliance is enforced by the ARSIA layer, not by MCP. |
+| **expected**      | An `ArsiaAuditRecord` is generated with `compliance_profile_resolved = "EU-AI-ACT-HIGH-RISK"` and `payload_type = "arsiaprotocol.mcp/tool-call"`. The MCP tool call executes normally on the MCP server. Compliance is enforced by the ARSIA layer, not by MCP. |
+
+#### CORE-COMPLIANCE-04: Profile retention floor rejection (Rule 4)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-04`                                                |
+| **description**   | Verify below-floor retention declarations are rejected, never clamped |
+| **preconditions** | Message declares `compliance.profile = "MIFID-II"` and `compliance.retention = "P365D"`. |
+| **action**        | Receiver validates per §4.3.8 Rule 4 (calendar comparison, §4.3.6.4.1). |
+| **expected**      | Rejected with `invalid_request`, details incl. `insufficient_retention`, `declared_retention`, `minimum_retention`, both `retained_until` instants, `resolution_source`. Vectors ITV-563/564; boundary pass ITV-561/562; absent-field pass ITV-565. Reference logic: `scripts/runtime_harness.py` R2. |
+
+#### CORE-COMPLIANCE-05: Unknown profile behaviour (Rule 1)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-05`                                                |
+| **description**   | Verify unknown-profile handling in both strict modes                 |
+| **preconditions** | Message declares an unknown `compliance.profile` (neither standard nor advertised extension). |
+| **action**        | Receiver applies §4.3.8 Rule 1 in non-strict, then strict mode (`strict_compliance` in discovery). |
+| **expected**      | Non-strict: warning + GDPR-STANDARD defaults, audit record shows `compliance_profile_declared` = the unknown name, `compliance_profile_resolved = "GDPR-STANDARD"`. Strict: rejected `invalid_request` `{unknown_profile: true}`. Vector ITV-416. |
+
+#### CORE-COMPLIANCE-06: Effective oversight resolution (Rule 3)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-06`                                                |
+| **description**   | Verify Rule 3 checks the EFFECTIVE oversight mode                   |
+| **preconditions** | Three messages with `ai_system_classification = "high-risk"`: (a) explicit `human_oversight`; (b) no per-message value, profile EU-AI-ACT-HIGH-RISK; (c) no per-message value, no profile. |
+| **action**        | Receiver resolves the effective mode per §4.3.7 and applies Rule 3. |
+| **expected**      | (a), (b) accepted; (c) rejected `invalid_request` `{high_risk_missing_oversight: true}`. Vectors ITV-421, ITV-579. Reference logic: harness R10. |
+
+#### CORE-COMPLIANCE-07: Residency enforcement, both sides (Rule 5)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-07`                                                |
+| **description**   | Verify broker requirement and recipient-side attestation enforcement |
+| **preconditions** | Message with `compliance.data_residency = "EU"`, `authorization` binding present. |
+| **action**        | Sender routes via broker (ARSIA-Routing.md §1.2.2); recipient validates the relay attestation (§7.4.1); a second copy is delivered directly (bypass). |
+| **expected**      | Brokered copy accepted; direct copy rejected `service_unavailable` `{data_residency_violation: true}` — bypass detectable. Vectors ITV-569/570; ROUTING-02/03 cover the sender side. |
+
+#### CORE-COMPLIANCE-08: PII legal basis incl. special categories (Rules 2, 7, 8)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-08`                                                |
+| **description**   | Verify legal-basis requirements for personal and sensitive data     |
+| **preconditions** | (a) `pii_involved: true` without `legal_basis`; (b) sensitive state entry with an Art. 6(1)-only basis; (c) sensitive entry with an Art. 9(2) condition. |
+| **action**        | Receiver applies Rules 2, 7, 8. |
+| **expected**      | (a) rejected `{missing_legal_basis: true}` (vector INV-06); (b) rejected per Rule 8 (vectors ITV-553/554); (c) accepted (ITV-555; INV-20 negative). |
+
+#### CORE-COMPLIANCE-09: Oversight timeout (`required_within_24h`)
+
+| Field             | Value                                                               |
+|-------------------|---------------------------------------------------------------------|
+| **test_id**       | `CORE-COMPLIANCE-09`                                                |
+| **description**   | Verify the within-24h oversight mode's timeout behaviour            |
+| **preconditions** | Action executed under a profile with `human_oversight = "required_within_24h"` (DSA-VLOP or DORA); no approval within 24 h of execution. |
+| **action**        | The executing agent monitors the post-execution approval window.     |
+| **expected**      | At +24 h without decision: an `approval_expired` audit event is appended referencing the action's audit record; the operator's escalation policy is triggered; the audit trail shows execution, the open window, and the expiry — post-execution oversight is evidenced, not silently skipped. |
 
 ---
 
@@ -3003,6 +3500,56 @@ The ARSIA threat model considers the following adversaries and attack vectors:
    attempts to modify relayed messages, drop messages, inject forged messages, or
    exfiltrate message contents while the broker is trusted as an intermediary.
 
+7. **Broker bypass.** A sender required to route through a Compliance Broker
+   (`compliance.data_residency` set) delivers directly to the recipient instead,
+   defeating the residency control. Mitigation: recipients MUST require and verify
+   the relay attestation for residency-constrained messages
+   (ARSIA-Routing.md §7.4.1) — a bypassing sender cannot produce one. Residual:
+   the attestation is relay evidence by an identified broker, not physical proof
+   of every processing location (ARSIA-Routing.md §5.3).
+
+8. **Compromised approver.** An adversary controls an agent holding
+   `arsiaprotocol.oversight.approve` — the protocol's most sensitive capability —
+   and approves high-risk actions that a human never reviewed. Mitigations: the
+   capability is non-delegable (never wildcard-granted, ARSIA-Actions.md §1.2/§1.4);
+   Authorization Servers MUST apply additional verification before issuing it;
+   `approval_decision` messages are signed by the approver and chain-verified
+   (`correlation_id` + `root_request_id`, ARSIA-Actions.md §3.4); every decision is
+   audit-recorded with `approver_id`. Residual: a fully compromised approver agent
+   with a live token can still approve until revocation (§13.2 key/token
+   revocation applies); separation-of-duties for financial flows
+   (ARSIA-Assets.md §5.1.2) limits blast radius.
+
+9. **Wrongful PURGE.** An adversary with (or having escalated to)
+   `arsiaprotocol.state.purge` irreversibly destroys data ahead of retention
+   obligations, or purges to cover tracks. Mitigations: non-delegable capability;
+   PURGE MUST NOT bypass regulatory retention (ARSIA-State.md §5.3 — erasure vs
+   retention conflict rules); every PURGE generates an audit event that survives
+   the purge (without the purged value); propagation rules bound replica/backup
+   deletion windows. Residual: an adversary with both purge capability and audit
+   store control defeats local tamper evidence (see ARSIA-State.md §7.2 scope
+   statement).
+
+10. **Escrow abuse.** A compromised `release_agent` (or escrow holder) releases
+    escrowed value to the wrong party or blocks timeout return. Mitigations:
+    release authorization is capability-gated and party-restricted
+    (ARSIA-Assets.md §4.2.2); timeout return is mandatory and time-bound
+    (§4.2.3); every transition is audit-recorded with `original_audit_id`
+    chaining. Residual: the escrow holder is trusted for custody by construction —
+    holder compromise is bounded by audit, not prevented.
+
+11. **Residency evasion by recipient.** A recipient accepts a residency-constrained
+    message but processes it outside the declared zone. The wire protocol cannot
+    detect this (ARSIA-Routing.md §5.1 item 4); the obligation is normative on the
+    recipient, evidenced by zone-stored audit records and operational attestation —
+    an accepted, explicitly declared residual limitation.
+
+12. **Approval/attestation splicing.** An adversary pairs a signed envelope with a
+    different token, proof, or attestation than the sender intended. Mitigation:
+    the three-way hash binding — envelope `authorization.token_hash` (signed,
+    §4.3.9), attestation `envelope_hash` + `authorization_token_hash`
+    (ARSIA-Routing.md §7.4.1), and DPoP proof binding where used.
+
 ### 13.2 Mitigations
 
 #### 13.2.1 Network Interception
@@ -3030,7 +3577,11 @@ ARSIA provides multiple defences against replay attacks:
 
 - **Idempotency keys.** Idempotency (§10) ensures that even if a message is
   successfully replayed within the expiration window, the receiving agent returns the
-  previously stored response without re-executing the action.
+  previously stored response without re-executing the action. This defence holds only
+  because the signed envelope's `idempotency.key` is authoritative for deduplication
+  (§10.4): the unsigned `Idempotency-Key` transport header can never override it, so
+  an attacker replaying a captured signed envelope cannot bypass deduplication by
+  attaching a fresh header.
 
 - **Token expiration.** Access tokens have limited lifetimes (§6.1). A replayed
   message with an expired token will be rejected at the authorization stage.
@@ -3052,7 +3603,11 @@ ARSIA mitigates capability escalation through independent verification:
   authorised to do.
 
 - The message's digital signature (§5.1) prevents modification of the `capabilities`
-  field after signing. Any modification invalidates the signature.
+  field after signing. Any modification invalidates the signature. In Draft-02 the
+  signing input covers the entire envelope except only `security.sig` — including
+  `security.alg`, `security.kid`, the encryption metadata, and the `authorization`
+  binding (§4.3.9) — closing the Draft-01 gap in which the whole `security` object
+  was outside the signature and `alg`/`kid` were malleable without invalidating it.
 
 #### 13.2.4 Timing Attacks
 
@@ -3121,10 +3676,11 @@ ARSIA's architecture limits the damage a compromised broker can inflict:
 
 The ARSIA protocol incorporates the following privacy protections:
 
-1. **Agent identifiers contain no PII.** Agent identifiers (§3) are opaque
+1. **Agent identifiers are designed to contain no PII (org/service segments, rule §3.3-3); this is a design rule, not a guarantee — a sole proprietor's org segment MAY relate to a natural person, and deployments MUST assess identifier linkability in their GDPR analysis (ARSIA-State.md §7.2).** Agent identifiers (§3) are opaque
    organisational identifiers that MUST NOT contain personally identifiable
-   information. There is no protocol-level association between an agent identifier
-   and a natural person.
+   information. The protocol itself defines no association between an agent
+   identifier and a natural person; whether one arises in deployment is
+   context-dependent, per the linkability assessment above.
 
 2. **Message identifiers are random.** Message identifiers (§4.1.2) are UUID v4
    values generated from cryptographically secure random sources. They do not encode
@@ -3137,7 +3693,7 @@ The ARSIA protocol incorporates the following privacy protections:
    protocol compliance.
 
 4. **Audit log retention is governed by compliance profiles.** The
-   `compliance.retention_days` field (§4.3.6) explicitly controls how long audit
+   `compliance.retention` field (§4.3.6) explicitly controls how long audit
    records are retained. This allows agents to comply with data minimisation
    requirements (GDPR Article 5(1)(e)) while meeting sector-specific retention
    obligations.
@@ -3165,7 +3721,7 @@ This specification defines the following media type, to be registered with IANA 
 |--------------------|---------------------------------|
 | Type name          | application                     |
 | Subtype name       | arsia+json                      |
-| Required parameter | `v` (version string, e.g., "1") |
+| Required parameter | `v` (version string, e.g., "2") |
 | Optional parameters| none                            |
 | Encoding           | UTF-8                           |
 | Security considerations | See §13 of this specification. |
@@ -3176,7 +3732,7 @@ This specification defines the following media type, to be registered with IANA 
 Usage example:
 
 ```
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 ```
 
 The `v` parameter indicates the major protocol version. Recipients MUST verify that
@@ -3315,7 +3871,7 @@ signature.
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "ts": "2026-03-24T14:30:00.000Z",
   "from": "agent:arsialabs.demo.client",
@@ -3343,7 +3899,7 @@ signature.
 
 | Field          | Value                                      | Requirement     |
 |----------------|--------------------------------------------|-----------------|
-| `v`            | `"1.0"`                                    | §4.1.1 REQUIRED |
+| `v`            | `"2.0"`                                    | §4.1.1 REQUIRED |
 | `id`           | UUID v4                                    | §4.1.2 REQUIRED |
 | `ts`           | RFC 3339 with milliseconds and Z           | §4.1.3 REQUIRED |
 | `from`         | Valid agent-id with `agent:` prefix        | §4.1.4 REQUIRED |
@@ -3367,12 +3923,13 @@ tracing context, and idempotency configuration.
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
   "ts": "2026-03-24T10:15:30.000Z",
   "from": "agent:europa.mifid.risk-engine",
   "to": "agent:europa.mifid.compliance-checker",
   "intent": "request",
+  "authorization": { "token_hash": "sha-256:abababababababababababababababababababababababababababababababab", "proof_type": "bearer" },
   "min_v": "1.0",
   "expires_at": "2026-03-24T10:16:00.000Z",
   "capabilities": [
@@ -3416,7 +3973,7 @@ tracing context, and idempotency configuration.
     "profile": "EU-AI-ACT-HIGH-RISK",
     "data_residency": "EU",
     "audit_required": true,
-    "retention_days": 180,
+    "retention": "P6M",
     "human_oversight": "required_before_execution",
     "explainability_required": true,
     "pii_involved": false,
@@ -3430,7 +3987,7 @@ tracing context, and idempotency configuration.
 
 | Field            | Value                                       | Requirement      |
 |------------------|---------------------------------------------|------------------|
-| `v`              | `"1.0"`                                     | §4.1.1 REQUIRED  |
+| `v`              | `"2.0"`                                     | §4.1.1 REQUIRED  |
 | `id`             | UUID v4                                     | §4.1.2 REQUIRED  |
 | `ts`             | RFC 3339 with milliseconds and Z            | §4.1.3 REQUIRED  |
 | `from`           | Valid agent-id                              | §4.1.4 REQUIRED  |
@@ -3452,7 +4009,7 @@ tracing context, and idempotency configuration.
 | `profile`                  | `"EU-AI-ACT-HIGH-RISK"`        | Loads profile defaults   |
 | `data_residency`           | `"EU"`                          | Triggers brokered routing (§9.2) |
 | `audit_required`           | `true`                          | Audit record MUST be generated |
-| `retention_days`           | `180`                           | 180-day audit retention  |
+| `retention`                | `"P6M"`                        | Six-calendar-month audit retention (EU AI Act Art. 26(6)) |
 | `human_oversight`          | `"required_before_execution"`   | Recipient MUST obtain human approval before executing |
 | `explainability_required`  | `true`                          | Response MUST include decision explanation |
 | `pii_involved`             | `false`                         | No PII in this message   |
@@ -3472,13 +4029,14 @@ indicates that the sender's access token does not include sufficient capabilitie
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "b8c96a3e-2d4f-4e8a-9b1c-3f5e7d9a0c2b",
   "ts": "2026-03-24T14:30:00.125Z",
   "from": "agent:arsialabs.demo.echo-server",
   "to": "agent:arsialabs.demo.client",
   "intent": "error",
   "correlation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "root_request_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "payload": {
     "type": "arsiaprotocol.echo",
     "error": {
@@ -3506,7 +4064,7 @@ indicates that the sender's access token does not include sufficient capabilitie
 
 | Field            | Value                                         | Requirement       |
 |------------------|-----------------------------------------------|-------------------|
-| `v`              | `"1.0"`                                       | §4.1.1 REQUIRED   |
+| `v`              | `"2.0"`                                       | §4.1.1 REQUIRED   |
 | `id`             | UUID v4 (new, unique to this response)        | §4.1.2 REQUIRED   |
 | `ts`             | 125ms after the request's `ts`                | §4.1.3 REQUIRED   |
 | `from`           | The echo server (responder)                   | §4.1.4 REQUIRED   |
@@ -3607,7 +4165,7 @@ developer or operator is based. Adopting ARSIA compliance profiles gives AAIF pr
 access to this market without each member having to build, validate, and maintain
 EU-specific compliance infrastructure independently. The ARSIA Protocol is licensed under CC BY-SA 4.0 — there are no licensing barriers to adoption.
 
-*End of ARSIA Protocol Core Specification — Draft-01*
+*End of ARSIA Protocol Core Specification — Draft-02*
 
 ---
 ARSIA Protocol ([arsiaprotocol.org](https://arsiaprotocol.org)) | by [Arsia Labs](https://arsialabs.ai)

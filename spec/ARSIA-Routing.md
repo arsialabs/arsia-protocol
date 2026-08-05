@@ -3,13 +3,13 @@
 # ARSIA-Routing — Routing Primitive Specification
 
 **Protocol:** ARSIA Protocol
-**Version:** 1.0
+**Version:** 2.0
 **Status:** Draft
 **Authors:**
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §7, §8, §9**
+**Draft-02 | July 2026 | References: ARSIA-Core.md §7, §8, §9**
 **Arsia Labs — arsiaprotocol.org**
 
 ---
@@ -29,13 +29,13 @@ a `compliance.data_residency` constraint.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Routing Primitive. This specification is
+This document specifies Draft-02 of the ARSIA Routing Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
 The canonical location for this specification is:
 
-    https://arsiaprotocol.org/spec/routing/draft-01
+    https://arsiaprotocol.org/spec/routing/draft-02
 
 Comments and issues should be directed to:
 
@@ -122,11 +122,11 @@ request.
 
 **Routing Topology.** A routing topology describes the path a message takes from the
 sending agent to the receiving agent, including any intermediaries involved in the
-delivery. ARSIA Protocol v1.0 defines three topologies: direct, brokered, and
+delivery. ARSIA Protocol v2.0 defines three topologies: direct, brokered, and
 federated. Direct topology involves no intermediaries. Brokered topology introduces a
 Compliance Broker as a transparent relay between the sender and the recipient. Federated
 topology enables multi-hop routing across organisational boundaries and is reserved for
-future specification — implementations MUST NOT use federated routing in v1.0. The
+future specification — implementations MUST NOT use federated routing in v2.0. The
 topology used for a given message is determined by the topology determination procedure
 defined in §1.3 and is a function of the message's compliance metadata. The topology is
 not a property of the agent or the infrastructure; it is determined per-message based on
@@ -134,8 +134,9 @@ the contents of the message envelope.
 
 **Delivery Guarantee.** A delivery guarantee describes the level of assurance that a
 message will reach its intended recipient and be processed exactly the intended number
-of times. ARSIA Protocol v1.0 defines three delivery guarantee levels:
-at-most-once (default), at-least-once (opt-in via the idempotency mechanism defined in
+of times. ARSIA Protocol v2.0 defines three delivery guarantee levels:
+at-most-once (default), at-least-once (opt-in — achieved by sender retries per
+ARSIA-Core.md §11.3; duplicates are then suppressed by the idempotency mechanism defined in
 ARSIA-Core.md §10), and exactly-once (achievable only at the application level by
 combining at-least-once delivery with idempotent receivers). The delivery guarantee is
 not a transport-level property — it is an end-to-end property that spans the entire
@@ -170,7 +171,7 @@ event. A broker MUST NOT read or log the payload contents — it MAY only record
 
 ### 1.2 Routing Topologies
 
-ARSIA Protocol v1.0 defines three routing topologies. Only the direct and brokered
+ARSIA Protocol v2.0 defines three routing topologies. Only the direct and brokered
 topologies are normatively specified in this version; the federated topology is reserved
 for future specification.
 
@@ -200,7 +201,8 @@ fastest path for message delivery.
 3. **Message signing.** The sender constructs the ARSIA message envelope and signs it
    using its Ed25519 private key, following the signing procedure defined in
    ARSIA-Core.md §5.1. The signature is computed over the RFC 8785 canonical form of
-   the message with the `security` field removed. The resulting signature is placed in
+   the message with only the `security.sig` property removed — `alg`, `kid`, and any
+   encryption metadata remain in the signing input (ARSIA-Core.md §5.1). The resulting signature is placed in
    `security.sig`.
 
 4. **Token presentation.** The sender obtains an access token for the recipient from an
@@ -216,7 +218,7 @@ fastest path for message delivery.
    ```http
    POST /v1/arsia/inbox HTTP/2
    Host: {recipient-host}
-   Content-Type: application/arsia+json; v=1
+   Content-Type: application/arsia+json; v=2
    Authorization: Bearer {access_token}
 
    {ARSIA message envelope}
@@ -239,7 +241,7 @@ fastest path for message delivery.
 7. **Response.** The recipient returns either:
 
    - **HTTP 200 OK** with a synchronous ARSIA response envelope
-     (`Content-Type: application/arsia+json; v=1`), or
+     (`Content-Type: application/arsia+json; v=2`), or
    - **HTTP 202 Accepted** with a `Location` header pointing to a status URL for
      asynchronous processing (ARSIA-Core.md §8.1).
 
@@ -287,50 +289,105 @@ recipient, even if direct connectivity is available.
    signature is end-to-end: it is computed by the sender and verified by the final
    recipient. The broker does NOT sign the message.
 
-5. **Relay request.** The sender sends the signed message to the broker's inbox using
-   the standard HTTP/2 binding (§2.1). The request is identical to a direct routing
-   request — the message envelope is not modified for broker relay. The `to` field in
-   the envelope still contains the final recipient's agent-id, not the broker's.
+5. **Dual authorization.** Brokered routing uses two independent authorities — an
+   end-to-end sender authorization and an independently authenticated relay — bound
+   together cryptographically. The sender obtains TWO tokens:
+
+   - **`T_use`** (sender→broker): `sub` = sender, `aud` = broker, scope including
+     `arsiaprotocol.broker.use` (Actions §1.4). This authorises the sender to use
+     the broker for relay. It does NOT confer relay authority: the sender's token
+     never contains `arsiaprotocol.broker.relay`.
+   - **`T_e2e`** (sender→recipient): `sub` = sender = `message.from`, `aud` = final
+     recipient = `message.to`, scope covering the envelope's `capabilities`. This
+     is the same token the sender would use for direct routing. Its lifetime MUST
+     be short — 300 seconds or less is RECOMMENDED for residency flows — and it
+     SHOULD be sender-constrained with DPoP [RFC 9449] (with `jti`, a short
+     acceptance window, and server nonce where required).
+
+   Before signing, the sender binds the envelope to `T_e2e` by setting the
+   envelope's `authorization` field (ARSIA-Core.md §4.3.9):
+   `{ "token_hash": "sha-256:<hex of SHA-256 over the exact token octets>",
+   "proof_type": "bearer" | "dpop" }`. Because the envelope is signed end-to-end,
+   neither the broker nor any other party can re-associate the envelope with a
+   different token without invalidating the signature.
+
+   **Relay request** (sender → broker), standard HTTP/2 binding (§2.1):
 
    ```http
    POST /v1/arsia/inbox HTTP/2
    Host: {broker-host}
-   Content-Type: application/arsia+json; v=1
-   Authorization: Bearer {access_token_for_broker}
+   Content-Type: application/arsia+json; v=2
+   Authorization: Bearer {T_use}
+   ARSIA-Recipient-Token: {T_e2e}
+   ARSIA-Recipient-DPoP: {precomputed DPoP proof for the recipient inbox}   (when proof_type is "dpop")
 
    {ARSIA message envelope with to=final-recipient}
    ```
 
-6. **Broker validation.** The broker receives the message and performs the following
-   checks:
+   The `ARSIA-Recipient-DPoP` proof, when used, is precomputed by the sender against
+   the recipient's inbox URL (`htu`, known from discovery) and `htm: POST`; the
+   broker's forwarding deadline (§2.3.4, 10 seconds) fits within the DPoP `iat`
+   acceptance window.
 
-   a. Verify the sender's digital signature (ARSIA-Core.md §5.2).
-   b. Verify the sender's access token. The token MUST include the `arsiaprotocol.broker.relay`
-      capability.
-   c. Verify that the broker's own physical jurisdiction matches the zone declared in
-      `message.compliance.data_residency`. If the broker's jurisdiction does not satisfy
-      the zone (e.g., the broker is in the US but the zone is `"EU"`), the broker MUST
-      reject the message with error code `service_unavailable` (ARSIA-Core.md §11.2) and details:
-      `{ "data_residency_violation": true, "broker_jurisdiction": "{actual}", "required_zone": "{zone}" }`.
+6. **Broker validation.** The broker receives the message and performs the following
+   checks, rejecting with the indicated error on failure:
+
+   a. Verify the sender's digital signature (ARSIA-Core.md §5.2) — `unauthorized`.
+   b. Verify `T_use`: valid per ARSIA-Core.md §6.4/§6.5 with `aud` = the broker
+      itself, `sub` = `message.from`, and scope satisfying
+      `arsiaprotocol.broker.use` — `unauthorized`/`forbidden`.
+   c. Verify that the `ARSIA-Recipient-Token` header is present, that the carried
+      token has `sub` = `message.from` and `aud` = `message.to`, and that
+      `sha-256` over its exact octets equals the envelope's
+      `authorization.token_hash` — `invalid_request` (failing fast at the broker,
+      not downstream).
+   d. Verify that the broker's own physical jurisdiction matches the zone declared
+      in `message.compliance.data_residency`. If not (e.g., the broker is in the US
+      but the zone is `"EU"`), reject with error code `service_unavailable`
+      (ARSIA-Core.md §11.2) and details: `{ "data_residency_violation": true,
+      "broker_jurisdiction": "{actual}", "required_zone": "{zone}" }`.
+
+   The broker MUST NOT redeem, exchange, or otherwise use `T_e2e` for any purpose
+   other than forwarding it unmodified with the envelope.
 
 7. **Message forwarding.** The broker forwards the message to the recipient's inbox
    using direct routing (§1.2.1). The broker:
 
-   a. Discovers the recipient's inbox URL from the recipient's discovery endpoint
-      (ARSIA-Core.md §7.1).
-   b. Obtains an access token for the recipient from an authorization server.
-   c. Sends the EXACT same message envelope — byte-identical after JSON canonicalization
-      — to the recipient's inbox via HTTP POST.
+   a. Resolves the recipient's inbox URL per ARSIA-Core.md §6.6/§7.1.
+   b. Produces a signed **relay attestation** (§7.4) over the exact envelope being
+      forwarded.
+   c. Sends the EXACT same message envelope — byte-identical — with the sender's
+      end-to-end authorization forwarded verbatim:
+
+   ```http
+   POST /v1/arsia/inbox HTTP/2
+   Host: {recipient-host}
+   Content-Type: application/arsia+json; v=2
+   Authorization: Bearer {T_e2e}                      (or "DPoP {T_e2e}")
+   DPoP: {forwarded ARSIA-Recipient-DPoP proof}       (when proof_type is "dpop")
+   ARSIA-Relay-Attestation: {base64url-encoded signed attestation object}
+
+   {ARSIA message envelope — byte-identical to the envelope received from the sender}
+   ```
+
+   The broker does NOT obtain any token of its own for the recipient. The
+   recipient's token validation (ARSIA-Core.md §6.4) therefore runs **unchanged**:
+   `sub` == `from`, `aud` == `to`, scope covers `capabilities` — direct and
+   brokered delivery are indistinguishable at the token layer. The broker
+   authenticates itself to the recipient exclusively through the relay
+   attestation, which is signed with the broker's own Ed25519 key and verifiable
+   via the broker's JWKS (§7.1).
 
 8. **Envelope integrity.** The broker MUST NOT modify the message envelope in any way.
    The message forwarded to the recipient is the same message received from the sender.
    The sender's original digital signature remains intact and is verified by the
    recipient against the sender's public key, not the broker's.
 
-9. **Audit logging.** The broker appends a `broker_relay` audit event to its own audit
-   trail (§7.4). The audit record includes the relay ID, message ID, sender and
-   recipient agent-ids, the residency zone, the relay timestamp, and a hash of the
-   message payload. The broker MUST NOT log the payload contents.
+9. **Audit logging.** The broker appends a `broker_relay` audit event — an
+   `ArsiaAuditRecord` per §7.4 — to its own audit trail, recording the attestation
+   identifier, the message `id`, `from`, `to`, and `ts`, the residency zone, the
+   relay timestamps, and the envelope hash. The broker MUST NOT log the payload
+   contents.
 
 10. **Response relay.** The broker returns the recipient's response to the sender:
 
@@ -349,13 +406,14 @@ structure:
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "{uuid}",
   "ts": "{timestamp}",
   "from": "{sender-agent-id}",
   "to": "{intended-recipient-agent-id}",
   "intent": "error",
   "correlation_id": "{original-request-id}",
+  "root_request_id": "{original-request-id}",
   "payload": {
     "type": "arsiaprotocol.error",
     "error": {
@@ -374,7 +432,7 @@ structure:
 This is a hard requirement: violating data residency by sending the message through an
 alternative route is not permitted (ARSIA-Core.md §9.2).
 
-#### 1.2.3 Federated Routing (OPTIONAL — Not Defined in v1.0)
+#### 1.2.3 Federated Routing (OPTIONAL — Not Defined in v2.0)
 
 Federated routing enables cross-organisational, multi-hop message delivery where a
 message traverses multiple brokers across organisational boundaries:
@@ -384,7 +442,7 @@ A -> Local Broker -> Cross-Org Broker -> B
 ```
 
 Federated routing is reserved for future specification. Agents MUST NOT use federated
-routing in ARSIA Protocol v1.0 implementations. Implementations that require
+routing in ARSIA Protocol v2.0 implementations. Implementations that require
 cross-organisation routing MUST use brokered routing with a shared broker — that is,
 both organisations MUST agree on a single broker that both can route through, and that
 broker MUST reside within any applicable data residency zone.
@@ -551,8 +609,8 @@ All ARSIA messages are delivered via HTTP POST to the recipient's inbox endpoint
 ```http
 POST /v1/arsia/inbox HTTP/2
 Host: {recipient-host}
-Content-Type: application/arsia+json; v=1
-Accept: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
+Accept: application/arsia+json; v=2
 Authorization: Bearer {access_token}
 ```
 
@@ -567,15 +625,15 @@ to support future incompatible path changes.
 
 | Header          | Value                            | Description                        |
 |-----------------|----------------------------------|------------------------------------|
-| `Content-Type`  | `application/arsia+json; v=1`    | ARSIA media type with version.     |
-| `Accept`        | `application/arsia+json; v=1`    | Expected response media type.      |
+| `Content-Type`  | `application/arsia+json; v=2`    | ARSIA media type with version.     |
+| `Accept`        | `application/arsia+json; v=2`    | Expected response media type.      |
 | `Authorization` | `Bearer {token}` or `DPoP {token}` | Access token per ARSIA-Core.md §6.3. |
 
 **Optional headers:**
 
 | Header               | Type    | Description                                      |
 |----------------------|---------|--------------------------------------------------|
-| `Idempotency-Key`   | string  | Idempotency key (ARSIA-Core.md §10). 1-128 chars. Overrides `idempotency.key` in envelope if both are present (ARSIA-Core.md §10.4). |
+| `Idempotency-Key`   | string  | Idempotency key (ARSIA-Core.md §10). 1-128 chars. When the signed envelope carries `idempotency.key`, the envelope value is authoritative: a mismatching header MUST be ignored (or the request rejected with `invalid_request`) and MUST NOT be used for deduplication (ARSIA-Core.md §10.4). |
 | `X-Request-Priority` | integer | Message processing priority, 0-10. Maps to `context.priority` in envelope (ARSIA-Core.md §4.3.3). Higher values indicate higher priority. |
 | `DPoP`              | string  | DPoP proof JWT, when using DPoP-bound tokens (ARSIA-Core.md §6.3). |
 
@@ -588,13 +646,13 @@ UTF-8 JSON, conforming to the envelope schema defined in ARSIA-Core.md §4.
 
 ```http
 HTTP/2 200 OK
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 
 {ARSIA response envelope}
 ```
 
 The response body MUST be a valid ARSIA message envelope with `intent` set to
-`"response"`, `"error"`, `"pending_approval"`, or `"approval_decision"`. The
+`"response"`, `"error"`, or `"pending_approval"` (ARSIA-Core.md §8.1). An `approval_decision` is never a synchronous inbox response: it is an independent message from the approver, correlated to the `pending_approval` per ARSIA-Actions.md §3.3. The
 `correlation_id` field MUST be set to the `id` of the request message
 (ARSIA-Core.md §4.2.1).
 
@@ -604,7 +662,7 @@ The response body MUST be a valid ARSIA message envelope with `intent` set to
 HTTP/2 202 Accepted
 Location: https://{host}/v1/arsia/status/{message-id}
 Retry-After: 5
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 
 {ARSIA response envelope with intent "pending_approval" or receipt}
 ```
@@ -848,7 +906,7 @@ envelopes MUST NOT be fragmented across multiple WebSocket frames — each frame
 atomic message.
 
 Binary frames are reserved for future use (e.g., encrypted payloads, binary-encoded
-envelopes). Agents MUST NOT send binary frames in ARSIA Protocol v1.0. A server
+envelopes). Agents MUST NOT send binary frames in ARSIA Protocol v2.0. A server
 receiving a binary frame SHOULD close the connection with close code 1003 (Unsupported
 Data).
 
@@ -858,7 +916,8 @@ connection with close code 4003 (Message Too Large), consistent with ARSIA-Core.
 
 **Phase 4 — Heartbeat:**
 
-The client SHOULD send a heartbeat frame every 30 seconds to maintain the connection
+The client MUST send a heartbeat frame every 30 seconds to maintain the connection
+(ARSIA-Core.md §8.2 — Draft-01 stated SHOULD here and MUST there; the MUST governs)
 and detect network failures:
 
 ```json
@@ -949,7 +1008,7 @@ The following WebSocket close codes are used by the ARSIA WebSocket binding:
 |------|---------------------|------------------------------------------------|
 | 1000 | Normal Closure      | Graceful disconnection.                        |
 | 1001 | Going Away          | Server shutdown or unrecoverable error.        |
-| 1003 | Unsupported Data    | Binary frame received (not supported in v1.0). |
+| 1003 | Unsupported Data    | Binary frame received (not supported in v2.0). |
 | 4001 | Authentication Failed | Authentication failure or authentication timeout (ARSIA-Core.md §8.2). |
 | 4002 | Idle Timeout        | No frames exchanged within 60 seconds, or client pong timeout (ARSIA-Core.md §8.2). |
 | 4003 | Message Too Large   | Frame exceeds `max_message_bytes` (ARSIA-Core.md §8.2). |
@@ -974,20 +1033,46 @@ The `to` field in the message envelope MUST contain the final recipient's agent-
 the broker's agent-id. The broker uses this field to determine where to forward the
 message.
 
-The `Authorization` header MUST contain a token that authorises the sender to use the
-broker's `arsiaprotocol.broker.relay` capability.
+**Headers (normative).** The sender-to-broker request carries:
+
+| Header                  | Required | Content                                                        |
+|-------------------------|----------|----------------------------------------------------------------|
+| `Authorization`         | REQUIRED | `Bearer {T_use}` (or `DPoP {T_use}` with a `DPoP` proof) — the sender's token audienced to the **broker** with scope satisfying `arsiaprotocol.broker.use` (§1.2.2 step 5). Never `broker.relay`. |
+| `ARSIA-Recipient-Token` | REQUIRED | The sender's end-to-end token `T_e2e` (`sub` = sender, `aud` = final recipient), bound to the envelope via `authorization.token_hash` (ARSIA-Core.md §4.3.9). |
+| `ARSIA-Recipient-DPoP`  | COND.    | REQUIRED when the envelope's `authorization.proof_type` is `"dpop"`: the sender's precomputed DPoP proof for the recipient's inbox (`htu` from discovery, `htm: POST`). |
+
+The broker validates per §1.2.2 step 6 and MUST NOT use `T_e2e` for any purpose
+other than verbatim forwarding.
 
 #### 2.3.2 Broker-to-Recipient Transport
 
 The broker forwards the message to the recipient's inbox using direct routing (§1.2.1,
 §2.1). The broker:
 
-1. Resolves the recipient's inbox URL from the discovery endpoint
-   (ARSIA-Core.md §7.1).
-2. Obtains an access token for the recipient from an authorization server.
-3. Sends the message to the recipient's inbox via HTTP POST.
-4. The message envelope is forwarded byte-identical (after JSON canonicalization) — the
-   broker does NOT re-sign the message.
+1. Resolves the recipient's inbox URL per ARSIA-Core.md §6.6/§7.1.
+2. Sends the message to the recipient's inbox via HTTP POST with headers:
+
+   | Header                    | Required | Content                                            |
+   |---------------------------|----------|----------------------------------------------------|
+   | `Authorization`           | REQUIRED | The sender's `T_e2e`, forwarded verbatim (`Bearer` or `DPoP` per `authorization.proof_type`). The broker obtains NO token of its own for the recipient. |
+   | `DPoP`                    | COND.    | The forwarded `ARSIA-Recipient-DPoP` proof, when `proof_type` is `"dpop"`. |
+   | `ARSIA-Relay-Attestation` | REQUIRED | The base64url-encoded signed relay attestation (§7.4.1). |
+
+3. The message envelope is forwarded byte-identical — the broker does NOT re-sign
+   the message, and the recipient's token validation (ARSIA-Core.md §6.4) runs
+   unchanged (`sub` == `from`, `aud` == `to`).
+
+##### 2.3.2.1 Token Exchange Profile (OPTIONAL)
+
+Deployments whose Authorization Server supports OAuth 2.0 Token Exchange [RFC 8693]
+MAY additionally support a delegation profile in which the broker exchanges the
+sender's token for a delegated token carrying an `act` (actor) claim. This profile
+is OPTIONAL and MUST NOT replace the base flow above: RFC 8693 leaves the trust
+model out of scope, so a conformant deployment of this profile MUST additionally
+satisfy the issuer-trust requirements of ARSIA-Core.md §6.5, use
+proof-of-possession for the exchanged token, and configure an explicit audience
+policy. Recipients that do not implement this profile reject `act`-bearing tokens
+whose `sub` does not equal `from` — exactly as the base rules require.
 
 #### 2.3.3 Broker Response Handling
 
@@ -1006,13 +1091,14 @@ relay asynchronously, the broker returns a relay receipt to the sender:
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "{uuid}",
   "ts": "{timestamp}",
   "from": "{broker-agent-id}",
   "to": "{sender-agent-id}",
   "intent": "response",
   "correlation_id": "{original-message-id}",
+  "root_request_id": "{original-message-id}",
   "payload": {
     "type": "arsiaprotocol.broker/relay-receipt",
     "result": {
@@ -1031,13 +1117,14 @@ error, timeout), the broker returns a standard ARSIA error envelope to the sende
 
 ```json
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "{uuid}",
   "ts": "{timestamp}",
   "from": "{broker-agent-id}",
   "to": "{sender-agent-id}",
   "intent": "error",
   "correlation_id": "{original-message-id}",
+  "root_request_id": "{original-message-id}",
   "payload": {
     "type": "arsiaprotocol.broker/relay-error",
     "error": {
@@ -1204,6 +1291,18 @@ to final disposition. This section defines each state, its entry and exit condit
 associated timeouts, and audit events.
 
 ### 4.1 Lifecycle States
+
+> **Audit classification (normative).** The lifecycle events of this section
+> (`dispatch`, `dispatch_failed`, `delivery_failed`, `expired`,
+> `request_received`, `response_sent`) form the sender's/recipient's
+> **operational routing log**. They are NOT part of the canonical
+> `ArsiaAuditRecord` trail and are deliberately absent from its `event_type`
+> enum (ARSIA-State.md §7.1): the canonical trail records compliance-relevant
+> outcomes, while the routing log records transport mechanics and MAY be
+> retained under the operator's shorter operational policy. Exactly one routing
+> event type crosses into the canonical trail: `broker_relay` (§7.4.2), because
+> relay is compliance-relevant evidence. Implementations MUST NOT emit the other
+> lifecycle names as `ArsiaAuditRecord.event_type` values.
 
 The following states define the lifecycle of an ARSIA message from the perspective of
 the routing system. States are tracked locally by each party involved in message
@@ -1472,10 +1571,16 @@ declares where message processing MUST occur.
   |------|-------------------------------------------|------------------------------------|
   | `"EU"` | European Union / European Economic Area | All EU/EEA member states.          |
 
-  This list is informative, not exhaustive. Implementations MAY define additional
-  regional codes for their specific use cases. Custom regional codes SHOULD use
-  uppercase alphabetic strings of 2-4 characters to avoid conflict with ISO 3166-1
-  country codes.
+  This table is the **closed normative registry** of regional codes: the valid
+  `data_residency` value set is exactly (ISO 3166-1 alpha-2 country codes) ∪
+  (registry rows above). Implementations MUST reject unknown values with
+  `invalid_request`, and MUST NOT define custom regional codes — a custom
+  two-letter code is indistinguishable from present or future ISO assignments,
+  and longer codes fail the `^[A-Z]{2}$` value pattern used by every schema
+  (`arsia-common.schema.json`). New regional codes are added only by a revision of
+  this specification. (Draft-01 permitted custom 2-4 character codes; that rule
+  was self-contradictory — 2 characters IS the ISO space and 3-4 characters were
+  structurally invalid — and is removed.)
 
 **Effects of setting `data_residency`:**
 
@@ -1491,11 +1596,19 @@ When `data_residency` is set to a non-empty value:
 3. **Audit log storage:** Audit logs generated for this message MUST be stored within
    the declared zone. This applies to audit logs at the sender, broker, and recipient.
 
-4. **Recipient processing:** The recipient's processing infrastructure SHOULD be within
-   the declared zone. This is the recipient's responsibility and is not enforced by the
-   routing protocol. However, if the recipient is subject to the same regulatory
-   requirements (e.g., GDPR), the recipient has its own obligation to ensure compliant
-   processing.
+4. **Recipient processing:** When a message declares a residency zone, the
+   recipient's processing of that message — reception, verification, payload
+   processing, response generation, and temporary storage — MUST occur within
+   infrastructure located in the declared zone (this generalises §5.2 item 1, which
+   states the same obligation for the EU zone; Draft-01 stated SHOULD here and MUST
+   there — the MUST governs). The routing protocol cannot *verify* the recipient's
+   physical processing location — this obligation is enforced by the recipient's
+   own deployment and evidenced operationally (deployment inspection /
+   attestations), not by wire-level checks; the protocol-level artefacts are the
+   recipient's zone-stored audit records and the relay attestation chain (§7.4.1).
+   A recipient that cannot satisfy the declared zone MUST reject the message with
+   `service_unavailable` and `details: { "data_residency_violation": true,
+   "required_zone": "{zone}" }` rather than process it out of zone.
 
 ### 5.2 EU Data Residency
 
@@ -1591,9 +1704,17 @@ the required data residency zone.
    the broker's declared jurisdiction. This check is informational — TLS certificate
    geographic metadata is not a reliable indicator of physical server location.
 
+**Recipient-side verification.** In addition to the sender-side checks above, the
+final recipient independently verifies the relay: when `compliance.data_residency`
+is set, a valid relay attestation is REQUIRED and verified per §7.4.1 — making a
+sender that bypasses the mandatory broker, or a broker outside the declared zone,
+detectable at the recipient.
+
 **Trust model:**
 
-The residency verification procedure defined above is trust-based. ARSIA Protocol does
+The verification procedure defined above yields **relay evidence**: signed
+statements by an identified, registered broker about what it received and
+forwarded. It is trust-based in the sense that ARSIA Protocol does
 not define a mechanism to physically audit the location of a broker's servers. The
 sender trusts the broker's IdentityRecord declaration and the signature that
 authenticates it.
@@ -1685,13 +1806,13 @@ Example 429 response:
 ```http
 HTTP/2 429 Too Many Requests
 Retry-After: 30
-Content-Type: application/arsia+json; v=1
+Content-Type: application/arsia+json; v=2
 X-RateLimit-Limit: 120
 X-RateLimit-Remaining: 0
 X-RateLimit-Reset: 1711267260
 
 {
-  "v": "1.0",
+  "v": "2.0",
   "id": "...",
   "ts": "...",
   "from": "agent:target.service",
@@ -1975,41 +2096,94 @@ field. If forwarding the message would cause the response to arrive after `expir
 `service_unavailable` to the sender and MUST NOT forward the message. The broker SHOULD
 log this event in its audit trail with `forwarding_result: "timeout"`.
 
-### 7.4 Broker Audit Record Format
+### 7.4 Relay Attestation and Broker Audit Record
 
-The broker audit record captures the metadata of a relay operation for compliance and
-audit purposes. This record extends the `ArsiaAuditRecord` base type (to be defined in
-ARSIA-State.md §7).
+#### 7.4.1 Relay Attestation (wire object)
 
-**BrokerRelayAuditRecord:**
+The **relay attestation** is the signed object a broker attaches to every forwarded
+message (`ARSIA-Relay-Attestation` header, §1.2.2 step 7). It is **relay
+evidence**: it demonstrates that the identified broker asserts having received and
+forwarded exactly this envelope under the identified policy. It is not, by itself,
+proof of the physical location of all processing (§5.3).
 
-| Field                | Type    | Required | Description                               |
-|---------------------|---------|----------|-------------------------------------------|
-| `audit_type`        | string  | REQUIRED | Fixed value: `"broker_relay"`.            |
-| `relay_id`          | string  | REQUIRED | UUID v4, unique per relay operation.      |
-| `message_id`        | string  | REQUIRED | The `id` of the relayed message.          |
-| `from_agent`        | string  | REQUIRED | The `from` field of the relayed message.  |
-| `to_agent`          | string  | REQUIRED | The `to` field of the relayed message.    |
-| `broker_agent_id`   | string  | REQUIRED | The broker's own agent-id.                |
-| `residency_zone`    | string  | REQUIRED | The zone this relay satisfies (e.g., `"EU"`). |
-| `relayed_at`        | string  | REQUIRED | RFC 3339 timestamp with ms precision.     |
-| `payload_hash`      | string  | REQUIRED | SHA-256 hash of payload, hex-encoded.     |
-| `relay_latency_ms`  | integer | REQUIRED | Time from receipt to forward initiation, in milliseconds. |
-| `forwarding_result` | string  | REQUIRED | One of: `"success"`, `"failure"`, `"timeout"`. |
+| Field                       | Type    | Required | Description                                      |
+|-----------------------------|---------|----------|--------------------------------------------------|
+| `v`                         | string  | REQUIRED | Attestation format version. `"1.0"`.             |
+| `attestation_id`            | string  | REQUIRED | UUID v4, unique per relay operation.             |
+| `broker_id`                 | string  | REQUIRED | The broker's own agent-id.                       |
+| `message_id`                | string  | REQUIRED | The `id` of the relayed message.                 |
+| `sender`                    | string  | REQUIRED | The `from` field of the relayed message.         |
+| `recipient`                 | string  | REQUIRED | The `to` field of the relayed message.           |
+| `envelope_hash`             | string  | REQUIRED | `"sha-256:<hex>"` — SHA-256 over the RFC 8785 canonical form of the **complete signed envelope**, including `security.sig`. (Distinct from the signing input, which omits `sig` — ARSIA-Core.md §5.1.) |
+| `authorization_token_hash`  | string  | REQUIRED | The envelope's `authorization.token_hash` value (ARSIA-Core.md §4.3.9), binding the attestation to the sender's end-to-end token. |
+| `residency_zone`            | string  | REQUIRED | The zone this relay satisfies (e.g., `"EU"`).    |
+| `received_at`               | string  | REQUIRED | RFC 3339 ms-precision UTC — when the broker received the envelope. |
+| `forwarded_at`              | string  | REQUIRED | RFC 3339 ms-precision UTC — when the broker initiated forwarding. |
+| `policy_ref`                | string  | REQUIRED | Identifier or digest of the broker routing policy version applied. |
+| `issued_at`                 | string  | REQUIRED | RFC 3339 ms-precision UTC — when the attestation was signed. |
+| `valid_until`               | string  | REQUIRED | RFC 3339 ms-precision UTC — end of the **relay acceptance window**: recipients MUST NOT accept the attestation on a message delivered after this instant. This bounds acceptance during relay only — it is NOT the end of the attestation's evidentiary verifiability, and retention of the attestation is governed by the applicable compliance profile. |
+| `security`                  | object  | REQUIRED | `{ "alg": "EdDSA", "kid": "<broker kid>", "sig": "<base64url>" }` — signed with the broker's Ed25519 key, verifiable via the broker's JWKS. |
 
-**Example audit record:**
+**Signing.** The attestation is signed exactly like an ARSIA envelope
+(ARSIA-Core.md §5.1): the signing input is the RFC 8785 canonical form of the
+attestation object with `security` present and only `security.sig` removed.
+
+**Replay handling.** `attestation_id` is unique per relay; a recipient MUST treat a
+repeated `attestation_id` for a different `envelope_hash` as invalid, and MUST
+reject attestations outside `[issued_at, valid_until]` (± the applicable clock
+skew). Historical verification of stored attestations additionally requires the
+broker's key history and key status at `issued_at`, and the referenced policy
+digest (ARSIA-Identity.md §2).
+
+**Recipient verification.** When `compliance.data_residency` is set on a received
+message, the recipient MUST:
+
+1. Require the `ARSIA-Relay-Attestation` header; a message with `data_residency`
+   set that arrives without a valid attestation MUST be rejected with
+   `service_unavailable` and details `{ "data_residency_violation": true,
+   "required_zone": "{zone}" }` — this makes a sender that bypasses the mandatory
+   broker detectable (ARSIA-Core.md §13.2).
+2. Verify the attestation signature against the broker's JWKS (broker origin
+   resolved per ARSIA-Core.md §6.6).
+3. Verify that the broker is an authorised Compliance Broker for the declared zone:
+   its BrokerEntry/IdentityRecord jurisdiction satisfies the zone (§5.3) and it
+   declares `arsiaprotocol.broker.relay`.
+4. Verify `envelope_hash` against the received envelope and
+   `authorization_token_hash` against the envelope's `authorization.token_hash`
+   and the presented token.
+5. Verify `message_id`/`sender`/`recipient` match the envelope, and the acceptance
+   window per the replay rules above.
+
+Any failure in steps 2-5 MUST be rejected with `unauthorized`.
+
+The attestation object is machine-validated by
+`schemas/arsia-relay-attestation.schema.json`.
+
+#### 7.4.2 Broker Audit Record
+
+The broker's own audit record for a relay is an **`ArsiaAuditRecord`**
+(ARSIA-State.md §7.1) with `event_type: "broker_relay"` — there is no separate
+`BrokerRelayAuditRecord` type, and no `audit_type` discriminator. In addition to
+the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
+`payload_hash`, …), a `broker_relay` record carries as extension fields
+(ARSIA-State.md §7.1): `attestation_id`, `message_id`, `from_agent`, `to_agent`,
+`message_ts` (the relayed message's `ts`, required by ARSIA-Core.md §9.2),
+`residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, and
+`forwarding_result` (`"success"` | `"failure"` | `"timeout"`).
+
+**Example audit record (extension fields shown):**
 
 ```json
 {
-  "audit_type": "broker_relay",
-  "relay_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "event_type": "broker_relay",
+  "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "message_id": "550e8400-e29b-41d4-a716-446655440000",
   "from_agent": "agent:acme.billing",
   "to_agent": "agent:contoso.risk-assessor",
-  "broker_agent_id": "agent:arsialabs.broker.eu-west",
+  "message_ts": "2026-03-24T14:30:00.812Z",
   "residency_zone": "EU",
-  "relayed_at": "2026-03-24T14:30:01.234Z",
-  "payload_hash": "a3f2b8c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+  "received_at": "2026-03-24T14:30:01.187Z",
+  "forwarded_at": "2026-03-24T14:30:01.234Z",
   "relay_latency_ms": 47,
   "forwarding_result": "success"
 }
@@ -2022,12 +2196,12 @@ ARSIA-State.md §7).
   modified or deleted until the applicable retention period expires.
 - The retention period for broker relay audit records is determined by the compliance
   profile of the relayed message:
-  - `EU-AI-ACT-HIGH-RISK`: 180 days minimum.
-  - `MIFID-II`: 1827 days (5 years) minimum.
-  - `PAC-AGRICULTURE`: 1096 days (3 years) minimum.
-  - `DSA-VLOP`: 730 days (2 years) minimum.
-  - `DORA`: 1827 days (5 years) minimum.
-  - Default (no profile, GDPR-STANDARD, or EU-AI-ACT-LIMITED-RISK): 90 days minimum.
+  - `EU-AI-ACT-HIGH-RISK`: `"P6M"` (six calendar months) minimum.
+  - `MIFID-II`: `"P1827D"` (5 years) minimum.
+  - `PAC-AGRICULTURE`: `"P1096D"` (3 years) minimum.
+  - `DSA-VLOP`: `"P731D"` (2 years, leap-safe) minimum.
+  - `DORA`: `"P1827D"` (5 years) minimum.
+  - Default (no profile, GDPR-STANDARD, or EU-AI-ACT-LIMITED-RISK): `"P90D"` minimum.
 - Records MUST survive broker restarts and infrastructure failures. Implementations
   MUST use durable storage (e.g., PostgreSQL, append-only files on replicated storage).
 
@@ -2049,7 +2223,7 @@ tests at the applicable conformance level.
 | **conformance**   | Core                                                           |
 | **preconditions** | Agent A and Agent B are running. Agent B's discovery endpoint is accessible. No `compliance.data_residency` field is set in the message. Agent A has a valid access token for Agent B. |
 | **action**        | Agent A discovers Agent B via `GET {B-host}/.well-known/arsia`. Agent A extracts Agent B's inbox URL. Agent A signs a message with `intent: "request"` and sends it to Agent B's inbox via `POST /v1/arsia/inbox`. |
-| **expected**      | HTTP 200 OK. Response body is a valid ARSIA response envelope with `intent: "response"`. `correlation_id` equals the request's `id`. `Content-Type` is `application/arsia+json; v=1`. |
+| **expected**      | HTTP 200 OK. Response body is a valid ARSIA response envelope with `intent: "response"`. `correlation_id` equals the request's `id`. `Content-Type` is `application/arsia+json; v=2`. |
 
 ### ROUTING-02: Brokered routing triggered by data_residency
 
@@ -2161,7 +2335,7 @@ tests at the applicable conformance level.
 
 ### 9.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-02.
   §3 (Agent Identifier Format), §4 (Message Envelope), §4.3.6 (Compliance Metadata),
   §5 (Message Security), §5.1 (Digital Signatures), §5.2 (Signature Verification),
   §6 (Authorization), §6.2 (Token Request), §6.3 (Token Presentation),
@@ -2176,10 +2350,10 @@ tests at the applicable conformance level.
   §11.2 (Standard Error Codes), §11.3 (Retry Policy),
   §12 (Conformance Levels), §12.1 (Core Conformance).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-02.
   §1.2 (Agent Identity Record), §1.3 (Well-Known Identity Endpoint).
 
-- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.
+- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-02.
   §7 (Audit Trail).
 
 - **RFC 2119** — Bradner, S., "Key words for use in RFCs to Indicate Requirement

@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/compliance-field/v1.0.json",
-  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-compliance-field.schema.json",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Draft-02: additionalProperties=false — schemas validate exactly one minor version (Core §4.1.1); wire tolerance for future minors is a runtime behaviour, not a schema property.",
   "title": "ARSIA Compliance Field",
-  "description": "Compliance envelope field for ARSIA Protocol messages. Declares the regulatory requirements applicable to the processing of a specific message, including the compliance profile, data residency zone, audit obligations, human oversight mode, and GDPR processing basis. additionalProperties is enabled by design (ARSIA-Core.md \u00a71.2) to allow compliance profiles to define profile-specific fields without schema changes; implementations should validate known field names at the application layer to detect typos.",
+  "description": "Compliance envelope field for ARSIA Protocol messages. Declares the regulatory requirements applicable to the processing of a specific message, including the compliance profile, data residency zone, audit obligations, human oversight mode, and GDPR processing basis. additionalProperties is enabled by design (ARSIA-Core.md §4.1.1 (version handling model: unknown fields tolerated at the wire layer)) to allow compliance profiles to define profile-specific fields without schema changes; implementations should validate known field names at the application layer to detect typos.",
   "type": "object",
   "properties": {
     "profile": {
@@ -25,18 +25,13 @@
           "$ref": "arsia-common.schema.json#/$defs/iso-3166-1-alpha-2"
         },
         {
-          "description": "Geographic zone where message processing and storage MUST occur. ISO 3166-1 alpha-2 country code or supranational identifier. When set, triggers brokered routing (ARSIA-Routing.md \u00a71.2.2)."
+          "description": "Geographic zone where message processing and storage MUST occur. ISO 3166-1 alpha-2 country code or supranational identifier. When set, triggers brokered routing (ARSIA-Routing.md §1.2.2)."
         }
       ]
     },
     "audit_required": {
       "type": "boolean",
-      "description": "Whether this message MUST generate an ArsiaAuditRecord. Default: per profile. When pii_involved is true, the effective value is always true regardless of this field's declared value (Core \u00a74.3.8, Rule 7)."
-    },
-    "retention_days": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "Number of days the audit record for this message must be retained. Overrides profile default. MUST NOT be less than the profile's minimum."
+      "description": "Whether this message MUST generate an ArsiaAuditRecord. Default: per profile. When pii_involved is true, the effective value is always true regardless of this field's declared value (Core §4.3.8, Rule 7)."
     },
     "human_oversight": {
       "type": "string",
@@ -50,7 +45,7 @@
     },
     "explainability_required": {
       "type": "boolean",
-      "description": "Whether the response MUST include a payload.explanation object (ARSIA-Actions.md \u00a75.2). Default: per profile."
+      "description": "Whether the response MUST include a payload.explanation object (ARSIA-Actions.md §5.2). Default: per profile."
     },
     "pii_involved": {
       "type": "boolean",
@@ -84,10 +79,20 @@
       "enum": [
         "minimal-risk",
         "limited-risk",
-        "high-risk",
-        "unacceptable-risk"
+        "high-risk"
       ],
-      "description": "Per-message EU AI Act classification. MAY differ from agent-level classification (ARSIA-Identity.md \u00a71.2) but MUST NOT exceed it."
+      "description": "Per-message EU AI Act classification. MAY differ from agent-level classification (ARSIA-Identity.md §1.2) but MUST NOT exceed it."
+    },
+    "retention": {
+      "type": "string",
+      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "description": "Minimum retention for this message's audit record, as an ISO 8601 calendar duration (Core §4.3.6.4). Replaces Draft-01 retention_days (rejected by this schema). Floor comparison against the profile retention_minimum is calendar arithmetic enforced at runtime (Core §4.3.8 Rule 4)."
+    },
+    "clock_skew_seconds": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 300,
+      "description": "Informative per-message echo of the profile's clock-skew tolerance. The PROFILE value governs (Core §8.3); a per-message value never overrides it and MUST NOT differ from the resolved profile's value."
     }
   },
   "allOf": [
@@ -107,102 +112,9 @@
           "legal_basis"
         ]
       }
-    },
-    {
-      "if": {
-        "properties": {
-          "ai_system_classification": {
-            "const": "high-risk"
-          }
-        },
-        "required": [
-          "ai_system_classification"
-        ]
-      },
-      "then": {
-        "required": [
-          "human_oversight"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "MIFID-II"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "retention_days": {
-            "minimum": 1827
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "PAC-AGRICULTURE"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "retention_days": {
-            "minimum": 1096
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "DSA-VLOP"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "retention_days": {
-            "minimum": 730
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "DORA"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "retention_days": {
-            "minimum": 1827
-          }
-        }
-      }
     }
   ],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "examples": [
     {
       "profile": "GDPR-STANDARD",
@@ -211,7 +123,7 @@
     {
       "profile": "EU-AI-ACT-HIGH-RISK",
       "audit_required": true,
-      "retention_days": 180,
+      "retention": "P6M",
       "human_oversight": "required_before_execution",
       "explainability_required": true,
       "ai_system_classification": "high-risk",
@@ -220,7 +132,7 @@
     {
       "profile": "MIFID-II",
       "audit_required": true,
-      "retention_days": 1827,
+      "retention": "P1827D",
       "human_oversight": "required_before_execution",
       "explainability_required": true,
       "pii_involved": true,
@@ -231,7 +143,7 @@
     {
       "profile": "EU-AI-ACT-LIMITED-RISK",
       "audit_required": true,
-      "retention_days": 90,
+      "retention": "P90D",
       "human_oversight": "not_required",
       "explainability_required": true,
       "pii_involved": false
@@ -239,7 +151,7 @@
     {
       "profile": "PAC-AGRICULTURE",
       "audit_required": true,
-      "retention_days": 1096,
+      "retention": "P1096D",
       "human_oversight": "required_post_execution",
       "explainability_required": true,
       "pii_involved": false,
@@ -248,7 +160,7 @@
     {
       "profile": "DSA-VLOP",
       "audit_required": true,
-      "retention_days": 730,
+      "retention": "P731D",
       "human_oversight": "required_within_24h",
       "explainability_required": true,
       "pii_involved": true,
@@ -257,7 +169,7 @@
     {
       "profile": "DORA",
       "audit_required": true,
-      "retention_days": 1827,
+      "retention": "P1827D",
       "human_oversight": "required_within_24h",
       "explainability_required": false,
       "pii_involved": false,

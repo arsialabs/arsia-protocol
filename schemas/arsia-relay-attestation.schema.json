@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-relay-attestation.schema.json",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "title": "ARSIA Relay Attestation",
+  "description": "Signed relay evidence attached by a Compliance Broker to every forwarded message (ARSIA-Routing.md §7.4.1). Attests that the identified broker received and forwarded exactly this envelope under the identified policy; not proof of physical processing location. Signing input: RFC 8785 canonical form with only security.sig removed.",
+  "type": "object",
+  "required": [
+    "v",
+    "attestation_id",
+    "broker_id",
+    "message_id",
+    "sender",
+    "recipient",
+    "envelope_hash",
+    "authorization_token_hash",
+    "residency_zone",
+    "received_at",
+    "forwarded_at",
+    "policy_ref",
+    "issued_at",
+    "valid_until",
+    "security"
+  ],
+  "properties": {
+    "v": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Attestation format version"
+    },
+    "attestation_id": {
+      "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+    },
+    "broker_id": {
+      "$ref": "arsia-common.schema.json#/$defs/agent-id"
+    },
+    "message_id": {
+      "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+    },
+    "sender": {
+      "$ref": "arsia-common.schema.json#/$defs/agent-id"
+    },
+    "recipient": {
+      "$ref": "arsia-common.schema.json#/$defs/agent-id"
+    },
+    "envelope_hash": {
+      "type": "string",
+      "pattern": "^sha-256:[0-9a-f]{64}$",
+      "description": "SHA-256 over JCS(complete signed envelope, including security.sig)"
+    },
+    "authorization_token_hash": {
+      "type": "string",
+      "pattern": "^sha-256:[0-9a-f]{64}$",
+      "description": "Equals the envelope's authorization.token_hash (Core §4.3.9)"
+    },
+    "residency_zone": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "Zone this relay satisfies — an ISO 3166-1 alpha-2 country code or a registered supranational identifier from the closed registry of ARSIA-Routing.md §5.1 (currently 'EU'); membership in the registry is a runtime rule"
+    },
+    "received_at": {
+      "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+    },
+    "forwarded_at": {
+      "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+    },
+    "policy_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier or digest of the broker routing-policy version applied"
+    },
+    "issued_at": {
+      "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+    },
+    "valid_until": {
+      "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc",
+      "description": "End of the relay acceptance window; not the end of evidentiary verifiability"
+    },
+    "security": {
+      "type": "object",
+      "required": [
+        "alg",
+        "kid",
+        "sig"
+      ],
+      "properties": {
+        "alg": {
+          "type": "string",
+          "const": "EdDSA"
+        },
+        "kid": {
+          "type": "string",
+          "pattern": "^agent:[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(\\/[a-zA-Z0-9][a-zA-Z0-9_-]*)?#[a-zA-Z0-9][a-zA-Z0-9_-]*$"
+        },
+        "sig": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/compliance-profiles/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-compliance-profiles.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Compliance Profiles",
   "description": "Schema for the ARSIA Protocol compliance profiles registry. Validates the structure of arsia-compliance-profiles.json.",
@@ -28,6 +28,9 @@
         "$ref": "#/$defs/profile"
       },
       "minProperties": 1
+    },
+    "$comment": {
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -67,7 +70,8 @@
           "type": "object",
           "required": [
             "audit_required",
-            "retention_days",
+            "retention_minimum",
+            "retention_basis",
             "human_oversight",
             "explainability_required",
             "pii_involved",
@@ -76,13 +80,6 @@
           "properties": {
             "audit_required": {
               "type": "boolean"
-            },
-            "retention_days": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 1
             },
             "human_oversight": {
               "type": "string",
@@ -120,7 +117,37 @@
               "type": "integer",
               "minimum": 10,
               "maximum": 300,
-              "description": "Clock skew tolerance in seconds for timestamp validation. Overrides the Core \u00a78.3 default of 300 seconds. MUST NOT exceed 300 \u2014 profiles can only tighten the tolerance. When absent, the 300-second default applies. Per ARSIA-Core.md \u00a78.3."
+              "description": "Clock skew tolerance in seconds for timestamp validation. Overrides the Core §8.3 default of 300 seconds. MUST NOT exceed 300 — profiles can only tighten the tolerance. When absent, the 300-second default applies. Per ARSIA-Core.md §8.3."
+            },
+            "retention_minimum": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+              "description": "Profile retention minimum as an ISO 8601 calendar duration (ARSIA-Core.md §4.3.6.4), or null when the profile defines no floor."
+            },
+            "retention_basis": {
+              "type": "string",
+              "enum": [
+                "regulatory",
+                "profile_floor",
+                "technical_default",
+                "conservative_policy"
+              ],
+              "description": "Nature of the retention minimum: a mapped legal obligation, an ARSIA profile floor, a technical default, or a conservative policy choice."
+            },
+            "retention_reference": {
+              "type": "string",
+              "description": "Regulatory reference for the retention minimum (e.g. 'EU-AI-ACT:26(6)')."
+            },
+            "retention_interpretation": {
+              "type": "string",
+              "enum": [
+                "calendar-duration",
+                "day-count"
+              ],
+              "description": "Whether the underlying obligation is a calendar period or a day count."
             }
           },
           "additionalProperties": true

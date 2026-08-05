@@ -37,7 +37,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-broker-entry.schema.json](arsia-broker-entry.schema.json) | Routing §7.2 | Compliance broker entry |
 | [arsia-broker-discovery-request.schema.json](arsia-broker-discovery-request.schema.json) | Routing §7.2 | Broker discovery query parameters |
 | [arsia-breach-notification.schema.json](arsia-breach-notification.schema.json) | State §5.7 | GDPR breach notification payload (Art. 33/34) |
-| [arsia-broker-relay-audit.schema.json](arsia-broker-relay-audit.schema.json) | Routing §7.4 | Broker relay audit record |
+| [arsia-relay-attestation.schema.json](arsia-relay-attestation.schema.json) | Routing §7.4.1 | Signed relay attestation (relay evidence) |
 | [arsia-test-vectors.meta.json](arsia-test-vectors.meta.json) | Meta | Meta-schema validating the structure of arsia-test-vectors.json |
 
 ## Conventions

@@ -489,7 +489,7 @@ vectors = [
             {"transaction_id": "TXN-2026-001", "amount": 50000},
             "agent:acme.billing", "agent",
             pii="pseudonymised", version=1,
-            retention_days=1825, data_residency="EU",
+            retention_days=1827, data_residency="EU",
         ),
         "expected_error": None, "req_ids": []
     },

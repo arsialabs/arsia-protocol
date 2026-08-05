@@ -15,7 +15,7 @@
 | ROUTE-§1.1-08 | 1.1 | MUST_NOT | external | behavioural_negative | Compliance Brokers MUST NOT modify the message envelope contents | — | ITV-490 |
 | ROUTE-§1.1-09 | 1.1 | MUST | external | behavioural_positive | The sender's digital signature MUST remain valid end-to-end through broker relay | arsia-message | ITV-490 |
 | ROUTE-§1.1-10 | 1.1 | MUST_NOT | external | behavioural_negative | Compliance Brokers MUST NOT read or log message payload contents | — | — |
-| ROUTE-§1.1-11 | 1.1 | MAY | external | informational | Brokers MAY record the payload_hash for audit purposes | arsia-broker-relay-audit | — |
+| ROUTE-§1.1-11 | 1.1 | MAY | external | informational | Brokers MAY record the payload_hash for audit purposes | arsia-audit-record | — |
 | ROUTE-§1.2.1-01 | 1.2.1 | MUST | sdk_enabled | behavioural_positive | The access token aud claim MUST equal the recipient's agent-id | arsia-jwt-claims | — |
 | ROUTE-§1.2.1-02 | 1.2.1 | MUST | sdk_enabled | behavioural_positive | The access token sub claim MUST equal the sender's agent-id | arsia-jwt-claims | — |
 | ROUTE-§1.2.1-03 | 1.2.1 | MUST | sdk_enabled | behavioural_positive | The access token scope claim MUST include all capabilities listed in the message | arsia-jwt-claims | — |
@@ -111,7 +111,7 @@
 | ROUTE-§2.2.2-09 | 2.2.2 | MUST_NOT | deployment | behavioural_negative | Agents MUST NOT send binary WebSocket frames in v1.0 | — | — |
 | ROUTE-§2.2.2-10 | 2.2.2 | SHOULD | deployment | behavioural_positive | Server SHOULD close connection with code 1003 upon receiving a binary frame | — | — |
 | ROUTE-§2.2.2-11 | 2.2.2 | MUST | deployment | behavioural_positive | Server MUST close connection with code 4003 when a frame exceeds max_message_bytes | — | — |
-| ROUTE-§2.2.2-12 | 2.2.2 | SHOULD | deployment | behavioural_positive | Client SHOULD send a ping heartbeat frame every 30 seconds | arsia-websocket-frame | ITV-142 |
+| ROUTE-§2.2.2-12 | 2.2.2 | MUST | deployment | behavioural_positive | Client MUST send a ping heartbeat frame every 30 seconds (aligned to Core §8.2 — the MUST governs) | arsia-websocket-frame | ITV-142 |
 | ROUTE-§2.2.2-13 | 2.2.2 | MUST | deployment | behavioural_positive | Server MUST respond with pong heartbeat within 5 seconds of receiving ping | arsia-websocket-frame | ITV-143 |
 | ROUTE-§2.2.2-14 | 2.2.2 | SHOULD | deployment | behavioural_positive | Client SHOULD treat connection as dead if no pong arrives within 10 seconds | — | — |
 | ROUTE-§2.2.2-15 | 2.2.2 | MAY | deployment | informational | Server MAY send unsolicited ping heartbeat requests to connected clients | arsia-websocket-frame | — |
@@ -132,7 +132,7 @@
 | ROUTE-§2.3.1-01 | 2.3.1 | MUST | sdk | behavioural_positive | The envelope to field MUST contain the final recipient's agent-id, not the broker's | arsia-message | — |
 | ROUTE-§2.3.1-02 | 2.3.1 | MUST | sdk | behavioural_positive | Authorization header MUST contain a token for the broker's relay capability | arsia-jwt-claims | — |
 | ROUTE-§2.3.3-01 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST forward the recipient's synchronous response to sender without alteration | — | ITV-81, ITV-497 |
-| ROUTE-§2.3.4-01 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST forward the message to recipient within 10 seconds of receipt | arsia-broker-relay-audit | RTV-01 |
+| ROUTE-§2.3.4-01 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST forward the message to recipient within 10 seconds of receipt | arsia-audit-record | RTV-01 |
 | ROUTE-§2.3.4-02 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST respect the message's expires_at field during relay | arsia-message | — |
 | ROUTE-§2.3.4-03 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST abandon relay and return service_unavailable if expires_at minus 5 seconds is exceeded | arsia-message | — |
 | ROUTE-§3.1-01 | 3.1 | MAY | sdk_enabled | informational | Under at-most-once delivery, a dropped connection MAY result in ambiguous processing status | — | — |
@@ -200,7 +200,7 @@
 | ROUTE-§7.1-10 | 7.1 | MUST | external | behavioural_positive | Broker MUST expose a standard discovery endpoint at /.well-known/arsia | arsia-discovery-response | — |
 | ROUTE-§7.1-11 | 7.1 | MUST | external | behavioural_positive | Broker discovery response MUST include arsiaprotocol.broker.relay in capabilities_supported | arsia-discovery-response | — |
 | ROUTE-§7.1-12 | 7.1 | MUST | external | behavioural_positive | Broker MUST expose public keys at /.well-known/arsia/jwks.json | — | — |
-| ROUTE-§7.1-13 | 7.1 | MUST | external | behavioural_positive | Broker MUST generate and store audit records for every relayed message | arsia-broker-relay-audit | RTV-02, ITV-43 |
+| ROUTE-§7.1-13 | 7.1 | MUST | external | behavioural_positive | Broker MUST generate and store audit records for every relayed message | arsia-audit-record | RTV-02, ITV-43 |
 | ROUTE-§7.2-01 | 7.2 | MAY | deployment | informational | Broker discovery endpoint MAY be hosted by the recipient, a registry service, or the sender configuration | — | — |
 | ROUTE-§7.2-02 | 7.2 | SHOULD | sdk_enabled | behavioural_positive | Broker discovery response SHOULD include Cache-Control and ETag caching headers | — | — |
 | ROUTE-§7.2-03 | 7.2 | SHOULD | deployment | behavioural_positive | Senders SHOULD cache broker discovery responses for the Cache-Control max-age duration | — | — |
@@ -235,34 +235,78 @@
 | ROUTE-§7.3-16 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT modify the payload during relay | — | ITV-515 |
 | ROUTE-§7.3-17 | 7.3 | MUST | external | behavioural_positive | Sender original digital signature MUST remain valid and verifiable by the recipient after broker relay | arsia-message | ITV-513 |
 | ROUTE-§7.3-18 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT read or log payload contents | — | — |
-| ROUTE-§7.3-19 | 7.3 | MAY | external | informational | Broker MAY compute and log a SHA-256 payload hash for audit purposes | arsia-broker-relay-audit | — |
+| ROUTE-§7.3-19 | 7.3 | MAY | external | informational | Broker MAY compute and log a SHA-256 payload hash for audit purposes | arsia-audit-record | — |
 | ROUTE-§7.3-20 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT store, inspect, index, or transmit payload contents to any party other than the recipient | — | — |
-| ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox using direct routing | arsia-broker-relay-audit | RTV-01 |
+| ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox using direct routing | arsia-audit-record | RTV-01 |
 | ROUTE-§7.3-22 | 7.3 | MUST | external | behavioural_positive | Broker MUST return the recipient response to the sender unmodified | — | ITV-516 |
-| ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every relayed message, including errors | arsia-broker-relay-audit, arsia-audit-record | RTV-02 |
-| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain relay_id, message_id, from_agent, to_agent, broker_agent_id, zone, relayed_at, and payload_hash | arsia-broker-relay-audit | RTV-02 |
+| ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every relayed message, including errors | arsia-audit-record, arsia-audit-record | RTV-02 |
+| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain relay_id, message_id, from_agent, to_agent, broker_agent_id, zone, relayed_at, and payload_hash | arsia-audit-record | RTV-02 |
 | ROUTE-§7.3-25 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT cache or store message envelopes beyond the audit record | — | — |
 | ROUTE-§7.3-26 | 7.3 | MUST | external | behavioural_positive | Broker MUST discard the message envelope from memory and temporary storage after forwarding | — | — |
 | ROUTE-§7.3-27 | 7.3 | MUST | external | behavioural_positive | Broker MUST respect the message expires_at field during relay | arsia-message | — |
 | ROUTE-§7.3-28 | 7.3 | MUST | external | behavioural_positive | Broker MUST return service_unavailable if forwarding would exceed expires_at minus 5 seconds | arsia-message | ITV-517 |
 | ROUTE-§7.3-29 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT forward a message when the expiration safety margin would be exceeded | — | ITV-517 |
-| ROUTE-§7.3-30 | 7.3 | SHOULD | external | behavioural_positive | Broker SHOULD log expiration-related relay failures with forwarding_result "timeout" in the audit trail | arsia-broker-relay-audit | ITV-147 |
-| ROUTE-§7.4-01 | 7.4 | MUST | deployment | behavioural_positive | Broker relay audit records MUST be stored within the declared data residency zone | arsia-broker-relay-audit | RTV-02 |
+| ROUTE-§7.3-30 | 7.3 | SHOULD | external | behavioural_positive | Broker SHOULD log expiration-related relay failures with forwarding_result "timeout" in the audit trail | arsia-audit-record | ITV-147 |
+| ROUTE-§7.4-01 | 7.4 | MUST | deployment | behavioural_positive | Broker relay audit records MUST be stored within the declared data residency zone | arsia-audit-record | RTV-02 |
 | ROUTE-§7.4-02 | 7.4 | MUST | deployment | behavioural_positive | Broker relay audit records MUST be stored in append-only manner | — | — |
 | ROUTE-§7.4-03 | 7.4 | MUST_NOT | deployment | behavioural_negative | Broker audit records MUST NOT be modified or deleted until the applicable retention period expires | — | — |
 | ROUTE-§7.4-04 | 7.4 | MUST | deployment | behavioural_positive | Broker audit records MUST survive broker restarts and infrastructure failures | — | — |
 | ROUTE-§7.4-05 | 7.4 | MUST | deployment | behavioural_positive | Broker audit storage MUST use durable storage such as PostgreSQL or append-only replicated files | — | — |
-| ROUTE-§7.4-06 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.audit_type (string) is REQUIRED — fixed value "broker_relay" | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-07 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.relay_id (string) is REQUIRED — UUID v4, unique per relay operation | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-08 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.message_id (string) is REQUIRED — the id of the relayed message | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-09 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.from_agent (string) is REQUIRED — the from field of the relayed message | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-10 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.to_agent (string) is REQUIRED — the to field of the relayed message | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-11 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.broker_agent_id (string) is REQUIRED — the broker own agent-id | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-12 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.residency_zone (string) is REQUIRED — the zone this relay satisfies | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-13 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.relayed_at (string) is REQUIRED — RFC 3339 timestamp with millisecond precision | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-14 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.payload_hash (string) is REQUIRED — SHA-256 hash of payload, hex-encoded | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-15 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.relay_latency_ms (integer) is REQUIRED — milliseconds from receipt to forward initiation | arsia-broker-relay-audit | ITV-43 |
-| ROUTE-§7.4-16 | 7.4 | REQUIRED | external | structural | BrokerRelayAuditRecord.forwarding_result (string) is REQUIRED — one of "success", "failure", "timeout" | arsia-broker-relay-audit | ITV-43, ITV-44, ITV-146, ITV-147 |
+| ROUTE-§7.4-06 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord event_type (string) is REQUIRED — fixed value "broker_relay" | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-07 | 7.4 | REQUIRED | external | structural | broker_relay record attestation_id (string) is REQUIRED — UUID v4, unique per relay operation | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-08 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).message_id (string) is REQUIRED — the id of the relayed message | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-09 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).from_agent (string) is REQUIRED — the from field of the relayed message | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-10 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).to_agent (string) is REQUIRED — the to field of the relayed message | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-11 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).broker_agent_id (string) is REQUIRED — the broker own agent-id | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-12 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).residency_zone (string) is REQUIRED — the zone this relay satisfies | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-13 | 7.4 | REQUIRED | external | structural | broker_relay record forwarded_at (string) is REQUIRED — RFC 3339 timestamp with millisecond precision | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-14 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).payload_hash (string) is REQUIRED — SHA-256 hash of payload, hex-encoded | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-15 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).relay_latency_ms (integer) is REQUIRED — milliseconds from receipt to forward initiation | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-16 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).forwarding_result (string) is REQUIRED — one of "success", "failure", "timeout" | arsia-audit-record | ITV-43, ITV-44, ITV-146, ITV-147 |
 | ROUTE-§8-01 | 8 | MUST | external | procedural | Conformant implementations MUST pass all routing conformance tests at the applicable level | — | — |
 | ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 |
 | ROUTE-§8-03 | 8 | MUST | external | procedural | Conformance test framework MUST synchronise clocks between agents for timing-sensitive tests | — | — |
+
+---
+
+## Coverage Gaps
+
+Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproducible via scripts/check_consistency.py companion tooling)
+
+### Summary
+
+| Metric | Count |
+|--------|------:|
+| Total requirements | 262 |
+| Schema ≠ — | 107 |
+| Vector ≠ — | 78 |
+| Both ≠ — | 50 |
+| Both = — (gaps) | 127 |
+
+### Per-section breakdown
+
+| § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
+|---|-------|-----------|-----------|---------|---------|
+| 1 | 50 | 21 | 17 | 9 | 21 |
+| 2 | 81 | 20 | 6 | 5 | 60 |
+| 3 | 5 | 2 | 0 | 0 | 3 |
+| 4 | 8 | 4 | 3 | 1 | 2 |
+| 5 | 24 | 11 | 3 | 2 | 12 |
+| 6 | 16 | 6 | 2 | 0 | 8 |
+| 7 | 75 | 43 | 46 | 33 | 19 |
+| 8 | 3 | 0 | 1 | 0 | 2 |
+
+## Draft-02 Delta (normative changes traced)
+
+| Change | Anchor | Schema | Vectors |
+|---|---|---|---|
+| Dual authorization: broker.use (sender) vs broker.relay (broker); T_e2e forwarded verbatim | §1.2.2, §2.3.1-2.3.2 | — | ITV-571/572 |
+| NEW relay attestation (relay evidence) + recipient obligations | §7.4.1 | arsia-relay-attestation | ITV-569/570, INV-31/32 |
+| Broker audit = ArsiaAuditRecord event_type broker_relay (legacy record retired) | §7.4.2 | audit-record branch | 9 converted (ITV-43/44 …) |
+| Token Exchange (RFC 8693) OPTIONAL profile | §2.3.2.1 | — | — |
+| §5.1 item 4: recipient in-zone processing MUST + reject-when-unable | §5.1 | — | integration |
+| residency codes: closed registry (ISO + EU); custom codes removed | §5.1 | arsia-common | — |
+| lifecycle events = operational log (not canonical audit) | §4.1 | — | — |
+| approval_decision never a sync inbox response | §2.1.2 | — | — |
+| at-least-once = retries; idempotency = dedup | §1, §3 | — | — |
+| DSA-VLOP storage floor P731D | §7.4 | catalog | consistency check |

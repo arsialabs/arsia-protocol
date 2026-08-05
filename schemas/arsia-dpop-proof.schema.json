@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://arsiaprotocol.org/schemas/dpop-proof/v1.0.json",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-dpop-proof.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA DPoP Proof JWT Payload",
-  "description": "Schema for the decoded payload of a DPoP proof JWT per ARSIA-Core.md \u00a76.3 and RFC 9449 \u00a74. The header schema is in $defs/dpop-header.",
+  "description": "Schema for the decoded payload of a DPoP proof JWT per ARSIA-Core.md §6.3 and RFC 9449 §4. The header schema is in $defs/dpop-header.",
   "type": "object",
   "properties": {
     "jti": {
@@ -12,30 +12,30 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "Unique identifier for this DPoP proof (UUID v4). MUST NOT be reused (replay protection). ARSIA-Core.md \u00a76.3."
+          "description": "Unique identifier for this DPoP proof (UUID v4). MUST NOT be reused (replay protection). ARSIA-Core.md §6.3."
         }
       ]
     },
     "htm": {
       "type": "string",
       "const": "POST",
-      "description": "HTTP method of the request. ARSIA requires POST for all inbox deliveries. ARSIA-Core.md \u00a76.3, \u00a78.1."
+      "description": "HTTP method of the request. ARSIA requires POST for all inbox deliveries. ARSIA-Core.md §6.3, §8.1."
     },
     "htu": {
       "type": "string",
       "format": "uri",
-      "description": "HTTP URI of the target inbox endpoint. MUST match the request URL. ARSIA-Core.md \u00a76.3."
+      "description": "HTTP URI of the target inbox endpoint. MUST match the request URL. ARSIA-Core.md §6.3."
     },
     "iat": {
       "type": "number",
-      "description": "Issued-at time as NumericDate. MUST be within \u00b1300 seconds of the receiver's clock. ARSIA-Core.md \u00a76.3."
+      "description": "Issued-at time as NumericDate. MUST be within ±300 seconds of the receiver's clock. ARSIA-Core.md §6.3."
     },
     "ath": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]+$",
       "minLength": 43,
       "maxLength": 43,
-      "description": "Base64url-encoded SHA-256 hash of the access token. Binds the DPoP proof to a specific access token. ARSIA-Core.md \u00a76.3, RFC 9449 \u00a74.2."
+      "description": "Base64url-encoded SHA-256 hash of the access token. Binds the DPoP proof to a specific access token. ARSIA-Core.md §6.3, RFC 9449 §4.2."
     }
   },
   "required": [
@@ -50,17 +50,17 @@
     "dpop-header": {
       "type": "object",
       "title": "ARSIA DPoP Proof JWT Header",
-      "description": "JOSE header for ARSIA DPoP proof JWTs. ARSIA-Core.md \u00a76.3.",
+      "description": "JOSE header for ARSIA DPoP proof JWTs. ARSIA-Core.md §6.3.",
       "properties": {
         "typ": {
           "type": "string",
           "const": "dpop+jwt",
-          "description": "Token type. MUST be 'dpop+jwt' per RFC 9449 \u00a74.2."
+          "description": "Token type. MUST be 'dpop+jwt' per RFC 9449 §4.2."
         },
         "alg": {
           "type": "string",
           "const": "EdDSA",
-          "description": "Signing algorithm. ARSIA requires EdDSA (Ed25519). ARSIA-Core.md \u00a75.1, \u00a76.3."
+          "description": "Signing algorithm. ARSIA requires EdDSA (Ed25519). ARSIA-Core.md §5.1, §6.3."
         },
         "jwk": {
           "type": "object",
