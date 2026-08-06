@@ -922,20 +922,46 @@ vectors = [
     },
 ]
 
-assert len(vectors) == 63, f"Expected 63 vectors, got {len(vectors)}"
+def main() -> int:
+    import argparse
 
-with open(VECTORS_FILE) as f:
-    data = json.load(f)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--apply", action="store_true",
+                    help="append the 63 vectors to the corpus (default: dry run)")
+    args = ap.parse_args()
 
-last_id = data["vectors"][-1]["id"]
-print(f"Last existing vector: {last_id}")
-print(f"Appending {len(vectors)} new vectors (ITV-215 through ITV-277)")
+    assert len(vectors) == 63, f"Expected 63 vectors, got {len(vectors)}"
 
-data["vectors"].extend(vectors)
+    with open(VECTORS_FILE) as f:
+        data = json.load(f)
 
-with open(VECTORS_FILE, "w") as f:
-    json.dump(data, f, indent=2, ensure_ascii=False)
-    f.write("\n")
+    existing = {v["id"] for v in data["vectors"]}
+    dupes = [v["id"] for v in vectors if v["id"] in existing]
+    if dupes:
+        print(f"REFUSING: {len(dupes)} vector IDs already in the corpus "
+              f"(e.g. {dupes[0]}) — this batch was already applied")
+        return 1
 
-print(f"Total vectors in file: {len(data['vectors'])}")
-print("Done.")
+    last_id = data["vectors"][-1]["id"]
+    print(f"Last existing vector: {last_id}")
+    print(f"Appending {len(vectors)} new vectors (ITV-215 through ITV-277)")
+
+    if not args.apply:
+        print("Dry run (no --apply): corpus not modified")
+        return 0
+
+    data["vectors"].extend(vectors)
+
+    with open(VECTORS_FILE, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+    print(f"Total vectors in file: {len(data['vectors'])}")
+    print("Done.")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())

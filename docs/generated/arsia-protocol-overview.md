@@ -7,7 +7,7 @@
 |---|---|
 | **Product** | Arsia Protocol (normative specification and conformance artifacts) |
 | **Repository** | `arsialabs/arsia-protocol` |
-| **Commit** | `e557f83` (branch `draft-02`; working tree carries 78 uncommitted paths, see Discrepancies) |
+| **Commit** | `e299278` (branch `draft-02`; working tree carries 7 uncommitted paths of post-release hardening, see Discrepancies) |
 | **Extraction date** | 2026-08-05 |
 
 Generated from repository state. Do not edit by hand; regenerate instead.
@@ -126,20 +126,21 @@ parties, so it appears here rather than among the sequence diagrams below.
 
 ### Enforces its own internal consistency
 
-Eight Python tools in [scripts/](../../scripts/) (2,689 lines). Six are read-only verifiers; two are
+Eight Python tools in [scripts/](../../scripts/) (2,721 lines). Six are read-only verifiers; two are
 generators. Observed output from running each verifier at extraction time:
 
 | Tool | Lines | What it proves | Observed result |
 |---|---|---|---|
 | `validate_vectors.py` | 530 | Every vector validates against its schema, error paths match, signatures verify | `TOTAL 418 valid / 137 invalid / 649 pass / 0 fail`; `Error-path mismatches: 0`; `Crypto: 83/83 passed` |
-| `check_consistency.py` | 342 | 90 repository invariants: schema meta-validity, `$id` scheme, strict `$ref` resolution, profile catalog validity, constant anti-regression, prose to schema enum parity, requirements matrix drift | `ALL CHECKS PASSED` (90 checks) |
+| `check_consistency.py` | 348 | 91 repository invariants: schema meta-validity, `$id` scheme, strict `$ref` resolution, profile catalog validity, vector-ID uniqueness, constant anti-regression, prose to schema enum parity, requirements matrix drift | `ALL CHECKS PASSED` (91 checks) |
 | `runtime_harness.py` | 366 | R1 to R13, the deterministic algorithms JSON Schema cannot express | `ALL RUNTIME RULES PASSED` (73 assertions) |
 | `extract_examples.py` | 100 | Every fenced JSON block in the specifications parses; envelope-shaped ones validate | `blocks=76 full=71 fragments=5 envelope-validated=9 failures=0` |
 | `check_links.py` | 122 | Every section cross-reference resolves, in specifications and in schema descriptions | `explicit=501 bare=809 external=19; artifact refs: 391; dangling=0` |
 | `rtm_counts.py` | 54 | Reproducible requirement counts from the traceability matrices | `TOTAL rows: 1903`; `MUST + MUST_NOT total: 1109` |
 
 The two generators are `regen_v2.py` (234 lines, re-signs the corpus under the Draft-02 signing profile)
-and `gen_state_vec2.py` (941 lines, generates 63 ARSIA-State vectors). Neither runs in continuous
+and `gen_state_vec2.py` (967 lines, generates 63 ARSIA-State vectors; refuses to re-apply its own
+batch). Neither runs in continuous
 integration.
 
 The runtime rules verified by `runtime_harness.py`:
@@ -181,7 +182,7 @@ specification places on implementers; they are not surfaces this repository expo
 | [docs/rtm/](../rtm/) | Six requirements traceability matrices | CC-BY-SA-4.0 |
 | [docs/](../) | Frequently asked questions, getting started, audit and Draft-02 process records | CC-BY-SA-4.0 |
 | [scripts/](../../scripts/) | Eight Python tools and `requirements.txt` | BUSL-1.1 |
-| [.github/workflows/](../../.github/workflows/) | One continuous integration workflow | BUSL-1.1 |
+| [.github/](../../.github/) | One continuous integration workflow plus Dependabot configuration | BUSL-1.1 |
 | [licenses/](../../licenses/) | The three license texts and a licensing FAQ | Mixed |
 | [results/](../../results/) | Committed conformance report output | CC-BY-SA-4.0 |
 
@@ -244,12 +245,14 @@ runs one job, `validate-vectors`, on push and pull request to `main`.
               |
               v
    +----------------------+
-   |  actions/checkout@v4 |
+   |  actions/checkout    |
+   |  (SHA-pinned v4.4.0) |
    +----------+-----------+
               |
               v
    +--------------------------+
-   | actions/setup-python@v5  |
+   | actions/setup-python     |
+   | (SHA-pinned v5.6.0)      |
    |     Python 3.12          |
    +----------+---------------+
               |
@@ -317,8 +320,9 @@ Only `validate_vectors.py` takes arguments:
 | `--check-crypto` | Verify canonical bytes, signatures, and `sig` field consistency |
 
 `check_consistency.py`, `runtime_harness.py`, `extract_examples.py`, `check_links.py` and
-`rtm_counts.py` take no arguments. `regen_v2.py` accepts `--apply` to write the re-signed corpus back to
-disk; without it the run is a dry run. `gen_state_vec2.py` accepts nothing and executes at import time.
+`rtm_counts.py` take no arguments. `regen_v2.py` and `gen_state_vec2.py` accept `--apply` to write to the
+corpus; without it the run is a dry run, and `gen_state_vec2.py` additionally refuses to run when its
+vector batch is already present.
 
 ---
 
@@ -918,31 +922,28 @@ project's own reports:
 - 649 of 649 test vectors pass, 0 fail, across 418 expected-valid and 137 expected-invalid cases.
 - 0 error-path mismatches: every expected-invalid vector fails for the reason it declares.
 - 83 of 83 cryptographic signatures verify, across EdDSA, ES256 and RS256.
-- 90 repository consistency invariants pass.
+- 91 repository consistency invariants pass.
 - 73 runtime-rule assertions pass across R1 to R13.
 - 76 fenced JSON blocks in the specifications parse; 9 envelope-shaped examples validate; 0 failures.
 - 1,311 section cross-references and 391 artifact references resolve; 0 dangling.
 
 Operational readiness is partially met. One continuous integration workflow exists with twelve steps and
-uploads a JUnit artifact. Contributor, security, licensing, versioning, code of conduct and contributor
-license agreement documents are all present at the repository root. A conformance report is committed at
+uploads a JUnit artifact; it runs with a least-privilege token (`contents: read`), a concurrency group,
+and SHA-pinned actions kept current by Dependabot. Contributor, security, licensing, versioning, code of
+conduct and contributor license agreement documents are all present at the repository root. A conformance
+report is committed at
 [results/draft-02-conformance-report.md](../../results/draft-02-conformance-report.md).
 
-It is not Released. The Draft-02 work is entirely uncommitted, the only tag is `draft-01`, and no
-published artifact is traceable from this repository.
+It is not Released. Draft-02 is committed as `e299278` but untagged (the only tag is `draft-01`) and
+unpushed, so the continuous integration workflow has never executed on GitHub and no published artifact
+is traceable from this repository.
 
 ### Gaps to the next stage
 
-1. **Draft-02 is uncommitted and untagged.** 78 paths are modified or untracked, including all six
-   specifications, five of the eight scripts, and every Draft-02 process document.
+1. **Untagged and unpushed.** The `draft-02` release commit exists locally; the tag, the push to `main`,
+   and therefore the first continuous integration run on GitHub are all pending owner action.
 2. **No code quality tooling.** No linter, formatter, or type checker is configured anywhere, and no git
    hooks are installed.
-3. **Workflow hardening.** The workflow declares no `permissions:` block and no `concurrency:` group, and
-   pins actions to floating major tags rather than commit SHAs.
-4. **A non-idempotent generator with no guard.** `gen_state_vec2.py` executes at module scope with no
-   `if __name__ == "__main__"` guard, no arguments, and no dry-run mode; lines 925 to 941 unconditionally
-   read, extend by 63 vectors, and rewrite the corpus. Running it twice duplicates vectors ITV-215 through
-   ITV-277.
 
 ---
 
@@ -955,11 +956,11 @@ Cases where documentation, CLAUDE.md, or process files disagree with the artifac
    `arsia-test-vectors.meta.json`, which is the meta-schema for the vector corpus rather than a protocol
    schema. Counting the meta-schema is defensible, but the phrasing conflates the two.
 
-2. **The working tree diverges from HEAD.** Commit `e557f83` contains none of the Draft-02 work. The 78
-   uncommitted paths include every specification, the profiles catalog, the vector corpus, five scripts
-   (`check_consistency.py`, `check_links.py`, `extract_examples.py`, `regen_v2.py`, `rtm_counts.py`,
-   `runtime_harness.py`), one schema (`arsia-relay-attestation.schema.json`), and CLAUDE.md itself. This
-   document describes the working tree, per the extraction decision recorded in the header.
+2. **The working tree carries uncommitted post-release hardening.** Draft-02 itself is committed
+   (`e299278`); the 7 uncommitted paths are the fixes applied after it: the workflow hardening, the
+   Dependabot configuration, the `gen_state_vec2.py` guard, the new vector-ID uniqueness check, the
+   matching CLAUDE.md count, the session handover, and this document. This document describes the working
+   tree, per the extraction decision recorded in the header.
 
 3. **Superseded figures that survive in process documents.** These are historical records rather than
    current claims, but they read as current out of context and should not be quoted:
@@ -996,6 +997,16 @@ tree on 2026-08-05 and verified by re-running the full battery (all checks pass)
 - The parsed-but-unread `--check` flag was removed from `regen_v2.py`; the default run is a dry run and
   `--apply` remains the only write path.
 - The `rtm_counts.py` shebang sat on line 3; moved to line 1.
+
+Post-commit hardening (same day, after `e299278`, currently uncommitted):
+
+- `gen_state_vec2.py` gained a `main()` guard with `--apply` (dry run by default) and an idempotency
+  refusal when its vector batch is already in the corpus; import is now side-effect free.
+- A 91st consistency check, `no duplicate test-vector IDs`, was added to `check_consistency.py`,
+  closing the silent-duplication path (verified against a synthetic duplicate).
+- The workflow gained `permissions: contents: read`, a `concurrency` group with cancel-in-progress, and
+  actions pinned to commit SHAs (checkout v4.4.0, setup-python v5.6.0, upload-artifact v4.6.2), with
+  `.github/dependabot.yml` keeping the pins current.
 
 No discrepancy was found between the schemas, the vector corpus, the profile catalog, and the
 traceability matrices. Every automated consistency check in the repository passes.

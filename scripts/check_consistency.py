@@ -116,8 +116,14 @@ def main() -> int:
             hits4.append(v["id"])
     check("no retention_days in vector descriptions (D1)", not hits4, ",".join(hits4[:5]))
 
-    # RTM requirement IDs must be unique (a duplicated stale listing once inflated counts)
+    # vector IDs must be unique (a re-run generator once risked silent duplication)
     from collections import Counter
+
+    vec_ids = [v["id"] for v in vec_doc["vectors"]]
+    vec_dupes = sorted(k for k, n in Counter(vec_ids).items() if n > 1)
+    check("no duplicate test-vector IDs", not vec_dupes, ",".join(vec_dupes[:5]))
+
+    # RTM requirement IDs must be unique (a duplicated stale listing once inflated counts)
 
     rtm_id = re.compile(r"^\|\s*([A-Z]+-§[^|]+?)\s*\|", re.M)
     hits5 = []
