@@ -82,7 +82,7 @@ GDPR does not prescribe a specific retention period for audit records. Art. 5(1)
 
 ### Why do retention values use 1827 instead of 1825 for 5-year retention?
 
-Calendar years contain leap years. The naive formula 365 × 5 = 1825 undercounts by 1-2 days depending on the span. For regulatory compliance, the worst case matters: a 5-year span can contain 2 leap years (e.g., 2024-2028), yielding 1827 days. Similarly, 3-year retention uses 1096 (1 leap year possible), and 2-year uses 731. Using the mathematically precise worst-case value eliminates the risk of retention falling short by a day at audit time.
+Calendar years contain leap years. The naive formula 365 × 5 = 1825 undercounts by 1-2 days depending on the span. For regulatory compliance, the worst case matters: a 5-year span can contain 2 leap years (e.g., 2024-2028), yielding 1827 days. Similarly, 3-year retention uses 1096 (1 leap year possible). Using the mathematically precise worst-case value eliminates the risk of retention falling short by a day at audit time.
 
 ### Why don't compliance profiles have per-profile versioning?
 

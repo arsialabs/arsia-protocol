@@ -160,7 +160,7 @@
     {
       "profile": "DSA-VLOP",
       "audit_required": true,
-      "retention": "P731D",
+      "retention": "P1096D",
       "human_oversight": "required_within_24h",
       "explainability_required": true,
       "pii_involved": true,

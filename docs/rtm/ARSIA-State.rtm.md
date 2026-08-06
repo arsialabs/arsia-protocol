@@ -442,7 +442,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | value semantics (I-JSON); lexical fidelity dropped; 2^53 rule | §2.1.2 | — | ITV-577/578; harness R8 |
 | entry retention override = duration; reject below floor | §2.1.8 | state-entry (Phase-5 note) | STATE-12/13 |
 | profile tables: retention_minimum durations + basis + clock_skew | §6.1-6.7 | catalog + profiles schema | consistency check |
-| DSA-VLOP P731D | §6.6 | catalog | consistency check |
+| DSA-VLOP P1096D | §6.6 | catalog | consistency check |
 | audit record: declared/resolved profile, retention fields, counterparty_owner_id | §7.1 | audit-record | 45 migrated |
 | per-event-type extension fields documented in prose | §7.1 | audit-record | — |
 | tamper-evidence scope statement (detected vs not) | §7.2 | — | — |

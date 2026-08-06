@@ -22,7 +22,7 @@ Draft-02 supersedes Draft-01. **Breaking release: wire version 2.0.** Full detai
 - Signing input now covers the envelope minus only `security.sig` (protects `alg`/`kid`/encryption metadata/`authorization`); staged verification pipeline; no v1 fallback (Core §5.1-§5.2).
 - Wire version `2.0`; media type `v=2`; schemas validate exactly the 2.0 minor; explicit version-handling model (Core §4.1.1).
 - New required-with-correlation envelope field `root_request_id`; `correlation_id` normatively = immediately preceding message (Core §2.2/§4.2).
-- `retention_days` → `retention` (ISO 8601 calendar durations); below-floor declarations rejected for all floored profiles — no clamping; calendar arithmetic with end-of-month rule; EU-AI-ACT-HIGH-RISK floor is `P6M` (calendar), DSA-VLOP `P731D` (Core §4.3.6.4/§4.3.8 R4, State §6).
+- `retention_days` → `retention` (ISO 8601 calendar durations); below-floor declarations rejected for all floored profiles — no clamping; calendar arithmetic with end-of-month rule; EU-AI-ACT-HIGH-RISK floor is `P6M` (calendar), DSA-VLOP `P1096D` (Core §4.3.6.4/§4.3.8 R4, State §6).
 - Asset amounts become canonical decimal strings with fixed ISO 4217 scale (JPY/EUR/KWD expressible); float `multipleOf` removed; no negative amounts.
 - Brokered routing replaced by an executable dual-authorization model with signed relay attestations and envelope↔token hash binding; recipients reject residency-constrained messages without attestation; `BrokerRelayAuditRecord` retired (Routing §1.2.2/§2.3/§7.4).
 - Canonical oversight contract only (`payload.args`; `approved|denied`/`denied|expired`); Assets-specific approval shape removed; onboarding decisions no longer reuse `approval_decision`.

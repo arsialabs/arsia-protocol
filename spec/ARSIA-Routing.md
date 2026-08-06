@@ -2199,7 +2199,7 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
   - `EU-AI-ACT-HIGH-RISK`: `"P6M"` (six calendar months) minimum.
   - `MIFID-II`: `"P1827D"` (5 years) minimum.
   - `PAC-AGRICULTURE`: `"P1096D"` (3 years) minimum.
-  - `DSA-VLOP`: `"P731D"` (2 years, leap-safe) minimum.
+  - `DSA-VLOP`: `"P1096D"` (3 years, leap-safe) minimum.
   - `DORA`: `"P1827D"` (5 years) minimum.
   - Default (no profile, GDPR-STANDARD, or EU-AI-ACT-LIMITED-RISK): `"P90D"` minimum.
 - Records MUST survive broker restarts and infrastructure failures. Implementations

@@ -39,8 +39,8 @@
         "pii_involved": true,
         "retention_basis": "profile_floor",
         "retention_interpretation": "day-count",
-        "retention_minimum": "P731D",
-        "retention_reference": "DSA:37"
+        "retention_minimum": "P1096D",
+        "retention_reference": "DSA:34(3)"
       },
       "description": "Digital Services Act compliance for Very Large Online Platforms — systemic risk assessment, content moderation oversight, independent audits, and transparency reporting.",
       "name": "DSA-VLOP",
@@ -168,15 +168,16 @@
         "retention_basis": "regulatory",
         "retention_interpretation": "day-count",
         "retention_minimum": "P1096D",
-        "retention_reference": "EU-2021/2116:60"
+        "retention_reference": "EU-2021/2116:51; EU-2022/128:34"
       },
       "description": "EU Common Agricultural Policy compliance for agent-assisted CAP operations — subsidy management, paying agency interactions, and conditionality verification.",
       "name": "PAC-AGRICULTURE",
       "regulatory_references": [
         "EU Regulation 2021/2116 Art. 47",
+        "EU Regulation 2021/2116 Art. 51",
         "EU Regulation 2021/2116 Art. 54",
         "EU Regulation 2021/2116 Art. 59",
-        "EU Regulation 2021/2116 Art. 60"
+        "EU Implementing Regulation 2022/128 Art. 34"
       ],
       "status": "active"
     }

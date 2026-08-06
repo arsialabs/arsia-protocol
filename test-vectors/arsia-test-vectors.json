@@ -17214,7 +17214,7 @@
     },
     {
       "id": "ITV-559",
-      "description": "State §6.6: Valid message with compliance_profile 'DSA-VLOP' — VLOP profile defaults applied. pii_involved true, legal_basis legal_obligation, retention_minimum 'P731D', human_oversight required_within_24h. Per ARSIA-State.md §6.6.",
+      "description": "State §6.6: Valid message with compliance_profile 'DSA-VLOP' — VLOP profile defaults applied. pii_involved true, legal_basis legal_obligation, retention_minimum 'P1096D', human_oversight required_within_24h. Per ARSIA-State.md §6.6.",
       "category": "state",
       "valid": true,
       "message": {
@@ -17235,7 +17235,7 @@
           "explainability_required": true,
           "pii_involved": true,
           "legal_basis": "legal_obligation",
-          "retention": "P731D"
+          "retention": "P1096D"
         },
         "payload": {
           "type": "arsiaprotocol.state/set",

@@ -1714,7 +1714,7 @@ defined in §6:
 |------------------------|----------------------------------------|
 | `retention_minimum`    | `"P1096D"` (3 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1096 days from creation. Logical deletion is permitted — data is retained in temporal store. |
-| Rationale              | EU 2021/2116 Art. 60 — recovery of undue payments requires records for at least 3 years, covering the full cycle of payment verification and potential recovery actions. |
+| Rationale              | EU 2021/2116 Art. 51 (access to documents) with Implementing Regulation (EU) 2022/128 Art. 34 — supporting documents kept at least 3 years from the anchoring events (account clearance, final payment, recovery). P1096D from record creation is a conservative approximation of those event-anchored clocks (statement subject to legal review). |
 | Exception              | PURGE for GDPR erasure overrides.      |
 
 **EU-AI-ACT-LIMITED-RISK:**
@@ -1730,9 +1730,9 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_minimum`    | `"P731D"` (2 years, accounts for leap years) |
-| Behaviour              | Entry data MUST NOT be physically removed before `created_at + P731D`. Logical deletion is permitted — data is retained in temporal store. |
-| Rationale              | DSA Art. 37 — annual independent audit. P731D (2 years, leap-safe) covers two consecutive audit cycles, enabling cross-reference between risk assessments and verification of mitigation measures. |
+| `retention_minimum`    | `"P1096D"` (3 years, accounts for leap years) |
+| Behaviour              | Entry data MUST NOT be physically removed before `created_at + P1096D`. Logical deletion is permitted — data is retained in temporal store. |
+| Rationale              | DSA Art. 34(3) — supporting documents of risk assessments preserved for at least 3 years after the performance of the risk assessments. Mapping the profile floor to this document-retention rule is a statement subject to legal review. |
 | Exception              | PURGE for GDPR erasure overrides.      |
 
 **DORA:**
@@ -2408,7 +2408,7 @@ and conditionality verification.
 |---------------------------|------------------------------|
 | `audit_required`          | `true`                       |
 | `retention_minimum`       | `"P1096D"`                   |
-| `retention_basis`         | `"regulatory"` — EU 2021/2116 Art. 60 |
+| `retention_basis`         | `"regulatory"` — EU 2021/2116 Art. 51; EU 2022/128 Art. 34 |
 | `human_oversight`         | `"required_post_execution"`  |
 | `explainability_required` | `true`                       |
 | `pii_involved`            | `false`                      |
@@ -2416,14 +2416,20 @@ and conditionality verification.
 
 **Regulatory mapping:**
 
-**EU 2021/2116 Art. 60 — Recovery of undue payments.** Records must be retained for at
-least 3 years (1096 days) to support the recovery of undue payments by paying agencies.
-This is the basis for the `retention_minimum` value. The 3-year minimum aligns with the
-limitation period for recovery proceedings and ensures that audit evidence is available
-for the full cycle of payment verification, on-the-spot checks, and potential recovery
-actions. The value 1096 accounts for the worst case of one leap year within any three
-consecutive calendar years, ensuring the retention floor is never shorter than three
-calendar years.
+**EU 2021/2116 Art. 51 and Implementing Regulation (EU) 2022/128 Art. 34 —
+Conservation of supporting documents.** Paying agencies keep the supporting documents
+relating to payments and checks at the Commission's disposal (Art. 51); the storage
+periods are set by Implementing Regulation (EU) 2022/128 Art. 34: at least 3 years
+following the year in which the Commission clears the accounts (EAGF), at least
+3 years following the year of final payment (EAFRD), and, in cases of irregularity,
+at least 3 years following the year of full recovery. This is the basis for the
+`retention_minimum` value. Note that these statutory clocks are event-anchored
+(clearance, final payment, recovery), not anchored to record creation: `P1096D`
+counted from record creation is a conservative approximation, and operators may need
+to retain records longer when the anchoring events occur later (statement subject to
+legal review). The value 1096 accounts for the worst case of one leap year within any
+three consecutive calendar years, ensuring the retention floor is never shorter than
+three calendar years.
 
 **EU 2021/2116 Art. 47 — Accreditation of paying agencies.** `audit_required` defaults
 to `true`. The audit trail serves as evidence for paying agency certification. Paying
@@ -2526,8 +2532,8 @@ behalf of Very Large Online Platforms under the Digital Services Act (EU 2022/20
 | Field                     | Default Value          |
 |---------------------------|------------------------|
 | `audit_required`          | `true`                 |
-| `retention_minimum`       | `"P731D"`              |
-| `retention_basis`         | `"profile_floor"` — supports DSA Art. 37 annual audit cycles |
+| `retention_minimum`       | `"P1096D"`             |
+| `retention_basis`         | `"profile_floor"` — derived from DSA Art. 34(3) document retention (statement subject to legal review) |
 | `human_oversight`         | `"required_within_24h"`|
 | `explainability_required` | `true`                 |
 | `pii_involved`            | `true`                 |
@@ -2540,6 +2546,9 @@ behalf of Very Large Online Platforms under the Digital Services Act (EU 2022/20
 risks stemming from the design, functioning, and use of their services at least once a
 year. Agent actions that affect content moderation, recommendation, or advertising
 systems MUST produce audit records that feed into the annual risk assessment.
+Art. 34(3) requires providers to preserve the supporting documents of the risk
+assessments for at least three years after their performance; this is the basis for
+`retention_minimum` (see below).
 
 **DSA Art. 35 — Mitigation of risks.** VLOPs must put in place reasonable,
 proportionate, and effective mitigation measures tailored to the systemic risks
@@ -2547,10 +2556,14 @@ identified under Art. 34. The audit trail provides evidence that mitigation meas
 were implemented and effective.
 
 **DSA Art. 37 — Independent audit.** VLOPs must be subject to an independent audit at
-least once a year to assess compliance with Chapter III obligations. `retention_minimum`
-is `"P731D"` (2 years, worst case including a leap day — consistent with the 1827/1096 doctrine) — this covers two consecutive annual audit cycles, enabling
-cross-reference between risk assessments and verification that mitigation measures from
-the prior audit were implemented.
+least once a year to assess compliance with Chapter III obligations. Art. 37 imposes
+no retention period; `retention_minimum` is `"P1096D"` (3 years, worst case including
+a leap day — consistent with the 1827/1096 doctrine), derived from the Art. 34(3)
+document-retention rule. Audit records kept under that floor remain available across
+consecutive annual audit cycles, enabling cross-reference between risk assessments and
+verification that mitigation measures from the prior audit were implemented. Mapping
+the profile floor to Art. 34(3), which covers the supporting documents of risk
+assessments, is a statement subject to legal review.
 
 **DSA Art. 38 — Recommender system transparency.** VLOPs must offer at least one
 option for each recommender system that is not based on profiling. `explainability_required`
@@ -3004,8 +3017,11 @@ silently removed from one's own without creating a detectable discrepancy.
 **GDPR Art. 17 interaction (qualified).** Whether audit records fall within GDPR's
 scope is a fact-dependent legal question, not a protocol property. The design
 minimises personal data: `payload_hash` stores a one-way hash rather than the
-payload. However, a hash is not automatically anonymous — CJEU and EDPB guidance
-treat hashing as pseudonymisation where linkability remains, and audit records also
+payload. However, a hash is not automatically anonymous — under the CJEU's
+contextual approach (EDPS v SRB, C-413/23 P, judgment of 4 September 2025),
+whether pseudonymised data is personal data for a given party depends on that
+party's reasonable means of re-identification, so hashing remains
+pseudonymisation where linkability remains — and audit records also
 carry agent identifiers (`operator_id`, `approver_id`, `from_agent`, `to_agent`)
 that, together with context, MAY relate to identifiable natural persons (see the
 `operator_id` pseudonymisation note, §7.1). Consequently:
@@ -3032,7 +3048,7 @@ record was created (§6):
 | EU-AI-ACT-HIGH-RISK  | `P6M` (six calendar months) |
 | MIFID-II             | `P1827D` (5 years)         |
 | PAC-AGRICULTURE      | `P1096D` (3 years)         |
-| DSA-VLOP             | `P731D` (2 years)          |
+| DSA-VLOP             | `P1096D` (3 years)         |
 | DORA                 | `P1827D` (5 years)         |
 | Default              | `P90D` (platform default)  |
 

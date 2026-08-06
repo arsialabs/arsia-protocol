@@ -56,8 +56,9 @@ signature verifies) and enforces algorithm/key-type coherence.
   minimum applies.
 - Floors are typed calendar durations with calendar arithmetic and an explicit
   anchor (Core §4.3.6.4.1): EU-AI-ACT-HIGH-RISK is `"P6M"` (six calendar months,
-  NOT 180 days), MIFID-II/DORA `"P1827D"`, PAC `"P1096D"`, DSA-VLOP `"P731D"`
-  (was 730 — leap-safe), LIMITED `"P90D"`.
+  NOT 180 days), MIFID-II/DORA `"P1827D"`, PAC `"P1096D"`, DSA-VLOP `"P1096D"`
+  (raised from the Draft-01-era 2-year value after legal triage located the
+  retention basis in DSA Art. 34(3), three years), LIMITED `"P90D"`.
 - Audit records now carry `compliance_profile_declared` + `compliance_profile_resolved`
   (replacing `compliance_profile`), `declared_retention`, `effective_retention`,
   `retention_anchor`, `retention_source`, and `counterparty_owner_id`.

@@ -95,7 +95,7 @@ Seven normative profiles map EU regulation directly to protocol fields:
 | `EU-AI-ACT-LIMITED-RISK` | EU AI Act Art. 50               | `P90D` (90 days)         | Not required              | Required |
 | `MIFID-II`               | MiFID II Art. 16(7), DORA, PSD2 | `P1827D` (5 years)       | Required before execution | Required |
 | `PAC-AGRICULTURE`        | CAP Reg. 2021/2116              | `P1096D` (3 years)       | Required post-execution   | Required |
-| `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | `P731D` (2 years)        | Required within 24h       | Required |
+| `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | `P1096D` (3 years)       | Required within 24h       | Required |
 | `DORA`                   | DORA Art. 5, 17, 19, 28         | `P1827D` (5 years)       | Required within 24h       | Required |
 
 Source: [arsia-compliance-profiles.json](profiles/arsia-compliance-profiles.json) — defined normatively in [ARSIA-State §6](spec/ARSIA-State.md).

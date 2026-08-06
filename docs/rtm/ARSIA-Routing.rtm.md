@@ -309,4 +309,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | lifecycle events = operational log (not canonical audit) | §4.1 | — | — |
 | approval_decision never a sync inbox response | §2.1.2 | — | — |
 | at-least-once = retries; idempotency = dedup | §1, §3 | — | — |
-| DSA-VLOP storage floor P731D | §7.4 | catalog | consistency check |
+| DSA-VLOP storage floor P1096D | §7.4 | catalog | consistency check |

@@ -7,8 +7,8 @@
 |---|---|
 | **Product** | Arsia Protocol (normative specification and conformance artifacts) |
 | **Repository** | `arsialabs/arsia-protocol` |
-| **Commit** | `e299278` (branch `draft-02`; working tree carries 7 uncommitted paths of post-release hardening, see Discrepancies) |
-| **Extraction date** | 2026-08-05 |
+| **Commit** | `c4bc506` (branch `draft-02`; working tree carries 16 uncommitted paths of legal-triage corrections, see Discrepancies) |
+| **Extraction date** | 2026-08-06 |
 
 Generated from repository state. Do not edit by hand; regenerate instead.
 
@@ -105,7 +105,7 @@ Values below are read from the catalog file, not from prose.
 | `EU-AI-ACT-HIGH-RISK` | `P6M` | `regulatory` | `required_before_execution` | true | true | none | 120 |
 | `MIFID-II` | `P1827D` | `regulatory` | `required_before_execution` | true | true | `EU` | 60 |
 | `PAC-AGRICULTURE` | `P1096D` | `regulatory` | `required_post_execution` | true | true | `EU` | default |
-| `DSA-VLOP` | `P731D` | `profile_floor` | `required_within_24h` | true | true | none | default |
+| `DSA-VLOP` | `P1096D` | `profile_floor` | `required_within_24h` | true | true | none | default |
 | `DORA` | `P1827D` | `profile_floor` | `required_within_24h` | true | false | `EU` | 60 |
 
 Profile resolution is a precedence chain (Core §4.3.7): a per-message value wins over a profile default,
@@ -956,11 +956,13 @@ Cases where documentation, CLAUDE.md, or process files disagree with the artifac
    `arsia-test-vectors.meta.json`, which is the meta-schema for the vector corpus rather than a protocol
    schema. Counting the meta-schema is defensible, but the phrasing conflates the two.
 
-2. **The working tree carries uncommitted post-release hardening.** Draft-02 itself is committed
-   (`e299278`); the 7 uncommitted paths are the fixes applied after it: the workflow hardening, the
-   Dependabot configuration, the `gen_state_vec2.py` guard, the new vector-ID uniqueness check, the
-   matching CLAUDE.md count, the session handover, and this document. This document describes the working
-   tree, per the extraction decision recorded in the header.
+2. **The working tree carries uncommitted legal-triage corrections.** Draft-02 (`e299278`) and the
+   post-release hardening (`c4bc506`) are committed; the 16 uncommitted paths are the legal-triage batch
+   of 2026-08-06 (see Corrections below): two specification files with downgraded claims, the DSA-VLOP
+   and PAC retention-basis corrections across State, Routing, the catalog, one schema example, the
+   consistency script, one vector, two traceability rows, README, CHANGELOG, FAQ, the migration guide,
+   the saved review document, the session handover, and this document. This document describes the
+   working tree, per the extraction decision recorded in the header.
 
 3. **Superseded figures that survive in process documents.** These are historical records rather than
    current claims, but they read as current out of context and should not be quoted:
@@ -1007,6 +1009,26 @@ Post-commit hardening (same day, after `e299278`, currently uncommitted):
 - The workflow gained `permissions: contents: read`, a `concurrency` group with cancel-in-progress, and
   actions pinned to commit SHAs (checkout v4.4.0, setup-python v5.6.0, upload-artifact v4.6.2), with
   `.github/dependabot.yml` keeping the pins current.
+
+Legal-triage corrections (2026-08-06), from the internal legal review of the qualified regulatory
+statements; the specifications cite the underlying legal sources directly, never the review:
+
+- The two remaining affirmative "satisfy" claims in ARSIA-Actions (§3.5 and §6 note 3) were downgraded
+  to "provide technical records that support compliance", with the standard subject-to-legal-review
+  marker and an explicit reference to the tamper-evidence scope of ARSIA-State §7.2; the §3.5 Art.
+  14(4)(d) "prove" was softened to "demonstrate".
+- ARSIA-State §7.2 now cites CJEU EDPS v SRB (C-413/23 P, 4 September 2025) for the contextual
+  pseudonymisation approach, replacing the reference to draft EDPB guidance.
+- The PAC-AGRICULTURE retention basis was corrected from Regulation (EU) 2021/2116 Art. 60 (which
+  contains no retention rule) to Art. 51 with Implementing Regulation (EU) 2022/128 Art. 34, keeping
+  `P1096D` documented as a conservative approximation of the event-anchored statutory clocks.
+- The DSA-VLOP retention floor was corrected from `P731D` citing Art. 37 (no retention rule; no basis
+  located for two years) to `P1096D` derived from DSA Art. 34(3), with the interpretive mapping marked
+  subject to legal review. This is a wire-behavior change made pre-tag: declared retentions between
+  `P731D` and `P1095D` under `DSA-VLOP` are now rejected by validation Rule 4. Updated together:
+  ARSIA-State §4/§6.6, ARSIA-Routing §7.4, the profile catalog, the `arsia-compliance-field` schema
+  example, `check_consistency.py`, vector ITV-559 (unsigned), two traceability matrix rows, README,
+  CHANGELOG, FAQ, and the migration guide.
 
 No discrepancy was found between the schemas, the vector corpus, the profile catalog, and the
 traceability matrices. Every automated consistency check in the repository passes.

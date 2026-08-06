@@ -1639,9 +1639,13 @@ case of a deadline expiry (Path 3), this record is replaced by a record with
 This record captures the final outcome — whether the action was executed and what
 result was produced.
 
-#### Regulatory satisfaction
+#### Regulatory support
 
-These four audit records satisfy the following regulatory requirements:
+These four audit records provide technical records that support the operator's
+compliance with the following regulatory requirements (statement subject to legal
+review). Whether they discharge any obligation in a given deployment is the
+operator's legal determination, made within the tamper-evidence scope defined by
+ARSIA-State.md §7.2:
 
 **EU AI Act Art. 17 (Quality management system).** Article 17(1)(d) requires that
 providers of high-risk AI systems establish a quality management system that includes
@@ -1666,7 +1670,7 @@ therefore retained for at least `"P6M"` because of the profile, not because of i
 `risk_level`.
 
 **EU AI Act Art. 14(4)(d) (Ability to override).** The denied path (Path 2 in §3.4)
-and the expired path (Path 3 in §3.4) prove that a human can prevent an AI system's
+and the expired path (Path 3 in §3.4) demonstrate that a human can prevent an AI system's
 action from executing. The audit record for a denied decision explicitly captures the
 `approver_id` and `reason`, providing evidence that a natural person exercised their
 override authority.
@@ -2311,10 +2315,13 @@ When `explainability_required` is `true` for an action:
    explanation is stored as part of the full message payload, not as a
    separate record.
 
-3. **Regulatory satisfaction.** The combination of the explanation object and the audit
-   trail satisfies EU AI Act Article 13(1): the system's operation is transparent (the
-   explanation object), and the transparency is verifiable (the audit trail preserves
-   the explanation with cryptographic integrity).
+3. **Regulatory support.** The combination of the explanation object and the audit
+   trail provides technical records that support compliance with EU AI Act
+   Article 13(1) (statement subject to legal review — Art. 13(1) is a design
+   obligation on the provider of the high-risk system, which no protocol layer can
+   discharge by itself): the explanation object records the basis of the system's
+   operation, and the audit trail preserves the explanation with cryptographic
+   integrity, within the tamper-evidence scope of ARSIA-State.md §7.2.
 
 4. **Preliminary vs. final explanation.** When an action goes through human oversight,
    two explanations may exist: the preliminary explanation in the `pending_approval`

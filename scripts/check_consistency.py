@@ -140,7 +140,7 @@ def main() -> int:
         "EU-AI-ACT-LIMITED-RISK": "P90D",
         "MIFID-II": "P1827D",
         "PAC-AGRICULTURE": "P1096D",
-        "DSA-VLOP": "P731D",
+        "DSA-VLOP": "P1096D",
         "DORA": "P1827D",
     }
     for prof, want in expected.items():
