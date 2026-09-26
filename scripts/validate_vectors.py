@@ -160,12 +160,37 @@ def _base64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s)
 
 
-def _verify_signature(alg: str, pub_bytes: bytes, sig_bytes: bytes, data_bytes: bytes) -> None:
-    """Verify a signature using the appropriate algorithm. Raises on failure."""
-    if alg == "EdDSA" or len(pub_bytes) == 32:
+ALLOWED_ALGS = ("EdDSA", "ES256", "RS256")  # Core §5.1 Supported Algorithms
+
+
+def _key_type(pub_bytes: bytes) -> str:
+    """Key type of the vector's public key material (the only key information the
+    vector format carries): raw 32-byte Ed25519, uncompressed P-256 point, or DER RSA."""
+    if len(pub_bytes) == 32:
+        return "Ed25519"
+    if len(pub_bytes) == 65 and pub_bytes[0] == 0x04:
+        return "P-256"
+    from cryptography.hazmat.primitives.serialization import load_der_public_key
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+    if isinstance(load_der_public_key(pub_bytes), RSAPublicKey):
+        return "RSA"
+    raise ValueError("unrecognised public key material")
+
+
+def _verify_signature(alg: str | None, pub_bytes: bytes, sig_bytes: bytes, data_bytes: bytes) -> None:
+    """Verify per Core §5.2 Step 5: the declared alg must be allowlisted and compatible
+    with the key type; the declared alg (never the key material) selects the verifier.
+    Raises on any failure."""
+    if alg not in ALLOWED_ALGS:
+        raise ValueError(f"alg not in allowlist: {alg!r}")
+    key_type = _key_type(pub_bytes)
+    required = {"EdDSA": "Ed25519", "ES256": "P-256", "RS256": "RSA"}[alg]
+    if key_type != required:
+        raise ValueError(f"alg {alg} incompatible with {key_type} key")
+    if alg == "EdDSA":
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         Ed25519PublicKey.from_public_bytes(pub_bytes).verify(sig_bytes, data_bytes)
-    elif alg == "ES256" or (len(pub_bytes) == 65 and pub_bytes[0] == 0x04):
+    elif alg == "ES256":
         from cryptography.hazmat.primitives.asymmetric.ec import (
             EllipticCurvePublicKey, ECDSA, SECP256R1,
         )
@@ -177,14 +202,14 @@ def _verify_signature(alg: str, pub_bytes: bytes, sig_bytes: bytes, data_bytes: 
         s = int.from_bytes(sig_bytes[32:], "big")
         der_sig = encode_dss_signature(r, s)
         key.verify(der_sig, data_bytes, ECDSA(SHA256()))
-    elif alg == "RS256":
+    else:  # RS256
         from cryptography.hazmat.primitives.serialization import load_der_public_key
         from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
         from cryptography.hazmat.primitives.hashes import SHA256
         key = load_der_public_key(pub_bytes)
+        if key.key_size < 2048:  # Core §5.1: RSA key MUST be at least 2048 bits
+            raise ValueError(f"RSA key {key.key_size} bits < 2048")
         key.verify(sig_bytes, data_bytes, PKCS1v15(), SHA256())
-    else:
-        raise ValueError(f"unsupported algorithm: {alg}")
 
 
 def run_crypto_checks(args: argparse.Namespace) -> int:
@@ -205,6 +230,8 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
     vectors = data["vectors"]
     checked = 0
     failed = 0
+    negatives_asserted = 0
+    not_applicable = 0
     failures: list[str] = []
 
     for vector in vectors:
@@ -218,7 +245,11 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
 
         checked += 1
         msg = vector.get("message", {})
-        expected_valid = vector.get("valid", True)
+        expected_valid = determine_expected(vector)
+        # Signature negative: expected-invalid with expected_error "unauthorized", the
+        # code Core §5.2 Step 6 mandates for failed verification. Its signature MUST fail;
+        # every other vector's signature MUST verify (its invalidity, if any, lies elsewhere).
+        signature_negative = (not expected_valid) and vector.get("expected_error") == "unauthorized"
 
         # CHECK 1 — canonical bytes (Draft-02 signing profile, Core §5.1:
         # security PRESENT, only the sig property removed)
@@ -242,17 +273,35 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             )
             continue
 
-        # CHECK 2 — signature verification
-        alg = msg.get("security", {}).get("alg", "EdDSA")
+        # CHECK 2 — signature verification (Core §5.2). A message without a security
+        # object carries no envelope signature to verify (Step 1 needs security.sig):
+        # only the canonical bytes are checked for it.
+        if not isinstance(msg.get("security"), dict):
+            if signature_negative:
+                failed += 1
+                failures.append(f"  FAIL {vid}: signature negative without a security object")
+            else:
+                not_applicable += 1
+            continue
+        alg = msg["security"].get("alg")
         pub_bytes = bytes.fromhex(crypto["public_key_hex"])
         sig_bytes = _base64url_decode(crypto["signature_base64url"])
         data_bytes = bytes.fromhex(crypto["canonical_bytes_hex"])
         try:
             _verify_signature(alg, pub_bytes, sig_bytes, data_bytes)
+            verified, reason = True, None
         except Exception as exc:
-            if expected_valid is not False:
+            verified, reason = False, exc
+        if signature_negative:
+            if verified:
                 failed += 1
-                failures.append(f"  FAIL {vid}: signature verification failed — {exc}")
+                failures.append(f"  FAIL {vid}: expected signature failure, but it verified")
+            else:
+                negatives_asserted += 1
+            continue
+        if not verified:
+            failed += 1
+            failures.append(f"  FAIL {vid}: signature verification failed — {reason}")
             continue
 
         # CHECK 3 — sig field consistency
@@ -278,7 +327,9 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
     if failures:
         for f_msg in failures:
             print(f_msg, file=sys.stderr)
-    print(f"Crypto: {checked} vectors checked, {passed} passed, {failed} failed")
+    print(f"Crypto: {checked} vectors checked, {passed} passed, {failed} failed "
+          f"({negatives_asserted} signature negatives asserted, "
+          f"{not_applicable} without security object: canonical bytes only)")
     return 1 if failed else 0
 
 
@@ -302,31 +353,29 @@ def run_validation(args: argparse.Namespace) -> int:
         if args.filter and not fnmatch.fnmatch(vid, args.filter):
             continue
 
+        fmt, schema_ref, payload = classify_vector(vector)
+
         if vector.get("skip_schema"):
-            has_sr = "schema_ref" in vector
-            has_d = "data" in vector
-            has_m = "message" in vector
-            if has_sr and has_d:
-                skip_fmt = "schema-ref"
-            elif has_sr and has_m:
-                skip_fmt = "hybrid"
-            else:
-                skip_fmt = "message-only"
+            # A skip exempts only the runtime expectation the schema cannot express.
+            # Everything else is still validated: the vector must be structurally valid
+            # against its schema, whatever its runtime outcome (valid/expected) is.
+            if args.schema and args.schema not in schema_ref:
+                continue
+            schema = resolve_schema(schema_ref, registry)
+            errors = list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
             results.append({
                 "id": vid,
-                "schema": "",
-                "format": skip_fmt,
+                "schema": schema_ref.split("#")[0],
+                "format": fmt,
                 "expected_valid": True,
-                "actual_valid": True,
-                "passed": True,
-                "error": None,
+                "actual_valid": not errors,
+                "passed": not errors,
+                "error": "; ".join(e.message for e in errors[:3]) if errors else None,
                 "description": vector.get("description", ""),
                 "skipped": True,
                 "skip_reason": vector.get("skip_reason", "skip_schema flag set"),
             })
             continue
-
-        fmt, schema_ref, payload = classify_vector(vector)
 
         if args.schema and args.schema not in schema_ref:
             continue
@@ -375,12 +424,18 @@ def print_tap(results: list[dict], check_errors: bool = False) -> int:
 
     failed = 0
     skipped = 0
+    skip_failed = 0
     mismatches = 0
     for i, r in enumerate(results, 1):
         if r.get("skipped"):
             skipped += 1
             reason = r.get("skip_reason", "runtime constraint")
-            print(f"ok {i} - {r['id']} (skipped: {reason})")
+            if r["passed"]:
+                print(f"ok {i} - {r['id']} (runtime-only: structure valid; skipped: {reason})")
+            else:
+                skip_failed += 1
+                print(f"not ok {i} - {r['id']} {r['schema']} (runtime-only) — "
+                      f"skip vector fails structural validation: {r['error']}")
             continue
 
         label = "valid" if r["expected_valid"] else "invalid"
@@ -411,21 +466,25 @@ def print_tap(results: list[dict], check_errors: bool = False) -> int:
     passed = total - failed - skipped
     print("# ---")
     print(f"# Passed: {passed}/{total}")
-    print(f"# Skipped: {skipped}/{total}")
+    print(f"# Skipped (runtime-only, structure-validated): {skipped}/{total} "
+          f"({skip_failed} structurally invalid)")
     print(f"# Failed: {failed}/{total}")
     if check_errors:
         print(f"# Error-path mismatches: {mismatches}")
 
-    return 1 if failed or (check_errors and mismatches) else 0
+    return 1 if failed or skip_failed or (check_errors and mismatches) else 0
 
 
 def print_summary(results: list[dict], check_errors: bool = False) -> int:
     by_schema: dict[str, dict] = {}
     total_skipped = 0
+    skip_failed = 0
     mismatches = 0
     for r in results:
         if r.get("skipped"):
             total_skipped += 1
+            if not r["passed"]:
+                skip_failed += 1
             continue
         s = by_schema.setdefault(r["schema"], {"valid": 0, "invalid": 0, "pass": 0, "fail": 0})
         if r["expected_valid"]:
@@ -449,12 +508,13 @@ def print_summary(results: list[dict], check_errors: bool = False) -> int:
         for k in totals:
             totals[k] += s[k]
 
-    print(f"{'(skipped: runtime-only)':<45} {'':>5} {'':>7} {total_skipped:>5} {'':>5}")
-    print(f"{'TOTAL':<45} {totals['valid']:>5} {totals['invalid']:>7} {totals['pass'] + total_skipped:>5} {totals['fail']:>5}")
+    skip_passed = total_skipped - skip_failed
+    print(f"{'(runtime-only: structure-validated)':<45} {'':>5} {'':>7} {skip_passed:>5} {skip_failed:>5}")
+    print(f"{'TOTAL':<45} {totals['valid']:>5} {totals['invalid']:>7} {totals['pass'] + skip_passed:>5} {totals['fail'] + skip_failed:>5}")
     if check_errors:
         print(f"Error-path mismatches: {mismatches}")
 
-    return 1 if totals["fail"] or (check_errors and mismatches) else 0
+    return 1 if totals["fail"] or skip_failed or (check_errors and mismatches) else 0
 
 
 def print_junit(results: list[dict], check_errors: bool = False) -> int:
@@ -467,9 +527,15 @@ def print_junit(results: list[dict], check_errors: bool = False) -> int:
         tc = ET.SubElement(testsuite, "testcase", name=r["id"], classname=r["format"])
         tc_failed = False
         if r.get("skipped"):
-            skipped += 1
-            skip_el = ET.SubElement(tc, "skipped")
-            skip_el.set("message", r.get("skip_reason", "skip_schema flag set"))
+            if r["passed"]:
+                skipped += 1
+                skip_el = ET.SubElement(tc, "skipped")
+                skip_el.set("message", r.get("skip_reason", "skip_schema flag set"))
+            else:
+                tc_failed = True
+                msg = f"skip vector fails structural validation: {r['error']}"
+                fail_el = ET.SubElement(tc, "failure", message=msg[:200])
+                fail_el.text = msg
         else:
             if not r["passed"]:
                 tc_failed = True

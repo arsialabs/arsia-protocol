@@ -16309,15 +16309,15 @@
           "proof_type": "bearer"
         }
       },
-      "expected_error": "CLOCK_SKEW_EXCEEDED"
+      "expected_error": "invalid_request"
     },
     {
       "id": "ITV-546",
-      "description": "Core §8.3: INVALID — EU-AI-ACT-HIGH-RISK message with ts 90 seconds in the past exceeds the profile's 120-second clock skew tolerance (clock_skew_seconds: 120)",
+      "description": "Core §4.3.8 Rules 2 and 4: INVALID — EU-AI-ACT-HIGH-RISK message with pii_involved true and no legal_basis (Rule 2) and retention P180D below the profile's P6M calendar floor (Rule 4). The ts, 90 seconds in the past, is within the profile's 120-second clock skew tolerance (Core §8.3, clock_skew_seconds: 120) and is not a cause of rejection",
       "category": "core",
       "valid": false,
       "skip_schema": true,
-      "skip_reason": "Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance",
+      "skip_reason": "Runtime constraint — calendar retention-floor comparison (Core §4.3.8 Rule 4) is not expressible in JSON Schema",
       "message": {
         "v": "2.0",
         "id": "b0546001-d4e5-4f60-c123-445566778899",
@@ -16346,7 +16346,7 @@
           "proof_type": "bearer"
         }
       },
-      "expected_error": "CLOCK_SKEW_EXCEEDED"
+      "expected_error": "invalid_request"
     },
     {
       "id": "ITV-547",
