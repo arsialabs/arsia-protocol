@@ -59,5 +59,8 @@ The repository is a set of artifacts that must stay mutually consistent. A norma
   - `schemas/`, `profiles/`, `test-vectors/` → Apache-2.0 (no headers inside JSON files)
   - `scripts/`, `.github/` → BUSL-1.1 (`# SPDX-License-Identifier: BUSL-1.1`)
   - All headers include the line `Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda)`.
-- **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:`, `refactor:`), subject under 72 chars, and every commit needs a `Signed-off-by` trailer (`git commit -s`) per the CLA.
+- **Commits**: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:`, `refactor:`), subject under 72 chars. Commit only when explicitly asked; never push unless explicitly asked.
+  - Every commit carries exactly this CLA trailer, as its last line: `Signed-off-by: Kirk Patrick <kirk@arsialabs.ai>`. Add it explicitly with `git commit --trailer "Signed-off-by: Kirk Patrick <kirk@arsialabs.ai>"`. Do not rely on `git commit -s`: it signs with the local git identity, which may differ.
+  - No other trailers or attribution: no `Co-Authored-By`, no "Generated with", no tool attribution of any kind.
+  - Verify before reporting: `git log -1 --format=%B | git interpret-trailers --parse` must print only the Signed-off-by line above.
 - Normative changes (new fields, MUST/SHOULD changes, wire format, new profiles) require a GitHub Issue before a PR — see CONTRIBUTING.md §4.
