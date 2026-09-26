@@ -2386,14 +2386,16 @@ tests at the applicable conformance level.
 
 - **EDPB Guidelines 05/2021** — European Data Protection Board, "Interplay between
   the application of Article 3 and the provisions on international transfers as per
-  Chapter V of the GDPR", Version 2.0, February 2022.
+  Chapter V of the GDPR", Version 2.0, adopted 14 February 2023.
 
 - **EU AI Act** — Regulation (EU) 2024/1689 of the European Parliament and of the
   Council of 13 June 2024. Art. 13 (Transparency), Art. 14 (Human Oversight),
   Art. 17 (Quality Management), Art. 26 (Deployer Obligations).
 
 - **MiFID II** — Directive 2014/65/EU of the European Parliament and of the Council
-  of 15 May 2014. Art. 16(6) (Record-keeping, 5-year retention requirement).
+  of 15 May 2014. Art. 16(6) (records of all services, activities and transactions);
+  Art. 16(7) (recording of telephone conversations and electronic communications, kept
+  for five years and, where requested by the competent authority, up to seven years).
 
 - **ISO 3166-1** — International Organization for Standardization, "Codes for the
   representation of names of countries and their subdivisions — Part 1: Country codes",

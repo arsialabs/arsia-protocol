@@ -520,12 +520,16 @@ Payload:
 
 **Verification by receiving agent:**
 
-1. Verify the DPoP proof JWT signature using the `jwk` embedded in the proof header.
-2. Verify that `htu` matches the inbox URL that received the request.
-3. Verify that `htm` equals `"POST"`.
-4. Verify that `iat` is within ±300 seconds of the current time.
-5. Verify that `ath` equals the base64url-encoded SHA-256 hash of the access token.
-6. Verify that the `jwk` in the proof header matches the `cnf` (confirmation) claim in
+1. Verify that the `typ` header parameter has the value `dpop+jwt` (RFC 9449 §4.3).
+2. Verify that the `alg` header parameter identifies an asymmetric digital signature
+   algorithm, is not `none`, and is acceptable per local policy (RFC 9449 §4.3). ARSIA
+   DPoP proofs use `EdDSA` (`arsia-dpop-proof.schema.json`, `$defs/dpop-header`).
+3. Verify the DPoP proof JWT signature using the `jwk` embedded in the proof header.
+4. Verify that `htu` matches the inbox URL that received the request.
+5. Verify that `htm` equals `"POST"`.
+6. Verify that `iat` is within ±300 seconds of the current time.
+7. Verify that `ath` equals the base64url-encoded SHA-256 hash of the access token.
+8. Verify that the `jwk` in the proof header matches the `cnf` (confirmation) claim in
    the access token.
 
 If any check fails, the receiving agent MUST reject the request with error code
@@ -801,7 +805,11 @@ Member State's Trusted List.
 
 - **QcStatements extension:** The leaf certificate MUST include the `QcStatements`
   extension per ETSI EN 319 412-5, indicating that it is a qualified certificate for
-  electronic seals (`id-etsi-qcs-QcCompliance`).
+  electronic seals: the `id-etsi-qcs-QcCompliance` statement declares an EU qualified
+  certificate (clause 4.2.1), and the `id-etsi-qcs-QcType` statement with
+  `id-etsi-qct-eseal` declares a certificate for electronic seals (clause 4.2.3). When
+  the QcType statement is absent, QcCompliance denotes a certificate for electronic
+  signatures (clause 4.2.1, Table 1).
 
 - **Issuer:** The issuing CA MUST be a QTSP listed on the Trusted List of the Member
   State where the QTSP is established, published in accordance with Commission
@@ -828,7 +836,8 @@ acquisition of certificates from CAs or QTSPs is an operational concern outside 
 protocol's scope.
 
 **Future considerations.** Integration with the EU Digital Identity Wallet framework
-(eIDAS 2.0, European Digital Identity Regulation, anticipated 2026-2027) is expected
+(eIDAS 2.0: Regulation (EU) 2024/1183 amending Regulation (EU) No 910/2014, adopted and
+in force) is expected
 to simplify Level 3 adoption by providing a standardised mechanism for presenting
 qualified certificates and verifiable credentials.
 
@@ -1951,18 +1960,18 @@ tests.
   Art. 13 (transparency), Art. 14 (human oversight), Art. 16 (provider obligations),
   Art. 26 (deployer obligations).
 - **EU Regulation 910/2014 (eIDAS)** — Electronic Identification, Authentication
-  and Trust Services. Art. 28 (qualified certificates for electronic seals), Art. 35
+  and Trust Services. Art. 38 (qualified certificates for electronic seals), Art. 35
   (legal effects of qualified electronic seals).
-- **EU Digital Identity Regulation (eIDAS 2.0)** — Proposal for a Regulation amending
-  Regulation 910/2014 (anticipated 2026-2027).
+- **EU Digital Identity Regulation (eIDAS 2.0)** — Regulation (EU) 2024/1183 amending
+  Regulation (EU) No 910/2014; adopted and in force.
 - **ETSI EN 319 412-5** — Electronic Signatures and Infrastructures (ESI); Certificate
   Profiles; Part 5: QCStatements.
 - **Commission Implementing Decision (EU) 2015/1505** — Technical specifications and
   formats relating to trusted lists.
 - **GDPR** — Regulation (EU) 2016/679, Art. 5(1)(f) (integrity and confidentiality),
   Art. 30 (records of processing activities).
-- **MiFID II** — Directive 2014/65/EU. Art. 16(5) (Record-keeping requirements for
-  investment firms using algorithmic trading systems).
+- **MiFID II** — Directive 2014/65/EU. Art. 17(2) (records to be kept by investment
+  firms engaged in algorithmic trading).
 - **DORA** — Regulation (EU) 2022/2554, Digital Operational Resilience Act (incident
   reporting requirements).
 - **ISO 3166-1** — Codes for the representation of names of countries (alpha-2 codes).

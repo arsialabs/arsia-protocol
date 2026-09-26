@@ -173,7 +173,8 @@
       "description": "EU Common Agricultural Policy compliance for agent-assisted CAP operations — subsidy management, paying agency interactions, and conditionality verification.",
       "name": "PAC-AGRICULTURE",
       "regulatory_references": [
-        "EU Regulation 2021/2116 Art. 47",
+        "EU Regulation 2021/2116 Art. 8",
+        "EU Regulation 2021/2116 Art. 9",
         "EU Regulation 2021/2116 Art. 51",
         "EU Regulation 2021/2116 Art. 54",
         "EU Regulation 2021/2116 Art. 59",

@@ -39,7 +39,8 @@ runtime-only vectors, and the declared guarantees still lacking evidence.
 |---|---|---|---|---|
 | C0 | Audit + triage + regulatory verification | `51610ac` (audit baseline) | none (read-only) | closed |
 | C0.5 | Decision-independent verifier repair | `51610ac` (audit baseline; executed on the pre-rewrite `fb5a875`, identical tree) | `260ac73` ("fix: repair decision-independent reference verifiers (step 0.5)") | implemented, closure verification pending |
-| C1 | Remediation tracking artefacts | `63a233b` | this commit | this commit |
+| C1 | Remediation tracking artefacts | `63a233b` | `e77c0ca` ("docs: add Draft-02 remediation ledger and design record") | closed |
+| C2 | Regulatory and standards citation alignment (28 citation defects + A-69) | `e77c0ca` | this commit | implemented; per-item closure in §4, §5 and §9 |
 
 ## 3. Decision register
 
@@ -93,7 +94,7 @@ Rows: 9 (6 DR, 3 OD).
 | A-25 | 1 | CONF | pending | open | Aligned arithmetic; ACTIONS-10-style count assertion for N>1 | pending | — | pending |
 | A-26 | 1 | CONF | pending | open | Aligned CHECK-04 / State §7.4 response shape | pending | — | pending |
 | A-27 | 1 | PART (§7.8 informative) | pending | open | Schema minItems aligned with prose (or relaxed prose); §7.8 scenario validated | pending | — | pending |
-| A-28 | 1 | INT (State qualifies its own claim) | State qualifies its own claim | open | Disposition; State §6.3 opening sentence rewritten via V-14 | pending | regulatory cycle | pending |
+| A-28 | 1 | INT (State qualifies its own claim) | State qualifies its own claim | closed | Disposition; State §6.3 opening sentence rewritten via V-14 | V-14 rewrite of the State §6.3 PSD2 paragraph (§9, row V-14); disposition as recorded | regulatory cycle | C2 |
 | A-29 | 1 | INT | Core's SHOULD reconnect and Routing's MUST back off when reconnecting can both hold; the idle-close MAY does not negate Core's SHOULD. | open | Disposition on modal strength; drift-linter rule | pending | — | pending |
 | A-30 | 1 | PART (all sub-claims hold; "normative" overstated) | pending | open | Per-example schema validation; error-code count aligned | pending | — | pending |
 | A-31 | 1 | INT | Core step 6 selects the signing profile while Routing step (e) is §7.4 negotiation — different operations; Core's pipeline does not order expiry or idempotency; the missing compliance step is an omission, not a contradiction. | open | Disposition marking Routing §1.2.1 step 6 non-normative, or aligned order | pending | — | pending |
@@ -108,16 +109,16 @@ Rows: 9 (6 DR, 3 OD).
 | A-40 | 2 | CONF | pending | open | Generator dry-run validated against v2 schemas; envelope_hash used or documented | pending | — | pending |
 | A-41 | 2 | INT (Core §11.2 defines the mandatory set) | Core §11.2 defines the mandatory set | open | Disposition or aligned pseudocode quote | pending | — | pending |
 | A-42 | 2 | PART (16, not 17, expected-valid) | pending | validator IPC (C0.5); vectors open | 94 skip vectors structurally valid; ITV-545/546 aligned | pending | validator IPC C0.5; vectors open | C0.5 / 260ac73 (validator) |
-| A-43 | 3 | CONF via V-1..V-5 | pending | open | Corrected AI Act citations matched to official text | pending | regulatory cycle | pending |
-| A-44 | 3 | CONF via O-1, V-6..V-9 | pending | open | Corrected MiFID II / 2017/565 citations | pending | regulatory cycle | pending |
-| A-45 | 3 | CONF via V-10, V-11 | pending | open | Corrected DORA citations (Art. 18(1); 2025/301 Art. 5(1)(a) incl. 24 h cap) | pending | regulatory cycle | pending |
-| A-46 | 3 | CONF via V-12..V-14 | pending | open | Corrected PSD2 / RTS 2018/389 citations; State §6.3 SCA sentence | pending | regulatory cycle; A-28 | pending |
-| A-47 | 3 | CONF via V-15..V-17 | pending | open | Corrected GDPR citations; Art. 9(1) enum; DPO contact required | pending | regulatory cycle | pending |
-| A-48 | 3 | PART (T-1 defect; T-2 correct; V-18 defect; O-2 defect) | pending | open | Corrected eIDAS/ETSI citations | pending | regulatory cycle | pending |
-| A-49 | 3 | PART (T-3..T-5 defects; T-6 jti correct) | pending | open | Receiver-check lists aligned with RFC 9449 §4.3; DPoP schema accepts nonce | pending | regulatory cycle | pending |
-| A-50 | 3 | CONF (T-7) | pending | open | Schema rejects all-zero trace_id/span_id; executed vector | pending | — | pending |
-| A-51 | 3 | CONF (T-8) | pending | open | BCP 14 keywords corrected in six sentences; RTM rows re-traced | pending | — | pending |
-| A-52 | 3 | CONF via V-19 (defect), V-20..V-23 (correct), T-9 (EDPB date defect) | pending | open | Corrected CAP citation; EDPB date corrected | pending | regulatory cycle | pending |
+| A-43 | 3 | CONF via V-1..V-5 | pending | closed | Corrected AI Act citations matched to official text | V-1..V-5 corrected and matched to Reg. (EU) 2024/1689 (§9) | regulatory cycle | C2 |
+| A-44 | 3 | CONF via O-1, V-6..V-9 | pending | IPC | Corrected MiFID II / 2017/565 citations | O-1 and V-6..V-9 corrected (§9). Gap: the MiFID II / 2017/565 retention attributions (five-year basis, Art. 16(7) used for general record-keeping) remain uncorrected and are tracked as A-70 | regulatory cycle | C2 |
+| A-45 | 3 | CONF via V-10, V-11 | pending | closed | Corrected DORA citations (Art. 18(1); 2025/301 Art. 5(1)(a) incl. 24 h cap) | V-10, V-11 corrected incl. Del. Reg. (EU) 2025/301 Art. 5(1)(a) 24 h cap (§9) | regulatory cycle | C2 |
+| A-46 | 3 | CONF via V-12..V-14 | pending | closed | Corrected PSD2 / RTS 2018/389 citations; State §6.3 SCA sentence | V-12..V-14 corrected; State §6.3 SCA paragraph rewritten (§9) | regulatory cycle; A-28 | C2 |
+| A-47 | 3 | CONF via V-15..V-17 | pending | closed | Corrected GDPR citations; Art. 9(1) enum; DPO contact required | V-15..V-17 corrected; Art. 9(1) enum complete with mapping; contact point REQUIRED (§9) | regulatory cycle | C2 |
+| A-48 | 3 | PART (T-1 defect; T-2 correct; V-18 defect; O-2 defect) | pending | closed | Corrected eIDAS/ETSI citations | T-1, V-18, O-2 corrected (§9); T-2 verified correct, unchanged | regulatory cycle | C2 |
+| A-49 | 3 | PART (T-3..T-5 defects; T-6 jti correct) | pending | IPC | Receiver-check lists aligned with RFC 9449 §4.3; DPoP schema accepts nonce | T-3, T-4, T-5 corrected; nonce accepted by schema, ITV-580 / INV-45 executed (§9). Gap: Identity §3.3 still omits RFC 9449 §4.3 checks 1-3, 7 and 10; Core §6.3 omits the typ/alg checks | regulatory cycle | C2 |
+| A-50 | 3 | CONF (T-7) | pending | closed | Schema rejects all-zero trace_id/span_id; executed vector | T-7: schema rejects all-zero ids without lookaround; INV-43 / INV-44 executed (§9) | — | C2 |
+| A-51 | 3 | CONF (T-8) | pending | closed | BCP 14 keywords corrected in six sentences; RTM rows re-traced | T-8: six sentences corrected; five RTM rows re-traced MAY → MUST_NOT (§9) | — | C2 |
+| A-52 | 3 | CONF via V-19 (defect), V-20..V-23 (correct), T-9 (EDPB date defect) | pending | closed | Corrected CAP citation; EDPB date corrected | V-19, T-9 corrected (§9); V-20..V-23 verified correct, unchanged | regulatory cycle | C2 |
 | A-53 | 4 | CONF | pending | open | Executed runner for the 74 named tests, or per-test disposition | pending | coverage program | pending |
 | A-54 | 4 | CONF | pending | open | INV-37/38/39 with crypto blocks executed and asserted to fail | pending | coverage program | pending |
 | A-55 | 4 | CONF | pending | open | Executed (token, token_hash) match/mismatch vectors | pending | coverage program | pending |
@@ -134,13 +135,14 @@ Rows: 9 (6 DR, 3 OD).
 | A-66 | 1 | CONF (from C0.5) | pending | open | Assets §3.1.1 explicit-scale exception defined or removed | pending | prose/schema cycle | pending (raised in C0.5) |
 | A-67 | E | CONF (from C0.5) | pending | open | Assets §3.1.1 36-char limit made effective or removed | pending | prose cycle | pending (raised in C0.5) |
 | A-68 | E | CONF (from C0.5) | pending | open | Assets §3.1.1 ISO-code match rule made effective or removed | pending | prose cycle | pending (raised in C0.5) |
-| A-69 | 3 | new (DR-0.2) | per DR-0.2 | open | EU-AI-ACT-HIGH-RISK prose attributes pre-execution approval as profile choice; Art. 14 cited correctly | pending | regulatory cycle | pending |
+| A-69 | 3 | new (DR-0.2) | per DR-0.2 | closed | EU-AI-ACT-HIGH-RISK prose attributes pre-execution approval as profile choice; Art. 14 cited correctly | State §6.2 and the Assets §6.3.1 echo rewritten; every other Art. 14 mention reviewed (§9, row A-69) | regulatory cycle | C2 |
+| A-70 | 3 | new (C2) | pending | open | MIFID-II retention floor (`P1827D`) given a verified legal basis, or the floor and its attributions corrected, across all echoes: Core §4.3.8 Rule 4; Assets §1.1.6, §6.1.2, §6.1.4, §8.2; State §4.1.2, §5.3.2, §6.3, §12.2; profiles catalog MIFID-II `retention_reference` and regulatory references | pending | retention-axis cycle (DR-4) | pending (raised in C2) |
 
-**Counts (this register only, 72 rows).**
-- By class: 1 = 33; 2 = 12; 3 = 12; 4 = 13; E = 2.
-- By triage status: CONF 48; PART 17; INT 6; UNV 0; new 1.
-- By remediation state: open 65; IPC 6; mixed (validator IPC, vectors open) 1; closed 0.
-- By disposition: per DR 10; interpretive justification 6; pending 56.
+**Counts (this register only, 73 rows).**
+- By class: 1 = 33; 2 = 12; 3 = 13; 4 = 13; E = 2.
+- By triage status: CONF 48; PART 17; INT 6; UNV 0; new 2.
+- By remediation state: open 54; IPC 8; mixed (validator IPC, vectors open) 1; closed 10.
+- By disposition: per DR 10; interpretive justification 6; pending 57.
 
 ## 5. Regulatory citation register
 
@@ -153,46 +155,46 @@ Rows: 9 (6 DR, 3 OD).
 
 | Parent | Item | Act and provision | Verdict | Source used | State |
 |---|---|---|---|---|---|
-| A-43 | V-1 | AI Act, Reg. (EU) 2024/1689: Art. 52 cited for limited-risk transparency obligations; the text places them in Art. 50 | DEFECT | EUR-Lex `32024R1689.pdf` | open |
-| A-43 | V-2 | AI Act: Art. 17(1)(d) cited for record-keeping; the text places it in Art. 17(1)(k) | DEFECT | EUR-Lex `32024R1689.pdf` | open |
-| A-43 | V-3 | AI Act: the quotation attributed to Art. 17 occurs nowhere in the Regulation | DEFECT | EUR-Lex `32024R1689.pdf` | open |
-| A-43 | V-4 | AI Act: logging attributed to Art. 17; the text places it in Arts. 12(1) and 19(1) | DEFECT | EUR-Lex `32024R1689.pdf` | open |
-| A-43 | V-5 | AI Act: high-risk provisions "applicable from August 2025"; Art. 113 gives 2 Aug 2026, or 2 Aug 2027 for Art. 6(1) | DEFECT | EUR-Lex `32024R1689.pdf` | open |
-| A-44 | V-6 | Del. Reg. (EU) 2017/565: Art. 76 described as cancellations/modifications; it is the call-recording article, and transactions are in Art. 75 | DEFECT | EUR-Lex `32017R0565.pdf` | open |
-| A-44 | V-7 | Del. Reg. (EU) 2017/565: Art. 73 described as providing records to authorities; it covers firm/client rights and obligations records | DEFECT | EUR-Lex `32017R0565.pdf` | open |
-| A-44 | V-8 | MiFID II, Dir. 2014/65/EU: Art. 16(5) cited for algorithmic-trading records; the text places them in Art. 17 | DEFECT | EUR-Lex `32014L0065.pdf` | open |
-| A-44 | V-9 | MiFID II: Art. 16(6) cited as a 5-year retention requirement; the period is in Art. 16(7) | DEFECT | EUR-Lex `32014L0065.pdf` | open |
-| A-45 | V-10 | DORA, Reg. (EU) 2022/2554: Art. 17(1) cited for the classification criteria; the text places them in Art. 18(1) | DEFECT | EUR-Lex `32022R2554.pdf` | open |
-| A-45 | V-11 | DORA: Art. 19 cited for the 4-hour initial notification; the limit is in Del. Reg. (EU) 2025/301 Art. 5(1)(a), with a 24 h cap | DEFECT | EUR-Lex `32022R2554.pdf`, `32025R0301.pdf` | open |
-| A-46 | V-12 | PSD2, Dir. (EU) 2015/2366: money-exchange registration attributed to PSD2 transposition; Art. 3(f) excludes it | DEFECT | EUR-Lex `32015L2366.pdf` | open |
-| A-46 | V-13 | PSD2: Art. 98 cited for the TRA exemption; the text places it in RTS 2018/389 Art. 18 | DEFECT | EUR-Lex `32015L2366.pdf`, `32018R0389.pdf` | open |
-| A-46 | V-14 | PSD2 Arts. 4(30) and 97: SCA stated to be "satisfied through the human oversight flow" | DEFECT | EUR-Lex `32015L2366.pdf` | open |
-| A-47 | V-15 | GDPR, Reg. (EU) 2016/679: Art. 5(1)(e) labelled "data minimisation"; the text gives that label to Art. 5(1)(c) | DEFECT | EUR-Lex `32016R0679.pdf` | open |
-| A-47 | V-16 | GDPR: special-category enum stated to be "drawn from Art. 9(1)" | DEFECT | EUR-Lex `32016R0679.pdf` | open |
-| A-47 | V-17 | GDPR: DPO/contact point treated as optional against Arts. 33(3)(b) and 34(2) | DEFECT | EUR-Lex `32016R0679.pdf` | open |
-| A-48 | V-18 | eIDAS, Reg. (EU) No 910/2014: Art. 28 cited for seal certificates; the text places them in Art. 38 | DEFECT | EUR-Lex `32014R0910.pdf` | open |
-| A-52 | V-19 | CAP, Reg. (EU) 2021/2116: Art. 47 cited for paying-agency accreditation; the text places it in Arts. 8-9 | DEFECT | EUR-Lex `32021R2116.pdf` | open |
+| A-43 | V-1 | AI Act, Reg. (EU) 2024/1689: Art. 52 cited for limited-risk transparency obligations; the text places them in Art. 50 | DEFECT | EUR-Lex `32024R1689.pdf` | closed (C2) |
+| A-43 | V-2 | AI Act: Art. 17(1)(d) cited for record-keeping; the text places it in Art. 17(1)(k) | DEFECT | EUR-Lex `32024R1689.pdf` | closed (C2) |
+| A-43 | V-3 | AI Act: the quotation attributed to Art. 17 occurs nowhere in the Regulation | DEFECT | EUR-Lex `32024R1689.pdf` | closed (C2) |
+| A-43 | V-4 | AI Act: logging attributed to Art. 17; the text places it in Arts. 12(1) and 19(1) | DEFECT | EUR-Lex `32024R1689.pdf` | closed (C2) |
+| A-43 | V-5 | AI Act: high-risk provisions "applicable from August 2025"; Art. 113 gives 2 Aug 2026, or 2 Aug 2027 for Art. 6(1) | DEFECT | EUR-Lex `32024R1689.pdf` | closed (C2) |
+| A-44 | V-6 | Del. Reg. (EU) 2017/565: Art. 76 described as cancellations/modifications; it is the call-recording article, and transactions are in Art. 75 | DEFECT | EUR-Lex `32017R0565.pdf` | closed (C2) |
+| A-44 | V-7 | Del. Reg. (EU) 2017/565: Art. 73 described as providing records to authorities; it covers firm/client rights and obligations records | DEFECT | EUR-Lex `32017R0565.pdf` | closed (C2) |
+| A-44 | V-8 | MiFID II, Dir. 2014/65/EU: Art. 16(5) cited for algorithmic-trading records; the text places them in Art. 17 | DEFECT | EUR-Lex `32014L0065.pdf` | closed (C2) |
+| A-44 | V-9 | MiFID II: Art. 16(6) cited as a 5-year retention requirement; the period is in Art. 16(7) | DEFECT | EUR-Lex `32014L0065.pdf` | closed (C2) |
+| A-45 | V-10 | DORA, Reg. (EU) 2022/2554: Art. 17(1) cited for the classification criteria; the text places them in Art. 18(1) | DEFECT | EUR-Lex `32022R2554.pdf` | closed (C2) |
+| A-45 | V-11 | DORA: Art. 19 cited for the 4-hour initial notification; the limit is in Del. Reg. (EU) 2025/301 Art. 5(1)(a), with a 24 h cap | DEFECT | EUR-Lex `32022R2554.pdf`, `32025R0301.pdf` | closed (C2) |
+| A-46 | V-12 | PSD2, Dir. (EU) 2015/2366: money-exchange registration attributed to PSD2 transposition; Art. 3(f) excludes it | DEFECT | EUR-Lex `32015L2366.pdf` | closed (C2) |
+| A-46 | V-13 | PSD2: Art. 98 cited for the TRA exemption; the text places it in RTS 2018/389 Art. 18 | DEFECT | EUR-Lex `32015L2366.pdf`, `32018R0389.pdf` | closed (C2) |
+| A-46 | V-14 | PSD2 Arts. 4(30) and 97: SCA stated to be "satisfied through the human oversight flow" | DEFECT | EUR-Lex `32015L2366.pdf` | closed (C2) |
+| A-47 | V-15 | GDPR, Reg. (EU) 2016/679: Art. 5(1)(e) labelled "data minimisation"; the text gives that label to Art. 5(1)(c) | DEFECT | EUR-Lex `32016R0679.pdf` | closed (C2) |
+| A-47 | V-16 | GDPR: special-category enum stated to be "drawn from Art. 9(1)" | DEFECT | EUR-Lex `32016R0679.pdf` | closed (C2) |
+| A-47 | V-17 | GDPR: DPO/contact point treated as optional against Arts. 33(3)(b) and 34(2) | DEFECT | EUR-Lex `32016R0679.pdf` | closed (C2) |
+| A-48 | V-18 | eIDAS, Reg. (EU) No 910/2014: Art. 28 cited for seal certificates; the text places them in Art. 38 | DEFECT | EUR-Lex `32014R0910.pdf` | closed (C2) |
+| A-52 | V-19 | CAP, Reg. (EU) 2021/2116: Art. 47 cited for paying-agency accreditation; the text places it in Arts. 8-9 | DEFECT | EUR-Lex `32021R2116.pdf` | closed (C2) |
 | A-52 | V-20 | Reg. (EU) 2021/2116 Art. 51, access to documents | CORRECT | EUR-Lex `32021R2116.pdf` | open |
 | A-52 | V-21 | Reg. (EU) 2021/2116 Art. 54, annual performance clearance | CORRECT | EUR-Lex `32021R2116.pdf` | open |
 | A-52 | V-22 | Reg. (EU) 2021/2116 Art. 59, protection of the Union's financial interests | CORRECT | EUR-Lex `32021R2116.pdf` | open |
 | A-52 | V-23 | Impl. Reg. (EU) 2022/128 Art. 34, retention periods for supporting documents | CORRECT | EUR-Lex `32022R0128.pdf` | open |
-| A-48 | T-1 | ETSI EN 319 412-5: QcCompliance described as the seal indicator; the seal type is QcType id-etsi-qct-eseal | DEFECT | ETSI EN 319 412-5 (triage) | open |
+| A-48 | T-1 | ETSI EN 319 412-5: QcCompliance described as the seal indicator; the seal type is QcType id-etsi-qct-eseal | DEFECT | ETSI EN 319 412-5 (triage) | closed (C2) |
 | A-48 | T-2 | ETSI EN 319 412-5: "any QcStatements" wording | CORRECT (restrictive reading) | ETSI EN 319 412-5 (triage) | open |
-| A-49 | T-3 | RFC 9449 §4.3: Core receiver checks omit ath | DEFECT | RFC 9449 (triage) | open |
-| A-49 | T-4 | RFC 9449 §4.3: Identity omits typ/alg checks | DEFECT | RFC 9449 (triage) | open |
-| A-49 | T-5 | RFC 9449 §4.2: the schema forbids nonce | DEFECT | RFC 9449 (triage) | open |
+| A-49 | T-3 | RFC 9449 §4.3: Core receiver checks omit ath | DEFECT | RFC 9449 (triage) | closed (C2) |
+| A-49 | T-4 | RFC 9449 §4.3: Identity omits typ/alg checks | DEFECT | RFC 9449 (triage) | closed (C2) |
+| A-49 | T-5 | RFC 9449 §4.2: the schema forbids nonce | DEFECT | RFC 9449 (triage) | closed (C2) |
 | A-49 | T-6 | RFC 9449 §4.3: jti replay as a requirement | CORRECT (not required) | RFC 9449 (triage) | open |
-| A-50 | T-7 | W3C Trace Context: all-zero ids accepted | DEFECT | W3C Trace Context (triage) | open |
-| A-51 | T-8 | BCP 14: MAY used as a prohibition | DEFECT | BCP 14 (triage) | open |
-| A-52 | T-9 | EDPB Guidelines 05/2021 v2.0 dated Feb 2022; the correct date is 14 Feb 2023 | DEFECT | EDPB (triage) | open |
-| A-44 | O-1 | Del. Reg. (EU) 2017/565 labelled "RTS 22"; RTS 22 is 2017/590 | DEFECT | EUR-Lex web page (orchestrator) | open |
-| A-48 | O-2 | eIDAS 2.0 described as a "Proposal … anticipated"; it is Reg. (EU) 2024/1183, in force | DEFECT | EUR-Lex web page (orchestrator) | open |
+| A-50 | T-7 | W3C Trace Context: all-zero ids accepted | DEFECT | W3C Trace Context (triage) | closed (C2) |
+| A-51 | T-8 | BCP 14: MAY used as a prohibition | DEFECT | BCP 14 (triage) | closed (C2) |
+| A-52 | T-9 | EDPB Guidelines 05/2021 v2.0 dated Feb 2022; the correct date is 14 Feb 2023 | DEFECT | EDPB (triage) | closed (C2) |
+| A-44 | O-1 | Del. Reg. (EU) 2017/565 labelled "RTS 22"; RTS 22 is 2017/590 | DEFECT | EUR-Lex web page (orchestrator) | closed (C2) |
+| A-48 | O-2 | eIDAS 2.0 described as a "Proposal … anticipated"; it is Reg. (EU) 2024/1183, in force | DEFECT | EUR-Lex web page (orchestrator) | closed (C2) |
 
 **Totals (this register only, 34 rows).**
 - Defects: 28 (19 V + 7 T + 2 O).
 - Correct: 6 (4 V + 2 T).
 - Unverified: 0.
-- State: open 34.
+- State: closed 28 (all 28 of them defects, corrected in C2); open 6 (the 6 items verified correct, which need no change).
 
 ## 6. Runtime-vector register
 
@@ -362,3 +364,72 @@ error, truncated.
 - **Missing SPDX headers:** `docs/auditoria-spec-draft-01.md` and
   `docs/spec-audit-draft-01.md` lack the CC-BY-SA-4.0 header (follow-up; not
   fixed in C1).
+- **Stale published counts (C2):** the root `README.md`, `CLAUDE.md` and files
+  in `docs/` still state 649 vectors and 1109 MUST+MUST_NOT. After C2 the
+  figures are 653 vectors and 1903 RTM rows / 1114 MUST+MUST_NOT. Only
+  `test-vectors/README.md` was updated in C2, where the `ITV-` prefix count
+  had been 578 against an actual 579 before C2.
+- **AI Act Art. 13 quotation (C2 observation):** State §6.2 (l.2319-2321) quotes
+  Art. 13(1) inside quotation marks, but not verbatim ("the system's output" against the
+  official "a system's output").
+- **W3C Trace Context reference (C2 observation):** Core's
+  `[W3C-TraceContext]` entry cites the February 2020 Recommendation. The
+  current published version is the Recommendation of 23 November 2021.
+- **Identity §6.4.1 step (g) (C2 observation):** it assigns trust level 3 on
+  any QcStatements indicating a qualified certificate and does not check
+  QcType `id-etsi-qct-eseal`, which §6.3 now names (T-2 was verified correct
+  under the restrictive reading).
+- **Breach-notification schema coverage (C2 observation):** no schema-ref
+  vector exercises `arsia-breach-notification.schema.json`. ITV-556/557 are
+  message-only, and the envelope schema does not validate the payload against
+  it. C2 validated both payloads against the breach schema by hand.
+- **RFC 9449 §4.3 residual (C2 observation, tracked in A-49):** Identity
+  §3.3 omits checks 1-3 (single, well-formed DPoP header; required claims),
+  7 (no private key in `jwk`) and 10 (nonce match). Core §6.3 omits the
+  `typ`/`alg` checks.
+- **Art. 14 mentions reviewed under A-69 (C2):** the remaining mentions were
+  reviewed and none attributes per-action pre-execution approval to Art. 14.
+  - Actions l.392 (Art. 14(1), a human in the decision loop);
+  - Actions l.1011-1017 (framed as "the protocol's strongest
+    interpretation");
+  - Core l.1292-1293 (Rule 3, DR-3 scope);
+  - Identity l.1332 (CHECK-03, signalling per gateway policy);
+  - State l.2552 (limited-risk contrast).
+
+## 9. C2 closure evidence
+
+Spec locations are line numbers in the C2 commit. Official excerpts are
+verbatim from the source named; `…` marks an omission.
+
+| Item | Corrected text (location) | Official provision and excerpt | Source | State |
+|---|---|---|---|---|
+| V-1 | Actions l.957, l.2521: Art. 50 | Reg. (EU) 2024/1689 Art. 50 heading: "Transparency obligations for providers and deployers of certain AI systems" | EUR-Lex `32024R1689.pdf` | closed |
+| V-2 | Actions l.1651-1653, l.2517: Art. 17(1)(k) | Art. 17(1)(k): "systems and procedures for record-keeping of all relevant documentation and information" | EUR-Lex `32024R1689.pdf` | closed |
+| V-3 | State l.2339-2341: verbatim Art. 17(1)(k) quotation | Art. 17(1)(k), as above | EUR-Lex `32024R1689.pdf` | closed |
+| V-4 | Core l.172-175; Actions l.994-997; State l.2345-2349: logging moved to Arts. 12(1) and 19(1) | Art. 12(1): "High-risk AI systems shall technically allow for the automatic recording of events (logs) over the lifetime of the system." Art. 19(1): "Providers of high-risk AI systems shall keep the logs referred to in Article 12(1)" | EUR-Lex `32024R1689.pdf` | closed |
+| V-5 | Core l.250-253: application dates | Art. 113: "It shall apply from 2 August 2026." (b) "Chapter III Section 4 … shall apply from 2 August 2025"; (c) "Article 6(1) and the corresponding obligations in this Regulation shall apply from 2 August 2027." | EUR-Lex `32024R1689.pdf` | closed |
+| A-69 | State l.2327-2335 (§6.2); Assets l.2276-2282 (§6.3.1): pre-execution / per-operation approval stated as the profile's technical choice | Art. 14(3): "commensurate with the risks, level of autonomy and context of use of the high-risk AI system"; Art. 14(4)(d): "to decide, in any particular situation, not to use the high-risk AI system or to otherwise disregard, override or reverse the output of the high-risk AI system" | EUR-Lex `32024R1689.pdf` | closed |
+| V-6 | Assets l.153-156 (Art. 75 + Annex IV §2 pt 37); l.2755 (Art. 76 heading) | Annex IV, Section 2, point 37: "Each placed order's sequences in order to reflect the chronology of every event affecting it, including but not limited to modifications, cancellations and execution"; Art. 76 heading: "Recording of telephone conversations or electronic communications" | EUR-Lex `32017R0565.pdf` | closed |
+| V-7 | Assets l.2008-2011 (Art. 72(1)(a)); l.2751 (Art. 73 heading) | Art. 72(1)(a): "the competent authority is able to access them readily and to reconstitute each key stage of the processing of each transaction"; Art. 73 heading: "Record keeping of rights and obligations of the investment firm and the client" | EUR-Lex `32017R0565.pdf` | closed |
+| V-8 | Identity l.1973-1974: Art. 17(2) | Dir. 2014/65/EU Art. 17(2): "The investment firm shall arrange for records to be kept in relation to the matters referred to in this paragraph" | EUR-Lex `32014L0065.pdf` | closed |
+| V-9 | Routing l.2396-2398: Art. 16(6) and Art. 16(7) described separately | Art. 16(6): "records to be kept of all services, activities and transactions undertaken by it"; Art. 16(7): "shall be kept for a period of five years and, where requested by the competent authority, for a period of up to seven years" | EUR-Lex `32014L0065.pdf` | closed |
+| O-1 | Assets l.190, l.194, l.2745; State l.3711: "RTS 22" label removed from 2017/565 | RTS 22 is Del. Reg. (EU) 2017/590 (ledger O-1) | EUR-Lex web page (orchestrator); no local file | closed |
+| V-10 | Assets l.2090-2095; `arsia-dora-incident.schema.json` description: Art. 18(1) | Reg. (EU) 2022/2554 Art. 18(1): "Financial entities shall classify ICT-related incidents and shall determine their impact based on the following criteria" | EUR-Lex `32022R2554.pdf` | closed |
+| V-11 | State l.2683-2689, l.2703-2706, l.2718-2719; reference entry l.3718 | Art. 19(4): "within the time limits to be laid down in accordance with Article 20"; Del. Reg. (EU) 2025/301 Art. 5(1)(a): "within four hours from the classification of the ICT-related incident as a major ICT-related incident and no later than 24 hours from the moment the financial entity has become aware of the ICT-related incident" | EUR-Lex `32022R2554.pdf`, `32025R0301.pdf` | closed |
+| V-12 | Assets l.299-300: PSD2 licence attribution removed; no substitute claim | Dir. (EU) 2015/2366 Art. 3(f): "cash-to-cash currency exchange operations where the funds are not held on a payment account" | EUR-Lex `32015L2366.pdf` | closed |
+| V-13 | Assets l.2333-2336, l.2352, l.2780; RTM ASSETS-§6.3.2-02 | Del. Reg. (EU) 2018/389 Art. 18(1): "Payment service providers shall be allowed not to apply strong customer authentication where the payer initiates a remote electronic payment transaction identified … as posing a low level of risk"; PSD2 Art. 98(1)(b): "the exemptions from the application of Article 97(1), (2) and (3)" | EUR-Lex `32018R0389.pdf`, `32015L2366.pdf` | closed |
+| V-14 | State l.2415-2423 (§6.3): SCA applied by the PSP to the payer; the oversight flow is not SCA (also closes A-28) | PSD2 Art. 97(1): "a payment service provider applies strong customer authentication where the payer"; Art. 4(30): "two or more elements categorised as knowledge … possession … and inherence" | EUR-Lex `32015L2366.pdf` | closed |
+| V-15 | Core l.3706-3707: storage-limitation principle | Reg. (EU) 2016/679 Art. 5(1)(e): "kept in a form which permits identification of data subjects for no longer than is necessary" | EUR-Lex `32016R0679.pdf` | closed |
+| V-16 | State l.700-718 (§2.1.11 values and mapping table); enums in `arsia-state-entry`, `arsia-state-operations` and `arsia-audit-record` gain `philosophical` and `sex_life` | Art. 9(1): "religious or philosophical beliefs … data concerning a natural person's sex life or sexual orientation" | EUR-Lex `32016R0679.pdf` | closed |
+| V-17 | State l.2207-2220 (§5.7); `arsia-breach-notification.schema.json` (contact point REQUIRED; points (b)/(c)/(d) corrected); RTM STATE-§5.7-02/-03; ITV-557 | Art. 33(3)(b): "communicate the name and contact details of the data protection officer or other contact point where more information can be obtained"; Art. 34(2): "at least the information and measures referred to in points (b), (c) and (d) of Article 33(3)" | EUR-Lex `32016R0679.pdf` | closed |
+| V-18 | Identity l.1963: Art. 38 | Reg. (EU) No 910/2014 Art. 38 heading: "Qualified certificates for electronic seals" | EUR-Lex `32014R0910.pdf` | closed |
+| O-2 | Identity l.839-840, l.1965-1966: Reg. (EU) 2024/1183, adopted and in force; "anticipated 2026-2027" removed | Reg. (EU) 2024/1183 in force (ledger O-2) | EUR-Lex web page (orchestrator); no local file | closed |
+| T-1 | Identity l.806-812 (§6.3); RTM IDENT-§6.3-01; ITV-02 description | ETSI EN 319 412-5 V2.6.1, clause 4.2.3: "id-etsi-qct-eseal … -- Certificate for electronic seals as defined in Regulation (EU) No 910/2014"; clause 4.2.1 Table 1, QcType "Absent": "The certificate is issued for electronic signatures" | etsi.org, EN 319 412-5 V2.6.1 (2026-05) | closed |
+| T-3 | Core l.2009-2010 (§6.3): `ath` receiver check | RFC 9449 §4.3, check 12: "ensure that the value of the ath claim equals the hash of that access token" | rfc-editor.org RFC 9449 | closed |
+| T-4 | Identity l.523-526 (§3.3, steps 1-2) | RFC 9449 §4.3, checks 4-5: "The typ JOSE Header Parameter has the value dpop+jwt."; "The alg JOSE Header Parameter indicates a registered asymmetric digital signature algorithm" | rfc-editor.org RFC 9449 | closed |
+| T-5 | `arsia-dpop-proof.schema.json`: optional `nonce` (1*NQCHAR); ITV-580 valid, INV-45 invalid, both executed | RFC 9449 §4.2: "the DPoP proof MUST also contain the following claim: nonce"; §8.1: "nonce = 1*NQCHAR"; RFC 6749 App. A: "NQCHAR = %x21 / %x23-5B / %x5D-7E" | rfc-editor.org RFC 9449, RFC 6749 | closed |
+| T-7 | `arsia-message.schema.json` trace_id/span_id: `not`/`const` all-zero, no lookaround; Core l.887-898; RTM CORE-§4.3.3-02/03; INV-43/44 executed. The patterns compile in Go `regexp` (RE2) and ripgrep (Rust `regex`), and a lookaround control is rejected by both. | W3C Trace Context §3.2.2.3: "All bytes as zero (00000000000000000000000000000000) is considered an invalid value."; §3.2.2.4: "All bytes as zero (0000000000000000) is considered an invalid value." | w3.org, Trace Context REC 23 Nov 2021 | closed |
+| T-8 | Core l.585-586; State l.168-169, l.221-224, l.345-346, l.1608-1609; Assets l.1497-1498; RTM CORE-§3.3-08, STATE-§1.1-05, STATE-§1.2-02, STATE-§1.4-03, STATE-§3.3.2-04 moved MAY → MUST_NOT | RFC 2119 §2: MUST NOT "mean that the definition is an absolute prohibition of the specification"; §5: MAY "mean that an item is truly optional" | rfc-editor.org RFC 2119, RFC 8174 | closed |
+| T-9 | Routing l.2389: "Version 2.0, adopted 14 February 2023" | EDPB Guidelines 05/2021 v2 PDF: "Version 2.0 14 02 2023 Adoption of the Guidelines after public consultation" | edpb.europa.eu (PDF) | closed |
+| V-19 | State l.2469-2475 (§6.4); profiles catalog PAC-AGRICULTURE references: Arts. 8 and 9 | Reg. (EU) 2021/2116 Art. 8(1)(a): "the issuing, reviewing and withdrawing of accreditation of paying agencies"; Art. 9(2): "sufficient guarantees that payments are legal, regular and properly accounted for" | EUR-Lex `32021R2116.pdf` | closed |
+| A-70 (verification) | State l.2395-2400: the fabricated Art. 72 quotation replaced by what Art. 72 provides. The floor and its echoes are unchanged (A-70). | Searched (whitespace-insensitive, local PDFs): Del. Reg. (EU) 2017/565 Arts. 72-76 and Annexes I and IV; Dir. 2014/65/EU Art. 16(6)-(7). Art. 72 sets no period. The only five-year periods found are Art. 76(8) (a copy of recordings "available on request for a period of five years") and Art. 16(7) (communications records "kept for a period of five years"). Other acts (e.g. Reg. (EU) No 600/2014) were not consulted, since they are not among the supplied sources. | EUR-Lex `32017R0565.pdf`, `32014L0065.pdf` | open (A-70) |

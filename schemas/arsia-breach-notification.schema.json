@@ -10,6 +10,7 @@
     "breach_id",
     "nature_of_breach",
     "awareness_timestamp",
+    "dpo_contact",
     "likely_consequences",
     "measures_taken"
   ],
@@ -73,19 +74,19 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2048,
-      "description": "Description of the likely consequences of the breach. Per Art. 33(3)(b) and Art. 34(2)."
+      "description": "Description of the likely consequences of the breach. Per Art. 33(3)(c) and Art. 34(2)."
     },
     "measures_taken": {
       "type": "string",
       "minLength": 1,
       "maxLength": 2048,
-      "description": "Description of the measures taken or proposed to address the breach, including measures to mitigate possible adverse effects. Per Art. 33(3)(c)/(d) and Art. 34(2)."
+      "description": "Description of the measures taken or proposed to address the breach, including measures to mitigate possible adverse effects. Per Art. 33(3)(d) and Art. 34(2)."
     },
     "dpo_contact": {
       "type": "string",
       "minLength": 1,
       "maxLength": 512,
-      "description": "Name and contact details of the data protection officer or other contact point. SHOULD be present for supervisory_authority notifications. Per Art. 33(3)(b)."
+      "description": "Name and contact details of the data protection officer or other contact point where more information can be obtained. REQUIRED for both notification targets: Art. 33(3)(b) makes it part of the minimum notification to the supervisory authority, and Art. 34(2) requires the communication to the data subject to contain at least the information in points (b), (c) and (d) of Art. 33(3). Per ARSIA-State.md §5.7."
     },
     "remediation_advice": {
       "type": "string",

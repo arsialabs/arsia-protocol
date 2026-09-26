@@ -353,7 +353,9 @@
           "racial_ethnic",
           "political",
           "religious",
+          "philosophical",
           "trade_union",
+          "sex_life",
           "sexual_orientation"
         ]
       },

@@ -581,11 +581,19 @@
       "properties": {
         "trace_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{32}$"
+          "pattern": "^[0-9a-f]{32}$",
+          "not": {
+            "const": "00000000000000000000000000000000"
+          },
+          "description": "W3C Trace Context trace-id: 32 lowercase hex characters; the all-zero value is invalid. ARSIA-Core.md §4.3.3."
         },
         "span_id": {
           "type": "string",
-          "pattern": "^[0-9a-f]{16}$"
+          "pattern": "^[0-9a-f]{16}$",
+          "not": {
+            "const": "0000000000000000"
+          },
+          "description": "W3C Trace Context parent-id (span id): 16 lowercase hex characters; the all-zero value is invalid. ARSIA-Core.md §4.3.3."
         },
         "flags": {
           "type": "integer",

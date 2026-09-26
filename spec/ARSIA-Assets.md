@@ -150,8 +150,10 @@ Requests reversal of a previously completed transfer.
 
 **Rationale.** Reversals are a MiFID II audit requirement — the chain of events must be
 traceable from the original transfer through the reversal request to the reversal
-outcome. Commission Delegated Regulation (EU) 2017/565, Article 76, requires firms to
-maintain records of all transactions including cancellations and modifications. A
+outcome. Commission Delegated Regulation (EU) 2017/565, Article 75, requires firms to
+record the details of transactions and order processing set out in Section 2 of
+Annex IV, including each placed order's sequence of events such as modifications,
+cancellations and execution (Annex IV, Section 2, point 37). A
 standardised reversal message ensures that the reversal event is captured in the same
 audit trail as the original transfer, regardless of which payment provider executed
 the reversal.
@@ -185,11 +187,11 @@ Defines what MUST be logged for every financial operation.
 
 **Rationale.** This is the primary value proposition of ARSIA in financial services.
 MiFID II Article 16(7), as implemented through Commission Delegated Regulation (EU)
-2017/565, Articles 72-76 (commonly referred to as RTS 22), requires investment firms to
+2017/565, Articles 72-76, requires investment firms to
 retain records of all services, activities, and transactions sufficient to enable
 competent authorities to fulfil their supervisory tasks. The audit trail format
 defined in this specification maps ARSIA protocol fields to the specific data points
-required by RTS 22, ensuring that firms can satisfy their record-keeping obligations
+required by those Articles, ensuring that firms can satisfy their record-keeping obligations
 through protocol-level audit records without additional instrumentation.
 
 #### 1.1.7 DORA Incident Reporting Hooks
@@ -294,9 +296,8 @@ mappings once MiCA implementation is mature.
 Foreign exchange (FX) operations — converting one currency to another as part of a
 transfer.
 
-**Excluded because:** FX operations require specific licences (money exchange office
-registration under national transpositions of PSD2), access to real-time market data
-feeds, and execution against FX counterparties. These are provider-level concerns. An
+**Excluded because:** FX operations require access to real-time market data feeds and
+execution against FX counterparties. These are provider-level concerns. An
 ARSIA agent that needs to transfer value across currencies MUST delegate the conversion
 to a licensed FX provider and record two separate AssetTransferReceipt messages: one for
 the debit in the source currency and one for the credit in the target currency. This
@@ -1493,9 +1494,9 @@ The cancellation message's `payload.args` MUST include:
    `cancellation_reason` field.
 4. The escrow transitions to the `RETURNED` terminal state.
 
-**Access control.** Only the `from_agent` (the original payer who created the escrow)
-MAY cancel an escrow. The escrow holder MUST verify that the sender of the cancellation
-message matches the `from_agent` of the original AssetTransferRequest. Cancellation
+**Access control.** An agent other than the `from_agent` (the original payer who
+created the escrow) MUST NOT cancel an escrow. The escrow holder MUST verify that the
+sender of the cancellation message matches the `from_agent` of the original AssetTransferRequest. Cancellation
 requests from other agents MUST be rejected with error code `"forbidden"`.
 
 ### 4.3 Escrow Audit Trail
@@ -2005,8 +2006,9 @@ MiFID II audit records MUST be queryable by the following fields:
 
 These query capabilities ensure that competent authorities can retrieve records for
 supervisory purposes as required by MiFID II Article 16(7) and Commission Delegated
-Regulation (EU) 2017/565, Article 73 (obligation to provide records to competent
-authorities on request).
+Regulation (EU) 2017/565, Article 72(1)(a) (records retained so that the competent
+authority is able to access them readily and to reconstitute each key stage of the
+processing of each transaction).
 
 The query interface format is defined in ARSIA-State.md §7.
 Implementations MUST support at minimum the query fields listed above for MiFID II
@@ -2085,11 +2087,12 @@ NOT, by itself, an incident candidate unless the operator's policy says so.
 - **REQUIRED.**
 - **Allowed values:** `"provider_unavailable"`, `"network_failure"`,
   `"database_failure"`, `"broker_failure"`, `"tls_failure"`, `"unknown"`
-- **Constraints:** Classifies the nature of the ICT-related incident per DORA
-  Article 17(1), which requires financial entities to "classify ICT-related incidents
-  and determine their impact on the basis of criteria including the number of clients
-  affected, the duration of the incident, the geographical spread, the data losses,
-  the criticality of the services affected, and the economic impact."
+- **Constraints:** Classifies the nature of the ICT-related incident in support of
+  DORA Article 18(1), which provides: "Financial entities shall classify ICT-related
+  incidents and shall determine their impact based on the following criteria". The
+  criteria are the number and/or relevance of clients or financial counterparts
+  affected, the duration, the geographical spread, the data losses, the criticality of
+  the services affected, and the economic impact.
 
 ##### `affected_service`
 
@@ -2271,8 +2274,12 @@ implementation-defined, but the key MUST NOT be extractable in plaintext.
 
 **Applicability.** Option A is RECOMMENDED for human-in-the-loop flows where a natural
 person reviews and approves each financial operation. This is the typical pattern for
-MiFID II-regulated operations where human oversight is already required by EU AI Act
-Article 14.
+MiFID II-regulated operations where the applicable compliance profile requires human
+approval of each operation. Per-operation approval is the profile's technical choice,
+not a literal requirement of EU AI Act Article 14, which requires oversight measures
+commensurate with the risks, level of autonomy and context of use of a high-risk AI
+system (Article 14(3)) and enabling the assigned natural persons to decide not to use,
+or to disregard, override or reverse, its output (Article 14(4)(d)).
 
 **Limitations.** Option A does not provide an inherence factor. PSD2 Article 97(1)
 requires "two or more" elements from the three categories — it does not require all
@@ -2323,8 +2330,10 @@ DPoP proof accompanying the token proves possession of the corresponding private
 
 **Applicability.** Option B is RECOMMENDED for automated flows that require SCA but
 cannot include human-in-the-loop approval for each transaction. Implementations using
-Option B SHOULD implement transaction risk analysis (TRA) per PSD2 Article 98 to
-determine when full SCA is required versus when TRA exemptions apply.
+Option B SHOULD implement transaction risk analysis (TRA) per Article 18 of Commission
+Delegated Regulation (EU) 2018/389 (the regulatory technical standards mandated by
+PSD2 Article 98) to determine when full SCA is required versus when TRA exemptions
+apply.
 
 **Limitations.** Option B requires hardware security infrastructure (FIDO2 authenticators,
 HSMs, or TPMs). Implementations without hardware-bound keys MUST use Option A.
@@ -2340,7 +2349,7 @@ exemptions are relevant to agent-assisted financial operations:
 | Low-value transactions     | Amount ≤ EUR 30 (cumulative ≤ EUR 100)             | risk_level < 7 → SCA not required                   |
 | Trusted beneficiaries      | Payee is on the payer's trusted beneficiary list   | Implementation-defined trust list at the AS          |
 | Recurring transactions     | Same amount, same payee, same frequency            | Idempotency key pattern + AS policy                  |
-| Transaction risk analysis  | Low-risk based on TRA per Art. 98                  | Risk assessment at Step 2 of §5.2 returns < 7       |
+| Transaction risk analysis  | Low-risk based on TRA per RTS Art. 18              | Risk assessment at Step 2 of §5.2 returns < 7       |
 
 When an SCA exemption applies, the transfer MAY proceed without the two-party
 authorisation flow (§5.2). The exemption MUST be recorded in the audit trail with the
@@ -2733,16 +2742,17 @@ markets in financial instruments and amending Directive 2002/92/EC and Directive
 2011/61/EU (recast). OJ L 173, 12.6.2014, p. 349–496.
 - Article 16(7): Record-keeping obligations for investment firms.
 
-**[MiFID II RTS 22]**
+**[MiFID II Delegated Regulation]**
 Commission Delegated Regulation (EU) 2017/565 of 25 April 2016 supplementing Directive
 2014/65/EU of the European Parliament and of the Council as regards organisational
 requirements and operating conditions for investment firms and defined terms for the
 purposes of that Directive. OJ L 87, 31.3.2017, p. 1–83.
 - Article 72: General record-keeping requirements.
-- Article 73: Obligation to provide records to competent authorities.
+- Article 73: Record keeping of rights and obligations of the investment firm and the
+  client.
 - Article 74: Record of client orders and decisions to deal.
 - Article 75: Record of transactions and order processing.
-- Article 76: Record of cancellations and modifications.
+- Article 76: Recording of telephone conversations or electronic communications.
 
 **[DORA]**
 Regulation (EU) 2022/2554 of the European Parliament and of the Council of 14 December
@@ -2767,6 +2777,7 @@ Commission Delegated Regulation (EU) 2018/389 of 27 November 2017 supplementing
 Directive (EU) 2015/2366 of the European Parliament and of the Council with regard to
 regulatory technical standards for strong customer authentication and common and secure
 open standards of communication. OJ L 69, 13.3.2018, p. 23–43.
+- Article 18: Transaction risk analysis.
 
 **[EMD2]**
 Directive 2009/110/EC of the European Parliament and of the Council of 16 September 2009

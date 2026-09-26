@@ -45,7 +45,7 @@
             "tls_failure",
             "unknown"
           ],
-          "description": "Classifies the nature of the ICT-related incident per DORA Article 17(1). Infrastructure failures only — business logic failures do not trigger DORA incidents (§6.2.1). Per ARSIA-Assets.md §6.2.2."
+          "description": "Classifies the nature of the ICT-related incident in support of the classification required by DORA Article 18(1). Infrastructure failures only — business logic failures do not trigger DORA incidents (§6.2.1). Per ARSIA-Assets.md §6.2.2."
         },
         "affected_service": {
           "allOf": [

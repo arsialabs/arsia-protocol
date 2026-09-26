@@ -26,7 +26,7 @@
 | CORE-§3.3-05 | 3.3 | SHOULD | sdk | interoperability | Implementations SHOULD use lowercase agent identifiers to avoid confusion | arsia-message | ITV-430 |
 | CORE-§3.3-06 | 3.3 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT normalise case when comparing agent identifiers | — | — |
 | CORE-§3.3-07 | 3.3 | MUST | sdk | structural | The agent: prefix MUST be present in all contexts — envelope fields, token claims, discovery, and errors | arsia-message | INV-04 |
-| CORE-§3.3-08 | 3.3 | MAY | sdk | structural | Neither org-segment nor any sub-segment MAY begin or end with a hyphen | arsia-message | — |
+| CORE-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | The org-segment and each sub-segment MUST NOT begin or end with a hyphen | arsia-message | — |
 | CORE-§3.3-09 | 3.3 | MUST_NOT | sdk | structural | Agent ID resource-segment, if present, MUST NOT be empty (no trailing slash) | arsia-message | — |
 | CORE-§3.3-10 | 3.3 | MAY | sdk | informational | Implementations MAY use the specified regex for agent identifier validation | — | — |
 | CORE-§4.1-01 | 4.1 | MUST | sdk | structural | Every ARSIA envelope MUST include v, id, ts, from, to, and intent fields | arsia-message | INV-01 |
@@ -76,8 +76,8 @@
 | CORE-§4.3.2-06 | 4.3.2 | MAY | sdk | behavioural_positive | Server MAY discard idempotency record after idempotency.expires_at timestamp | — | — |
 | CORE-§4.3.2-07 | 4.3.2 | MUST | sdk | structural | idempotency.expires_at MUST be strictly greater than the message ts | — | ITV-414 |
 | CORE-§4.3.3-01 | 4.3.3 | OPTIONAL | sdk | structural | All fields within the context object (trace_id, span_id, flags, locale, priority) are OPTIONAL | arsia-message | ITV-66 |
-| CORE-§4.3.3-02 | 4.3.3 | MUST | sdk | structural | context.trace_id MUST be a 32-char lowercase hex string (W3C 128-bit trace ID) | arsia-message | ITV-24 |
-| CORE-§4.3.3-03 | 4.3.3 | MUST | sdk | structural | context.span_id MUST be a 16-char lowercase hex string (W3C 64-bit span ID) | arsia-message | ITV-25 |
+| CORE-§4.3.3-02 | 4.3.3 | MUST | sdk | structural | context.trace_id MUST be a 32-char lowercase hex string (W3C 128-bit trace ID) and MUST NOT be the all-zero value | arsia-message | ITV-24, INV-43 |
+| CORE-§4.3.3-03 | 4.3.3 | MUST | sdk | structural | context.span_id MUST be a 16-char lowercase hex string (W3C 64-bit span ID) and MUST NOT be the all-zero value | arsia-message | ITV-25, INV-44 |
 | CORE-§4.3.3-04 | 4.3.3 | MUST | sdk | structural | context.flags MUST be an integer 0–255 (8-bit W3C trace flags) | arsia-message | ITV-26 |
 | CORE-§4.3.3-05 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.locale to select error/output language | — | — |
 | CORE-§4.3.3-06 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.priority for queue ordering without guarantee | — | ITV-27 |

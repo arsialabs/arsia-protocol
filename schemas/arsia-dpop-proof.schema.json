@@ -36,6 +36,11 @@
       "minLength": 43,
       "maxLength": 43,
       "description": "Base64url-encoded SHA-256 hash of the access token. Binds the DPoP proof to a specific access token. ARSIA-Core.md §6.3, RFC 9449 §4.2."
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$",
+      "description": "Server-provided nonce. MUST be present when the server has supplied a nonce via the DPoP-Nonce HTTP header (RFC 9449 §4.2, §8). Syntax: nonce = 1*NQCHAR (RFC 9449 §8.1; NQCHAR per RFC 6749 Appendix A)."
     }
   },
   "required": [

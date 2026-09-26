@@ -110,7 +110,7 @@
 | IDENT-§6.2-08 | 6.2 | OPTIONAL | sdk | informational | Extended Key Usage id-kp-serverAuth is OPTIONAL in leaf certificates | — | — |
 | IDENT-§6.2-09 | 6.2 | SHOULD_NOT | sdk | informational | Implementations SHOULD NOT require id-kp-serverAuth Extended Key Usage | — | — |
 | IDENT-§6.2-10 | 6.2 | MUST | sdk | behavioural_positive | Raw 32-byte certificate public key MUST equal the base64url-decoded JWKS x field value | — | ITV-463 |
-| IDENT-§6.3-01 | 6.3 | MUST | external | structural | Level 3 leaf certificate MUST include QcStatements extension per ETSI EN 319 412-5 | — | ITV-02 |
+| IDENT-§6.3-01 | 6.3 | MUST | external | structural | Level 3 leaf certificate MUST include QcStatements extension per ETSI EN 319 412-5 with id-etsi-qcs-QcCompliance (clause 4.2.1) and id-etsi-qcs-QcType id-etsi-qct-eseal (clause 4.2.3) | — | ITV-02 |
 | IDENT-§6.3-02 | 6.3 | MUST | external | behavioural_positive | Level 3 issuing CA MUST be a QTSP listed on a Member State Trusted List | — | ITV-02 |
 | IDENT-§6.3-03 | 6.3 | MUST | external | behavioural_positive | Level 3 owner_id MUST be verifiable against official registers (VIES for VAT, GLEIF for LEI) | — | ITV-02 |
 | IDENT-§6.4.1-01 | 6.4.1 | MUST | sdk | procedural | Verifier MUST execute the step-by-step verification procedure for every peer message | — | — |

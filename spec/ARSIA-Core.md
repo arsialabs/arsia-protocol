@@ -169,10 +169,12 @@ operation is sufficiently transparent to enable deployers to interpret the syste
 output and use it appropriately. Article 14 requires human oversight measures,
 stipulating that high-risk AI systems shall be designed and developed in such a way
 that they can be effectively overseen by natural persons during the period in which
-they are in use. Article 17 mandates a quality management system that includes
-procedures for record-keeping and documentation, including logging of agent decisions
-and actions. Article 26 places obligations on deployers of high-risk AI systems,
-requiring them to implement appropriate technical and organisational measures to
+they are in use. Article 17 mandates a quality management system that includes, in
+Article 17(1)(k), systems and procedures for record-keeping of all relevant
+documentation and information. The automatic recording of events (logs) is required by
+Article 12(1), and providers keep those logs under Article 19(1). Article 26 places
+obligations on deployers of high-risk AI systems, requiring them to implement
+appropriate technical and organisational measures to
 ensure that high-risk AI systems are used in accordance with their instructions for
 use, including monitoring and logging.
 
@@ -245,8 +247,10 @@ regulatory obligations at the protocol level. Application-level compliance is on
 good as the weakest agent in a multi-agent interaction — a single non-compliant agent
 breaks the audit chain and creates systemic risk for every participant.
 
-The EU AI Act entered into force in August 2024, with high-risk provisions applicable
-from August 2025. GDPR has been enforced since May 2018. MiFID II has been enforced
+The EU AI Act entered into force in August 2024 and applies from 2 August 2026
+(Article 113). Chapter III Section 4 (notifying authorities and notified bodies)
+applies from 2 August 2025, and Article 6(1) with its corresponding obligations from
+2 August 2027. GDPR has been enforced since May 2018. MiFID II has been enforced
 since January 2018. European enterprises cannot deploy autonomous AI agents without
 satisfying these regulations. A protocol that ignores them is a protocol that cannot be
 adopted in the European Union's €16 trillion economy — the world's second-largest
@@ -578,7 +582,7 @@ The following rules govern ARSIA agent identifiers:
    after the `agent:` prefix. No whitespace, no Unicode characters outside the ASCII
    range.
 
-7. **Segment restrictions.** Neither the org-segment nor any sub-segment MAY begin or
+7. **Segment restrictions.** The org-segment and each sub-segment MUST NOT begin or
    end with a hyphen. The resource-segment, if present, MUST NOT be empty (i.e., a
    trailing slash with no following characters is invalid).
 
@@ -882,13 +886,16 @@ When present, they MUST conform to the formats and constraints defined below.
 
   - **`trace_id`** (string): A trace identifier conforming to the W3C Trace Context
     specification [W3C-TraceContext]. The value MUST be a 32-character lowercase
-    hexadecimal string representing a 128-bit trace identifier.
-    Pattern: `^[0-9a-f]{32}$`
+    hexadecimal string representing a 128-bit trace identifier. The all-zero value
+    (`00000000000000000000000000000000`) is invalid in W3C Trace Context and MUST NOT
+    be used.
+    Pattern: `^[0-9a-f]{32}$`, excluding the all-zero value.
 
   - **`span_id`** (string): A span identifier conforming to the W3C Trace Context
     specification. The value MUST be a 16-character lowercase hexadecimal string
-    representing a 64-bit span identifier.
-    Pattern: `^[0-9a-f]{16}$`
+    representing a 64-bit span identifier. The all-zero value (`0000000000000000`) is
+    invalid in W3C Trace Context and MUST NOT be used.
+    Pattern: `^[0-9a-f]{16}$`, excluding the all-zero value.
 
   - **`flags`** (integer): Trace flags as defined in W3C Trace Context. The value
     MUST be an integer between 0 and 255 (inclusive), representing an 8-bit field.
@@ -1999,6 +2006,8 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs...
    - The DPoP proof JWT signature.
    - The `jkt` in the token's `cnf` claim matches the DPoP proof's signing key.
    - The `htm` and `htu` claims in the DPoP proof match the HTTP method and URL.
+   - The `ath` claim equals the base64url-encoded SHA-256 hash of the access token
+     presented with the proof ([RFC 9449] §4.3).
    - The `iat` claim is within the clock skew tolerance (±300 seconds).
    - The `jti` claim has not been seen before (replay protection).
 
@@ -3694,8 +3703,8 @@ The ARSIA protocol incorporates the following privacy protections:
 
 4. **Audit log retention is governed by compliance profiles.** The
    `compliance.retention` field (§4.3.6) explicitly controls how long audit
-   records are retained. This allows agents to comply with data minimisation
-   requirements (GDPR Article 5(1)(e)) while meeting sector-specific retention
+   records are retained. This allows agents to comply with the storage-limitation
+   principle (GDPR Article 5(1)(e)) while meeting sector-specific retention
    obligations.
 
 5. **PII flag.** The `compliance.pii_involved` field (§4.3.6) allows messages to

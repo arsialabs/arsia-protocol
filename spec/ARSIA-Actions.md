@@ -954,7 +954,7 @@ Actions in this range have moderate impact but do not approach the high-risk thr
 | `human_oversight_required` | MAY be false   | Oversight is optional at this level.     |
 | `explainability_required`  | MAY be true    | Transparency aids trust but is optional. |
 
-**EU AI Act mapping:** Limited risk — transparency obligations apply per Article 52.
+**EU AI Act mapping:** Limited risk — transparency obligations apply per Article 50.
 Agents SHOULD inform counterparties that they are interacting with an AI system.
 Actions that modify non-critical data, send non-binding notifications, or produce
 advisory outputs typically fall in this range.
@@ -991,9 +991,10 @@ EU AI Act obligations for high-risk AI systems.
 apply: the AI system must be designed such that it can be effectively overseen by
 natural persons during the period in which it is in use. Article 13 transparency
 obligations apply: the system's operation must be sufficiently transparent to enable
-deployers to interpret its output. Article 17 quality management obligations apply:
-procedures for record-keeping and documentation, including logging of agent decisions
-and actions. Actions that make financial recommendations, assess risk profiles, process
+deployers to interpret its output. Article 17 quality management obligations apply,
+including systems and procedures for record-keeping of all relevant documentation and
+information (Article 17(1)(k)); the automatic recording of events (logs) is required by
+Article 12(1). Actions that make financial recommendations, assess risk profiles, process
 personal data for automated decision-making, or affect access to essential services
 typically fall in this range.
 
@@ -1647,9 +1648,10 @@ review). Whether they discharge any obligation in a given deployment is the
 operator's legal determination, made within the tamper-evidence scope defined by
 ARSIA-State.md §7.2:
 
-**EU AI Act Art. 17 (Quality management system).** Article 17(1)(d) requires that
-providers of high-risk AI systems establish a quality management system that includes
-procedures for record-keeping and documentation. The four-record chain provides a
+**EU AI Act Art. 17 (Quality management system).** Article 17(1)(k) requires that
+the quality management system of providers of high-risk AI systems include "systems
+and procedures for record-keeping of all relevant documentation and information". The
+four-record chain provides a
 record of every oversight decision, from request through approval to outcome, with
 tamper evidence within the scope defined by ARSIA-State.md §7.2 (mid-chain
 modification and removal against an independently held head; see its explicit
@@ -2512,10 +2514,12 @@ tests at the applicable conformance level.
   - Art. 14(4)(c) — Interpreting system output.
   - Art. 14(4)(d) — Ability to override or reverse output.
   - Art. 17 — Quality management system.
-  - Art. 17(1)(d) — Record-keeping and documentation procedures.
+  - Art. 17(1)(k) — Systems and procedures for record-keeping of all relevant
+    documentation and information.
   - Art. 26 — Obligations of deployers of high-risk AI systems.
   - Art. 26(6) — Deployer logging obligations (minimum 6 months).
-  - Art. 52 — Transparency obligations for certain AI systems.
+  - Art. 50 — Transparency obligations for providers and deployers of certain AI
+    systems.
   - Annex III — High-risk AI systems list.
 
 - **GDPR** — Regulation (EU) 2016/679 of the European Parliament and of the Council

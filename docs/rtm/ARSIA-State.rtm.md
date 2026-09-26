@@ -11,7 +11,7 @@
 | STATE-§1.1-02 | 1.1 | RECOMMENDED | sdk_enabled | behavioural_positive | A session timeout of 1 hour is RECOMMENDED. | — | — |
 | STATE-§1.1-03 | 1.1 | MUST | sdk | behavioural_positive | When the session ends, all session-scoped entries for that correlation chain MUST be eligible for immediate removal | — | — |
 | STATE-§1.1-04 | 1.1 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD remove session state entries promptly after session termination | — | — |
-| STATE-§1.1-05 | 1.1 | MAY | sdk_enabled | behavioural_positive | No other agent, including compliance brokers, MAY access session-scoped entries. | — | ITV-180 |
+| STATE-§1.1-05 | 1.1 | MUST_NOT | sdk_enabled | behavioural_negative | Other agents, including compliance brokers, MUST NOT access session-scoped entries. | — | ITV-180 |
 | STATE-§1.1-06 | 1.1 | MUST_NOT | deployment | behavioural_negative | Session state MUST NOT be persisted to durable storage under normal operating conditions | — | — |
 | STATE-§1.1-07 | 1.1 | SHOULD | deployment | behavioural_positive | Session state SHOULD be held in volatile memory (RAM, in-process cache, or equivalent) | — | — |
 | STATE-§1.1-08 | 1.1 | MUST | deployment | procedural | Implementations using durable storage for session state MUST delete those entries upon session termination | — | — |
@@ -21,7 +21,7 @@
 | STATE-§1.1-12 | 1.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD process personal session state in-memory without materialising to persistent media | — | — |
 | STATE-§1.1-13 | 1.1 | MUST | deployment | behavioural_positive | Session state with personal data MUST NOT be captured in logs, debug dumps, or crash reports | — | — |
 | STATE-§1.2-01 | 1.2 | MUST | deployment | behavioural_positive | Agent-scoped state MUST survive agent restarts, infrastructure migrations, and routine maintenance | — | — |
-| STATE-§1.2-02 | 1.2 | MAY | sdk_enabled | behavioural_positive | Only the agent whose agent_id matches owner_agent_id MAY read or write agent-scoped entries | — | STV-02, ITV-182 |
+| STATE-§1.2-02 | 1.2 | MUST_NOT | sdk_enabled | behavioural_negative | Agents other than the one whose agent_id matches owner_agent_id MUST NOT read or write agent-scoped entries unless an explicit grant has been issued | — | STV-02, ITV-182 |
 | STATE-§1.2-03 | 1.2 | MAY | sdk_enabled | behavioural_positive | Grantee agents MAY access agent-scoped entries per the grant's access_level (read or read-write) | — | ITV-182 |
 | STATE-§1.2-04 | 1.2 | MUST | deployment | behavioural_positive | Agent-scoped state MUST be persisted to durable storage | — | — |
 | STATE-§1.2-05 | 1.2 | MUST_NOT | sdk | behavioural_negative | Agent-scoped entries MUST NOT be physically deleted before retention expires, except via PURGE | — | ITV-183 |
@@ -37,7 +37,7 @@
 | STATE-§1.3-06 | 1.3 | MUST | operational_policy | behavioural_positive | Art. 30 records MUST list all grantee agents as recipients when shared entries contain PII | — | — |
 | STATE-§1.4-01 | 1.4 | MUST_NOT | sdk | behavioural_negative | Agents MUST NOT create, modify, or delete global-scoped entries through ARSIA State operations | arsia-state-operations | ITV-190 |
 | STATE-§1.4-02 | 1.4 | MAY | sdk_enabled | behavioural_positive | All agents in the deployment MAY read global-scoped entries | — | ITV-189 |
-| STATE-§1.4-03 | 1.4 | MAY | sdk_enabled | behavioural_positive | No agent MAY write to global-scoped entries through ARSIA State operations. | — | ITV-190 |
+| STATE-§1.4-03 | 1.4 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT write to global-scoped entries through ARSIA State operations. | — | ITV-190 |
 | STATE-§1.4-04 | 1.4 | MUST | external | behavioural_positive | Platform operator MUST ensure global state complies with retention and data residency requirements | — | — |
 | STATE-§1.4-05 | 1.4 | SHOULD_NOT | sdk_enabled | behavioural_positive | Global state SHOULD NOT contain personal data | — | — |
 | STATE-§1.4-06 | 1.4 | NOT_RECOMMENDED | external | behavioural_positive | Storing personal or pseudonymised data in global state is NOT RECOMMENDED; operator bears GDPR responsibility | — | — |
@@ -211,7 +211,7 @@
 | STATE-§3.3.2-01 | 3.3.2 | MUST | sdk | behavioural_positive | In-flight operations arriving after a REVOKE MUST be rejected | — | ITV-245 |
 | STATE-§3.3.2-02 | 3.3.2 | MUST | sdk | behavioural_positive | REVOKE of a non-existent or already-revoked grant MUST return success (idempotent) | arsia-state-operations | ITV-106, ITV-246 |
 | STATE-§3.3.2-03 | 3.3.2 | MUST_NOT | sdk | behavioural_negative | Repeated REVOKE on the same grant MUST NOT generate a second audit event | — | ITV-246 |
-| STATE-§3.3.2-04 | 3.3.2 | MAY | sdk_enabled | behavioural_positive | Only the grantor agent MAY revoke a grant | — | ITV-247 |
+| STATE-§3.3.2-04 | 3.3.2 | MUST_NOT | sdk_enabled | behavioural_negative | An agent other than the grantor agent MUST NOT revoke a grant | — | ITV-247 |
 | STATE-§3.3.2-05 | 3.3.2 | MUST | sdk | behavioural_positive | REVOKE request's from field MUST match the original grantor of the grant | — | ITV-247, ITV-248 |
 | STATE-§3.3.2-06 | 3.3.2 | MUST | sdk | behavioural_positive | REVOKE by a non-grantor MUST return error code "forbidden" | arsia-message | ITV-248 |
 | STATE-§3.3.2-07 | 3.3.2 | MUST | sdk | procedural | REVOKE MUST generate a "state_revoke" audit event when audit_required is true | arsia-audit-record | ITV-104, ITV-249, ITV-531 |
@@ -283,8 +283,8 @@
 | STATE-§5.6-01 | 5.6 | MUST | sdk | behavioural_negative | "sensitive" entries MUST declare an Art. 9(2) legal basis; Art. 6(1) grounds rejected (Core §4.3.8, Rule 8) | arsia-compliance-field | ITV-555, INV-20 |
 | STATE-§5.6-02 | 5.6 | SHOULD | operational_policy | behavioural_positive | Art. 30 records SHOULD include pii_special_categories values in "categories of personal data" | — | — |
 | STATE-§5.7-01 | 5.7 | MUST | sdk | behavioural_positive | Breach notification payload type is arsiaprotocol.compliance/breach-notification with intent "event" | arsia-breach-notification, arsia-message | ITV-556, ITV-557 |
-| STATE-§5.7-02 | 5.7 | MUST | sdk | schema_positive | REQUIRED fields: notification_target, breach_id, nature_of_breach, awareness_timestamp, likely_consequences, measures_taken | arsia-breach-notification | ITV-556, ITV-557 |
-| STATE-§5.7-03 | 5.7 | SHOULD | sdk_enabled | behavioural_positive | supervisory_authority notifications SHOULD include categories_of_data, categories_of_data_subjects, approximate_data_subject_count, approximate_record_count, dpo_contact | arsia-breach-notification | ITV-556 |
+| STATE-§5.7-02 | 5.7 | MUST | sdk | schema_positive | REQUIRED fields: notification_target, breach_id, nature_of_breach, awareness_timestamp, dpo_contact, likely_consequences, measures_taken (GDPR Art. 33(3)(a)-(d), Art. 34(2)) | arsia-breach-notification | ITV-556, ITV-557 |
+| STATE-§5.7-03 | 5.7 | SHOULD | sdk_enabled | behavioural_positive | supervisory_authority notifications SHOULD include categories_of_data, categories_of_data_subjects, approximate_data_subject_count, approximate_record_count | arsia-breach-notification | ITV-556 |
 | STATE-§5.7-04 | 5.7 | SHOULD | sdk_enabled | behavioural_positive | data_subject notifications SHOULD include remediation_advice | arsia-breach-notification | ITV-557 |
 | STATE-§5.7-05 | 5.7 | MUST | sdk | behavioural_positive | breach_id enables correlation of multiple notifications about the same breach per Art. 33(4) | arsia-breach-notification | ITV-556, ITV-557 |
 | STATE-§6.1-01 | 6.1 | RECOMMENDED | sdk_enabled | behavioural_positive | GDPR-STANDARD profile: retention of 90 days is RECOMMENDED as platform default | — | — |

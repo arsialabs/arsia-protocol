@@ -165,8 +165,8 @@ remove session state entries promptly after session termination.
 
 **Visibility.** Session state is visible only to the two agents participating in the
 request/response exchange — the agent identified in the `from` field and the agent
-identified in the `to` field of the originating request message. No other agent,
-including compliance brokers, MAY access session-scoped entries.
+identified in the `to` field of the originating request message. Other agents,
+including compliance brokers, MUST NOT access session-scoped entries.
 
 **Persistence.** Implementations MUST NOT persist session state to durable storage
 under normal operating conditions. Session state SHOULD be held in volatile memory
@@ -218,10 +218,10 @@ Agent-scoped state MUST survive agent restarts, infrastructure migrations, and r
 maintenance operations. Loss of agent-scoped state due to operational events (as
 opposed to explicit deletion or expiry) constitutes a data integrity failure.
 
-**Visibility.** Agent-scoped state is private by default. Only the owning agent — the
-agent whose `agent_id` matches the `owner_agent_id` field of the StateEntry — MAY
-read or write agent-scoped entries. Access by other agents is prohibited unless an
-explicit grant has been issued (§3.3). When a grant is active, the grantee agent MAY
+**Visibility.** Agent-scoped state is private by default. Agents other than the owning
+agent — the agent whose `agent_id` matches the `owner_agent_id` field of the
+StateEntry — MUST NOT read or write agent-scoped entries unless an explicit grant has
+been issued (§3.3). When a grant is active, the grantee agent MAY
 access the entry according to the grant's `access_level` (read or read-write). Even
 with a grant, the entry remains owned by the original agent — grants do not transfer
 ownership.
@@ -342,8 +342,8 @@ The platform operator creates and maintains global state through administrative
 channels outside the scope of this specification. Global entries persist until the
 platform operator removes them.
 
-**Visibility.** All agents in the deployment MAY read global-scoped entries. No agent
-MAY write to global-scoped entries through ARSIA State operations. Global state is
+**Visibility.** All agents in the deployment MAY read global-scoped entries. Agents
+MUST NOT write to global-scoped entries through ARSIA State operations. Global state is
 inherently read-only from the perspective of ARSIA agents.
 
 **Persistence.** Platform-managed. The platform operator is responsible for ensuring
@@ -698,9 +698,25 @@ The StateEntry object contains the following fields:
 - **REQUIRED** when `pii_classification` is `"sensitive"`. MUST NOT be present when
   `pii_classification` is not `"sensitive"`.
 - **Allowed values:** `"health"`, `"biometric"`, `"genetic"`, `"racial_ethnic"`,
-  `"political"`, `"religious"`, `"trade_union"`, `"sexual_orientation"`
-- **Constraints:** MUST contain at least one value. Values are drawn from GDPR
-  Art. 9(1). This field enables implementations to populate GDPR Art. 30 records of
+  `"political"`, `"religious"`, `"philosophical"`, `"trade_union"`, `"sex_life"`,
+  `"sexual_orientation"`
+- **Constraints:** MUST contain at least one value. Values cover the categories listed
+  in GDPR Art. 9(1), mapped to the article's wording as follows:
+
+  | Value                  | GDPR Art. 9(1) wording                                                   |
+  |------------------------|--------------------------------------------------------------------------|
+  | `"racial_ethnic"`      | personal data revealing racial or ethnic origin                          |
+  | `"political"`          | personal data revealing political opinions                               |
+  | `"religious"`          | personal data revealing religious beliefs                                |
+  | `"philosophical"`      | personal data revealing philosophical beliefs                            |
+  | `"trade_union"`        | personal data revealing trade union membership                           |
+  | `"genetic"`            | genetic data                                                             |
+  | `"biometric"`          | biometric data for the purpose of uniquely identifying a natural person  |
+  | `"health"`             | data concerning health                                                   |
+  | `"sex_life"`           | data concerning a natural person's sex life                              |
+  | `"sexual_orientation"` | data concerning a natural person's sexual orientation                    |
+
+  This field enables implementations to populate GDPR Art. 30 records of
   processing activities with the specific categories of special data processed.
 
 #### 2.1.12 `version` — Entry Version
@@ -1589,7 +1605,8 @@ grantee's access.
 
 **Access control:**
 
-Only the grantor agent (the agent that issued the original GRANT) MAY revoke a grant.
+An agent other than the grantor agent (the agent that issued the original GRANT)
+MUST NOT revoke a grant.
 Implementations MUST verify that the `from` field of the REVOKE request matches the
 grantor of the specified grant. If the requesting agent is not the grantor, the
 implementation MUST return an error with code `"forbidden"`.
@@ -2188,14 +2205,19 @@ The `notification_target` field acts as a discriminator:
   (Art. 34 notification).
 
 **REQUIRED fields:** `notification_target`, `breach_id`, `nature_of_breach`,
-`awareness_timestamp`, `likely_consequences`, `measures_taken`. These fields
-correspond to the minimum information required by both Art. 33(3) and Art. 34(2).
+`awareness_timestamp`, `dpo_contact`, `likely_consequences`, `measures_taken`. These
+fields correspond to the minimum information required by both Art. 33(3) and
+Art. 34(2): the nature of the breach (Art. 33(3)(a)), the name and contact details of
+the data protection officer or other contact point (Art. 33(3)(b)), the likely
+consequences (Art. 33(3)(c)) and the measures taken or proposed (Art. 33(3)(d)).
+Art. 34(2) requires the communication to the data subject to contain at least the
+information and measures referred to in points (b), (c) and (d) of Art. 33(3), so
+`dpo_contact` is REQUIRED for both notification targets.
 
 **SHOULD fields for supervisory authority notifications:** `categories_of_data`,
 `categories_of_data_subjects`, `approximate_data_subject_count`,
-`approximate_record_count`, `dpo_contact`. These fields carry the detailed
-information that Art. 33(3)(a)/(b) expects in notifications to the supervisory
-authority.
+`approximate_record_count`. These fields carry the detailed information that
+Art. 33(3)(a) expects, where possible, in notifications to the supervisory authority.
 
 **SHOULD fields for data subject notifications:** `remediation_advice`. Art. 34(2)
 requires the controller to describe the measures taken and recommend steps the data
@@ -2302,21 +2324,29 @@ the system's output and use it appropriately."
 `"required_before_execution"`. This triggers the `pending_approval` /
 `approval_decision` flow defined in ARSIA-Actions.md §3. The action MUST NOT execute
 until a human approves it through an agent with the `arsiaprotocol.oversight.approve` capability.
-This implements Article 14(4)(d): the oversight measures must "enable the natural person
-to whom oversight is assigned to be able to decide, in any particular situation, not to
-use the high-risk AI system or to otherwise disregard, override or reverse the output of
-the high-risk AI system."
+Pre-execution approval of every action is this profile's technical choice for
+implementing human oversight; it is not a literal requirement of Article 14. Article 14
+requires oversight measures that "shall be commensurate with the risks, level of
+autonomy and context of use of the high-risk AI system" (Article 14(3)), and that enable
+the natural persons to whom human oversight is assigned, as appropriate and
+proportionate, "to decide, in any particular situation, not to use the high-risk AI
+system or to otherwise disregard, override or reverse the output of the high-risk AI
+system" (Article 14(4)(d)). The pre-execution approval flow is the way this profile
+provides that capability.
 
 **EU AI Act Art. 17 — Quality management system.** `audit_required` defaults to `true`.
 Every action under this profile generates an `ArsiaAuditRecord` (§7.1). The audit trail
-serves as the quality management record required by Article 17, which mandates
-"procedures for record-keeping, documentation, and logging."
+serves as a record-keeping component of the quality management system required by
+Article 17, whose point (1)(k) covers "systems and procedures for record-keeping of all
+relevant documentation and information".
 
 **EU AI Act Art. 12 — Record-keeping.** The logging capabilities required by Article 12
 are satisfied by the ARSIA audit trail (§7). High-risk AI systems MUST be designed with
 automatic event logging — the `ArsiaAuditRecord` structure implements this requirement.
 Article 12 complements Article 17 (quality management): Article 17 mandates the
-management system, Article 12 mandates the technical logging within it.
+quality management system, while Article 12(1) requires that high-risk AI systems
+"technically allow for the automatic recording of events (logs) over the lifetime of the
+system". Providers keep those logs under Article 19(1).
 
 **EU AI Act Art. 26(6) — Deployer logging obligations.** `retention_minimum` is
 `"P6M"` — six **calendar** months, computed per ARSIA-Core.md §4.3.6.4.1 (not a fixed
@@ -2362,11 +2392,13 @@ services subject to the Markets in Financial Instruments Directive.
 **Regulatory mapping:**
 
 **MiFID II Art. 16(7) — Record-keeping obligations.** `retention_minimum` is
-`"P1827D"` (5 years). Commission Delegated Regulation (EU) 2017/565, Article 72 (commonly
-cited as RTS 22), requires investment firms to "retain all the records required under
-this Regulation and under Directive 2014/65/EU for a period of at least five years."
-This applies to all services, activities, and transactions — including those executed
-or assisted by autonomous agents. The value 1827 accounts for the worst case of two
+`"P1827D"` (5 years). Commission Delegated Regulation (EU) 2017/565, Article 72,
+governs how records are retained: in a medium that allows the competent authority to
+access them readily and to reconstitute each key stage of the processing of each
+transaction, with corrections and prior contents ascertainable and without
+manipulation, and, with Annex I, the minimum list of records to be kept. Article 72
+itself does not set a retention period. This applies to all services, activities, and
+transactions — including those executed or assisted by autonomous agents. The value 1827 accounts for the worst case of two
 leap years within any five consecutive calendar years, ensuring the retention floor is
 never shorter than five calendar years.
 
@@ -2380,12 +2412,15 @@ reported to competent authorities. ARSIA generates the structured incident event
 (ARSIA-Assets.md §6.2.2); the reporting obligation falls on the operator. ARSIA
 provides the data — it does not perform the regulatory submission.
 
-**PSD2 Art. 97 — Strong customer authentication.** Financial operations that require
-strong customer authentication (SCA) under PSD2 are satisfied through the human
-oversight flow (ARSIA-Assets.md §6.3). The `"required_before_execution"` oversight mode
-ensures that a human approves financial operations before execution, which constitutes
-one element of an SCA framework. Full SCA compliance requires additional measures
-(multi-factor authentication) at the implementation level.
+**PSD2 Art. 97 — Strong customer authentication.** Under PSD2 Art. 97(1), strong
+customer authentication (SCA) is applied by the payment service provider to the payer,
+using two or more independent elements categorised as knowledge, possession and
+inherence (Art. 4(30)). The human oversight flow is not SCA and does not satisfy it: the
+`"required_before_execution"` oversight mode adds an operator-side human approval before
+execution, alongside the SCA that the payment service provider applies. ARSIA-Assets.md
+§6.3 describes how the protocol's technical controls can serve as SCA elements in an
+operator's PSD2 design; whether they satisfy SCA in a given deployment is the payment
+service provider's legal determination.
 
 **GDPR Art. 6(1)(b) — Contractual basis.** `legal_basis` defaults to `"contract"`
 because financial services processing is typically necessary for the performance of a
@@ -2431,10 +2466,13 @@ legal review). The value 1096 accounts for the worst case of one leap year withi
 three consecutive calendar years, ensuring the retention floor is never shorter than
 three calendar years.
 
-**EU 2021/2116 Art. 47 — Accreditation of paying agencies.** `audit_required` defaults
-to `true`. The audit trail serves as evidence for paying agency certification. Paying
-agencies must demonstrate that their management and control systems provide reasonable
-assurance of the legality and regularity of underlying transactions — the
+**EU 2021/2116 Arts. 8-9 — Accreditation of paying agencies.** `audit_required`
+defaults to `true`. The audit trail serves as evidence for paying agency accreditation.
+The competent authority issues, reviews and withdraws the accreditation of paying
+agencies (Art. 8(1)(a)), and Member States accredit as paying agencies only departments
+or bodies whose administrative organisation and system of internal control provide
+sufficient guarantees that payments are legal, regular and properly accounted for
+(Art. 9(2)) — the
 `ArsiaAuditRecord` (§7.1) provides the protocol-level component of this evidence.
 
 **EU 2021/2116 Art. 54 — Annual performance clearance.** `explainability_required`
@@ -2642,10 +2680,13 @@ classify ICT-related incidents based on specified criteria including duration, n
 of users affected, and data losses. The `ArsiaAuditRecord` (§7.1) captures the
 classification metadata.
 
-**DORA Art. 19 — Reporting of major ICT-related incidents.** Initial notification to
-competent authorities must occur within 4 hours of classification as a major incident.
-ARSIA generates structured incident events; the reporting obligation falls on the
-operator.
+**DORA Art. 19 — Reporting of major ICT-related incidents.** Art. 19(4) requires an
+initial notification and intermediate and final reports within the time limits laid
+down under Art. 20. Commission Delegated Regulation (EU) 2025/301, Art. 5(1)(a), sets
+the limit for the initial notification: as early as possible, but in any case within
+four hours from the classification of the incident as major and no later than 24 hours
+from the moment the financial entity became aware of it. ARSIA generates structured
+incident events; the reporting obligation falls on the operator.
 
 **DORA Art. 28 — General principles for third-party ICT risk.** Financial entities must
 manage ICT third-party risk as an integral component of their ICT risk management
@@ -2659,8 +2700,10 @@ at least 5 annual ICT risk management review cycles per Art. 6(5). The value 182
 accounts for the worst case of two leap years within any five consecutive calendar
 years, ensuring the retention floor is never shorter than five calendar years.
 
-**Human oversight — `"required_within_24h"`.** Art. 19 mandates initial notification
-within 4 hours for major incidents, implying rapid human involvement. 24 hours is the
+**Human oversight — `"required_within_24h"`.** Delegated Regulation (EU) 2025/301,
+Art. 5(1)(a), requires the initial notification of a major incident within four hours
+of its classification as major and no later than 24 hours from awareness, implying
+rapid human involvement. 24 hours is the
 protocol default for the profile; major incidents would override per-message with a
 tighter timeframe.
 
@@ -2672,7 +2715,8 @@ AI Act sense.
 data. When an incident involves personal data (e.g., a data breach), the sender SHOULD
 set `pii_involved` to `true` per-message and provide an appropriate `legal_basis`.
 
-**Clock skew — 60 seconds.** Art. 19's 4-hour notification deadline demands clock
+**Clock skew — 60 seconds.** The four-hour initial notification limit (Delegated
+Regulation (EU) 2025/301, Art. 5(1)(a)) demands clock
 precision in incident timestamping. This matches the MIFID-II profile's
 `clock_skew_seconds` value, reflecting the shared financial sector requirement for
 temporal accuracy.
@@ -3664,12 +3708,19 @@ and cross-system audit verification.
 
 - **Commission Delegated Regulation (EU) 2017/565** — supplementing MiFID II as regards
   organisational requirements and operating conditions for investment firms.
-  - Art. 72 (retention of records — commonly cited as RTS 22).
+  - Art. 72 (retention of records).
 
 - **DORA** — Regulation (EU) 2022/2554 of the European Parliament and of the Council
   of 14 December 2022 on digital operational resilience for the financial sector.
   - Art. 17 (ICT-related incident management).
   - Art. 19 (reporting of major ICT-related incidents).
+
+- **Commission Delegated Regulation (EU) 2025/301** of 23 October 2024 supplementing
+  Regulation (EU) 2022/2554 with regard to regulatory technical standards specifying
+  the content and time limits for the initial notification of, and intermediate and
+  final report on, major ICT-related incidents, and the content of the voluntary
+  notification for significant cyber threats.
+  - Art. 5(1)(a) (time limit for the initial notification).
 
 - **PSD2** — Directive (EU) 2015/2366 of the European Parliament and of the Council of
   25 November 2015 on payment services in the internal market.

@@ -258,7 +258,7 @@
 | ASSETS-§6.3.1-03 | 6.3.1 | RECOMMENDED | operational_policy | informational | SCA Option A is RECOMMENDED for human-in-the-loop approval flows | — | — |
 | ASSETS-§6.3.1-04 | 6.3.1 | MAY | sdk_enabled | informational | Implementations MAY add biometric verification as an inherence factor for Option A | — | — |
 | ASSETS-§6.3.2-01 | 6.3.2 | RECOMMENDED | operational_policy | informational | SCA Option B is RECOMMENDED for automated flows without human-in-the-loop approval | — | — |
-| ASSETS-§6.3.2-02 | 6.3.2 | SHOULD | sdk_enabled | procedural | Option B implementations SHOULD implement PSD2 Art. 98 transaction risk analysis | — | — |
+| ASSETS-§6.3.2-02 | 6.3.2 | SHOULD | sdk_enabled | procedural | Option B implementations SHOULD implement transaction risk analysis per RTS 2018/389 Art. 18 (mandated by PSD2 Art. 98) | — | — |
 | ASSETS-§6.3.2-03 | 6.3.2 | MUST | deployment | behavioural_positive | Implementations without hardware-bound keys MUST use SCA Option A | — | — |
 | ASSETS-§6.3.3-01 | 6.3.3 | MAY | sdk_enabled | behavioural_positive | Transfers qualifying for SCA exemption MAY proceed without two-party authorisation | — | — |
 | ASSETS-§6.3.3-02 | 6.3.3 | MUST | sdk | behavioural_positive | SCA exemptions MUST be recorded in audit trail with human_oversight_status not_required | — | — |

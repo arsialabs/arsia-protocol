@@ -1189,7 +1189,7 @@
     },
     {
       "id": "ITV-02",
-      "description": "IdentityRecord with L3 eIDAS qualified certificate_chain. QcStatements: id-etsi-qcs-QcCompliance present in leaf certificate (illustrative PEM only — not cryptographically valid). owner_id uses LEI URN form. Per ARSIA-Identity.md §6.3 (QcStatements) and §6.5 (certificate_chain).",
+      "description": "IdentityRecord with L3 eIDAS qualified certificate_chain. QcStatements: id-etsi-qcs-QcCompliance (ETSI EN 319 412-5 clause 4.2.1) and id-etsi-qcs-QcType with id-etsi-qct-eseal (clause 4.2.3) expected in the leaf certificate (illustrative PEM only — not cryptographically valid). owner_id uses LEI URN form. Per ARSIA-Identity.md §6.3 (QcStatements) and §6.5 (certificate_chain).",
       "valid": true,
       "category": "identity",
       "crypto": {
@@ -17128,7 +17128,7 @@
     },
     {
       "id": "ITV-557",
-      "description": "State §5.7: valid breach notification event for data_subject — all REQUIRED fields present plus remediation_advice SHOULD field. Per GDPR Art. 34.",
+      "description": "State §5.7: valid breach notification event for data_subject — all REQUIRED fields present (including dpo_contact, required by GDPR Art. 34(2) via Art. 33(3)(b)) plus remediation_advice SHOULD field. Per GDPR Art. 34.",
       "category": "state",
       "valid": true,
       "message": {
@@ -17148,6 +17148,7 @@
             "breach_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
             "nature_of_breach": "Unauthorized access to your account data including name, email address, and financial account number.",
             "awareness_timestamp": "2026-05-04T06:30:00.000Z",
+            "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
             "likely_consequences": "There is a risk that your personal data could be used for identity fraud or unauthorized financial transactions.",
             "measures_taken": "We have rotated all access credentials and isolated the affected systems. A forensic investigation is underway.",
             "remediation_advice": "We recommend that you change your password immediately, enable two-factor authentication, and monitor your financial accounts for any unauthorized activity over the next 90 days."
@@ -18156,6 +18157,90 @@
         "retention_days": 90
       },
       "expected_error": "retention_days is not a valid property; use retention (ISO 8601 duration) — State §2.1.8"
+    },
+    {
+      "id": "INV-43",
+      "description": "INVALID — context.trace_id is the all-zero value. W3C Trace Context §3.2.2.3: \"All bytes as zero (00000000000000000000000000000000) is considered an invalid value.\" Per Core §4.3.3.",
+      "schema_ref": "arsia-message.schema.json",
+      "expected": "invalid",
+      "data": {
+        "v": "2.0",
+        "id": "f4300000-0000-4000-a000-000000000043",
+        "ts": "2026-04-27T14:00:00.000Z",
+        "from": "agent:arsialabs.demo.tracer",
+        "to": "agent:arsialabs.demo.receiver",
+        "intent": "event",
+        "context": {
+          "trace_id": "00000000000000000000000000000000"
+        },
+        "payload": {
+          "type": "arsiaprotocol.core/ping",
+          "args": {}
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.tracer#key1",
+          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+        }
+      },
+      "expected_error": "context.trace_id MUST NOT be the all-zero value — Core §4.3.3"
+    },
+    {
+      "id": "INV-44",
+      "description": "INVALID — context.span_id is the all-zero value. W3C Trace Context §3.2.2.4: \"All bytes as zero (0000000000000000) is considered an invalid value.\" Per Core §4.3.3.",
+      "schema_ref": "arsia-message.schema.json",
+      "expected": "invalid",
+      "data": {
+        "v": "2.0",
+        "id": "f4400000-0000-4000-a000-000000000044",
+        "ts": "2026-04-27T14:01:00.000Z",
+        "from": "agent:arsialabs.demo.tracer",
+        "to": "agent:arsialabs.demo.receiver",
+        "intent": "event",
+        "context": {
+          "span_id": "0000000000000000"
+        },
+        "payload": {
+          "type": "arsiaprotocol.core/ping",
+          "args": {}
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.tracer#key1",
+          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+        }
+      },
+      "expected_error": "context.span_id MUST NOT be the all-zero value — Core §4.3.3"
+    },
+    {
+      "id": "INV-45",
+      "description": "INVALID — DPoP proof payload with an empty nonce. RFC 9449 §8.1: nonce = 1*NQCHAR (at least one character; NQCHAR per RFC 6749 Appendix A). Per Core §6.3.",
+      "schema_ref": "arsia-dpop-proof.schema.json",
+      "expected": "invalid",
+      "data": {
+        "jti": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e45",
+        "htm": "POST",
+        "htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox",
+        "iat": 1711285200,
+        "ath": "fUHyO2r2Z3DZ53EsNrWBb0xWXoaNy59IiKCAqksmQEo",
+        "nonce": ""
+      },
+      "expected_error": "nonce must match 1*NQCHAR — RFC 9449 §8.1"
+    },
+    {
+      "id": "ITV-580",
+      "description": "Valid DPoP proof JWT payload carrying a server-provided nonce (RFC 9449 §4.2, §8; nonce value from RFC 9449 Figure 21). Per Core §6.3.",
+      "schema_ref": "arsia-dpop-proof.schema.json",
+      "expected": "valid",
+      "data": {
+        "jti": "d4e5f6a7-b8c9-4d0e-9f1a-3b4c5d6e7f80",
+        "htm": "POST",
+        "htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox",
+        "iat": 1711285200,
+        "ath": "fUHyO2r2Z3DZ53EsNrWBb0xWXoaNy59IiKCAqksmQEo",
+        "nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v"
+      },
+      "expected_error": null
     }
   ]
 }
