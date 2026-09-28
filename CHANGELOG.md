@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to the versioning scheme described in
 [VERSIONING.md](VERSIONING.md).
 
+## [Unreleased]
+
+### Fixed
+
+- Test vectors: every valid vector that carries a signature is now signed with
+  a published key (49 test keypairs published); test-vector counts in the
+  documentation corrected to what the validation tools report.
+
 ## [Draft-01] — 2026-04-01
 
 Initial public release of the ARSIA Protocol specification.
@@ -35,7 +43,7 @@ Initial public release of the ARSIA Protocol specification.
 ### Artifacts
 
 - 31 JSON Schemas (Draft 2020-12)
-- 613 test vectors (514 valid, 99 invalid)
+- 613 test vectors (415 valid, 125 invalid, 73 runtime-only)
 - 7 compliance profiles: GDPR-STANDARD, EU-AI-ACT-HIGH-RISK,
   EU-AI-ACT-LIMITED-RISK, MIFID-II, PAC-AGRICULTURE, DSA-VLOP, DORA
 - 6 Requirements Traceability Matrices (RTMs)

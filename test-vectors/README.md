@@ -2,17 +2,19 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-613 test vectors (514 valid, 99 invalid, 73 runtime-only skipped) for
+613 test vectors (415 valid, 125 invalid, 73 runtime-only skipped) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
-placeholders.
+placeholders in valid vectors. 189 verified by --check-crypto; 22
+schema-ref envelopes are signed with published keys and verifiable, but
+not checked by the tool.
 
 ## Files
 
 | File | Description |
 |------|-------------|
 | [arsia-test-vectors.json](arsia-test-vectors.json) | 613 test vectors |
-| [keypairs.json](keypairs.json) | 9 test keypairs: 7 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally) |
+| [keypairs.json](keypairs.json) | 49 test keypairs: 45 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
 
 ## Vector Formats
 

@@ -66,7 +66,7 @@ Key protocol sections for regulatory review: human oversight workflow ([Actions 
 
 Six [Requirements Traceability Matrices](docs/rtm/) (2,086 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
 
-All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [613 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The [Security Model](docs/security.md) provides a standalone summary of the threat model, cryptographic foundation, authorization, and data protection — designed for evaluation without reading the full spec suite.
+All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [613 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The [Security Model](SECURITY.md) provides a standalone summary of the threat model, cryptographic foundation, authorization, and data protection — designed for evaluation without reading the full spec suite.
 
 ---
 
@@ -108,11 +108,11 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 31 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 613 test vectors (514 valid, 99 invalid, 73 runtime-only) |
+| [`test-vectors/`](test-vectors/) | 613 test vectors (415 valid, 125 invalid, 73 runtime-only) |
 | [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,086 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
-9 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.
+49 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.
 
 - [`docs/FAQ.md`](docs/FAQ.md) — Frequently Asked Questions: design rationale and decision explanations
 

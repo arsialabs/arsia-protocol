@@ -192,7 +192,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 514 valid and 99 invalid cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 415 valid, 125 invalid and 73 runtime-only cases; signed valid cases use real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 
@@ -226,7 +226,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 **Evaluate for compliance:**
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
-- [Security model](security.md) — threat model, cryptographic foundation, data protection
+- [Security model](../SECURITY.md) — threat model, cryptographic foundation, data protection
 - [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,086 rows)
 
 ---
