@@ -385,12 +385,6 @@
           "minimum": 0,
           "maximum": 10,
           "description": "Risk level from the ActionDescriptor"
-        },
-        "summary": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 1024,
-          "description": "Human-readable summary of the operation for the approver. MUST be present for financial operations per ARSIA-Assets.md §5.2."
         }
       }
     },
@@ -1685,51 +1679,6 @@
         "required": [
           "capabilities"
         ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "intent": {
-            "const": "pending_approval"
-          },
-          "payload": {
-            "type": "object",
-            "properties": {
-              "args": {
-                "type": "object",
-                "properties": {
-                  "action_id": {
-                    "pattern": "^arsiaprotocol\\.assets/"
-                  }
-                },
-                "required": [
-                  "action_id"
-                ]
-              }
-            },
-            "required": [
-              "args"
-            ]
-          }
-        },
-        "required": [
-          "intent",
-          "payload"
-        ]
-      },
-      "then": {
-        "properties": {
-          "payload": {
-            "properties": {
-              "args": {
-                "required": [
-                  "summary"
-                ]
-              }
-            }
-          }
-        }
       }
     },
     {

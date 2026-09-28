@@ -2926,6 +2926,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "e5f6a7b8-c9d0-4e1f-aa2b-3c4d5e6f7a8b",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "IE",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -2956,6 +2957,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "e5f6a7b8-c9d0-4e1f-aa2b-3c4d5e6f7a8b",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "IE",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -4170,7 +4172,7 @@
     },
     {
       "id": "ITV-93",
-      "description": "Valid audit record — pending_approval event_type exercising the if/then conditional (requires correlation_id + approval_deadline). Also exercises optional risk_level and reason fields. Per Actions §3.5 Record 2, State §7.1.",
+      "description": "Valid audit record — pending_approval event_type exercising the if/then conditional (requires correlation_id, root_request_id and approval_deadline). Also exercises optional risk_level and reason fields. Per Actions §3.5 Record 2, State §7.1.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -4186,6 +4188,7 @@
         "retained_until": "2033-04-27T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "correlation_id": "b0000c01-0001-4001-8001-00000000c001",
+        "root_request_id": "b0000c01-0001-4001-8001-00000000c001",
         "approval_deadline": "2026-04-27T15:00:00.000Z",
         "risk_level": 8,
         "reason": "High-risk employment screening requires human approval",
@@ -4198,7 +4201,7 @@
     },
     {
       "id": "ITV-94",
-      "description": "Valid audit record — approval_expired event_type exercising the if/then conditional (requires correlation_id). Also exercises reason field. Linked to ITV-93 via correlation_id. Per Actions §3.5 Record 4, State §7.1.",
+      "description": "Valid audit record — approval_expired event_type exercising the if/then conditional (requires correlation_id, root_request_id and decision \"expired\"). Also exercises reason field. Linked to ITV-93 via correlation_id. Per Actions §3.5 Record 4, State §7.1.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -4214,7 +4217,9 @@
         "retained_until": "2033-04-27T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "correlation_id": "b0000c01-0001-4001-8001-00000000c001",
+        "root_request_id": "b0000c01-0001-4001-8001-00000000c001",
         "reason": "Approval deadline passed without human decision",
+        "decision": "expired",
         "human_oversight_status": "expired",
         "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
         "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
@@ -4502,6 +4507,7 @@
         "retained_until": "2033-04-27T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "correlation_id": "b0000c01-0001-4001-8001-00000000c001",
+        "root_request_id": "b0000c01-0001-4001-8001-00000000c001",
         "risk_level": 8,
         "reason": "High-risk employment screening requires human approval",
         "human_oversight_status": "pending",
@@ -5421,6 +5427,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "b9c0d1e2-f3a4-4b5c-96e7-f8a9b0c1d2e3",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -5451,6 +5458,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d1e2f3a4-b5c6-4d7e-98a9-b0c1d2e3f4a5",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -12237,7 +12245,7 @@
     },
     {
       "id": "ITV-400",
-      "description": "Assets §5.2: Valid pending_approval — financial operation with risk_level 8 requires human oversight before execution. Transfer MUST require human oversight when risk_level >= 7. Per ARSIA-Assets.md §5.2.",
+      "description": "Assets §5.2: Valid pending_approval — financial operation with risk_level 8 requires human oversight before execution. The payload uses exactly the canonical Actions §3.2 field set; context carries the human-readable transfer description. Per ARSIA-Assets.md §5.2.",
       "category": "assets",
       "valid": true,
       "message": {
@@ -12262,8 +12270,7 @@
             "approval_deadline": "2026-04-15T13:45:00.000Z",
             "approver_capability": "arsiaprotocol.oversight.approve",
             "context": "Transfer EUR 50,000.00 from agent:acme.billing to agent:contoso.treasury — exceeds automatic execution threshold",
-            "risk_level": 8,
-            "summary": "Transfer EUR 50,000.00 from agent:acme.billing to agent:contoso.treasury via agent:europa.payments.sepa. Purpose: MiFID II suitability assessment fee."
+            "risk_level": 8
           }
         },
         "root_request_id": "e5000400-0000-4000-a000-000000000002"
@@ -12272,7 +12279,7 @@
     },
     {
       "id": "ITV-401",
-      "description": "Assets §5.2: INVALID — pending_approval for financial action missing required summary field. pending_approval for arsiaprotocol.assets/ actions MUST include summary. Per ARSIA-Assets.md §5.2.",
+      "description": "Assets §5.2: INVALID — pending_approval for a financial action missing the required context field, which MUST carry the human-readable description of the transfer (canonical Actions §3.2 field set; no Assets-specific shape). Per ARSIA-Assets.md §5.2.",
       "category": "assets",
       "valid": false,
       "message": {
@@ -12282,6 +12289,7 @@
         "from": "agent:acme.transfer-processor",
         "to": "agent:acme.billing",
         "intent": "pending_approval",
+        "correlation_id": "f890274c-c431-4e83-aa3c-faab0aa11da0",
         "expires_at": "2026-04-15T13:50:00.000Z",
         "security": {
           "alg": "EdDSA",
@@ -12295,13 +12303,12 @@
             "original_request_id": "e5000401-0000-4000-a000-000000000002",
             "approval_deadline": "2026-04-15T13:50:00.000Z",
             "approver_capability": "arsiaprotocol.oversight.approve",
-            "context": "Transfer EUR 50,000.00 from agent:acme.billing to agent:contoso.treasury",
             "risk_level": 9
           }
         },
         "root_request_id": "f890274c-c431-4e83-aa3c-faab0aa11da0"
       },
-      "expected_error": "summary is required for arsiaprotocol.assets/ pending_approval — Assets §5.2"
+      "expected_error": "context is required in pending_approval args — Actions §3.2, Assets §5.2"
     },
     {
       "id": "ITV-402",
@@ -14617,6 +14624,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d0a00490-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -14685,6 +14693,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d0a00492-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -15144,6 +15153,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d0a00508-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -15248,6 +15258,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d0a00511-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -15395,6 +15406,7 @@
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
         "attestation_id": "d0a00515-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
@@ -18241,6 +18253,356 @@
         "nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v"
       },
       "expected_error": null
+    },
+    {
+      "id": "ITV-581",
+      "description": "Valid audit record — Actions §3.5 Record 1 (original request of an oversight cycle), built literally from the prose table: base fields plus timestamp and risk_level. Per ARSIA-Actions.md §3.5.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10001-0000-4000-8000-000000000001",
+        "message_id": "c3a00001-0000-4000-8000-000000000001",
+        "event_type": "request",
+        "from_agent": "agent:arsialabs.demo.hr-client",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "request",
+        "payload_type": "com.acme.hr/screen-candidate",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:00:00.000Z",
+        "risk_level": 8,
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-582",
+      "description": "Valid audit record — Actions §3.5 Record 2 (pending_approval) built literally from the prose table: correlation_id and root_request_id are the original request id; approval_deadline present. Per ARSIA-Actions.md §3.5.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10002-0000-4000-8000-000000000002",
+        "message_id": "c3a00002-0000-4000-8000-000000000002",
+        "event_type": "pending_approval",
+        "from_agent": "agent:arsialabs.demo.risk-assessor",
+        "to_agent": "agent:arsialabs.demo.hr-client",
+        "intent": "pending_approval",
+        "payload_type": "arsiaprotocol.oversight/pending",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:01.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:00:01.000Z",
+        "correlation_id": "c3a00001-0000-4000-8000-000000000001",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "approval_deadline": "2026-04-27T15:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-583",
+      "description": "Valid audit record — Actions §3.5 Record 3 (approval_decision) built literally from the prose table: correlation_id is the pending_approval id, decision 'approved', approver_id, reason null (no reason provided). Per ARSIA-Actions.md §3.5.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10003-0000-4000-8000-000000000003",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "approved",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-584",
+      "description": "Valid audit record — Actions §3.5 expiry record (approval_expired replacing Record 3, Path 3): decision 'expired', reason null. Per ARSIA-Actions.md §3.5.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10004-0000-4000-8000-000000000004",
+        "message_id": "c3a00004-0000-4000-8000-000000000004",
+        "event_type": "approval_expired",
+        "from_agent": "agent:arsialabs.demo.risk-assessor",
+        "to_agent": "agent:arsialabs.demo.hr-client",
+        "intent": "error",
+        "payload_type": "arsiaprotocol.oversight/expired",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T15:00:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T15:00:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "expired",
+        "reason": null,
+        "human_oversight_status": "expired",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-585",
+      "description": "Valid audit record — Actions §3.5 Record 4 (final response of an oversight cycle) built literally from the prose table: correlation_id and root_request_id are the original request id; outcome 'success'. Per ARSIA-Actions.md §3.5.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10005-0000-4000-8000-000000000005",
+        "message_id": "c3a00005-0000-4000-8000-000000000005",
+        "event_type": "response",
+        "from_agent": "agent:arsialabs.demo.risk-assessor",
+        "to_agent": "agent:arsialabs.demo.hr-client",
+        "intent": "response",
+        "payload_type": "com.acme.hr/screen-candidate",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:02.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:02.000Z",
+        "correlation_id": "c3a00001-0000-4000-8000-000000000001",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "outcome": "success",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-586",
+      "description": "Valid audit record — escrow_returned generated by a sender cancellation (Assets §4.2.4): carries cancellation_reason in place of actual_timeout; timeout_at keeps the original deadline. Per ARSIA-Assets.md §4.2.4, §4.3.3.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10006-0000-4000-8000-000000000006",
+        "message_id": "b000008a-0002-4001-8001-00000000008a",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_returned",
+        "payment_reference": "PAY-2026-04-0090",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "cancellation_reason": "Payer cancelled before release"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-587",
+      "description": "Valid audit record — event_type 'compliance_warning' logged when audit_required was overridden on a message with pii_involved true (Core §4.3.8 Rule 7). Per ARSIA-State.md §7.1.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10007-0000-4000-8000-000000000007",
+        "message_id": "c3a00007-0000-4000-8000-000000000007",
+        "event_type": "compliance_warning",
+        "from_agent": "agent:arsialabs.demo.hr-client",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "request",
+        "payload_type": "com.acme.hr/update-record",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T16:00:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-588",
+      "description": "Valid audit record — split responsibility model: the log owner's IdentityRecord sets deployer_id different from owner_id, so the record carries the deployer_id extension field. Per ARSIA-Identity.md §4.4.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10008-0000-4000-8000-000000000008",
+        "message_id": "c3a00008-0000-4000-8000-000000000008",
+        "event_type": "request",
+        "from_agent": "agent:arsialabs.demo.hr-client",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "request",
+        "payload_type": "com.acme.risk/assess",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T17:00:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "deployer_id": "DE812345678",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-589",
+      "description": "Valid onboarding decision — the Identity §7.8 regulatory-auditor scenario: approved with a single freely allowed capability (arsiaprotocol.audit.read) and an empty oversight_required list; effective_capabilities is non-empty. Per ARSIA-Identity.md §7.6, §7.8.",
+      "schema_ref": "arsia-onboarding-decision.schema.json",
+      "expected": "valid",
+      "data": {
+        "type": "arsiaprotocol.onboarding/decision",
+        "args": {
+          "decision": "approved",
+          "effective_capabilities": [
+            "arsiaprotocol.audit.read"
+          ],
+          "freely_allowed": [
+            "arsiaprotocol.audit.read"
+          ],
+          "oversight_required": [],
+          "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6ImFyc2lhcHJvdG9jb2wuYXVkaXQucmVhZCJ9.c2lnbmF0dXJlLWZvci1zY2hlbWEtdmFsaWRhdGlvbg",
+          "token_expires_at": "2026-04-11T11:00:00.000Z",
+          "conformance_result": {
+            "checks": [
+              {
+                "test_id": "CHECK-01",
+                "status": "pass",
+                "duration_ms": 35.2
+              }
+            ],
+            "all_passed": true,
+            "total_duration_ms": 35.2
+          },
+          "provenance": {
+            "identity_created_at": "2026-03-01T08:00:00.000Z",
+            "provenance_verified": true
+          },
+          "policy_version": "regulated-entity-2026-q2"
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "INV-46",
+      "description": "INVALID — approval_decision audit record without decision; Actions §3.5 Record 3 requires it (State §7.1 extension table).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a1000a-0000-4000-8000-00000000000a",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": "decision is required for approval_decision records — Actions §3.5, State §7.1"
+    },
+    {
+      "id": "INV-47",
+      "description": "INVALID — escrow_returned audit record with neither actual_timeout (timeout) nor cancellation_reason (cancellation). Per ARSIA-Assets.md §4.3.3, §4.2.4.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a1000b-0000-4000-8000-00000000000b",
+        "message_id": "b000008a-0002-4001-8001-00000000008a",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_returned",
+        "payment_reference": "PAY-2026-04-0090",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum"
+      },
+      "expected_error": "escrow_returned requires actual_timeout or cancellation_reason — Assets §4.3.3"
+    },
+    {
+      "id": "INV-48",
+      "description": "INVALID — broker_relay audit record without broker_agent_id; Core §9.2 item 4 requires the broker's own agent identifier. Per ARSIA-Routing.md §7.3 Rule 7, §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a1000c-0000-4000-8000-00000000000c",
+        "message_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-04-10T14:30:01.000Z",
+        "retained_until": "2031-04-11T14:30:01.000Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "attestation_id": "e5f6a7b8-c9d0-4e1f-aa2b-3c4d5e6f7a8b",
+        "message_ts": "2026-04-10T14:30:00.500Z",
+        "residency_zone": "IE",
+        "received_at": "2026-04-10T14:30:00.950Z",
+        "forwarded_at": "2026-04-10T14:30:01.000Z",
+        "relay_latency_ms": 12,
+        "forwarding_result": "success"
+      },
+      "expected_error": "broker_agent_id is required for broker_relay records — Core §9.2, Routing §7.4.2"
+    },
+    {
+      "id": "INV-49",
+      "description": "INVALID — compliance object carrying a member this specification does not register. The compliance object carries only registered sub-fields (Core §4.3.6.1–§4.3.6.9 and clock_skew_seconds, §8.3); extension profiles define defaults, retention minimum and oversight mode, not new members (Core §4.3.8 Rule 1).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "invalid",
+      "data": {
+        "profile": "com.example.healthcare-profile",
+        "com_example_consent_ref": "abc"
+      },
+      "expected_error": "Additional properties are not allowed — Core §4.3.6"
     }
   ]
 }

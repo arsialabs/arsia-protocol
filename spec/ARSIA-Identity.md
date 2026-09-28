@@ -1346,8 +1346,8 @@ that require oversight.
 - The response MUST be a JSON array of audit records.
 - Each record MUST include the fields defined in ArsiaAuditRecord
   (ARSIA-State.md §7.1): `record_id`, `message_id`, `event_type`, `from_agent`,
-  `to_agent`, `intent`, `payload_type`, `payload_hash`, `compliance_profile`,
-  `processed_at`, `retained_until`, `operator_id`.
+  `to_agent`, `intent`, `payload_type`, `payload_hash`, `compliance_profile_declared`,
+  `compliance_profile_resolved`, `processed_at`, `retained_until`, `operator_id`.
 - Records MUST use `payload_hash` (a hash of the payload), NOT the raw payload content.
   This satisfies ARSIA-State.md §7.1 immutability requirements.
 
@@ -1506,7 +1506,10 @@ The decision message MUST conform to the following structure:
 - The `token_expires_at` field MUST be present and set to the token's expiry time in
   RFC 3339 format.
 - The `effective_capabilities`, `freely_allowed`, and `oversight_required` arrays MUST
-  be present and non-empty (an approval with zero capabilities is meaningless).
+  be present, and `effective_capabilities` MUST be non-empty (an approval with zero
+  capabilities is meaningless). Either `freely_allowed` or `oversight_required` MAY be
+  empty when the policy evaluation (§7.4, §8.3) places no capability in it — as in
+  §7.8, where the only granted capability is freely allowed.
 
 **Denial.** When `decision` is `"denied"`:
 

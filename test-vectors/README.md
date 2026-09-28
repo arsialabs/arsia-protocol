@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-653 test vectors (419 schema-valid, 140 expected-invalid, 94 runtime-only skipped — validator classification) for
+666 test vectors (428 schema-valid, 144 expected-invalid, 94 runtime-only skipped — validator classification) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
 placeholders.
@@ -11,7 +11,7 @@ placeholders.
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 653 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 666 test vectors |
 | [keypairs.json](keypairs.json) | 9 test keypairs: 7 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally) |
 
 ## Vector Formats
@@ -22,22 +22,22 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 | Format | Count | Description |
 |--------|-------|-------------|
 | `message-only` | 295 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 354 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `schema-ref` | 367 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 
 ## ID Prefixes
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 580 |
-| `INV-` | Invalid (all specs) | 45 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 589 |
+| `INV-` | Invalid (all specs) | 49 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-581** / **INV-46**
+Next available ID: **ITV-590** / **INV-50**
 
 ## Runtime-Only Vectors
 

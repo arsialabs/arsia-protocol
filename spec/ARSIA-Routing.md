@@ -2073,15 +2073,19 @@ error, the broker forwards the error to the sender without alteration.
 
 **Rule 7: Audit obligation.** The broker MUST append a `broker_relay` audit record for
 every message it relays, including messages that result in errors. The audit record
-format is defined in §7.4. The audit record MUST contain:
+format is defined in §7.4.2. The audit record MUST contain:
 
-- `relay_id`: UUID v4, unique per relay operation.
+- `attestation_id`: UUID v4, unique per relay operation (the `attestation_id` of the
+  relay attestation, §7.4.1).
 - `message_id`: The `id` field from the relayed message.
 - `from_agent`: The `from` field from the relayed message.
 - `to_agent`: The `to` field from the relayed message.
+- `message_ts`: The `ts` field from the relayed message.
 - `broker_agent_id`: The broker's own agent-id.
-- `zone`: The data residency zone this relay satisfies.
-- `relayed_at`: RFC 3339 timestamp with millisecond precision.
+- `residency_zone`: The data residency zone this relay satisfies.
+- `received_at` and `forwarded_at`: RFC 3339 timestamps with millisecond precision —
+  when the broker received the envelope and when it initiated forwarding.
+- `relay_latency_ms` and `forwarding_result`: as defined in §7.4.2.
 - `payload_hash`: SHA-256 hash of the message payload, hex-encoded.
 
 **Rule 8: No message storage.** The broker MUST NOT cache or store message envelopes
@@ -2168,6 +2172,7 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
 `payload_hash`, …), a `broker_relay` record carries as extension fields
 (ARSIA-State.md §7.1): `attestation_id`, `message_id`, `from_agent`, `to_agent`,
 `message_ts` (the relayed message's `ts`, required by ARSIA-Core.md §9.2),
+`broker_agent_id` (the broker's own agent-id, required by ARSIA-Core.md §9.2),
 `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, and
 `forwarding_result` (`"success"` | `"failure"` | `"timeout"`).
 
@@ -2181,6 +2186,7 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
   "from_agent": "agent:acme.billing",
   "to_agent": "agent:contoso.risk-assessor",
   "message_ts": "2026-03-24T14:30:00.812Z",
+  "broker_agent_id": "agent:arsialabs.broker.eu-west",
   "residency_zone": "EU",
   "received_at": "2026-03-24T14:30:01.187Z",
   "forwarded_at": "2026-03-24T14:30:01.234Z",

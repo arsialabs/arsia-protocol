@@ -21,6 +21,110 @@ def check(name, cond, detail=""):
         FAIL.append(name)
 
 
+# Rows of the State §7.1 extension table that the schema deliberately does not
+# enforce. Each needs a written reason; any other row must match the schema exactly.
+AUDIT_EXTENSION_EXCEPTIONS = {
+    "ict_incident": "extension promised by Assets §6.2 but no field is defined yet",
+    "jwks_fetched_at": "runtime-conditional (signed messages only); tracked by A-58",
+}
+
+
+def audit_extension_parity(state_text, audit_schema):
+    """State §7.1 per-event-type extension table vs the audit-record schema (A-59).
+
+    Returns a list of problems; empty means prose and schema agree.
+    """
+    problems = []
+    header = "| Record type | REQUIRED extension fields |"
+    if header not in state_text:
+        return ["State §7.1 extension table not found (header marker missing)"]
+    block = state_text[state_text.index(header):].split("\n\n", 1)[0].splitlines()[2:]
+    rows = [[c.strip() for c in ln.strip().strip("|").split("|")] for ln in block if ln.startswith("|")]
+    props = audit_schema.get("properties", {})
+    enum_values = set()
+
+    def collect_values(o):
+        if isinstance(o, dict):
+            if isinstance(o.get("enum"), list):
+                enum_values.update(v for v in o["enum"] if isinstance(v, str))
+            if isinstance(o.get("const"), str):
+                enum_values.add(o["const"])
+            for v in o.values():
+                collect_values(v)
+        elif isinstance(o, list):
+            for v in o:
+                collect_values(v)
+    collect_values(audit_schema)
+
+    def condition(entry):
+        # single-field condition of an allOf/if entry -> (field, frozenset(values))
+        p = entry.get("if", {}).get("properties", {})
+        if len(p) != 1:
+            return None
+        field, spec = next(iter(p.items()))
+        vals = spec.get("enum", [spec["const"]] if "const" in spec else [])
+        return field, frozenset(vals)
+
+    single = {}
+    multi = []
+    for entry in audit_schema.get("allOf", []):
+        c = condition(entry)
+        then = entry.get("then", {})
+        alts = {f for a in then.get("anyOf", []) for f in a.get("required", [])}
+        if c is None:
+            multi.append((entry.get("if", {}).get("properties", {}), set(then.get("required", []))))
+        else:
+            single[c] = (set(then.get("required", [])), alts)
+
+    exceptions_seen = set()
+    covered = set()
+    for cells in rows:
+        if len(cells) < 3:
+            problems.append(f"malformed row: {cells}")
+            continue
+        rtype, required_cell, optional_cell = cells[0], cells[1], cells[2]
+        if "(exception)" in rtype:
+            key = next((k for k in AUDIT_EXTENSION_EXCEPTIONS if k in rtype or k in required_cell), None)
+            if key is None:
+                problems.append(f"undeclared exception row: {rtype}")
+            else:
+                exceptions_seen.add(key)
+            continue
+        # parenthetical remarks state conditions (values, other objects), not fields
+        required = set(re.findall(r"`([a-z_]+)`", re.sub(r"\([^)]*\)", "", required_cell)))
+        optional = set(re.findall(r"`([a-z_]+)`", re.sub(r"\([^)]*\)", "", optional_cell)))
+        for name in required | optional:
+            if name not in props and name not in enum_values:
+                problems.append(f"{rtype}: `{name}` is neither a schema property nor a schema value")
+        m = re.match(r"`([a-z_]+)` = (.+)$", rtype)
+        if not m:
+            if required:  # rows without a schema condition may only list optional fields
+                problems.append(f"{rtype}: REQUIRED fields without a schema condition")
+            continue
+        field, vals = m.group(1), frozenset(re.findall(r"`([a-z_]+)`", m.group(2)))
+        covered.add((field, vals))
+        req_schema, alts = single.get((field, vals), (set(), set()))
+        if req_schema != required:
+            problems.append(f"{rtype}: table REQUIRED {sorted(required)} != schema {sorted(req_schema)}")
+        if not alts <= optional:
+            problems.append(f"{rtype}: schema alternatives {sorted(alts - optional)} not in table")
+        if "exactly as applicable" in optional_cell:  # table alternatives must be schema anyOf
+            tab_alts = set(re.findall(r"`([a-z_]+)`", re.sub(
+                r"\([^)]*\)", "", optional_cell.split("exactly as applicable", 1)[1])))
+            if tab_alts != alts:
+                problems.append(f"{rtype}: table alternatives {sorted(tab_alts)} != schema anyOf {sorted(alts)}")
+        for cond_props, req in multi:
+            spec = cond_props.get(field, {})
+            if spec.get("const") in vals and not req <= optional:
+                problems.append(f"{rtype}: conditional {sorted(req - optional)} not in table")
+    for key, (req, _alts) in single.items():
+        if key not in covered and req:
+            problems.append(f"schema condition {key[0]}={sorted(key[1])} has no table row")
+    if exceptions_seen != set(AUDIT_EXTENSION_EXCEPTIONS):
+        problems.append(f"exception rows {sorted(exceptions_seen)} != declared {sorted(AUDIT_EXTENSION_EXCEPTIONS)}")
+    return problems
+
+
 def main() -> int:
     from jsonschema import Draft202012Validator
 
@@ -257,6 +361,10 @@ def main() -> int:
             if prose_set and enum_sets else "extraction returned empty — marker moved?"
         )
         check(label, ok, detail)
+
+    # audit-record extension fields: State §7.1 table == schema conditionals (A-59)
+    probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"])
+    check("audit extension table == schema conditionals (A-59)", not probs, "; ".join(probs[:4]))
 
     # error-code registry: Core §11.2 table == every standard-code enum copy (A-04)
     prose_codes = set(re.findall(r"^\| `([a-z_]+)`\s*\|\s*\d{3}\s*\|", core, re.M))

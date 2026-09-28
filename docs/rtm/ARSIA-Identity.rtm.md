@@ -94,7 +94,7 @@
 | IDENT-§4.2-04 | 4.2 | MUST_NOT | operational_policy | behavioural_negative | Agents classified as unacceptable-risk MUST NOT be deployed | — | — |
 | IDENT-§4.2-05 | 4.2 | MUST | sdk | behavioural_negative | Receiving agent MUST reject all messages from agents classified as unacceptable-risk with error forbidden | arsia-identity-record | — |
 | IDENT-§4.3-01 | 4.3 | MUST | deployment | behavioural_positive | Cross-border agents' IdentityRecords MUST be independently verifiable via their respective endpoints | — | — |
-| IDENT-§4.4-01 | 4.4 | MUST | sdk | behavioural_positive | Both deployer_id and owner_id MUST be recorded in audit events for split-responsibility agents | — | ITV-453 |
+| IDENT-§4.4-01 | 4.4 | MUST | sdk | behavioural_positive | Both deployer_id and owner_id MUST be recorded in audit events for split-responsibility agents | arsia-audit-record | ITV-453, ITV-588 |
 | IDENT-§5-01 | 5 | MUST | sdk | interoperability | Conformant implementations MUST pass all identity conformance tests at their applicable level | — | — |
 | IDENT-§5-02 | 5 | MAY | sdk | behavioural_positive | Receiving agent MAY reject high-risk classification-mismatched messages with invalid_request error | — | ITV-454 |
 | IDENT-§6-01 | 6 | MUST | sdk | behavioural_positive | All implementations MUST support Level 1 (self-signed) certificate trust | — | ITV-455 |
@@ -206,7 +206,7 @@
 | IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | ITV-482 |
 | IDENT-§7.6-04 | 7.6 | MUST | sdk | behavioural_positive | Approval token MUST be a valid JWT with scope matching effective_capabilities | arsia-jwt-claims, arsia-onboarding-decision | ITV-38, ITV-130 |
 | IDENT-§7.6-05 | 7.6 | MUST | sdk | structural | Approval decision token_expires_at MUST be present in RFC 3339 format | arsia-onboarding-decision | ITV-130 |
-| IDENT-§7.6-06 | 7.6 | MUST | sdk | structural | Approval decision effective_capabilities, freely_allowed, and oversight_required MUST be non-empty | arsia-onboarding-decision | ITV-130 |
+| IDENT-§7.6-06 | 7.6 | MUST | sdk | structural | Approval decision effective_capabilities, freely_allowed, and oversight_required MUST be present; effective_capabilities MUST be non-empty (freely_allowed or oversight_required MAY be empty) | arsia-onboarding-decision | ITV-130, ITV-589 |
 | IDENT-§7.6-07 | 7.6 | MUST | sdk | structural | Denial decision denial_reason field MUST be present | arsia-onboarding-decision | ITV-04, ITV-131 |
 | IDENT-§7.6-08 | 7.6 | MUST_NOT | sdk | behavioural_negative | Denial decision MUST NOT include a token field | arsia-onboarding-decision | ITV-04, ITV-131 |
 | IDENT-§7.6-09 | 7.6 | SHOULD | sdk | behavioural_positive | Denial decision SHOULD include conformance_result for operator feedback | arsia-onboarding-decision | ITV-131 |
@@ -273,9 +273,9 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | Metric | Count |
 |--------|------:|
 | Total requirements | 259 |
-| Schema ≠ — | 115 |
+| Schema ≠ — | 116 |
 | Vector ≠ — | 78 |
-| Both ≠ — | 38 |
+| Both ≠ — | 39 |
 | Both = — (gaps) | 104 |
 
 ### Per-section breakdown
@@ -285,7 +285,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 38 | 20 | 11 | 8 | 15 |
 | 2 | 27 | 7 | 5 | 4 | 19 |
 | 3 | 15 | 4 | 3 | 0 | 8 |
-| 4 | 11 | 3 | 3 | 1 | 6 |
+| 4 | 11 | 4 | 3 | 2 | 6 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |
 | 7 | 77 | 46 | 27 | 16 | 20 |

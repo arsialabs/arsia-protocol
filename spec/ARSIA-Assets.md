@@ -1554,6 +1554,10 @@ Generated when the escrow transitions from `ESCROWED` to `RETURNED`.
 | `record_id`        | UUID v4 — new audit record identifier for the timeout event (ArsiaAuditRecord base field) |
 | `processed_at`     | RFC 3339 — when the return was processed (ArsiaAuditRecord base field) |
 
+When the return results from a sender cancellation (§4.2.4) rather than a timeout, the
+record carries `cancellation_reason` in place of `actual_timeout`; `timeout_at` still
+records the original escrow deadline.
+
 #### 4.3.4 Escrow Dispute
 
 Generated when the escrow transitions from `ESCROWED` to `DISPUTED`.

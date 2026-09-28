@@ -240,7 +240,7 @@
 | ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox using direct routing | arsia-audit-record | RTV-01 |
 | ROUTE-§7.3-22 | 7.3 | MUST | external | behavioural_positive | Broker MUST return the recipient response to the sender unmodified | — | ITV-516 |
 | ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every relayed message, including errors | arsia-audit-record, arsia-audit-record | RTV-02 |
-| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain relay_id, message_id, from_agent, to_agent, broker_agent_id, zone, relayed_at, and payload_hash | arsia-audit-record | RTV-02 |
+| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain attestation_id, message_id, from_agent, to_agent, message_ts, broker_agent_id, residency_zone, received_at, forwarded_at, relay_latency_ms, forwarding_result, and payload_hash | arsia-audit-record | RTV-02, ITV-43, INV-48 |
 | ROUTE-§7.3-25 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT cache or store message envelopes beyond the audit record | — | — |
 | ROUTE-§7.3-26 | 7.3 | MUST | external | behavioural_positive | Broker MUST discard the message envelope from memory and temporary storage after forwarding | — | — |
 | ROUTE-§7.3-27 | 7.3 | MUST | external | behavioural_positive | Broker MUST respect the message expires_at field during relay | arsia-message | — |
@@ -257,7 +257,7 @@
 | ROUTE-§7.4-08 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).message_id (string) is REQUIRED — the id of the relayed message | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-09 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).from_agent (string) is REQUIRED — the from field of the relayed message | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-10 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).to_agent (string) is REQUIRED — the to field of the relayed message | arsia-audit-record | ITV-43 |
-| ROUTE-§7.4-11 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).broker_agent_id (string) is REQUIRED — the broker own agent-id | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-11 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).broker_agent_id (string) is REQUIRED — the broker own agent-id | arsia-audit-record | ITV-43, INV-48 |
 | ROUTE-§7.4-12 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).residency_zone (string) is REQUIRED — the zone this relay satisfies | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-13 | 7.4 | REQUIRED | external | structural | broker_relay record forwarded_at (string) is REQUIRED — RFC 3339 timestamp with millisecond precision | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-14 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).payload_hash (string) is REQUIRED — SHA-256 hash of payload, hex-encoded | arsia-audit-record | ITV-43 |

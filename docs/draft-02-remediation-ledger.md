@@ -40,7 +40,8 @@ runtime-only vectors, and the declared guarantees still lacking evidence.
 | C0 | Audit + triage + regulatory verification | `51610ac` (audit baseline) | none (read-only) | closed |
 | C0.5 | Decision-independent verifier repair | `51610ac` (audit baseline; executed on the pre-rewrite `fb5a875`, identical tree) | `260ac73` ("fix: repair decision-independent reference verifiers (step 0.5)") | implemented, closure verification pending |
 | C1 | Remediation tracking artefacts | `63a233b` | `e77c0ca` ("docs: add Draft-02 remediation ledger and design record") | closed |
-| C2 | Regulatory and standards citation alignment (28 citation defects + A-69) | `e77c0ca` | this commit | implemented; per-item closure in §4, §5 and §9 |
+| C2 | Regulatory and standards citation alignment (28 citation defects + A-69) | `e77c0ca` | `a8e9930` ("fix: align regulatory and standards citations with official texts") | implemented; per-item closure in §4, §5 and §9 |
+| C3a | Prose ↔ schema parity (A-1, A-2, A-3, A-9, A-10, A-27, A-59) | `a8e9930` | this commit | implemented; per-item closure in §4 and §10 |
 
 ## 3. Decision register
 
@@ -67,16 +68,16 @@ Rows: 9 (6 DR, 3 OD).
 | F-1 | 1 | CONF | per DR-3, DR-1 | open | Aligned quotes (Core Rule 3, State §6.2, Actions §3.7) + executed high-risk/not_required vector | pending | DR-3, DR-1 | pending |
 | F-2 | 2 | CONF | pending | IPC | Harness shared-cache two-call test, revoked kid, reject/reject | harness R13 (C0.5) | IPC, C0.5 | C0.5 / 260ac73 |
 | F-3 | 3 | CONF | pending | open | Core §5.1 text citing UTF-16 code units + signed vector with non-BMP keys | pending | prose cycle; prerequisite of DR-5 | pending |
-| A-1 | 1 | CONF | pending | open | Schema validation passing records built literally from Actions §3.5 (1-4, expiry) | pending | prerequisite of DR-5 | pending |
-| A-2 | 1 | PART (State §7.4 l.3093 is a query parameter, not a record field) | pending | open | Schema validation of Rule 7, deployer_id, cancellation records; CHECK-04/STATE-15 names aligned | pending | prerequisite of DR-5 | pending |
-| A-3 | 1 | PART (delivery_failed sub-claim interpretive) | pending | open | Schema validation of compliance_warning/oversight_timeout records, or disposition placing them outside the canonical trail | pending | — | pending |
+| A-1 | 1 | CONF | pending | closed | Schema validation passing records built literally from Actions §3.5 (1-4, expiry) | Actions §3.5 Records 1-4 and the expiry record, built literally from the prose tables, validate (ITV-581..585); INV-46 (decision missing) rejected (§10) | prerequisite of DR-5 | C3a |
+| A-2 | 1 | PART (State §7.4 l.3093 is a query parameter, not a record field) | State §7.4 `compliance_profile` is a query-parameter name, not a record field: name unchanged; the filter is defined as matching `compliance_profile_resolved` (owner decision 2026-09-28) | closed | Schema validation of Rule 7, deployer_id, cancellation records; CHECK-04/STATE-15 names aligned | Routing §7.4.2 record incl. broker_agent_id (§7.4.2 example + base fields; INV-48), deployer_id (ITV-588) and cancellation (ITV-586; INV-47) records validate; CHECK-04/STATE-15 aligned (§10) | prerequisite of DR-5 | C3a |
+| A-3 | 1 | PART (delivery_failed sub-claim interpretive) | `delivery_failed` is an operational routing-log event (Routing §4.1 audit classification note), not a canonical `ArsiaAuditRecord` event_type; not added to the enum | IPC | Schema validation of compliance_warning/oversight_timeout records, or disposition placing them outside the canonical trail | `compliance_warning` added to prose and schema enum and validated (ITV-587). Gap: `oversight_timeout` suspended — it is one of the three `required_within_24h` definitions that DR-2 replaces (§10) | — | C3a (partial) |
 | A-4 | 1 | PART (holds: post-execution window undefined) | per DR-2 | open | Aligned quotes for one within_24h evidence event + defined post-execution mechanism; executed C-09 | pending | DR-2 | pending |
 | A-5 | 1 | CONF | pending | open | Aligned State §8.2.1 / Actions §1.2 quotes + executed reserved-wildcard vector | pending | — | pending |
 | A-6 | 1 | INT (Core §6.4 names Actions §1.2 the single rule) | Core §6.4 names Actions §1.2 the single rule | open | Disposition + editorial alignment of Identity §3.2 step 6; ITV-566 executed | pending | — | pending |
 | A-7 | 1 | CONF | pending | open | Aligned PURGE/retention quotes (Core §13.1 #9, State §3.2.2/§5.3.2) | pending | DR-4 axis rules | pending |
 | A-8 | 1 | CONF | per DR-5 | open | New chain construction + claim quotes; executed tamper test on a non-hashed field | pending | DR-5; A-1, A-2, A-59, F-3 | pending |
-| A-9 | 1 | PART (extras limited to registered fields) | pending | open | Schema description consistent with keyword; validation of declared extension behaviour | pending | — | pending |
-| A-10 | 1 | CONF | pending | open | Assets §5.2 example validates as printed | pending | — | pending |
+| A-9 | 1 | PART (extras limited to registered fields) | pending | closed | Schema description consistent with keyword; validation of declared extension behaviour | Core §4.3.6 note and schema description now state the registered-fields reading; additionalProperties:false kept; INV-49 (unregistered member) rejected (§10) | — | C3a |
+| A-10 | 1 | CONF | pending | closed | Assets §5.2 example validates as printed | Assets-only summary requirement removed from the message schema; the Assets §5.2 example, wrapped in an envelope, validates; ITV-400/401 aligned (§10) | — | C3a |
 | A-11 | 1 | CONF | per DR-1 | open | Aligned denied/expired response form; ASSETS-06 executed | pending | DR-1 | pending |
 | A-12 | 1 | PART (risk_level sub-claim fails) | per DR-1 | open | Aligned quote defining trigger source relative to Actions §3.7 | pending | DR-1 | pending |
 | A-13 | 1 | CONF | per DR-1 | open | Aligned Identity §7.3/§7.7 vs Actions §3.7 quotes | pending | DR-1 | pending |
@@ -93,7 +94,7 @@ Rows: 9 (6 DR, 3 OD).
 | A-24 | 1 | CONF | pending | open | Aligned version-reset quotes (State §2.1.12/§2.4) | pending | — | pending |
 | A-25 | 1 | CONF | pending | open | Aligned arithmetic; ACTIONS-10-style count assertion for N>1 | pending | — | pending |
 | A-26 | 1 | CONF | pending | open | Aligned CHECK-04 / State §7.4 response shape | pending | — | pending |
-| A-27 | 1 | PART (§7.8 informative) | pending | open | Schema minItems aligned with prose (or relaxed prose); §7.8 scenario validated | pending | — | pending |
+| A-27 | 1 | PART (§7.8 informative) | pending | closed | Schema minItems aligned with prose (or relaxed prose); §7.8 scenario validated | Identity §7.6 relaxed to the intended behaviour (effective_capabilities non-empty; sub-lists may be empty); §7.8 scenario validates (ITV-589); schema unchanged (§10) | — | C3a |
 | A-28 | 1 | INT (State qualifies its own claim) | State qualifies its own claim | closed | Disposition; State §6.3 opening sentence rewritten via V-14 | V-14 rewrite of the State §6.3 PSD2 paragraph (§9, row V-14); disposition as recorded | regulatory cycle | C2 |
 | A-29 | 1 | INT | Core's SHOULD reconnect and Routing's MUST back off when reconnecting can both hold; the idle-close MAY does not negate Core's SHOULD. | open | Disposition on modal strength; drift-linter rule | pending | — | pending |
 | A-30 | 1 | PART (all sub-claims hold; "normative" overstated) | pending | open | Per-example schema validation; error-code count aligned | pending | — | pending |
@@ -125,7 +126,7 @@ Rows: 9 (6 DR, 3 OD).
 | A-56 | 4 | CONF | pending | open | Executed attestation vectors with tampered variants | pending | coverage program | pending |
 | A-57 | 4 | CONF | pending | open | Executed approval-chain vectors (capability, deadline, approver id, signature) | pending | coverage program; DR-1 | pending |
 | A-58 | 4 | CONF | pending | open | Schema rule for jwks_fetched_at; executed revocation/cache vectors | pending | coverage program | pending |
-| A-59 | 4 | CONF | pending | open | Consistency rule asserting State §7.1 table ⇔ schema extensions | pending | prerequisite of DR-5 | pending |
+| A-59 | 4 | CONF | pending | closed | Consistency rule asserting State §7.1 table ⇔ schema extensions | check_consistency guard "audit extension table == schema conditionals (A-59)" passes on the repaired state and fails on the a8e9930 baseline and on targeted mutations; exceptions ict_incident and jwks_fetched_at declared with reasons (§10) | prerequisite of DR-5 | C3a |
 | A-60 | 4 | CONF | per DR-5 | open | Executed hash_chain vectors incl. tamper case | pending | DR-5 | pending |
 | A-61 | 4 | CONF | pending | open | Executed duplicate-member and non-I-JSON vectors, strict parser | pending | coverage program | pending |
 | A-62 | 4 | CONF | pending | open | Harness rule + ITV-545/546/547 executed with profile tolerances; clean "90 s under 120 s" case | pending | coverage program | pending |
@@ -141,8 +142,8 @@ Rows: 9 (6 DR, 3 OD).
 **Counts (this register only, 73 rows).**
 - By class: 1 = 33; 2 = 12; 3 = 13; 4 = 13; E = 2.
 - By triage status: CONF 48; PART 17; INT 6; UNV 0; new 2.
-- By remediation state: open 54; IPC 8; mixed (validator IPC, vectors open) 1; closed 10.
-- By disposition: per DR 10; interpretive justification 6; pending 57.
+- By remediation state: open 47; IPC 9; mixed (validator IPC, vectors open) 1; closed 16.
+- By disposition: per DR 10; interpretive justification or recorded disposition 8; pending 55.
 
 ## 5. Regulatory citation register
 
@@ -368,7 +369,8 @@ error, truncated.
   in `docs/` still state 649 vectors and 1109 MUST+MUST_NOT. After C2 the
   figures are 653 vectors and 1903 RTM rows / 1114 MUST+MUST_NOT. Only
   `test-vectors/README.md` was updated in C2, where the `ITV-` prefix count
-  had been 578 against an actual 579 before C2.
+  had been 578 against an actual 579 before C2. After C3a the figures are 666
+  vectors and 1903 / 1114 (unchanged); `test-vectors/README.md` was updated again.
 - **AI Act Art. 13 quotation (C2 observation):** State §6.2 (l.2319-2321) quotes
   Art. 13(1) inside quotation marks, but not verbatim ("the system's output" against the
   official "a system's output").
@@ -395,6 +397,49 @@ error, truncated.
   - Core l.1292-1293 (Rule 3, DR-3 scope);
   - Identity l.1332 (CHECK-03, signalling per gateway policy);
   - State l.2552 (limited-risk contrast).
+
+- **`oversight_timeout` suspended (C3a, A-3):** Core §4.3.6.5 requires logging
+  it, but it is one of the three `required_within_24h` definitions that DR-2
+  replaces with one mechanism. It is added (or dropped) in the DR-2 cycle.
+- **`ict_incident` audit extension undefined (C3a observation):** State §7.1 and
+  Assets §6.2.3 promise incident classification fields in the `ict_incident`
+  record, but no field is defined in prose or schema. It is an explicit exception
+  of the A-59 guard.
+- **`jwks_fetched_at` (C3a observation):** State §7.1 makes it REQUIRED for any
+  signed compliance-relevant message; the schema cannot express that condition
+  and leaves it optional. It is an explicit exception of the A-59 guard and is
+  tracked by A-58.
+- **Rollback audit fields undefined in schema (C3a observation):** Actions §4.2
+  ("Rollback Audit") requires the original action's `message_id` and
+  `action_id`, the rollback request's `message_id`, a timestamp and full/partial
+  status. Neither the schema nor the State §7.1 table defines these fields
+  (candidate finding).
+- **Plain `asset_transfer` records (C3a observation):** the former §7.1 table
+  claimed `payment_reference`, `amount` and `original_audit_id` for
+  non-escrow transfers and reversals. No originating prose or schema rule
+  supports that, so the claim was removed from the table. The audit content of
+  plain `asset_transfer` records is undefined (candidate finding).
+- **`pii_special_categories` in `state_set` records (C3a observation):** it is
+  required by the schema and the §7.1 table, but the originating operation
+  prose (State §3.1.2 table, §8.3 rule 3) does not list it; §2.1.11 concerns
+  Art. 30 records.
+- **`relay_id` naming (C3a observation):** relay receipt and error payloads
+  (Routing §2.3) carry `relay_id`, while the attestation and the audit record
+  use `attestation_id` for the same per-relay UUID.
+- **ITV-94 correlation semantics (C3a observation):** Actions §3.5 Record 3 sets
+  `correlation_id` to the pending_approval id; ITV-94 uses the original request
+  id. The schema cannot check this.
+- **CHECK-04 field list (C3a observation):** Identity CHECK-04 presents its list
+  as "the fields defined in ArsiaAuditRecord", but it omits the schema-required
+  `retention_source`.
+- **Canonical pending_approval field set not enforced (C3a observation):** Assets
+  §5.2 requires "exactly the canonical field set" of Actions §3.2, but the
+  `pending-approval-args` schema does not close its properties.
+- **Extension fields without RTM rows (C3a observation):** the per-event-type
+  extension table has no dedicated RTM rows (A-64 domain).
+- **ITV-401 pre-existing defect (C3a):** the vector also lacked `correlation_id`,
+  so it was invalid for two causes. It was corrected when the vector was
+  repurposed under Rule 4.
 
 ## 9. C2 closure evidence
 
@@ -433,3 +478,17 @@ verbatim from the source named; `…` marks an omission.
 | T-9 | Routing l.2389: "Version 2.0, adopted 14 February 2023" | EDPB Guidelines 05/2021 v2 PDF: "Version 2.0 14 02 2023 Adoption of the Guidelines after public consultation" | edpb.europa.eu (PDF) | closed |
 | V-19 | State l.2469-2475 (§6.4); profiles catalog PAC-AGRICULTURE references: Arts. 8 and 9 | Reg. (EU) 2021/2116 Art. 8(1)(a): "the issuing, reviewing and withdrawing of accreditation of paying agencies"; Art. 9(2): "sufficient guarantees that payments are legal, regular and properly accounted for" | EUR-Lex `32021R2116.pdf` | closed |
 | A-70 (verification) | State l.2395-2400: the fabricated Art. 72 quotation replaced by what Art. 72 provides. The floor and its echoes are unchanged (A-70). | Searched (whitespace-insensitive, local PDFs): Del. Reg. (EU) 2017/565 Arts. 72-76 and Annexes I and IV; Dir. 2014/65/EU Art. 16(6)-(7). Art. 72 sets no period. The only five-year periods found are Art. 76(8) (a copy of recordings "available on request for a period of five years") and Art. 16(7) (communications records "kept for a period of five years"). Other acts (e.g. Reg. (EU) No 600/2014) were not consulted, since they are not among the supplied sources. | EUR-Lex `32017R0565.pdf`, `32014L0065.pdf` | open (A-70) |
+
+## 10. C3a closure evidence
+
+Each closure criterion was checked against the evidence below, at the C3a commit.
+
+| Finding | Closure criterion | Evidence | Met |
+|---|---|---|---|
+| A-1 | Schema validation passing records built literally from Actions §3.5 (1-4, expiry) | Actions §3.5 tables use the base-field names of State §7.1 and state that records carry the base fields. The schema adds `decision` and `outcome` (enumerations exactly as in the prose: Record 3 and the expiry record; Record 4), `root_request_id`, and `reason` as string or null. The conditionals require them for pending_approval, approval_decision and approval_expired. ITV-581..585 validate; INV-46 is rejected. | yes |
+| A-2 | Schema validation of Rule 7, deployer_id, cancellation records; CHECK-04/STATE-15 names aligned | Routing Rule 7: `relay_id`→`attestation_id`, `zone`→`residency_zone` and `relayed_at`→`received_at`/`forwarded_at` are mapped under the §7.4.2 names. `broker_agent_id` is kept, because Core §9.2 item 4 requires "the broker's own agent identifier"; it is added to §7.4.2, the schema and the vectors (INV-48). The §7.4.2 example plus base fields validates. `deployer_id` is an optional extension (ITV-588). `cancellation_reason` replaces `actual_timeout` on cancellations (ITV-586; INV-47). CHECK-04 names both profile fields, and STATE-15 plus the §7.4 filter use `compliance_profile_resolved`. | yes |
+| A-3 | Schema validation of compliance_warning/oversight_timeout records, or disposition placing them outside the canonical trail | `compliance_warning` is in the State §7.1 enum and the schema (ITV-587; M-06 parity check passes). `delivery_failed` is recorded as a routing-log disposition. `oversight_timeout` is suspended (DR-2). | partly → IPC |
+| A-9 | Schema description consistent with keyword; validation of declared extension behaviour | The Core §4.3.6 note and the schema description state the registered-fields reading; additionalProperties:false is kept; INV-49 is rejected. | yes |
+| A-10 | Assets §5.2 example validates as printed | The `summary` requirement and property are removed. The §5.2 Step 3 example, with its placeholders filled and wrapped in an envelope, validates. ITV-400 drops `summary`; ITV-401 tests the missing `context`. | yes |
+| A-27 | Schema minItems aligned with prose (or relaxed prose); §7.8 scenario validated | Identity §7.6 now requires the three arrays present and `effective_capabilities` non-empty; either sub-list may be empty. The schema is unchanged, and ITV-589 (the §7.8 approval) validates. | yes |
+| A-59 | Consistency rule asserting State §7.1 table ⇔ schema extensions | The State §7.1 table has one row per record type, each validated against its originating prose (Actions §3.5; State §3.1.2, §3.1.3, §3.2.2, §3.3.1, §3.3.2, §8.3; Assets §4.2.4, §4.3; Routing §7.4.2; Core §9.2; Identity §2.5, §4.4). The guard passes on the repaired state. It fails on the `a8e9930` State and schema (table not checkable), on the repaired table against the `a8e9930` schema (17 problems), and on each targeted mutation (schema drops `broker_agent_id`; table drops `decision`; undeclared exception; schema drops the escrow_returned alternatives). | yes |

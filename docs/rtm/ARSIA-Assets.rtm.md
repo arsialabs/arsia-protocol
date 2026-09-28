@@ -210,7 +210,7 @@
 | ASSETS-§5.1.7-06 | 5.1.7 | MAY | sdk_enabled | informational | audit.read access MAY be restricted by date range, payment_reference, or compliance profile | — | — |
 | ASSETS-§5.2-01 | 5.2 | MUST | sdk | behavioural_positive | Financial operations with risk_level ≥ 7 MUST require human oversight before execution | — | ITV-400 |
 | ASSETS-§5.2-02 | 5.2 | SHOULD | sdk_enabled | procedural | Risk assessment SHOULD consider amount, asset_type, compliance profile, and operator policies | — | — |
-| ASSETS-§5.2-03 | 5.2 | MUST | sdk | behavioural_positive | pending_approval message MUST include a human-readable transfer summary | arsia-message | ITV-400, ITV-401 |
+| ASSETS-§5.2-03 | 5.2 | MUST | sdk | behavioural_positive | pending_approval payload.args uses the canonical Actions §3.2 field set; context MUST carry a human-readable description of the transfer | arsia-message | ITV-400, ITV-401 |
 | ASSETS-§5.2-04 | 5.2 | MUST | sdk | behavioural_positive | approval_decision message MUST be signed by the approver's Ed25519 key | arsia-message | ITV-402 |
 | ASSETS-§5.2-05 | 5.2 | MAY | sdk_enabled | informational | Implementations MAY add biometric verification as a third authentication factor | — | — |
 | ASSETS-§6.1-01 | 6.1 | MUST | sdk | behavioural_positive | Qualifying AssetTransferRequests MUST generate a MiFID II audit record | — | ITV-39, ITV-122 |

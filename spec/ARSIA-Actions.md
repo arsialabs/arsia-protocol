@@ -1568,7 +1568,9 @@ late decision SHOULD still be logged in the audit trail for completeness.
 
 Every `pending_approval` → `approval_decision` cycle MUST generate a minimum of four
 audit records. These records form a complete, cryptographically linked chain that
-enables auditors to reconstruct the full oversight flow.
+enables auditors to reconstruct the full oversight flow. Each record is an
+`ArsiaAuditRecord` (ARSIA-State.md §7.1): the tables below list the fields specific to
+each step, and every record also carries the base fields defined there.
 
 #### Record 1: Original Request
 
@@ -1577,9 +1579,9 @@ enables auditors to reconstruct the full oversight flow.
 | `event_type`   | `"request"`                                                  |
 | `message_id`   | The `id` of the original request message                     |
 | `timestamp`    | The `ts` of the original request message                     |
-| `from`         | The requesting agent's agent-id                              |
-| `to`           | The executing agent's agent-id                               |
-| `action_id`    | The `payload.type` of the request                            |
+| `from_agent`   | The requesting agent's agent-id                              |
+| `to_agent`     | The executing agent's agent-id                               |
+| `payload_type` | The `payload.type` of the request                            |
 | `risk_level`   | The risk_level from the ActionDescriptor                     |
 | `payload_hash` | SHA-256 hash of the canonicalized request payload            |
 
@@ -1592,8 +1594,8 @@ This record captures the initiating event — what was requested, by whom, and w
 | `event_type`   | `"pending_approval"`                                         |
 | `message_id`   | The `id` of the pending_approval message                     |
 | `timestamp`    | The `ts` of the pending_approval message                     |
-| `from`         | The executing agent's agent-id                               |
-| `to`           | The original requester's agent-id                            |
+| `from_agent`   | The executing agent's agent-id                               |
+| `to_agent`     | The original requester's agent-id                            |
 | `correlation_id` | The `id` of the original request                           |
 | `root_request_id` | The `id` of the original request                          |
 | `approval_deadline` | The approval deadline timestamp                          |
@@ -1610,8 +1612,8 @@ autonomously.
 | `event_type`   | `"approval_decision"`                                        |
 | `message_id`   | The `id` of the approval_decision message                    |
 | `timestamp`    | The `ts` of the approval_decision message                    |
-| `from`         | The approver's agent-id                                      |
-| `to`           | The executing agent's agent-id                               |
+| `from_agent`   | The approver's agent-id                                      |
+| `to_agent`     | The executing agent's agent-id                               |
 | `correlation_id` | The `id` of the pending_approval message                   |
 | `root_request_id` | The `id` of the original request                          |
 | `decision`     | `"approved"` or `"denied"`                                   |
@@ -1630,8 +1632,8 @@ case of a deadline expiry (Path 3), this record is replaced by a record with
 | `event_type`   | `"response"` or `"error"`                                    |
 | `message_id`   | The `id` of the final response or error message              |
 | `timestamp`    | The `ts` of the final response or error message              |
-| `from`         | The executing agent's agent-id                               |
-| `to`           | The original requester's agent-id                            |
+| `from_agent`   | The executing agent's agent-id                               |
+| `to_agent`     | The original requester's agent-id                            |
 | `correlation_id` | The `id` of the original request                           |
 | `root_request_id` | The `id` of the original request                          |
 | `outcome`      | `"success"`, `"denied"`, `"expired"`, or `"error"`           |

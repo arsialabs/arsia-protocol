@@ -228,7 +228,7 @@
 | ACT-§3.4-25 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action if approval_decision arrives after the approval_deadline | — | ITV-328 |
 | ACT-§3.4-26 | 3.4 | SHOULD | sdk | behavioural_positive | Executing agent SHOULD respond to late approver with error invalid_request and deadline_exceeded: true | arsia-message | ITV-328 |
 | ACT-§3.4-27 | 3.4 | SHOULD | sdk | behavioural_positive | Late approval_decision SHOULD still be logged in the audit trail for completeness | arsia-audit-record | — |
-| ACT-§3.5-01 | 3.5 | MUST | sdk | procedural | Every oversight cycle MUST generate at least four audit records: request, pending_approval, decision, and response | arsia-audit-record | ITV-93, ITV-105 |
+| ACT-§3.5-01 | 3.5 | MUST | sdk | procedural | Every oversight cycle MUST generate at least four audit records: request, pending_approval, decision, and response | arsia-audit-record | ITV-93, ITV-105, ITV-581, ITV-582, ITV-583, ITV-584, ITV-585 |
 | ACT-§3.6-01 | 3.6 | MAY | sdk_enabled | procedural | Implementations MAY require multiple independent approvals for actions with risk_level 10 | — | — |
 | ACT-§3.6-02 | 3.6 | OPTIONAL | sdk | informational | Multiple approval level support is OPTIONAL in ARSIA Protocol v1.0 | — | — |
 | ACT-§3.6-03 | 3.6 | SHOULD | sdk | behavioural_positive | Implementations SHOULD support single-approval for all risk levels at minimum | — | — |

@@ -977,11 +977,11 @@ When present, they MUST conform to the formats and constraints defined below.
   processing of this specific message. The formal JSON Schema for the `compliance`
   field is defined in `arsia-compliance-field.schema.json`.
 
-> **Note (informative):** The `compliance` object permits additional properties beyond
-> the sub-fields listed below. This is intentional — compliance profiles (§1.2) can
-> carry profile-specific fields that this specification registers (e.g., `clock_skew_seconds`) without requiring changes
-> to this schema. Implementations are encouraged to validate known field names at the
-> application layer to detect typos in standard field names.
+> **Note (informative):** The `compliance` object carries only the sub-fields that this
+> specification registers — those listed below and the profile tolerance
+> `clock_skew_seconds` (§8.3) — and its schema rejects any other member. Extension profiles
+> (§4.3.8, Rule 1) define defaults, a retention minimum and an oversight mode, not new
+> `compliance` members.
 
 The `compliance` object contains the following sub-fields:
 

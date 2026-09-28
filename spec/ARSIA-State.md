@@ -2765,7 +2765,8 @@ REQUIRED unless marked OPTIONAL.
 - **Enum:** `"request"`, `"response"`, `"event"`, `"error"`, `"pending_approval"`,
   `"approval_decision"`, `"approval_expired"`, `"state_set"`, `"state_delete"`,
   `"state_grant"`, `"state_revoke"`, `"state_purge"`, `"asset_transfer"`,
-  `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"ict_incident"`
+  `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"ict_incident"`,
+  `"compliance_warning"`
 - **REQUIRED.**
 - **Description:** The type of event being audited. Values correspond to protocol
   operations:
@@ -2789,6 +2790,9 @@ REQUIRED unless marked OPTIONAL.
   (ARSIA-Identity.md §2.4, §2.5).
   `"rollback"` — An action was rolled back (ARSIA-Actions.md §4.2).
   `"ict_incident"` — A DORA incident was recorded (ARSIA-Assets.md §6.2.3).
+  `"compliance_warning"` — A compliance warning was logged, e.g. an overridden
+  `audit_required` on a message with `pii_involved: true` (ARSIA-Core.md §4.3.8,
+  Rule 7).
 
 #### `from_agent`
 
@@ -2979,17 +2983,38 @@ Beyond the base fields above, an `ArsiaAuditRecord` carries additional REQUIRED
 fields determined by its `event_type`. These extensions are normative — a record
 missing its event type's extensions is invalid — and are machine-enforced by
 `arsia-audit-record.schema.json`, which is the authoritative field-by-field
-definition. Summary:
+definition. The table below lists, per record type, the extension fields and the
+prose that originates them. Its REQUIRED column is kept exactly equal to the
+schema's conditional requirements, and the repository consistency checker verifies
+that equality; the two rows marked as exceptions are the only entries not enforced
+by the schema.
 
-| `event_type` group | Extension fields (REQUIRED unless noted) |
-|--------------------|------------------------------------------|
-| `state_set`, `state_delete`, `state_purge` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp`; `state_set` with `pii_classification` of `personal`/`sensitive` additionally requires `legal_basis` (and `pii_special_categories` for `sensitive`) |
-| `state_grant`, `state_revoke` | `grant_id`, `grantee_agent_id`, plus grant metadata per §3.3 |
-| `pending_approval`, `approval_decision`, `approval_expired` | `approval_deadline` (pending), `decision`/`approver_id` (decision), `sub_type` where applicable |
-| `asset_transfer` (escrow transitions and reversals via `sub_type`) | `payment_reference`, `amount` (canonical decimal string), `original_audit_id` for corrections/reversals/escrow transitions, `timeout_at` for escrow |
-| `broker_relay` | `attestation_id`, `message_id`, `from_agent`, `to_agent`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` (ARSIA-Routing.md §7.4.2) |
-| `ict_incident` | incident classification fields per ARSIA-Assets.md §6.2 |
-| any signed compliance-relevant message | `jwks_fetched_at` — the JWKS fetch timestamp used for signature verification (ARSIA-Core.md §5.2, stale-key behaviour) |
+| Record type | REQUIRED extension fields | Conditional / OPTIONAL extension fields | Originating prose |
+|-------------|---------------------------|-----------------------------------------|-------------------|
+| `event_type` = `request` | — | `risk_level` (first record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 1 |
+| `event_type` = `pending_approval` | `correlation_id`, `root_request_id`, `approval_deadline` | — | ARSIA-Actions.md §3.5, Record 2 |
+| `event_type` = `approval_decision` | `correlation_id`, `root_request_id`, `decision`, `approver_id` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 |
+| `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, `decision` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 (expiry) |
+| `event_type` = `response` or `error` | — | `correlation_id`, `root_request_id`, `outcome` (final record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 4 |
+| `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`), `pii_special_categories` (when `sensitive`) | §3.1.2; §8.3 rule 3 |
+| `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `timestamp` | — | §3.1.3 |
+| `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `purged_at`, `pii_classification` | `reason` | §3.2.2 |
+| `event_type` = `state_grant` | `grant_id`, `key_pattern`, `grantor_agent_id`, `grantee_agent_id`, `access_level`, `valid_until`, `timestamp` | — | §3.3.1 |
+| `event_type` = `state_revoke` | `grant_id`, `grantor_agent_id`, `grantee_agent_id`, `timestamp` | — | §3.3.2 |
+| `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at` | — | ARSIA-Assets.md §4.3.1 |
+| `sub_type` = `escrow_released` | `payment_reference`, `released_by`, `release_trigger`, `original_audit_id` | — | ARSIA-Assets.md §4.3.2 |
+| `sub_type` = `escrow_returned` | `payment_reference`, `timeout_at`, `original_audit_id` | exactly as applicable: `actual_timeout` (timeout) or `cancellation_reason` (cancellation) | ARSIA-Assets.md §4.3.3, §4.2.4 |
+| `sub_type` = `escrow_disputed` | `payment_reference`, `disputed_by`, `dispute_reason`, `arbitration_agent`, `original_audit_id` | — | ARSIA-Assets.md §4.3.4 |
+| `event_type` = `broker_relay` | `attestation_id`, `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` | — | ARSIA-Routing.md §7.4.2; ARSIA-Core.md §9.2 |
+| `event_type` = `key_rotation` | — | `reason` (`"revocation"` for a key revocation) | ARSIA-Identity.md §2.5 |
+| `human_oversight_status` = `approved` or `denied` | `approver_id` | — | §7.1 (`approver_id`) |
+| any record type | — | `deployer_id` (when the log owner's IdentityRecord sets a `deployer_id` different from its `owner_id`) | ARSIA-Identity.md §4.4 |
+| `event_type` = `ict_incident` (exception) | incident classification fields per ARSIA-Assets.md §6.2 — not yet defined as schema extension fields | — | ARSIA-Assets.md §6.2.3 |
+| any signed compliance-relevant message (exception) | `jwks_fetched_at` — the JWKS fetch timestamp used for signature verification; runtime-conditional, not expressible in the schema | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
+
+`asset_transfer` records carry their escrow transition in `sub_type`; `amount` is a
+canonical decimal string. `message_id`, `from_agent` and `to_agent` are base fields
+and are therefore not repeated in the `broker_relay` row.
 
 The lifecycle events of ARSIA-Routing.md §4.1 (`dispatch`, `dispatch_failed`,
 `delivery_failed`, `expired`, `request_received`, `response_sent`) belong to the
@@ -3134,7 +3159,7 @@ GET /.well-known/arsia/audit
 | `after`                | string  | RFC 3339 timestamp — return records after this time. |
 | `before`               | string  | RFC 3339 timestamp — return records before this time.|
 | `event_type`           | string  | Filter by event type (exact match).                  |
-| `compliance_profile`   | string  | Filter by compliance profile (exact match).          |
+| `compliance_profile`   | string  | Filter by compliance profile (exact match on `compliance_profile_resolved`, §7.1). |
 | `human_oversight_status` | string | Filter by oversight status (exact match).           |
 | `payment_reference`    | string  | Filter by payment reference (for asset audit — ARSIA-Assets.md §6.1.4). |
 | `limit`                | integer | Maximum records to return. Default: 100. Maximum: 1000. |
@@ -3473,9 +3498,9 @@ all tests at the applicable conformance level.
 |-------------------|---------------------------------------------------------------------|
 | **test_id**       | `STATE-15`                                                          |
 | **description**   | Verify that the audit query endpoint returns correctly filtered results |
-| **preconditions** | 20 audit records exist. 5 have `compliance_profile = "MIFID-II"`.   |
+| **preconditions** | 20 audit records exist. 5 have `compliance_profile_resolved = "MIFID-II"`. |
 | **action**        | `GET /.well-known/arsia/audit?compliance_profile=MIFID-II&limit=10` |
-| **expected**      | Response contains exactly 5 records. `has_more` is `false`. `total` is `5`. All returned records have `compliance_profile = "MIFID-II"`. |
+| **expected**      | Response contains exactly 5 records. `has_more` is `false`. `total` is `5`. All returned records have `compliance_profile_resolved = "MIFID-II"`. |
 
 ---
 

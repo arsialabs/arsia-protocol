@@ -310,7 +310,7 @@
 | STATE-§7.1-01 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord fields are REQUIRED unless explicitly marked OPTIONAL | arsia-audit-record | — |
 | STATE-§7.1-02 | 7.1 | OPTIONAL | sdk | structural | Some ArsiaAuditRecord fields are marked OPTIONAL per individual field definitions | arsia-audit-record | — |
 | STATE-§7.1-03 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.record_id field is REQUIRED (string, UUID v4) | arsia-audit-record | — |
-| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 17 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102 |
+| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 18 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102 |
 | STATE-§7.1-05 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.from_agent field is REQUIRED (string, agent-id of sender) | arsia-audit-record | — |
 | STATE-§7.1-06 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.message_id field is REQUIRED (links audit record to originating message) | arsia-audit-record | — |
 | STATE-§7.1-07 | 7.1 | OPTIONAL | sdk | structural | ArsiaAuditRecord.human_oversight_status field is OPTIONAL (enum: not_required, pending, approved, denied, expired) | arsia-audit-record | ITV-16, ITV-17, ITV-89, STV-07 |
@@ -325,7 +325,7 @@
 | STATE-§7.1-16 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.intent field is REQUIRED (intent from the originating message) | arsia-audit-record | — |
 | STATE-§7.1-17 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.payload_type field is REQUIRED (payload.type from the originating message) | arsia-audit-record | — |
 | STATE-§7.1-18 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.payload_hash field is REQUIRED (SHA-256 of canonicalised payload) | arsia-audit-record | — |
-| STATE-§7.1-19 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.compliance_profile field is REQUIRED (profile name or "none") | arsia-audit-record | — |
+| STATE-§7.1-19 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.compliance_profile_declared (profile as declared, null, or "none") and compliance_profile_resolved (profile actually applied, or "none") fields are REQUIRED | arsia-audit-record | — |
 | STATE-§7.1-20 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.operator_id field is REQUIRED (owner_id from the agent's IdentityRecord) | arsia-audit-record | — |
 | STATE-§7.1-21 | 7.1 | OPTIONAL | sdk | structural | ArsiaAuditRecord.plaintext_hash field is OPTIONAL; present only when the originating message has security.encrypted=true | arsia-audit-record | ITV-525, ITV-526 |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 |
