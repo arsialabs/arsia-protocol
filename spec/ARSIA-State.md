@@ -1713,7 +1713,7 @@ defined in §6:
 |------------------------|----------------------------------------|
 | `retention_minimum`    | `"P6M"` (six calendar months)          |
 | Behaviour              | Entry data MUST NOT be physically removed before `created_at + P6M` (six calendar months, ARSIA-Core.md §4.3.6.4.1). Logical deletion (§3.1.3) is permitted — it hides the entry from GET/QUERY but the data is retained in the temporal store. |
-| Rationale              | EU AI Act Art. 26(6) — deployers of high-risk AI systems must keep automatically generated logs for a period appropriate to the intended purpose of the high-risk AI system, of at least six months. |
+| Rationale              | EU AI Act Art. 26(6) — deployers of high-risk AI systems must keep automatically generated logs for a period appropriate to the intended purpose of the high-risk AI system, of at least six months (applicable to Annex III high-risk systems from 2 December 2027, Article 113(c)). |
 | Exception              | PURGE for GDPR erasure (§5.3) overrides the P6M minimum. |
 
 **MIFID-II:**
@@ -2310,6 +2310,11 @@ The `data_residency` default is `null` because the EU AI Act does not mandate da
 residency. However, `"EU"` is RECOMMENDED for agents deployed by EU-based operators, as
 it ensures audit records remain accessible to national supervisory authorities.
 
+Chapter III, Sections 2 and 3 of the EU AI Act (including Articles 12, 13, 14, 17, 19
+and 26) apply from 2 December 2027 for Annex III systems and from 2 August 2028 for
+Annex I systems (Article 113(c), as amended by Regulation (EU) 2026/1744). Until then,
+this profile's controls are ARSIA technical choices anticipating those obligations.
+
 **Regulatory mapping:**
 
 **EU AI Act Art. 13 — Transparency and provision of information to deployers.**
@@ -2475,11 +2480,13 @@ sufficient guarantees that payments are legal, regular and properly accounted fo
 (Art. 9(2)) — the
 `ArsiaAuditRecord` (§7.1) provides the protocol-level component of this evidence.
 
-**EU 2021/2116 Art. 54 — Annual performance clearance.** `explainability_required`
-defaults to `true`. Performance reports submitted to the European Commission require
-explanation of expenditure compliance. Agent actions that affect subsidy calculations or
-eligibility determinations MUST produce explanations that can feed into the annual
-performance clearance process.
+**Explainability — profile choice.** `explainability_required` defaults to `true` as
+this profile's technical choice. Regulation (EU) 2021/2116 Art. 54 (annual performance
+clearance), previously given as the basis for this default, was deleted by Regulation
+(EU) 2025/2649, Art. 2, point (10), in respect of agricultural financial year 2025 and
+all subsequent agricultural financial years (Art. 4); no other legal basis is asserted
+for this default. Agent actions that affect subsidy calculations or eligibility
+determinations MUST produce explanations.
 
 **EU 2021/2116 Art. 59 — Protection of EU financial interests.** Member states must
 take all necessary measures to protect the financial interests of the Union. The
@@ -3724,12 +3731,29 @@ and cross-system audit verification.
   - Art. 13 — Transparency and provision of information to deployers.
   - Art. 14 — Human oversight.
   - Art. 26(6) — Obligations of deployers — automatic logging retention (6 months).
+  - Art. 113 — Entry into force and application (point (c) as amended by Regulation
+    (EU) 2026/1744).
+
+- **Regulation (EU) 2026/1744** of the European Parliament and of the Council of 8 July
+  2026 amending Regulations (EU) 2024/1689, (EU) 2018/1139 and (EU) 2023/1230 as regards
+  the simplification of the implementation of harmonised rules on artificial
+  intelligence (Digital Omnibus on AI).
+  - Art. 1(40) — Amendment of Article 113 of Regulation (EU) 2024/1689.
 
 - **MiFID II** — Directive 2014/65/EU.
   - Art. 16(7) — Record retention for investment firms (5 years minimum).
 
 - **Common Agricultural Policy (CAP)** — Regulation (EU) 2021/2116.
   - Record-keeping requirements for agricultural subsidies and payments.
+
+- **Regulation (EU) 2025/2649** of the European Parliament and of the Council of
+  19 December 2025 amending Regulation (EU) 2021/2115 as regards the conditionality
+  system, types of intervention in the form of direct payment, types of intervention in
+  certain sectors and rural development and annual performance reports and Regulation
+  (EU) 2021/2116 as regards suspensions of payments, annual performance clearance and
+  controls and penalties.
+  - Art. 2, point (10) — Deletion of Article 54 of Regulation (EU) 2021/2116.
+  - Art. 4 — Entry into force and application.
 
 - **Commission Delegated Regulation (EU) 2017/565** — supplementing MiFID II as regards
   organisational requirements and operating conditions for investment firms.

@@ -389,7 +389,8 @@ high-risk actions proceed to execution.
   that collects human input and translates it into `approval_decision` messages).
 - MUST NOT be granted to fully autonomous agents acting without human supervision.
   The purpose of this capability is to ensure that a natural person is in the decision
-  loop, as required by EU AI Act Article 14(1).
+  loop, consistent with EU AI Act Article 14(1), which applies to Annex III high-risk
+  systems from 2 December 2027.
 - The Authorization Server MUST implement additional verification before issuing
   tokens with this scope. The specific verification mechanism (e.g., multi-factor
   authentication, organizational role binding) is implementation-defined.
@@ -978,8 +979,10 @@ this range.
 
 #### Risk 7–8 — High Risk
 
-Actions in this range are classified as high-risk and are subject to the full set of
-EU AI Act obligations for high-risk AI systems.
+Actions in this range are classified as high-risk. The EU AI Act obligations for
+high-risk AI systems (Chapter III, Sections 2 and 3) apply from 2 December 2027 for
+Annex III systems (Article 113(c)); the protocol requirements below apply now as ARSIA
+controls.
 
 | Requirement                | Level           | Notes                                   |
 |----------------------------|-----------------|-----------------------------------------|
@@ -988,15 +991,17 @@ EU AI Act obligations for high-risk AI systems.
 | `explainability_required`  | MUST be true    | Article 13 transparency is mandatory.   |
 
 **EU AI Act mapping:** High-risk per Annex III. Article 14 human oversight obligations
-apply: the AI system must be designed such that it can be effectively overseen by
-natural persons during the period in which it is in use. Article 13 transparency
-obligations apply: the system's operation must be sufficiently transparent to enable
-deployers to interpret its output. Article 17 quality management obligations apply,
-including systems and procedures for record-keeping of all relevant documentation and
-information (Article 17(1)(k)); the automatic recording of events (logs) is required by
-Article 12(1). Actions that make financial recommendations, assess risk profiles, process
-personal data for automated decision-making, or affect access to essential services
-typically fall in this range.
+apply from 2 December 2027 for Annex III systems (Article 113(c)): the AI system must
+be designed such that it can be effectively overseen by natural persons during the
+period in which it is in use. Article 13 transparency obligations apply from
+2 December 2027 for Annex III systems (Article 113(c)): the system's operation must be
+sufficiently transparent to enable deployers to interpret its output. Article 17
+quality management obligations apply from 2 December 2027 for Annex III systems
+(Article 113(c)), including systems and procedures for record-keeping of all
+relevant documentation and information (Article 17(1)(k)); the automatic recording of
+events (logs) is required by Article 12(1). Actions that make financial
+recommendations, assess risk profiles, process personal data for automated
+decision-making, or affect access to essential services typically fall in this range.
 
 #### Risk 9–10 — Critical Risk
 
@@ -1157,9 +1162,9 @@ The EU AI Act (Regulation 2024/1689) establishes human oversight as a fundamenta
 requirement for high-risk AI systems. Article 14(1) states: "High-risk AI systems
 shall be designed and developed in such a way, including with appropriate
 human-machine interface tools, that they can be effectively overseen by natural persons
-during the period in which they are in use." This is not a suggestion — it is a legal
-obligation that applies to all high-risk AI systems deployed in the European Union,
-with compliance deadlines phased through 2027.
+during the period in which they are in use." This is a legal obligation for high-risk
+AI systems, applicable from 2 December 2027 for Annex III systems and from 2 August 2028
+for Annex I systems (Article 113(c)).
 
 Article 14(4) further specifies the concrete capabilities that oversight measures must
 provide. The oversight measures must enable the natural person to whom oversight is
@@ -2523,6 +2528,14 @@ tests at the applicable conformance level.
   - Art. 50 — Transparency obligations for providers and deployers of certain AI
     systems.
   - Annex III — High-risk AI systems list.
+  - Art. 113 — Entry into force and application (point (c) as amended by Regulation
+    (EU) 2026/1744).
+
+- **Regulation (EU) 2026/1744** of the European Parliament and of the Council of 8 July
+  2026 amending Regulations (EU) 2024/1689, (EU) 2018/1139 and (EU) 2023/1230 as regards
+  the simplification of the implementation of harmonised rules on artificial
+  intelligence (Digital Omnibus on AI).
+  - Art. 1(40) — Amendment of Article 113 of Regulation (EU) 2024/1689.
 
 - **GDPR** — Regulation (EU) 2016/679 of the European Parliament and of the Council
   of 27 April 2016 on the protection of natural persons with regard to the processing

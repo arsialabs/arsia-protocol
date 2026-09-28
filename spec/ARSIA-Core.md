@@ -161,8 +161,10 @@ for agent discovery, capability invocation, and message transport. However, none
 these protocols address the regulatory requirements that govern the deployment of AI
 systems within the European Union.
 
-The EU AI Act (Regulation 2024/1689), which entered into force in August 2024 with
-phased compliance deadlines extending through 2027, imposes specific obligations on
+The EU AI Act (Regulation 2024/1689), which entered into force in August 2024 and
+applies in phases under Article 113: the high-risk obligations of Chapter III, Sections
+1 to 3, apply from 2 December 2027 for Annex III systems and from 2 August 2028 for
+Annex I systems, imposes specific obligations on
 providers and deployers of AI systems. Article 13 requires transparency obligations,
 mandating that high-risk AI systems be designed and developed in such a way that their
 operation is sufficiently transparent to enable deployers to interpret the system's
@@ -249,9 +251,12 @@ breaks the audit chain and creates systemic risk for every participant.
 
 The EU AI Act entered into force in August 2024 and applies from 2 August 2026
 (Article 113). Chapter III Section 4 (notifying authorities and notified bodies)
-applies from 2 August 2025, and Article 6(1) with its corresponding obligations from
-2 August 2027. GDPR has been enforced since May 2018. MiFID II has been enforced
-since January 2018. European enterprises cannot deploy autonomous AI agents without
+applied from 2 August 2025; Chapter III, Sections 1 to 3 (classification,
+requirements and obligations for high-risk AI systems) apply from 2 December 2027 for
+systems classified under Article 6(2) and Annex III, and from 2 August 2028 for
+systems classified under Article 6(1) and Annex I (Article 113(c), as amended by
+Regulation (EU) 2026/1744). GDPR has been enforced since May 2018. MiFID II has been
+enforced since January 2018. European enterprises cannot deploy autonomous AI agents without
 satisfying these regulations. A protocol that ignores them is a protocol that cannot be
 adopted in the European Union's €16 trillion economy — the world's second-largest
 single market. ARSIA's compliance extension is not a feature that can be deferred to a
@@ -1289,8 +1294,9 @@ GDPR Article 6(1): processing of personal data requires a lawful basis.
 `compliance.human_oversight` MUST NOT be null or absent. If no human oversight mode is
 declared (neither per-message nor via profile defaults), the message MUST be rejected
 with error code `"invalid_request"` and
-`details: { "high_risk_missing_oversight": true }`. This enforces EU AI Act
-Article 14.
+`details: { "high_risk_missing_oversight": true }`. This implements at protocol level
+the human-oversight requirement of EU AI Act Article 14, which applies to Annex III
+high-risk systems from 2 December 2027 (Article 113(c)).
 
 **Rule 4 — Profile retention floor.** If the effective profile defines a retention
 minimum (`retention_minimum`, ARSIA-State.md §6) and the message **explicitly
@@ -3854,6 +3860,12 @@ BCP 47, RFC 5646, September 2009.
 **[EU-AI-Act]** European Parliament and Council, "Regulation (EU) 2024/1689 laying
 down harmonised rules on artificial intelligence (Artificial Intelligence Act)",
 Official Journal of the European Union, L series, 12 July 2024.
+
+**[EU-AI-Act-2026/1744]** European Parliament and Council, "Regulation (EU) 2026/1744
+of 8 July 2026 amending Regulations (EU) 2024/1689, (EU) 2018/1139 and (EU) 2023/1230
+as regards the simplification of the implementation of harmonised rules on artificial
+intelligence (Digital Omnibus on AI)", Official Journal of the European Union, L
+series, 24 July 2026. Art. 1(40) amends Article 113 of Regulation (EU) 2024/1689.
 
 **[GDPR]** European Parliament and Council, "Regulation (EU) 2016/679 on the
 protection of natural persons with regard to the processing of personal data and on
