@@ -112,7 +112,7 @@ The protocol is fully machine-verifiable:
 | [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (1,994 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
-49 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.
+55 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.
 
 - [`docs/FAQ.md`](docs/FAQ.md) — Frequently Asked Questions: design rationale and decision explanations
 

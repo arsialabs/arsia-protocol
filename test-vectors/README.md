@@ -10,14 +10,16 @@ verifies with a published key: 170 through `--check-crypto` (166
 message-only, 4 hybrid), and the 22 schema-ref envelopes signed in `data`
 separately, as the tool does not read `data`. `--check-crypto` checks 189
 vectors — the 170 valid ones plus 19 invalid ones, for which it checks
-canonical bytes but does not require verification to fail.
+canonical bytes but does not require verification to fail. In invalid
+vectors, a signature fails to verify only where the signature, key, `kid`
+or `alg` is the object of the test.
 
 ## Files
 
 | File | Description |
 |------|-------------|
 | [arsia-test-vectors.json](arsia-test-vectors.json) | 613 test vectors |
-| [keypairs.json](keypairs.json) | 49 test keypairs: 45 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
+| [keypairs.json](keypairs.json) | 55 test keypairs: 51 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
 
 ## Vector Formats
 
