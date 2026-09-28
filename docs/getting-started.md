@@ -227,7 +227,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
 - [Security model](../SECURITY.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,086 rows)
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,994 rows)
 
 ---
 
