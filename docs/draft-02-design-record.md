@@ -225,3 +225,37 @@ computation/verification check in the tooling, including a tamper case.
 **Dependencies.** A-1, A-2 and the A-59 guard (extension model settled
 before "accepted extensions" can be included); F-3 (Core §5.1
 canonicalization text corrected) in the same or an earlier cycle.
+
+**Addendum — 2026-09-28 (owner decisions for the DR-5 cycle).**
+- **D1 — Conformance mandate.** The chain is REQUIRED at the Compliance and Full
+  conformance levels and RECOMMENDED at Core. Core §12, State §7 and Identity
+  CHECK-04 state the same.
+- **D2 — A-79 detached.** The `(key, version)` collision across generations is
+  resolved in its own cycle (State §2 semantics, explicit generation counter). This
+  cycle does not touch State §2.
+- **D3 — Registration.** Chain-related observations of the DR-5 investigation are
+  fixed and registered as findings closed in the cycle. The `relay_latency_ms`
+  formula and the "MiFID II Art. 72" citation are register-only.
+- **D4 — Construction (deviation from the letter of the decision above).** Each
+  chain value commits to its own complete record (RFC 8785; only its own chain value
+  is excluded), to the previous chain value and to the chain context. The full
+  previous record is committed transitively, through the previous chain value that
+  commits to it. Justification: under the literal form (the value of record n
+  commits to record n−1 in full), a tombstone carrying no content cannot let a
+  verifier recompute the successor's value after a permanent deletion. The
+  self-inclusive form keeps the transitive commitment and also covers the newest
+  record.
+- **D5 — Tombstones.** Permanent deletion (State §7.3) leaves a tombstone carrying
+  only chain context, position, the deleted record's chain value and the previous
+  value it held. Only an operator-controlled maintenance path, separate from
+  application roles, writes it. It persists for as long as its chain exists, and it
+  attests that a deletion occurred, not that it was legitimate.
+- **D6 — Tombstone schema.** A separate schema file.
+- **D7 — Wording.** Tombstone wording is technical ("carries no field of the deleted
+  record"). The State §7.2 GDPR paragraph is unchanged.
+- **D8 — Chains per log.** A log MAY hold several chains. State §7.4 retrieves a
+  chain by its identifier, and omission of a whole chain is a declared limit.
+- **D9 — Onboarding.** Identity CHECK-04 requires the chain fields and verifies each
+  returned chain.
+- **Verification scope (owner condition).** Positions 1 to h of the held head must
+  be present exactly and consecutively. Later entries are reported, not rejected.

@@ -37,7 +37,7 @@ AUDIT_BASE_EXCEPTIONS = {
 }
 
 
-def audit_extension_parity(state_text, audit_schema):
+def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
     """State §7.1 per-event-type extension table vs the audit-record schema (A-59).
 
     Returns a list of problems; empty means prose and schema agree.
@@ -145,7 +145,45 @@ def audit_extension_parity(state_text, audit_schema):
     if diverging != set(AUDIT_BASE_EXCEPTIONS):
         problems.append(f"base-field requiredness diverges on {sorted(diverging)}; "
                         f"declared exceptions {sorted(AUDIT_BASE_EXCEPTIONS)}")
+
+    # reverse coverage (DR-5): every schema property is a §7.1 field entry or is named in
+    # the extension table — an optional schema field cannot exist without prose
+    full71 = state_text[state_text.index(start):state_text.index("### 7.2 ")]
+    entries = set(re.findall(r"^#### `([a-z_]+)`", full71, re.M))
+    table = full71[full71.index(header):].split("\n\n", 1)[0]
+    named = set(re.findall(r"`([a-z_]+)`", table))
+    undocumented = sorted(set(props) - entries - named)
+    if undocumented:
+        problems.append(f"schema properties without a §7.1 entry or table mention: {undocumented}")
+
+    # chain fields (State §7.2): prose all-or-none group == schema dependentRequired
+    group = {n for n, b in zip(parts[1::2], parts[2::2]) if "Present together with the other chain" in b}
+    dep = audit_schema.get("dependentRequired", {})
+    want = {f: sorted(group - {f}) for f in group}
+    if not group:
+        problems.append("no chain fields found in State §7.1 (marker moved?)")
+    elif {k: sorted(v) for k, v in dep.items()} != want:
+        problems.append(f"chain all-or-none: prose group {sorted(group)} != schema dependentRequired {dep}")
+
+    # tombstone (State §7.2): schema field set == the prose list "containing exactly ..."
+    if tombstone_schema is not None:
+        m = re.search(r"containing exactly (.+?)\. A tombstone carries", state_text, re.S)
+        listed = set(re.findall(r"`([a-z_]+)`", re.sub(r"\([^)]*\)", "", m.group(1)))) if m else set()
+        if not listed:
+            problems.append("State §7.2 tombstone field list not found (marker moved?)")
+        elif listed != set(tombstone_schema.get("properties", {})) or listed != set(tombstone_schema.get("required", [])):
+            problems.append(f"tombstone fields: prose {sorted(listed)} != schema {sorted(tombstone_schema.get('properties', {}))}")
     return problems
+
+
+# Tampered chain vectors (State §7.2): schema-valid on their own; each, substituted for its
+# base vector, MUST fail chain verification with the stated reason. Carried here, outside
+# the vector format, until the vector cycle adds an explicit field (see the A-34 proxy note).
+CHAIN_TAMPERED = {
+    "ITV-597": ("ITV-593", "chain value mismatch"),
+    "ITV-598": ("ITV-594", "foreign chain_id"),
+    "ITV-599": ("ITV-595", "tombstone previous value mismatch"),
+}
 
 
 def main() -> int:
@@ -386,7 +424,8 @@ def main() -> int:
         check(label, ok, detail)
 
     # audit-record extension fields: State §7.1 table == schema conditionals (A-59)
-    probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"])
+    probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"],
+                                   schemas["arsia-audit-chain-tombstone.schema.json"])
     check("audit extension table == schema conditionals (A-59)", not probs, "; ".join(probs[:4]))
 
     # A-29 disposition: Core's SHOULD reconnect and Routing's MUST back off both hold; if
@@ -423,6 +462,41 @@ def main() -> int:
               and verifies(jcs_bytes) and not verifies(cp_bytes))
         detail = f"jcs==hex {jcs_bytes.hex() == vec['crypto']['canonical_bytes_hex']}, differs {cp_bytes != jcs_bytes}"
     check("F-3 non-BMP vector: RFC 8785 order verifies, code-point order does not (ITV-590)", ok, detail)
+
+    # DR-5: recompute the chain of every chained vector (State §7.2) so vectors cannot drift
+    sys.path.insert(0, "scripts")
+    from runtime_harness import verify_chain
+    chain_refs = ("arsia-audit-record.schema.json", "arsia-audit-chain-tombstone.schema.json")
+    chained = [v for v in vec_doc["vectors"] if v.get("schema_ref") in chain_refs
+               and v.get("expected") == "valid" and "chain_id" in v.get("data", {})]
+    by_id = {v["id"]: v for v in chained}
+    chains = {}
+    for v in chained:
+        if v["id"] not in CHAIN_TAMPERED:
+            chains.setdefault(v["data"]["chain_id"], []).append(v)
+    bad_chains = []
+    for cid, vs in chains.items():
+        vs.sort(key=lambda v: v["data"]["chain_seq"])
+        last = vs[-1]["data"]
+        ok_, why, _ = verify_chain([v["data"] for v in vs], (cid, last["chain_seq"], last["hash_chain"]))
+        if not ok_:
+            bad_chains.append(f"{cid}: {why} ({', '.join(v['id'] for v in vs)})")
+    check(f"DR-5 chained vectors recompute and verify ({len(chains)} chains, {len(chained) - len(CHAIN_TAMPERED)} entries)",
+          len(chains) >= 2 and not bad_chains, "; ".join(bad_chains) or f"only {len(chains)} chains")
+    bad_t = []
+    for tid, (base_id, reason) in CHAIN_TAMPERED.items():
+        if tid not in by_id or base_id not in by_id:
+            bad_t.append(f"{tid}/{base_id} missing")
+            continue
+        base = by_id[base_id]["data"]
+        vs = [by_id[tid]["data"] if v["id"] == base_id else v["data"]
+              for v in chains.get(base["chain_id"], [])]
+        last = chains[base["chain_id"]][-1]["data"]
+        ok_, why, _ = verify_chain(vs, (base["chain_id"], last["chain_seq"], last["hash_chain"]))
+        if ok_ or why != reason:
+            bad_t.append(f"{tid}: expected '{reason}', got ({ok_}, {why})")
+    check("DR-5 tampered chain vectors fail verification with the stated reason (ITV-597..599)",
+          not bad_t, "; ".join(bad_t))
 
     # error-code registry: Core §11.2 table == every standard-code enum copy (A-04)
     prose_codes = set(re.findall(r"^\| `([a-z_]+)`\s*\|\s*\d{3}\s*\|", core, re.M))

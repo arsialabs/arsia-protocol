@@ -388,7 +388,8 @@
 | CORE-§11.3-10 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Retry jitter is RECOMMENDED to prevent thundering herd on a recovering server | — | — |
 | CORE-§11.3-11 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD use uniform random jitter: base_delay × (0.75 + random() × 0.5) | — | — |
 | CORE-§12.1-01 | 12.1 | MUST | external | interoperability | Core conformance MUST implement agent-id, envelope, EdDSA, auth, discovery, JWKS, HTTP/2, routing, idempotency, and errors | — | — |
-| CORE-§12.2-01 | 12.2 | MUST | external | interoperability | Compliance conformance MUST meet Core plus compliance fields, profiles, audit trail, oversight, and broker routing | — | — |
+| CORE-§12.1-02 | 12.1 | SHOULD | external | behavioural_positive | Core-conformance implementations that produce audit records SHOULD chain them per ARSIA-State.md §7.2 | arsia-audit-record | harness R14 (f) |
+| CORE-§12.2-01 | 12.2 | MUST | external | interoperability | Compliance conformance MUST meet Core plus compliance fields, profiles, audit trail, audit hash chain, oversight, and broker routing | — | — |
 | CORE-§12.3-01 | 12.3 | MUST | external | interoperability | Full conformance MUST implement Compliance requirements plus all 5 primitives, WebSocket, encryption, and ES256 | — | — |
 | CORE-§12.4-01 | 12.4 | MUST | external | interoperability | Compliance-level implementations MUST pass all compliance field conformance tests in §12.4 | — | — |
 | CORE-§13.3-01 | 13.3 | MUST_NOT | deployment | behavioural_negative | Distributed tracing infrastructure MUST NOT be required for protocol compliance | — | — |
@@ -407,10 +408,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 392 |
-| Schema ≠ — | 168 |
-| Vector ≠ — | 137 |
-| Both ≠ — | 74 |
+| Total requirements | 393 |
+| Schema ≠ — | 169 |
+| Vector ≠ — | 138 |
+| Both ≠ — | 75 |
 | Both = — (gaps) | 161 |
 
 ### Per-section breakdown
@@ -428,7 +429,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 9 | 21 | 4 | 0 | 0 | 17 |
 | 10 | 15 | 2 | 0 | 0 | 13 |
 | 11 | 31 | 15 | 7 | 6 | 15 |
-| 12 | 4 | 0 | 0 | 0 | 4 |
+| 12 | 5 | 1 | 1 | 1 | 4 |
 | 13 | 3 | 1 | 0 | 0 | 2 |
 | 14 | 2 | 0 | 2 | 0 | 0 |
 

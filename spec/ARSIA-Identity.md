@@ -1362,13 +1362,21 @@ that require oversight.
   (ARSIA-State.md §7.1): `record_id`, `message_id`, `event_type`, `from_agent`,
   `to_agent`, `intent`, `payload_type`, `payload_hash`, `compliance_profile_declared`,
   `compliance_profile_resolved`, `declared_retention` (which may be `null`),
-  `retention_source`, `processed_at`, `retained_until`, `operator_id`.
+  `retention_source`, `processed_at`, `retained_until`, `operator_id`, and the chain
+  fields `hash_chain`, `chain_id`, `chain_seq`, `chain_format` (ARSIA-State.md §7.2,
+  REQUIRED at the Compliance and Full conformance levels).
+- For each `chain_id` present in the response, the gateway MUST retrieve that chain
+  (`chain_id` query, ARSIA-State.md §7.4) and verify it per ARSIA-State.md §7.2.
+  Holding no independently obtained head, the check establishes the chain's internal
+  consistency; any rejection condition of §7.2 fails the check.
 - Records MUST use `payload_hash` (a hash of the payload), NOT the raw payload content.
   This satisfies ARSIA-State.md §7.1 immutability requirements.
 
 If the endpoint is not available (HTTP 404), this check is marked as `"skip"` — the audit
 trail endpoint is RECOMMENDED but not REQUIRED at Core Conformance level
-(ARSIA-Core.md §12.1). If the endpoint returns data that does not conform, the check
+(ARSIA-Core.md §12.1). When the endpoint is served at Core Conformance level, its
+records SHOULD carry the hash chain of ARSIA-State.md §7.2; at the Compliance and Full
+levels they MUST. If the endpoint returns data that does not conform, the check
 fails.
 
 **CHECK-05 — Classification consistency.** This check applies only when the external

@@ -22,6 +22,8 @@ Schema cannot express, executed as tests — including against the runtime
   R12 Session-scope audit precedence                        (State §8.3)
   R13 JWKS-document cache: unknown-kid refresh, max-age     (Core §5.2/§7.3, A-18)
       capped at 3600 s, revocation event, shared-cache sequences
+  R14 Audit hash chain: chain value, verification against   (State §7.2, DR-5)
+      a held head, tombstones, conformance-level mandate
 
 Exit code 0 = all green.
 """
@@ -501,9 +503,127 @@ def r13():
     check("R13 JWKS unreachable after ceiling rejected", not cache.accept("k1", 3601))
 
 
+# --------------------------------------------------------- R14 audit hash chain
+CHAIN_FIELDS = ("hash_chain", "chain_id", "chain_seq", "chain_format")
+SUPPORTED_CHAIN_FORMATS = {1}
+
+
+def chain_value(record, previous_value):
+    """State §7.2: lowercase hex SHA-256 over RFC 8785 of
+    {"previous_chain_value": P, "record": R'}, R' = the record without hash_chain."""
+    import hashlib
+    import rfc8785
+    r = {k: v for k, v in record.items() if k != "hash_chain"}
+    return hashlib.sha256(rfc8785.dumps({"previous_chain_value": previous_value, "record": r})).hexdigest()
+
+
+def is_tombstone(entry):
+    return "record_id" not in entry  # tombstones carry no field of the deleted record
+
+
+def verify_chain(entries, head):
+    """State §7.2 verification against a held head (chain_id, h, value).
+    Returns (ok, reason, report); report lists tombstone positions and entries beyond h."""
+    chain_id, h, head_value = head
+    by_pos = {}
+    for e in entries:
+        pos = e.get("chain_seq")
+        if not isinstance(pos, int) or pos < 1:
+            return False, "invalid position", {}
+        if pos in by_pos:
+            return False, "duplicate position", {}
+        by_pos[pos] = e
+    if any(n not in by_pos for n in range(1, h + 1)):
+        return False, "position gap", {}
+    report = {"tombstones": [], "beyond_head": sorted(p for p in by_pos if p > h)}
+    fmt, prev = None, None
+    for n in range(1, h + 1):
+        e = by_pos[n]
+        if e.get("chain_id") != chain_id:
+            return False, "foreign chain_id", report
+        if e.get("chain_format") not in SUPPORTED_CHAIN_FORMATS:
+            return False, "unsupported chain_format", report
+        if fmt is not None and e["chain_format"] != fmt:
+            return False, "chain_format differs", report
+        fmt = e["chain_format"]
+        if is_tombstone(e):
+            if e.get("previous_chain_value") != prev:
+                return False, "tombstone previous value mismatch", report
+            report["tombstones"].append(n)
+        elif chain_value(e, prev) != e.get("hash_chain"):
+            return False, "chain value mismatch", report
+        prev = e.get("hash_chain")
+    if prev != head_value:
+        return False, "head mismatch", report
+    return True, "ok", report
+
+
+def chain_mandate_ok(record, level):
+    """State §7.2 / Core §12 (D1): chain fields all-or-none; REQUIRED at compliance and full."""
+    present = [f in record for f in CHAIN_FIELDS]
+    if any(present) and not all(present):
+        return False
+    return all(present) if level in ("compliance", "full") else True
+
+
+def r14(vectors):
+    by_id = {v["id"]: v for v in vectors}
+    seq_ids = ["ITV-592", "ITV-593", "ITV-594", "ITV-595", "ITV-596"]
+    chain = [dict(by_id[i]["data"]) for i in seq_ids]
+    head = (chain[0]["chain_id"], 5, chain[4]["hash_chain"])
+
+    def sub(pos, vid):
+        c = [dict(e) for e in chain]
+        c[pos - 1] = dict(by_id[vid]["data"])
+        return c
+
+    def expect_fail(name, entries, hd, reason):
+        ok, why, _ = verify_chain(entries, hd)
+        check(name, ok is False and why == reason, f"got ({ok}, {why})")
+
+    ok, why, rep_ = verify_chain(chain, head)
+    check("R14 (a) valid chain of 4 records + 1 tombstone verifies (ITV-592..596)",
+          ok and rep_["tombstones"] == [4] and rep_["beyond_head"] == [], f"{why} {rep_}")
+    one = dict(by_id["ITV-95"]["data"])
+    check("R14 (a) single-entry chain ITV-95 verifies",
+          verify_chain([one], (one["chain_id"], 1, one["hash_chain"]))[0])
+    tampered = sub(2, "ITV-597")
+    expect_fail("R14 (b) approver_id changed (ITV-597) rejected: chain value mismatch", tampered, head,
+                "chain value mismatch")
+    old = lambda r: __import__("hashlib").sha256((r["record_id"] + r["payload_hash"]).encode()).hexdigest()
+    check("R14 (b) pre-DR-5 construction blind to the same change (A-8 reproduction)",
+          old(chain[1]) == old(tampered[1]) and chain[1]["approver_id"] != tampered[1]["approver_id"])
+    expect_fail("R14 (c) mid-chain record removed rejected: position gap",
+                [e for e in chain if e.get("chain_seq") != 3], head, "position gap")
+    swapped = [dict(e) for e in chain]
+    swapped[0]["chain_seq"], swapped[1]["chain_seq"] = 2, 1
+    expect_fail("R14 (d) two records reordered rejected: chain value mismatch", swapped, head,
+                "chain value mismatch")
+    expect_fail("R14 (e) foreign chain_id (ITV-598) rejected", sub(3, "ITV-598"), head, "foreign chain_id")
+    no_chain = {k: v for k, v in chain[1].items() if k not in CHAIN_FIELDS}
+    check("R14 (f) Compliance-level record without chain fields fails the mandate",
+          chain_mandate_ok(no_chain, "compliance") is False)
+    check("R14 (f) Full-level record without chain fields fails the mandate",
+          chain_mandate_ok(no_chain, "full") is False)
+    check("R14 (f) Core-level record without chain fields is allowed", chain_mandate_ok(no_chain, "core"))
+    check("R14 (f) chained record satisfies the Compliance mandate", chain_mandate_ok(chain[1], "compliance"))
+    partial = {k: v for k, v in chain[1].items() if k != "chain_id"}
+    check("R14 (f) partial chain fields fail at every level",
+          not any(chain_mandate_ok(partial, lv) for lv in ("core", "compliance", "full")))
+    expect_fail("R14 (g) tombstone previous value wrong (ITV-599) rejected", sub(4, "ITV-599"), head,
+                "tombstone previous value mismatch")
+    expect_fail("R14 (h) head value mismatch rejected", chain, (head[0], 5, "0" * 64), "head mismatch")
+    ok, why, rep_ = verify_chain(chain, (head[0], 3, chain[2]["hash_chain"]))
+    check("R14 entries beyond the held head are reported, not rejected",
+          ok and rep_["beyond_head"] == [4, 5], f"{why} {rep_}")
+    fmt = [dict(e) for e in chain]
+    fmt[0]["chain_format"] = 2
+    expect_fail("R14 unsupported chain_format rejected", fmt, head, "unsupported chain_format")
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
-    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(); r11(); r12(); r13()
+    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(); r11(); r12(); r13(); r14(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

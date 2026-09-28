@@ -170,9 +170,29 @@
           "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
         },
         {
-          "description": "SHA-256 of previous record's record_id concatenated with payload_hash. Tamper detection. OPTIONAL in v1.0. ARSIA-State.md §7.2."
+          "description": "The record's chain value: lowercase hex SHA-256 of the RFC 8785 canonical form of {\"previous_chain_value\": P, \"record\": R'}, where R' is the complete record without hash_chain and P is the chain value of the preceding entry (null at position 1). REQUIRED at the Compliance and Full conformance levels and OPTIONAL (RECOMMENDED) at Core (ARSIA-State.md §7.2) — a level-dependent rule enforced at runtime, not expressible in this schema. Present together with the other chain fields or not at all. Per ARSIA-State.md §7.1, §7.2."
         }
       ]
+    },
+    "chain_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        {
+          "description": "Identifier of the chain the record belongs to; all entries of a chain carry the same chain_id. REQUIRED at the Compliance and Full conformance levels and OPTIONAL (RECOMMENDED) at Core (ARSIA-State.md §7.2) — a level-dependent rule enforced at runtime, not expressible in this schema. Present together with the other chain fields or not at all. Per ARSIA-State.md §7.1, §7.2."
+        }
+      ]
+    },
+    "chain_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Position of the record in its chain: 1 for the first entry, the previous entry's position plus 1 thereafter. REQUIRED at the Compliance and Full conformance levels and OPTIONAL (RECOMMENDED) at Core (ARSIA-State.md §7.2) — a level-dependent rule enforced at runtime, not expressible in this schema. Present together with the other chain fields or not at all. Per ARSIA-State.md §7.1, §7.2."
+    },
+    "chain_format": {
+      "type": "integer",
+      "const": 1,
+      "description": "Chain-format version: the construction of ARSIA-State.md §7.2 used to compute hash_chain; this specification defines format 1. REQUIRED at the Compliance and Full conformance levels and OPTIONAL (RECOMMENDED) at Core (ARSIA-State.md §7.2) — a level-dependent rule enforced at runtime, not expressible in this schema. Present together with the other chain fields or not at all. Per ARSIA-State.md §7.1."
     },
     "sub_type": {
       "type": "string",
@@ -645,6 +665,28 @@
         "timeout"
       ]
     }
+  },
+  "dependentRequired": {
+    "hash_chain": [
+      "chain_id",
+      "chain_seq",
+      "chain_format"
+    ],
+    "chain_id": [
+      "hash_chain",
+      "chain_seq",
+      "chain_format"
+    ],
+    "chain_seq": [
+      "hash_chain",
+      "chain_id",
+      "chain_format"
+    ],
+    "chain_format": [
+      "hash_chain",
+      "chain_id",
+      "chain_seq"
+    ]
   },
   "allOf": [
     {

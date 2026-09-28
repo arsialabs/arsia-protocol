@@ -113,7 +113,7 @@ See LICENSE-SPEC.md for full terms.
     1. [Storage Backend Selection](#111-storage-backend-selection)
     2. [Temporal Storage](#112-temporal-storage)
     3. [Performance Considerations](#113-performance-considerations)
-    4. [Hash Chain (RECOMMENDED)](#114-hash-chain-recommended)
+    4. [Hash Chain](#114-hash-chain)
 12. [References](#12-references)
     1. [Normative References](#121-normative-references)
     2. [Informative References](#122-informative-references)
@@ -2986,6 +2986,59 @@ REQUIRED unless marked OPTIONAL.
 > applicable financial regulation (e.g., MiFID II Art. 72) prevail over erasure
 > requests per GDPR Art. 17(3)(b).
 
+#### `hash_chain`
+
+- **Type:** string (64-char lowercase hex)
+- **Condition:** REQUIRED at the Compliance and Full conformance levels
+  (ARSIA-Core.md §12.2, §12.3); OPTIONAL at Core conformance, where it is
+  RECOMMENDED. Present together with the other chain fields (`hash_chain`,
+  `chain_id`, `chain_seq`, `chain_format`) or not at all (§7.2).
+- **Description:** The record's chain value, computed as defined in §7.2 (Hash
+  chain).
+
+#### `chain_id`
+
+- **Type:** string (UUID v4)
+- **Condition:** REQUIRED at the Compliance and Full conformance levels
+  (ARSIA-Core.md §12.2, §12.3); OPTIONAL at Core conformance, where it is
+  RECOMMENDED. Present together with the other chain fields (`hash_chain`,
+  `chain_id`, `chain_seq`, `chain_format`) or not at all (§7.2).
+- **Description:** Identifier of the chain the record belongs to (§7.2). All
+  entries of a chain carry the same `chain_id`.
+
+#### `chain_seq`
+
+- **Type:** integer
+- **Minimum value:** 1
+- **Condition:** REQUIRED at the Compliance and Full conformance levels
+  (ARSIA-Core.md §12.2, §12.3); OPTIONAL at Core conformance, where it is
+  RECOMMENDED. Present together with the other chain fields (`hash_chain`,
+  `chain_id`, `chain_seq`, `chain_format`) or not at all (§7.2).
+- **Description:** The record's position in its chain (§7.2): `1` for the first
+  entry, and the previous entry's position plus 1 for each subsequent entry.
+
+#### `chain_format`
+
+- **Type:** integer
+- **Value:** `1`
+- **Condition:** REQUIRED at the Compliance and Full conformance levels
+  (ARSIA-Core.md §12.2, §12.3); OPTIONAL at Core conformance, where it is
+  RECOMMENDED. Present together with the other chain fields (`hash_chain`,
+  `chain_id`, `chain_seq`, `chain_format`) or not at all (§7.2).
+- **Description:** The chain-format version — the construction of §7.2 used to
+  compute `hash_chain`. This specification defines format `1`.
+
+#### `sub_type`
+
+- **Type:** string
+- **Enum:** `"escrow_created"`, `"escrow_released"`, `"escrow_returned"`,
+  `"escrow_disputed"`
+- **OPTIONAL.** Present when `event_type` is `"asset_transfer"` and the record
+  documents an escrow lifecycle transition.
+- **Description:** The escrow transition the record documents
+  (ARSIA-Assets.md §4.3.1–§4.3.4). Its value selects the extension fields listed
+  in the table below.
+
 #### Per-event-type extension fields (normative)
 
 Beyond the base fields above, an `ArsiaAuditRecord` carries additional REQUIRED
@@ -3059,29 +3112,101 @@ durable persistence with replication. PostgreSQL is one suitable backend; altern
 implementations (append-only log stores, immutable object storage) are acceptable
 provided they satisfy these constraints.
 
-**Cryptographic chain (RECOMMENDED).** Implementations SHOULD include a `hash_chain`
-field in each audit record containing the SHA-256 hash of the previous record's
-`record_id` concatenated with its `payload_hash`. The `hash_chain` field is OPTIONAL
-(RECOMMENDED).
+**Permanent deletion path.** Permanent deletion under §7.3 MUST be performed only
+through an operator-controlled maintenance path that is separate from application
+roles; that path MUST write the tombstone for a deleted chained record (Hash chain,
+below).
 
-**Tamper-evidence scope (normative honesty).** Append-only storage plus an optional
-local hash chain provides a bounded property. What IS detected, by a verifier who
-independently holds a chain head (or a later record) obtained before the attack:
+**Hash chain.** Audit records are linked into hash chains. At the Compliance and Full
+conformance levels (ARSIA-Core.md §12.2, §12.3), every audit record MUST carry the
+chain fields `hash_chain`, `chain_id`, `chain_seq`, and `chain_format` (§7.1) and MUST
+be chained as defined below; at Core conformance, chaining is RECOMMENDED. The four
+chain fields are present together or not at all.
 
-- modification of any earlier record in the chain;
-- removal of any record before the held head;
-- reordering of records before the held head.
+- *Chains.* An audit log MAY consist of several chains (for example, one per storage
+  partition). Each record belongs to exactly one chain, identified by its `chain_id`.
+  The operator's audit policy MUST document the chains of the log.
+- *Position.* Within a chain, entries are ordered by `chain_seq` alone: the first
+  entry has `chain_seq` 1, and each subsequent entry has the previous entry's
+  `chain_seq` plus 1, with no gaps and no duplicates. Timestamps and query cursors
+  play no part in chain order.
+- *Chain value.* The chain value of the record `R` at position n is computed as
+  follows:
+  1. Let `R'` be the complete record — every member, including accepted extension
+     fields and the chain fields `chain_id`, `chain_seq`, and `chain_format` — with
+     only its `hash_chain` member removed. No other member is excluded: derived
+     fields such as `payload_hash`, `plaintext_hash`, `retention_anchor`, and
+     `retained_until` are stored values and are included as stored.
+  2. Let `P` be the chain value of the entry at position n−1 (the `hash_chain` of that
+     record, or of the tombstone that replaced it), or JSON `null` when n = 1.
+  3. Build the JSON object `{"previous_chain_value": P, "record": R'}`.
+  4. Canonicalize that object with RFC 8785 (ARSIA-Core.md §5.1) and encode the
+     result as UTF-8.
+  5. The chain value is the SHA-256 digest of those bytes, written as 64 lowercase
+     hexadecimal characters, and is stored in the record's `hash_chain`.
+
+  Because the chain value includes `P`, and `P` covers the preceding record in full,
+  each chain value commits to its own record, to the previous chain value and,
+  transitively, to every earlier record of the chain; the chain context (`chain_id`,
+  `chain_seq`, `chain_format`) is committed as members of `R'`.
+- *Chain format.* `chain_format` identifies the construction above; this
+  specification defines format `1`. All entries of a chain carry the same
+  `chain_format`.
+- *Corrections.* A correction or completion is always a new record appended to a
+  chain, never a rewrite of an existing record or of its chain value.
+- *Tombstones.* When a chained record is permanently deleted (§7.3), the maintenance
+  path above replaces it at its position with a tombstone
+  (`arsia-audit-chain-tombstone.schema.json`) containing exactly `chain_id`,
+  `chain_seq`, `chain_format`, `hash_chain` (the deleted record's chain value), and
+  `previous_chain_value` (the value `P` used to compute it). A tombstone carries no
+  field of the deleted record; it holds only chain position and chain values, from
+  which the deleted content cannot be recovered. A tombstone persists for as long as
+  its chain exists.
+- *Verification.* A verifier holding an independently obtained head — a `chain_id`,
+  a position h, and the chain value at h — retrieves the chain by its `chain_id`
+  (§7.4) and MUST reject the chain if any of the following holds:
+  1. positions 1 to h are not each present exactly once, consecutively;
+  2. an entry carries a `chain_id` other than the head's, or a `chain_format` that
+     differs from the other entries or that the verifier does not support;
+  3. the recomputed chain value of a record differs from its stored `hash_chain`;
+  4. a tombstone's `previous_chain_value` differs from the chain value of the entry
+     at the preceding position, or is not `null` at position 1;
+  5. the chain value at position h differs from the held head value.
+
+  Entries beyond h lie outside the verified prefix: the verifier reports them and
+  does not reject the chain because of them. The verifier reports every tombstone
+  position. Without an independently held head, the same procedure establishes only
+  the internal consistency of what was retrieved.
+
+**Tamper-evidence scope (normative honesty).** Append-only storage plus the hash
+chain provides a bounded property. What IS detected, by a verifier who independently
+holds a chain head obtained before the attack and applies the verification procedure
+above:
+
+- modification of any member of any record at or before the held head, including
+  the head record itself;
+- removal of a record before the held head that leaves no tombstone, and insertion
+  of an entry before the held head;
+- reordering of entries before the held head;
+- an entry taken from another chain.
 
 What is NOT detected by these mechanisms alone:
 
 - **complete rewrite** by the log owner: records are not individually signed, and
-  the chain is seeded only from record contents, so an owner (or an adversary with
-  write access to the store) can regenerate the entire chain consistently;
+  chain values are computed from record contents and chain context alone, with no
+  secret or external input, so an owner (or an adversary with write access to the
+  store) can regenerate the entire chain consistently;
 - **tail truncation**: deleting the newest records and presenting the shortened
   chain as current, when the verifier holds no later head;
 - **write-time omission**: events never recorded leave no chain evidence;
 - **fork/equivocation**: maintaining two internally consistent chains and showing
-  different ones to different auditors.
+  different ones to different auditors;
+- **omission of a chain**: withholding an entire chain of the log, which a verifier
+  can notice only against the operator's documented chains or an independently held
+  head of that chain;
+- **legitimacy of a deletion**: a tombstone attests that a deletion occurred at that
+  position, not that it was legitimate; a verifier cannot confirm expiry without the
+  record.
 
 Implementations MUST NOT claim stronger properties than the above. Deployments
 requiring protection against owner-level rewrite need external anchoring —
@@ -3142,7 +3267,8 @@ transitions between retention periods and regulatory inspections.
 
 **After 12 months in archive:** Records MAY be permanently deleted. Deletion of
 archived records is at the operator's discretion and SHOULD be documented in the
-operator's data retention policy.
+operator's data retention policy. Permanent deletion of a chained record MUST leave a
+tombstone at its chain position, written by the maintenance path of §7.2.
 
 **Extending retention:** An operator MAY extend retention beyond the profile minimum by
 setting a higher `retention` value per-message or by configuring a platform-wide
@@ -3160,6 +3286,9 @@ GET /.well-known/arsia/audit
 
 **Required capability:** `arsiaprotocol.audit.read` (ARSIA-Actions.md §1.4).
 
+At the Compliance and Full conformance levels, the served records carry the chain
+fields of §7.2.
+
 **Query parameters:**
 
 | Parameter              | Type    | Description                                          |
@@ -3174,6 +3303,8 @@ GET /.well-known/arsia/audit
 | `payment_reference`    | string  | Filter by payment reference (for asset audit — ARSIA-Assets.md §6.1.4). |
 | `limit`                | integer | Maximum records to return. Default: 100. Maximum: 1000. |
 | `after_record_id`      | string  | Cursor-based pagination — return records created after this `record_id`. |
+| `chain_id`             | string  | Return the entries of this chain — records and tombstones (§7.2) — ordered by `chain_seq` ascending. |
+| `after_chain_seq`      | integer | Cursor for queries with `chain_id` — return entries after this `chain_seq`. |
 
 **Response format:**
 
@@ -3187,7 +3318,10 @@ GET /.well-known/arsia/audit
 ```
 
 The `records` array contains `ArsiaAuditRecord` objects ordered by `processed_at`
-ascending. The `total` field contains the total number of records matching the query
+ascending. For a query with `chain_id`, it instead contains that chain's entries —
+records and tombstones — ordered by `chain_seq` ascending, and `next_cursor` holds
+the `chain_seq` of the last returned entry, to be passed as `after_chain_seq`.
+Tombstones are returned only by queries with `chain_id`. The `total` field contains the total number of records matching the query
 filters (regardless of `limit`). The `has_more` field indicates whether additional
 records exist beyond the current page. The `next_cursor` field, when present, contains
 the `record_id` of the last record in the current page and can be passed as
@@ -3670,14 +3804,16 @@ define them as extensions under a custom payload type prefix. Batch operations M
 generate individual audit events for each affected entry — a single batch audit event
 is not sufficient for regulatory compliance.
 
-### 11.4 Hash Chain (RECOMMENDED)
+### 11.4 Hash Chain
 
-This specification RECOMMENDS a `hash_chain` field linking each audit record to its
-predecessor via SHA-256, providing bounded tamper evidence (mid-chain modification
-and removal against an independently held head — see §7.2 for the normative scope
-statement and its explicit exclusions) without external infrastructure
-(§7.2). Implementations that include hash chain support enable offline tamper detection
-and cross-system audit verification.
+Audit records are linked by the hash chain of §7.2: each record's `hash_chain` commits
+to the record itself, to the previous chain value and to the chain context, providing
+bounded tamper evidence (modification, removal, insertion and reordering against an
+independently held head — see §7.2 for the construction, the verification procedure
+and the explicit exclusions) without external infrastructure. The chain is REQUIRED
+at the Compliance and Full conformance levels and RECOMMENDED at Core
+(ARSIA-Core.md §12). It enables offline tamper detection and cross-system audit
+verification; external anchoring of chain heads remains optional (§7.2).
 
 ---
 

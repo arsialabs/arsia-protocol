@@ -3,7 +3,7 @@
   "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-audit-query-response.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Audit Query Response",
-  "description": "Cursor-paginated response from the audit trail query endpoint (GET /.well-known/arsia/audit). Contains ArsiaAuditRecord objects ordered by processed_at ascending with pagination metadata. Defined in ARSIA-State.md §7.4. Requires arsiaprotocol.audit.read capability. The endpoint supports 10 query parameters: from_agent, to_agent, after (RFC 3339), before (RFC 3339), event_type, compliance_profile, human_oversight_status, payment_reference, limit (integer, default 100, max 1000), after_record_id (cursor-based pagination).",
+  "description": "Cursor-paginated response from the audit trail query endpoint (GET /.well-known/arsia/audit). Contains ArsiaAuditRecord objects ordered by processed_at ascending with pagination metadata; for a query with chain_id, contains that chain's entries (records and tombstones) ordered by chain_seq ascending. Defined in ARSIA-State.md §7.4. Requires arsiaprotocol.audit.read capability. The endpoint supports 12 query parameters: from_agent, to_agent, after (RFC 3339), before (RFC 3339), event_type, compliance_profile, human_oversight_status, payment_reference, limit (integer, default 100, max 1000), after_record_id (cursor-based pagination), chain_id (chain retrieval, ARSIA-State.md §7.2), after_chain_seq (integer cursor for chain queries).",
   "type": "object",
   "required": [
     "records",
@@ -14,15 +14,25 @@
   "$defs": {
     "AuditRecord": {
       "$ref": "arsia-audit-record.schema.json"
+    },
+    "ChainTombstone": {
+      "$ref": "arsia-audit-chain-tombstone.schema.json"
     }
   },
   "properties": {
     "records": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/AuditRecord"
+        "oneOf": [
+          {
+            "$ref": "#/$defs/AuditRecord"
+          },
+          {
+            "$ref": "#/$defs/ChainTombstone"
+          }
+        ]
       },
-      "description": "Array of ArsiaAuditRecord objects ordered by processed_at ascending. Per ARSIA-State.md §7.4."
+      "description": "Array of ArsiaAuditRecord objects ordered by processed_at ascending; for a query with chain_id, the chain's entries — records and tombstones — ordered by chain_seq ascending. Tombstones are returned only by queries with chain_id (a query-dependent rule enforced at runtime). Per ARSIA-State.md §7.4."
     },
     "total": {
       "type": "integer",
@@ -34,14 +44,16 @@
       "description": "Whether additional records exist beyond the current page. Per ARSIA-State.md §7.4."
     },
     "next_cursor": {
-      "allOf": [
+      "oneOf": [
         {
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "The record_id (UUID v4) of the last record in the current page. Pass as after_record_id in the next request for cursor-based pagination. Present when has_more is true. Per ARSIA-State.md §7.4."
+          "type": "integer",
+          "minimum": 1
         }
-      ]
+      ],
+      "description": "The record_id (UUID v4) of the last record in the current page, passed as after_record_id; for a query with chain_id, the chain_seq (integer) of the last returned entry, passed as after_chain_seq. Present when has_more is true. Per ARSIA-State.md §7.4."
     }
   }
 }

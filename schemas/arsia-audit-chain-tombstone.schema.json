@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-audit-chain-tombstone.schema.json",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "title": "ARSIA Audit Chain Tombstone",
+  "description": "Entry that replaces a permanently deleted chained audit record at its chain position, written by the operator-controlled maintenance path (ARSIA-State.md §7.2, §7.3). It carries only the chain context, the position, the deleted record's chain value and the previous chain value used to compute it — no field of the deleted record. It persists for as long as its chain exists. Returned only by audit queries with chain_id (ARSIA-State.md §7.4).",
+  "type": "object",
+  "required": [
+    "chain_id",
+    "chain_seq",
+    "chain_format",
+    "hash_chain",
+    "previous_chain_value"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "chain_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        {
+          "description": "Identifier of the chain. Per ARSIA-State.md §7.2."
+        }
+      ]
+    },
+    "chain_seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Position of the deleted record in its chain. Per ARSIA-State.md §7.2."
+    },
+    "chain_format": {
+      "type": "integer",
+      "const": 1,
+      "description": "Chain-format version of the chain. Per ARSIA-State.md §7.2."
+    },
+    "hash_chain": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+        },
+        {
+          "description": "The deleted record's chain value. Per ARSIA-State.md §7.2."
+        }
+      ]
+    },
+    "previous_chain_value": {
+      "oneOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The chain value P used to compute the deleted record's chain value: the chain value of the preceding entry, or null at position 1. Per ARSIA-State.md §7.2."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "chain_seq": {
+            "const": 1
+          }
+        },
+        "required": [
+          "chain_seq"
+        ]
+      },
+      "then": {
+        "properties": {
+          "previous_chain_value": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "previous_chain_value": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -3352,6 +3352,9 @@ Core conformance does NOT require:
 - Capability discovery endpoint (§7.2).
 - ES256 or RS256 signature support.
 
+Implementations at Core conformance that produce audit records SHOULD chain them as
+defined in ARSIA-State.md §7.2.
+
 An implementation that meets Core conformance provides a secure, interoperable agent
 communication layer without regulatory compliance features.
 
@@ -3365,6 +3368,7 @@ conformance requirements (§12.1) and additionally implement the following:
 | Compliance field processing        | §4.3.6                          | Parse, validate, and enforce the compliance object in message envelopes. |
 | At least one compliance profile    | ARSIA-State.md §6               | Implement at least one named compliance profile (e.g., `EU-AI-ACT-HIGH-RISK`). |
 | Audit trail                        | ARSIA-State.md §7               | Generate and persist audit records for messages that require auditing. |
+| Audit hash chain                   | ARSIA-State.md §7.2             | Chain every audit record and serve chains by identifier (ARSIA-State.md §7.4). |
 | Human oversight signaling          | ARSIA-Actions.md §3             | Support the `pending_approval` and `approval_decision` intents. |
 | Brokered routing (conditional)     | §9.2                            | Route through compliant brokers when `data_residency` is set. |
 | Capability discovery endpoint      | §7.2                            | Expose `/.well-known/arsia/capabilities` with risk levels and oversight flags. |

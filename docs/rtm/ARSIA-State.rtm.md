@@ -335,18 +335,27 @@
 | STATE-§7.2-05 | 7.2 | MUST_NOT | deployment | behavioural_negative | No mechanism (API, admin tool, or database operation) may delete audit records within retention | — | — |
 | STATE-§7.2-06 | 7.2 | MUST | deployment | behavioural_positive | Implementations MUST use an append-only storage mechanism for audit records. | — | — |
 | STATE-§7.2-07 | 7.2 | MUST | deployment | behavioural_positive | Audit store MUST enforce INSERT-only semantics with durable persistence; application roles MUST NOT UPDATE or DELETE audit records | — | — |
-| STATE-§7.2-08 | 7.2 | RECOMMENDED | sdk_enabled | behavioural_positive | A cryptographic hash chain linking consecutive audit records is RECOMMENDED | arsia-audit-record | — |
-| STATE-§7.2-09 | 7.2 | SHOULD | sdk_enabled | behavioural_positive | Audit records SHOULD include a hash_chain field (SHA-256 of previous record_id + payload_hash) | arsia-audit-record | — |
-| STATE-§7.2-10 | 7.2 | OPTIONAL | sdk | structural | ArsiaAuditRecord.hash_chain field is OPTIONAL in v1.0 (expected REQUIRED in future) | arsia-audit-record | ITV-95 |
-| STATE-§7.2-11 | 7.2 | REQUIRED | sdk | structural | ArsiaAuditRecord.hash_chain is expected to become REQUIRED in a future protocol version | arsia-audit-record | — |
+| STATE-§7.2-08 | 7.2 | MUST | sdk | behavioural_positive | At Compliance and Full conformance every audit record MUST carry hash_chain, chain_id, chain_seq and chain_format and MUST be chained as defined in §7.2 | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596; harness R14 (f) |
+| STATE-§7.2-09 | 7.2 | RECOMMENDED | sdk_enabled | behavioural_positive | At Core conformance, chaining audit records is RECOMMENDED | arsia-audit-record | harness R14 (f) |
+| STATE-§7.2-10 | 7.2 | MUST | sdk | procedural | Chain value MUST be the lowercase hex SHA-256 of RFC 8785({previous_chain_value, record}) where record is the complete record without hash_chain; no other member excluded | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596; check_consistency (DR-5 chained vectors); harness R14 (a), (b) |
+| STATE-§7.2-11 | 7.2 | MUST | sdk | structural | The first entry of a chain has chain_seq 1 and is computed with previous_chain_value null (part of the chaining MUST) | arsia-audit-record, arsia-audit-chain-tombstone | ITV-95, ITV-592; harness R14 (a) |
 | STATE-§7.2-12 | 7.2 | MUST | operational_policy | behavioural_positive | Operators MUST document in Art. 30 register if audit payload_hash could be linked to personal data | — | — |
+| STATE-§7.2-13 | 7.2 | MAY | deployment | informational | An audit log MAY consist of several chains; each record belongs to exactly one chain, identified by chain_id | arsia-audit-record | — |
+| STATE-§7.2-14 | 7.2 | MUST | operational_policy | procedural | The operator's audit policy MUST document the chains of the log | — | — |
+| STATE-§7.2-15 | 7.2 | MUST | sdk | structural | Chain entries MUST be ordered by chain_seq alone, consecutive from 1, with no gaps or duplicates (part of the chaining MUST) | arsia-audit-record, arsia-audit-chain-tombstone | ITV-592, ITV-593, ITV-594, ITV-595, ITV-596; harness R14 (c), (d) |
+| STATE-§7.2-16 | 7.2 | MUST | deployment | behavioural_positive | Permanent deletion under §7.3 MUST be performed only through an operator-controlled maintenance path separate from application roles | — | — |
+| STATE-§7.2-17 | 7.2 | MUST | deployment | behavioural_positive | The maintenance path MUST write the tombstone for a deleted chained record: exactly chain_id, chain_seq, chain_format, hash_chain and previous_chain_value, no field of the deleted record | arsia-audit-chain-tombstone | ITV-595, INV-52; harness R14 (a) |
+| STATE-§7.2-18 | 7.2 | MUST | sdk | behavioural_negative | A verifier holding an independent head MUST reject the chain on missing or duplicate positions, foreign chain_id or format, recomputed value mismatch, tombstone previous-value mismatch, or head mismatch | arsia-audit-record, arsia-audit-chain-tombstone | ITV-597, ITV-598, ITV-599; check_consistency (DR-5 tampered); harness R14 (b)-(h) |
+| STATE-§7.2-19 | 7.2 | MUST_NOT | operational_policy | behavioural_negative | Implementations MUST NOT claim stronger tamper-evidence properties than those stated in §7.2 | — | — |
+| STATE-§7.2-20 | 7.2 | MUST | operational_policy | procedural | When external anchoring is deployed, its scope and cadence MUST be documented in the operator's audit policy | — | — |
 | STATE-§7.3-01 | 7.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Minimum audit record retention varies by profile (RECOMMENDED: 90 days for GDPR-STANDARD) | arsia-compliance-field | — |
 | STATE-§7.3-02 | 7.3 | MAY | sdk_enabled | behavioural_positive | Audit records past retained_until MAY be moved to cold storage (archive) | — | — |
 | STATE-§7.3-03 | 7.3 | MUST | deployment | behavioural_positive | Archived audit records MUST remain available for regulatory inspection for 12 months | — | — |
 | STATE-§7.3-04 | 7.3 | MAY | sdk_enabled | behavioural_positive | Audit records MAY be permanently deleted after 12 months in archive | — | — |
 | STATE-§7.3-05 | 7.3 | SHOULD | operational_policy | behavioural_positive | Deletion of archived audit records SHOULD be documented in the operator's data retention policy | — | — |
 | STATE-§7.3-06 | 7.3 | MAY | operational_policy | behavioural_positive | Operators MAY extend audit retention beyond profile minimum via per-message or platform-wide policy | — | — |
-| STATE-§7.4-01 | 7.4 | MUST | deployment | interoperability | Compliance-level implementations MUST serve audit trail at GET /.well-known/arsia/audit | arsia-audit-query-response | ITV-55, ITV-56 |
+| STATE-§7.3-07 | 7.3 | MUST | deployment | behavioural_positive | Permanent deletion of a chained record MUST leave a tombstone at its chain position, written by the §7.2 maintenance path | arsia-audit-chain-tombstone | ITV-595 |
+| STATE-§7.4-01 | 7.4 | MUST | deployment | interoperability | Compliance-level implementations MUST serve audit trail at GET /.well-known/arsia/audit, incl. chain retrieval by chain_id (§7.2) | arsia-audit-query-response | ITV-55, ITV-56 |
 | STATE-§7.4-02 | 7.4 | MUST | deployment | interoperability | Audit trail endpoint MUST require the arsiaprotocol.audit.read capability | — | ITV-263 |
 | STATE-§7.4-03 | 7.4 | MUST | sdk | behavioural_positive | Audit trail recipients MUST verify the requester holds arsiaprotocol.audit.read | — | ITV-263, ITV-264 |
 | STATE-§7.4-04 | 7.4 | SHOULD | sdk_enabled | behavioural_positive | Access tokens for arsiaprotocol.audit.read SHOULD have a short lifetime | — | — |
@@ -403,7 +412,7 @@
 | STATE-§11.3-06 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | TTL-based cache with 60-second refresh for infrequently-changing global entries is RECOMMENDED | — | — |
 | STATE-§11.3-07 | 11.3 | MAY | sdk_enabled | behavioural_positive | Batch state operations MAY be defined as extensions under a custom payload type prefix | — | — |
 | STATE-§11.3-08 | 11.3 | MUST | sdk_enabled | procedural | Batch operations MUST generate individual audit events per affected entry (no aggregation) | — | ITV-277 |
-| STATE-§11.4-01 | 11.4 | RECOMMENDED | sdk_enabled | behavioural_positive | hash_chain field linking audit records via SHA-256 for tamper evidence is RECOMMENDED | arsia-audit-record | ITV-95 |
+| STATE-§11.4-01 | 11.4 | REQUIRED | sdk | behavioural_positive | The hash chain is REQUIRED at Compliance and Full conformance and RECOMMENDED at Core (restates §7.2) | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596; harness R14 (f) |
 
 ## Coverage Gaps
 
@@ -413,11 +422,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 400 |
-| Schema ≠ — | 149 |
-| Vector ≠ — | 195 |
-| Both ≠ — | 90 |
-| Both = — (gaps) | 146 |
+| Total requirements | 409 |
+| Schema ≠ — | 154 |
+| Vector ≠ — | 202 |
+| Both ≠ — | 97 |
+| Both = — (gaps) | 150 |
 
 ### Per-section breakdown
 
@@ -429,7 +438,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 35 | 8 | 12 | 6 | 21 |
 | 6 | 20 | 15 | 5 | 5 | 5 |
-| 7 | 45 | 26 | 12 | 8 | 15 |
+| 7 | 54 | 31 | 19 | 15 | 19 |
 | 8 | 15 | 5 | 13 | 4 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |

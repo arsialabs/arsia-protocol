@@ -187,11 +187,14 @@
 | IDENT-§7.3-11 | 7.3 | SHOULD | sdk | structural | CHECK-03: pending_approval payload.type SHOULD be arsiaprotocol.oversight/pending | arsia-message | ITV-480 |
 | IDENT-§7.3-12 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval expires_at MUST be present and set to a future timestamp | arsia-message | ITV-481 |
 | IDENT-§7.3-13 | 7.3 | MUST | sdk | structural | CHECK-04: audit endpoint response MUST be the ARSIA-State.md §7.4 response object whose records array contains the audit records | arsia-audit-record | — |
-| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include the ArsiaAuditRecord fields listed (ARSIA-State.md §7.1 required fields, incl. declared_retention and retention_source) | arsia-audit-record | — |
+| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include the ArsiaAuditRecord fields listed (ARSIA-State.md §7.1 required fields, incl. declared_retention and retention_source, and the §7.2 chain fields) | arsia-audit-record | — |
 | IDENT-§7.3-15 | 7.3 | MUST | sdk | behavioural_positive | CHECK-04: audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — |
 | IDENT-§7.3-16 | 7.3 | RECOMMENDED | sdk_enabled | informational | Audit trail endpoint is RECOMMENDED but not REQUIRED at Core Conformance level | — | — |
 | IDENT-§7.3-17 | 7.3 | MUST | sdk | procedural | All conformance checks MUST achieve pass or skip status for Phase 2 to pass | arsia-onboarding-decision | — |
 | IDENT-§7.3-18 | 7.3 | MUST | sdk | behavioural_negative | Gateway MUST deny with conformance_failed when any conformance check has fail status | arsia-onboarding-decision | ITV-131 |
+| IDENT-§7.3-19 | 7.3 | MUST | sdk | behavioural_negative | CHECK-04: the gateway MUST retrieve each chain present by chain_id and verify it per ARSIA-State.md §7.2 (internal consistency) | arsia-audit-record, arsia-audit-chain-tombstone | harness R14 (b)-(h) |
+| IDENT-§7.3-20 | 7.3 | SHOULD | sdk_enabled | behavioural_positive | When the audit endpoint is served at Core Conformance level, its records SHOULD carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | — |
+| IDENT-§7.3-21 | 7.3 | MUST | sdk | behavioural_positive | At Compliance and Full levels, served audit records MUST carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596 |
 | IDENT-§7.4-01 | 7.4 | MAY | sdk | informational | Allowed-status capabilities MAY be invoked without additional oversight | arsia-capability-policy | — |
 | IDENT-§7.4-02 | 7.4 | MAY | sdk | behavioural_positive | Oversight-required capabilities MAY be invoked but MUST trigger pending_approval first | arsia-capability-policy | — |
 | IDENT-§7.4-03 | 7.4 | MUST | sdk | behavioural_positive | Each oversight-required invocation MUST trigger a pending_approval flow before execution | arsia-capability-policy | — |
@@ -273,10 +276,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 260 |
-| Schema ≠ — | 116 |
-| Vector ≠ — | 80 |
-| Both ≠ — | 39 |
+| Total requirements | 263 |
+| Schema ≠ — | 119 |
+| Vector ≠ — | 82 |
+| Both ≠ — | 41 |
 | Both = — (gaps) | 103 |
 
 ### Per-section breakdown
@@ -289,7 +292,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 11 | 4 | 3 | 2 | 6 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |
-| 7 | 77 | 46 | 27 | 16 | 20 |
+| 7 | 80 | 49 | 29 | 18 | 20 |
 | 8 | 16 | 13 | 4 | 3 | 2 |
 | 9 | 21 | 14 | 3 | 1 | 5 |
 | 10 | 1 | 0 | 0 | 0 | 1 |
