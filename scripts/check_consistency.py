@@ -7,6 +7,7 @@ see: schema meta-validation, strict $ref resolution, profiles-catalog validity,
 constant anti-regression (B-03/M-02/M-31), and cross-artifact spot checks.
 Exit code 0 = all green.
 """
+import base64
 import glob
 import json
 import re
@@ -26,6 +27,13 @@ def check(name, cond, detail=""):
 AUDIT_EXTENSION_EXCEPTIONS = {
     "ict_incident": "extension promised by Assets §6.2 but no field is defined yet",
     "jwks_fetched_at": "runtime-conditional (signed messages only); tracked by A-58",
+}
+
+# State §7.1 base fields whose prose requiredness deliberately differs from the schema's
+# top-level `required`. Each needs a written reason; any other divergence fails.
+AUDIT_BASE_EXCEPTIONS = {
+    "declared_retention": "prose REQUIRED (nullable), schema does not require it — "
+                          "retention axis, DR-4 (A-81)",
 }
 
 
@@ -122,6 +130,21 @@ def audit_extension_parity(state_text, audit_schema):
             problems.append(f"schema condition {key[0]}={sorted(key[1])} has no table row")
     if exceptions_seen != set(AUDIT_EXTENSION_EXCEPTIONS):
         problems.append(f"exception rows {sorted(exceptions_seen)} != declared {sorted(AUDIT_EXTENSION_EXCEPTIONS)}")
+
+    # base fields: §7.1 fields marked exactly "**REQUIRED.**" == schema top-level required
+    start, end = "### 7.1 ArsiaAuditRecord Structure", "#### Per-event-type extension fields"
+    if start not in state_text or end not in state_text:
+        return problems + ["State §7.1 base-field section not found (heading marker missing)"]
+    section = state_text[state_text.index(start):state_text.index(end)]
+    parts = re.split(r"\n#### `([a-z_]+)`\n", section)
+    prose_required = {name for name, body in zip(parts[1::2], parts[2::2])
+                      if re.search(r"^- \*\*REQUIRED\.\*\*\s*$", body, re.M)}
+    if not prose_required:
+        problems.append("no REQUIRED base fields extracted from State §7.1 (marker moved?)")
+    diverging = prose_required ^ set(audit_schema.get("required", []))
+    if diverging != set(AUDIT_BASE_EXCEPTIONS):
+        problems.append(f"base-field requiredness diverges on {sorted(diverging)}; "
+                        f"declared exceptions {sorted(AUDIT_BASE_EXCEPTIONS)}")
     return problems
 
 
@@ -365,6 +388,41 @@ def main() -> int:
     # audit-record extension fields: State §7.1 table == schema conditionals (A-59)
     probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"])
     check("audit extension table == schema conditionals (A-59)", not probs, "; ".join(probs[:4]))
+
+    # A-29 disposition: Core's SHOULD reconnect and Routing's MUST back off both hold; if
+    # either modal changes, the disposition must be re-examined.
+    routing = open("spec/ARSIA-Routing.md", encoding="utf-8").read()
+    flat = lambda s: re.sub(r"\s+", " ", s)
+    check("A-29 reconnection modals (Core SHOULD reconnect; Routing MUST back off)",
+          "the client SHOULD attempt to reconnect using exponential backoff" in flat(core)
+          and "the client MUST implement exponential backoff for reconnection" in flat(routing))
+
+    # F-3: the non-BMP signed vector discriminates RFC 8785 (UTF-16 code unit) key order
+    # from code-point order — RFC 8785 bytes verify, code-point bytes do not (Core §5.1)
+    import copy
+    import rfc8785
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    vec = next((v for v in vec_doc["vectors"] if v["id"] == "ITV-590"), None)
+    ok, detail = False, "ITV-590 missing"
+    if vec:
+        m = copy.deepcopy(vec["message"])
+        sig = m["security"].pop("sig")
+        jcs_bytes = rfc8785.dumps(m)
+        cp_bytes = json.dumps(m, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+        key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(vec["crypto"]["public_key_hex"]))
+        raw = base64.urlsafe_b64decode(sig + "=" * (-len(sig) % 4))
+
+        def verifies(data):
+            try:
+                key.verify(raw, data)
+                return True
+            except InvalidSignature:
+                return False
+        ok = (jcs_bytes.hex() == vec["crypto"]["canonical_bytes_hex"] and cp_bytes != jcs_bytes
+              and verifies(jcs_bytes) and not verifies(cp_bytes))
+        detail = f"jcs==hex {jcs_bytes.hex() == vec['crypto']['canonical_bytes_hex']}, differs {cp_bytes != jcs_bytes}"
+    check("F-3 non-BMP vector: RFC 8785 order verifies, code-point order does not (ITV-590)", ok, detail)
 
     # error-code registry: Core §11.2 table == every standard-code enum copy (A-04)
     prose_codes = set(re.findall(r"^\| `([a-z_]+)`\s*\|\s*\d{3}\s*\|", core, re.M))

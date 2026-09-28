@@ -7,7 +7,7 @@
 | IDENT-§1.1-01 | 1.1 | MUST | sdk | behavioural_positive | Identity three layers (technical, cryptographic, compliance) MUST all be present and consistent for full identification | arsia-identity-record, arsia-jwk-entry | — |
 | IDENT-§1.1-02 | 1.1 | MUST | sdk | behavioural_positive | Identity layers MUST be consistent: agent-id, signing key kid prefix, and IdentityRecord owner MUST all correspond | — | — |
 | IDENT-§1.1-03 | 1.1 | MUST | sdk | behavioural_positive | Message signature kid prefix MUST match the sending agent's agent-id | arsia-jwk-entry | ITV-444, ITV-445 |
-| IDENT-§1.1-04 | 1.1 | MUST | deployment | behavioural_positive | Agent signing key MUST be published at the JWKS endpoint on the same domain infrastructure | — | — |
+| IDENT-§1.1-04 | 1.1 | MUST | deployment | behavioural_positive | Agent signing key MUST be published at the JWKS endpoint of the origin resolved per ARSIA-Core.md §6.6 (never derived from identifier segments) | — | — |
 | IDENT-§1.1-05 | 1.1 | MUST | sdk | behavioural_positive | IdentityRecord MUST declare the owning legal entity via owner_id and owner_name fields | arsia-identity-record | — |
 | IDENT-§1.1-06 | 1.1 | MUST | sdk | behavioural_positive | High-risk agents MUST include compliance metadata in all outbound request and response messages | arsia-message | — |
 | IDENT-§1.1-07 | 1.1 | MUST | sdk | behavioural_negative | Receiving agent MUST reject or log a compliance warning when identity layer inconsistency is detected | — | ITV-445 |
@@ -70,17 +70,18 @@
 | IDENT-§2.5-04 | 2.5 | RECOMMENDED | sdk | behavioural_positive | JWKS cache TTL RECOMMENDED maximum is 1 hour | — | — |
 | IDENT-§2.5-05 | 2.5 | MAY | sdk | informational | Future protocol versions MAY define a formal key revocation mechanism (CRL or OCSP-like) | — | — |
 | IDENT-§3.1-01 | 3.1 | MUST | sdk | structural | Every ARSIA message MUST carry a security object with alg, kid, and sig fields | arsia-message | — |
-| IDENT-§3.1-02 | 3.1 | MUST | sdk | procedural | Recipient MUST verify message signature using the 10-step EdDSA verification procedure | — | — |
+| IDENT-§3.1-02 | 3.1 | MUST | sdk | procedural | Recipient MUST verify message signature using the 10-step verification procedure (step 9: declared, allowlisted alg coherent with the key, per ARSIA-Core.md §5.2 Step 5) | — | ITV-551, ITV-552 |
 | IDENT-§3.1-03 | 3.1 | SHOULD | sdk | behavioural_positive | Recipients SHOULD cache JWKS responses for up to 1 hour, respecting Cache-Control headers | — | — |
 | IDENT-§3.1-04 | 3.1 | SHOULD | sdk | behavioural_positive | Recipient SHOULD refetch JWKS once on verification failure before rejecting the message | — | — |
 | IDENT-§3.1-05 | 3.1 | MAY | sdk | behavioural_positive | Sandbox/development implementations MAY relax EdDSA verification for non-production environments | — | — |
 | IDENT-§3.1-06 | 3.1 | MUST | sdk | behavioural_positive | Relaxed-verification implementations MUST log a warning for each unverified request | — | — |
 | IDENT-§3.1-07 | 3.1 | MUST_NOT | deployment | behavioural_negative | Production deployments MUST NOT use open registration mode | — | — |
+| IDENT-§3.1-08 | 3.1 | MUST | sdk | behavioural_negative | Step 9: security.alg MUST be allowlisted and compatible with the key's kty/crv; unknown, disallowed or mismatched alg rejected with unauthorized | — | ITV-551, INV-37 |
 | IDENT-§3.2-01 | 3.2 | MUST | sdk | behavioural_positive | Request-intent messages MUST include a Bearer or DPoP-bound access token per ARSIA-Core §6 | arsia-jwt-claims | — |
 | IDENT-§3.2-02 | 3.2 | MUST | sdk | procedural | Receiving agent MUST verify access tokens using the 7-step OAuth 2.0 verification procedure | — | — |
 | IDENT-§3.2-03 | 3.2 | MUST | external | behavioural_positive | Access token MUST be issued by a trusted Authorization Server | — | — |
 | IDENT-§3.2-04 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token exp claim MUST NOT be expired at verification time | arsia-jwt-claims | — |
-| IDENT-§3.2-05 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token iat claim MUST NOT be in the future beyond ±300-second clock skew tolerance per ARSIA-Core.md §8.3 | — | ITV-447, ITV-448 |
+| IDENT-§3.2-05 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token iat claim MUST NOT be in the future beyond the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-447, ITV-448 |
 | IDENT-§3.2-06 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token MUST NOT be used before the nbf (not-before) claim time | — | ITV-449, ITV-450 |
 | IDENT-§3.3-01 | 3.3 | RECOMMENDED | sdk_enabled | interoperability | DPoP (RFC 9449) is RECOMMENDED for all token presentations to prevent theft and replay | arsia-dpop-proof | — |
 | IDENT-§3.3-02 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST reject requests with error unauthorized when any DPoP verification check fails | — | ITV-451 |
@@ -185,8 +186,8 @@
 | IDENT-§7.3-10 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval correlation_id MUST match the request's id | — | ITV-479 |
 | IDENT-§7.3-11 | 7.3 | SHOULD | sdk | structural | CHECK-03: pending_approval payload.type SHOULD be arsiaprotocol.oversight/pending | arsia-message | ITV-480 |
 | IDENT-§7.3-12 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval expires_at MUST be present and set to a future timestamp | arsia-message | ITV-481 |
-| IDENT-§7.3-13 | 7.3 | MUST | sdk | structural | CHECK-04: audit endpoint response MUST be a JSON array of audit records | arsia-audit-record | — |
-| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include all ArsiaAuditRecord-defined fields | arsia-audit-record | — |
+| IDENT-§7.3-13 | 7.3 | MUST | sdk | structural | CHECK-04: audit endpoint response MUST be the ARSIA-State.md §7.4 response object whose records array contains the audit records | arsia-audit-record | — |
+| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include the ArsiaAuditRecord fields listed (ARSIA-State.md §7.1 required fields, incl. declared_retention and retention_source) | arsia-audit-record | — |
 | IDENT-§7.3-15 | 7.3 | MUST | sdk | behavioural_positive | CHECK-04: audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — |
 | IDENT-§7.3-16 | 7.3 | RECOMMENDED | sdk_enabled | informational | Audit trail endpoint is RECOMMENDED but not REQUIRED at Core Conformance level | — | — |
 | IDENT-§7.3-17 | 7.3 | MUST | sdk | procedural | All conformance checks MUST achieve pass or skip status for Phase 2 to pass | arsia-onboarding-decision | — |
@@ -272,11 +273,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 259 |
+| Total requirements | 260 |
 | Schema ≠ — | 116 |
-| Vector ≠ — | 78 |
+| Vector ≠ — | 80 |
 | Both ≠ — | 39 |
-| Both = — (gaps) | 104 |
+| Both = — (gaps) | 103 |
 
 ### Per-section breakdown
 
@@ -284,7 +285,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 20 | 11 | 8 | 15 |
 | 2 | 27 | 7 | 5 | 4 | 19 |
-| 3 | 15 | 4 | 3 | 0 | 8 |
+| 3 | 16 | 4 | 5 | 0 | 7 |
 | 4 | 11 | 4 | 3 | 2 | 6 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |

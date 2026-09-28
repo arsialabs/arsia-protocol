@@ -538,8 +538,11 @@ every field is REQUIRED.
 
   Exponent notation, a leading `+`, a sign, whitespace, thousands separators,
   decimal commas, leading zeros (other than the single `"0"` of a zero integer
-  part), `NaN`, and `Infinity` MUST NOT be used. The total length MUST NOT exceed
-  36 characters and the integer part MUST NOT exceed 16 digits.
+  part), `NaN`, and `Infinity` MUST NOT be used. The integer part MUST NOT exceed
+  16 digits; the fraction part is bounded by the scale rules below. These digit
+  limits bound the total length of a valid amount; the 36-character `maxLength`
+  carried by the schemas is a structural ceiling for schema-only validators, not an
+  independent requirement.
 
 - **Constraints:** A positive decimal string representing the value to transfer —
   the value MUST be strictly greater than zero. Amounts are strings, not JSON
@@ -555,8 +558,7 @@ every field is REQUIRED.
     digits of the declared currency — fixed scale, one canonical representation
     per value: EUR `"1500.00"`, JPY `"1500"` (scale 0: no fraction part), KWD
     `"1500.000"`. If the applicable ISO 4217 entry defines no numeric minor-unit
-    exponent, the amount MUST be rejected unless a profile or the ActionDescriptor
-    defines an explicit scale. The ISO 4217 catalog edition in force is declared
+    exponent, the amount MUST be rejected. The ISO 4217 catalog edition in force is declared
     in the agent's discovery metadata (`iso4217_edition`, ARSIA-Core.md §7.1);
     when sender and receiver declare different editions, the receiver's edition
     governs validation and the mismatch SHOULD be logged.
@@ -587,7 +589,8 @@ every field is REQUIRED.
   this field contains an application-defined identifier (e.g., `"api-credits"`,
   `"compute-hours"`, `"premium-seats"`). Application-defined identifiers MUST be
   lowercase ASCII letters, digits, and hyphens only, and MUST NOT match any ISO 4217
-  code to avoid ambiguity.
+  alphabetic code under case-insensitive comparison (e.g. `"eur"` is not permitted,
+  because it matches `EUR`) to avoid ambiguity.
 - **Pattern (currency):** `^[A-Z]{3}$`
 - **Pattern (other):** `^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$`
 
@@ -1055,7 +1058,7 @@ transfer:
       "currency_or_unit": "EUR",
       "initiated_at": "2026-03-24T14:30:05.123Z",
       "failure_reason": "Provider timeout — SEPA Credit Transfer endpoint unreachable after 30s. Provider: agent:europa.payments.sepa. HTTP status: 504.",
-      "audit_id": "e5f6a7b8-9012-4ef0-d345-678901234567"
+      "audit_id": "e5f6a7b8-9012-4ef0-a345-678901234567"
     }
   }
 }
@@ -1300,6 +1303,17 @@ every field is REQUIRED.
   RECOMMENDATION, not a REQUIREMENT — in some workflows the payee or a delegate of
   the payee may be the release agent.
 
+  **Exception — dispute resolution.** While the escrow is in the `DISPUTED` state
+  (§4.2.3), the `arbitration_agent` named in the EscrowConditions is additionally
+  authorised to resolve it: a release trigger message (§4.2.1) or an escrow-cancel
+  message (§4.2.4) from the `arbitration_agent` MUST be accepted in place of one from
+  the `release_agent` or the `from_agent` respectively, subject to the remaining
+  checks of those sections. The `arbitration_agent` MUST possess the capability the
+  message requires (`arsiaprotocol.assets.escrow.release` or
+  `arsiaprotocol.assets.escrow.cancel`). The `timeout_at` check of §4.2.1 is not
+  applied while the timeout is suspended. Outside the `DISPUTED` state this
+  exception does not apply.
+
 ##### `timeout_at`
 
 - **Type:** string
@@ -1374,14 +1388,17 @@ specific escrow.
 
 **Validation.** The escrow holder MUST verify:
 
-1. The message's `from` field matches the `release_agent` in the EscrowConditions.
+1. The message's `from` field matches the `release_agent` in the EscrowConditions
+   (or, while the escrow is `DISPUTED`, the `arbitration_agent` — §4.1 dispute
+   resolution exception).
 2. The message's `payload.type` matches the `release_trigger` in the EscrowConditions.
 3. The message's EdDSA signature is valid.
 4. The escrow has not already transitioned to a terminal state.
-5. The current time is before `timeout_at`.
+5. The current time is before `timeout_at` (not applied while the escrow is
+   `DISPUTED`: the timeout is suspended, §4.2.3).
 
-If any validation fails, the release MUST be rejected and the escrow remains in the
-`ESCROWED` state.
+If any validation fails, the release MUST be rejected and the escrow remains in its
+current state (`ESCROWED` or `DISPUTED`).
 
 **Result.** Upon successful validation:
 
@@ -1467,9 +1484,10 @@ application-layer concern.
 **Trigger.** The agent that created the escrow (`from_agent`) sends a cancellation
 message to the escrow holder.
 
-**Precondition.** The escrow is in the `ESCROWED` state. Cancellation is only permitted
-before the escrow transitions to a terminal state (`RELEASED`, `RETURNED`, or a resolved
-`DISPUTED` state).
+**Precondition.** The escrow is in the `ESCROWED` state — or, for a cancellation by the
+`arbitration_agent`, the `DISPUTED` state (§4.1 dispute resolution exception).
+Cancellation is only permitted before the escrow transitions to a terminal state
+(`RELEASED`, `RETURNED`, or a resolved `DISPUTED` state).
 
 **Cancellation message format:**
 
@@ -1495,9 +1513,12 @@ The cancellation message's `payload.args` MUST include:
 4. The escrow transitions to the `RETURNED` terminal state.
 
 **Access control.** An agent other than the `from_agent` (the original payer who
-created the escrow) MUST NOT cancel an escrow. The escrow holder MUST verify that the
-sender of the cancellation message matches the `from_agent` of the original AssetTransferRequest. Cancellation
-requests from other agents MUST be rejected with error code `"forbidden"`.
+created the escrow) MUST NOT cancel an escrow, except the `arbitration_agent` while
+the escrow is `DISPUTED` (§4.1 dispute resolution exception). The escrow holder MUST
+verify that the sender of the cancellation message matches the `from_agent` of the
+original AssetTransferRequest (or, in the `DISPUTED` state, the `arbitration_agent`).
+Cancellation requests from other agents MUST be rejected with error code
+`"forbidden"`.
 
 ### 4.3 Escrow Audit Trail
 
@@ -1526,7 +1547,8 @@ Generated when the initial AssetTransferReceipt with `status: "escrowed"` is pro
 
 #### 4.3.2 Escrow Release
 
-Generated when the escrow transitions from `ESCROWED` to `RELEASED`.
+Generated when the escrow transitions from `ESCROWED` (or `DISPUTED`, §4.2.3) to
+`RELEASED`.
 
 | Audit Field        | Value                                                       |
 |--------------------|-------------------------------------------------------------|
@@ -1541,7 +1563,8 @@ Generated when the escrow transitions from `ESCROWED` to `RELEASED`.
 
 #### 4.3.3 Escrow Timeout/Return
 
-Generated when the escrow transitions from `ESCROWED` to `RETURNED`.
+Generated when the escrow transitions from `ESCROWED` (or `DISPUTED`, §4.2.3) to
+`RETURNED`.
 
 | Audit Field        | Value                                                       |
 |--------------------|-------------------------------------------------------------|
@@ -1702,9 +1725,11 @@ agents, arbitration resolution agents.
 
 **Constraints:**
 
-- Only the `release_agent` specified in the EscrowConditions may release the escrow.
-  Possessing this capability alone is necessary but not sufficient — the agent's
-  identity MUST also match the `release_agent` field.
+- Only the `release_agent` specified in the EscrowConditions may release the escrow
+  (or, while the escrow is `DISPUTED`, the `arbitration_agent` — §4.1 dispute
+  resolution exception). Possessing this capability alone is necessary but not
+  sufficient — the agent's identity MUST also match the `release_agent` field (or
+  that `arbitration_agent`).
 - The release message MUST be signed by the releasing agent's Ed25519 key.
 
 #### 5.1.6 `arsiaprotocol.assets.escrow.cancel`
@@ -2325,7 +2350,8 @@ includes the HTTP method, URL, and a nonce, preventing token replay.
     "jkt": "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
   },
   "iat": 1711288200,
-  "exp": 1711288500
+  "exp": 1711288500,
+  "jti": "8d6f2a4c-3b1e-4c7a-9f05-2e7b1d9c4a63"
 }
 ```
 
@@ -2572,7 +2598,7 @@ human oversight flow (pending_approval) rather than immediate execution.
 
 Agent A sends an AssetTransferRequest to Agent B with:
 
-- `amount`: `50000.00`
+- `amount`: `"50000.00"`
 - `currency_or_unit`: `"EUR"`
 - `asset_type`: `"currency"`
 - Valid `payment_reference` and `idempotency_key`.

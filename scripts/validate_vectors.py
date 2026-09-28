@@ -216,7 +216,10 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
     try:
         import rfc8785
     except ImportError:
-        rfc8785 = None
+        # No fallback: a code-point-ordered serialization (json.dumps sort_keys) is
+        # not RFC 8785 and would silently diverge on non-BMP member names (Core §5.1).
+        print("ERROR: rfc8785 library required for --check-crypto", file=sys.stderr)
+        sys.exit(1)
     try:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: F401
     except ImportError:
@@ -256,12 +259,7 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
         msg_copy = copy.deepcopy(msg)
         if isinstance(msg_copy.get("security"), dict):
             msg_copy["security"].pop("sig", None)
-        if rfc8785:
-            canonical = rfc8785.dumps(msg_copy)
-        else:
-            canonical = json.dumps(
-                msg_copy, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-            ).encode("utf-8")
+        canonical = rfc8785.dumps(msg_copy)
         expected_hex = crypto["canonical_bytes_hex"]
         actual_hex = canonical.hex()
         if actual_hex != expected_hex:

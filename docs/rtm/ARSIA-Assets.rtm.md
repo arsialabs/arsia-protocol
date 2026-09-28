@@ -60,7 +60,7 @@
 | ASSETS-§3.1.1-10 | 3.1.1 | MUST | sdk | structural | currency_or_unit for currency type must be a valid ISO 4217 code (three uppercase ASCII letters) | arsia-asset-transfer-request | ITV-72, ITV-349 |
 | ASSETS-§3.1.1-11 | 3.1.1 | SHOULD | sdk | behavioural_positive | currency_or_unit should be validated against the ISO 4217 code list | arsia-asset-transfer-request | ITV-349 |
 | ASSETS-§3.1.1-12 | 3.1.1 | MUST | sdk | structural | Application-defined currency_or_unit identifiers must be lowercase ASCII, digits, and hyphens only | arsia-asset-transfer-request | ITV-350 |
-| ASSETS-§3.1.1-13 | 3.1.1 | MUST_NOT | sdk | behavioural_negative | Application-defined identifiers must not match any ISO 4217 code | arsia-asset-transfer-request | ITV-351 |
+| ASSETS-§3.1.1-13 | 3.1.1 | MUST_NOT | sdk | behavioural_negative | Application-defined identifiers must not match any ISO 4217 code under case-insensitive comparison | arsia-asset-transfer-request | ITV-351 |
 | ASSETS-§3.1.1-14 | 3.1.1 | REQUIRED | sdk | structural | asset_type field is required in AssetTransferRequest payload.args | arsia-asset-transfer-request | — |
 | ASSETS-§3.1.1-15 | 3.1.1 | REQUIRED | sdk | structural | from_agent field is required in AssetTransferRequest payload.args | arsia-asset-transfer-request | — |
 | ASSETS-§3.1.1-16 | 3.1.1 | MAY | sdk | structural | from_agent may differ from envelope from field under delegated authority | arsia-asset-transfer-request | — |
@@ -151,7 +151,7 @@
 | ASSETS-§4.1-05 | 4.1 | SHOULD | sdk_enabled | behavioural_positive | release_condition SHOULD be specific enough for a human auditor to evaluate | — | — |
 | ASSETS-§4.1-06 | 4.1 | REQUIRED | sdk | structural | release_trigger field is required in EscrowConditions | arsia-escrow-conditions | ITV-121 |
 | ASSETS-§4.1-07 | 4.1 | REQUIRED | sdk | structural | release_agent field is required in EscrowConditions | arsia-escrow-conditions | INV-13, ITV-121, ITV-394 |
-| ASSETS-§4.1-08 | 4.1 | MUST | sdk | behavioural_negative | Release triggers from agents other than release_agent MUST be rejected with forbidden | — | ITV-378 |
+| ASSETS-§4.1-08 | 4.1 | MUST | sdk | behavioural_negative | Release triggers from agents other than release_agent MUST be rejected with forbidden (arbitration_agent while DISPUTED excepted, §4.1) | — | ITV-378 |
 | ASSETS-§4.1-09 | 4.1 | MUST | sdk | behavioural_positive | release_agent MUST possess the arsiaprotocol.assets.escrow.release capability | — | ATV-05 |
 | ASSETS-§4.1-10 | 4.1 | SHOULD | operational_policy | procedural | release_agent SHOULD differ from payer and payee for third-party verification | — | ITV-379 |
 | ASSETS-§4.1-11 | 4.1 | REQUIRED | sdk | structural | timeout_at field is required in EscrowConditions | arsia-escrow-conditions | ITV-121, ITV-395 |
@@ -162,10 +162,12 @@
 | ASSETS-§4.1-16 | 4.1 | MAY | sdk_enabled | behavioural_positive | Implementations MAY enforce minimum and maximum escrow timeout constraints | — | — |
 | ASSETS-§4.1-17 | 4.1 | OPTIONAL | sdk | structural | arbitration_agent field is optional in EscrowConditions | arsia-escrow-conditions | ITV-121 |
 | ASSETS-§4.1-18 | 4.1 | MUST | sdk | behavioural_positive | Escrow without arbitration_agent MUST timeout normally when dispute arises | — | ITV-389 |
+| ASSETS-§4.1-19 | 4.1 | MUST | sdk | behavioural_positive | While DISPUTED, a release trigger or escrow-cancel from the arbitration_agent MUST be accepted in place of the release_agent / from_agent, subject to the remaining checks | — | ITV-591 |
+| ASSETS-§4.1-20 | 4.1 | MUST | sdk | behavioural_positive | The arbitration_agent MUST possess the capability its resolution message requires (escrow.release or escrow.cancel) | arsia-message | ITV-591 |
 | ASSETS-§4.2.1-01 | 4.2.1 | MUST | sdk | behavioural_positive | Escrow release message MUST be signed by the release_agent's Ed25519 key | arsia-message | ATV-05, ITV-381, ITV-397 |
 | ASSETS-§4.2.1-02 | 4.2.1 | MUST | sdk | structural | Release message MUST include escrowed transfer's payment_reference in payload | arsia-message | ATV-05, ITV-382 |
 | ASSETS-§4.2.1-03 | 4.2.1 | MUST | sdk | behavioural_positive | Escrow holder MUST verify from, payload.type, signature, state, and timeout before release | — | ATV-05, ITV-383, ITV-384, ITV-385, ITV-386, ITV-387 |
-| ASSETS-§4.2.1-04 | 4.2.1 | MUST | sdk | behavioural_negative | Failed release validation MUST be rejected and escrow MUST remain ESCROWED | — | ITV-386, ITV-388 |
+| ASSETS-§4.2.1-04 | 4.2.1 | MUST | sdk | behavioural_negative | Failed release validation MUST be rejected and the escrow MUST remain in its current state (ESCROWED or DISPUTED) | — | ITV-386, ITV-388 |
 | ASSETS-§4.2.2-01 | 4.2.2 | MUST | deployment | behavioural_positive | Escrow holder MUST implement timeout monitoring to detect when timeout_at is reached | — | — |
 | ASSETS-§4.2.2-02 | 4.2.2 | MUST | deployment | behavioural_positive | Escrow timeout check MUST execute within 60 seconds of timeout_at | — | — |
 | ASSETS-§4.2.2-03 | 4.2.2 | SHOULD_NOT | deployment | behavioural_negative | Escrow timeout SHOULD NOT be delayed by more than 60 seconds | — | — |
@@ -173,9 +175,9 @@
 | ASSETS-§4.2.3-02 | 4.2.3 | MUST | sdk | structural | Dispute payload.args MUST include payment_reference, dispute_reason, and disputed_by | arsia-message | ITV-390, ITV-391, ITV-392 |
 | ASSETS-§4.2.3-03 | 4.2.3 | MUST | sdk | behavioural_positive | arbitration_agent MUST verify dispute sender is a party (from_agent or to_agent) to the escrow | — | — |
 | ASSETS-§4.2.3-04 | 4.2.3 | MUST | sdk | behavioural_negative | Dispute messages from agents not party to the escrow MUST be rejected with "forbidden" | — | — |
-| ASSETS-§4.2.4-01 | 4.2.4 | MUST | sdk | behavioural_positive | Escrow holder MUST verify cancellation sender matches from_agent of original AssetTransferRequest | — | — |
-| ASSETS-§4.2.4-02 | 4.2.4 | MUST | sdk | behavioural_negative | Cancellation requests from agents other than from_agent MUST be rejected with "forbidden" | — | — |
-| ASSETS-§4.2.4-03 | 4.2.4 | MUST | sdk | structural | Cancellation is only permitted while escrow is in ESCROWED state (not terminal) | — | — |
+| ASSETS-§4.2.4-01 | 4.2.4 | MUST | sdk | behavioural_positive | Escrow holder MUST verify cancellation sender matches from_agent of original AssetTransferRequest (or the arbitration_agent while DISPUTED) | — | — |
+| ASSETS-§4.2.4-02 | 4.2.4 | MUST | sdk | behavioural_negative | Cancellation requests from agents other than from_agent (or the arbitration_agent while DISPUTED) MUST be rejected with "forbidden" | — | — |
+| ASSETS-§4.2.4-03 | 4.2.4 | MUST | sdk | structural | Cancellation is only permitted while the escrow is ESCROWED (or DISPUTED, for the arbitration_agent) and not terminal | — | — |
 | ASSETS-§4.3-01 | 4.3 | MUST | sdk | behavioural_positive | Every escrow state transition MUST generate an audit record | arsia-audit-record | ATV-03, ATV-05, ATV-06, ITV-88, ITV-89, ITV-90, ITV-91, ITV-92 |
 | ASSETS-§5.1.1-01 | 5.1.1 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.transfer.initiate: every use MUST generate an audit record | — | ITV-96 |
 | ASSETS-§5.1.1-02 | 5.1.1 | MAY | operational_policy | informational | arsiaprotocol.assets.transfer.initiate: human oversight MAY be required | — | — |
@@ -197,7 +199,7 @@
 | ASSETS-§5.1.5-01 | 5.1.5 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.escrow.release: every use MUST generate an audit record | — | — |
 | ASSETS-§5.1.5-02 | 5.1.5 | SHOULD | operational_policy | procedural | Human oversight SHOULD be required for currency escrow releases | — | — |
 | ASSETS-§5.1.5-03 | 5.1.5 | RECOMMENDED | operational_policy | informational | Human oversight is RECOMMENDED for non-currency escrows above implementation-defined threshold | — | — |
-| ASSETS-§5.1.5-04 | 5.1.5 | MUST | sdk | behavioural_positive | Escrow release requires both escrow.release capability and matching release_agent identity | — | ITV-290, ITV-396 |
+| ASSETS-§5.1.5-04 | 5.1.5 | MUST | sdk | behavioural_positive | Escrow release requires both escrow.release capability and matching release_agent identity (or arbitration_agent while DISPUTED) | — | ITV-290, ITV-396, ITV-591 |
 | ASSETS-§5.1.5-05 | 5.1.5 | MUST | sdk | behavioural_positive | Escrow release message MUST be signed by the releasing agent's Ed25519 key | arsia-message | ITV-291, ITV-292, ITV-381, ITV-397 |
 | ASSETS-§5.1.6-01 | 5.1.6 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.escrow.cancel: every use MUST generate an audit record | — | — |
 | ASSETS-§5.1.6-02 | 5.1.6 | MAY | operational_policy | informational | arsiaprotocol.assets.escrow.cancel: human oversight MAY be required | — | — |
@@ -275,10 +277,10 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 262 |
-| Schema ≠ — | 129 |
-| Vector ≠ — | 141 |
-| Both ≠ — | 101 |
+| Total requirements | 264 |
+| Schema ≠ — | 130 |
+| Vector ≠ — | 143 |
+| Both ≠ — | 102 |
 | Both = — (gaps) | 93 |
 
 ### Per-section breakdown
@@ -288,7 +290,7 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 9 | 5 | 3 | 3 | 4 |
 | 2 | 25 | 18 | 19 | 17 | 5 |
 | 3 | 105 | 70 | 66 | 46 | 15 |
-| 4 | 33 | 12 | 21 | 12 | 12 |
+| 4 | 35 | 13 | 23 | 13 | 12 |
 | 5 | 36 | 5 | 10 | 5 | 26 |
 | 6 | 49 | 19 | 20 | 18 | 28 |
 | 7 | 4 | 0 | 2 | 0 | 2 |

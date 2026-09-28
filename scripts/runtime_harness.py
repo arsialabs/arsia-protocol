@@ -13,7 +13,8 @@ Schema cannot express, executed as tests — including against the runtime
   R5  Amount grammar, length and per-asset-type scale;     (Assets §2, §3.1.1, D4)
       currency exponent from an injected ISO 4217 catalog
   R6  Idempotency precedence: signed envelope wins         (Core §10.4, M-25)
-  R7  Correlation/root chain verification                  (Core §4.2, B-01)
+  R7  Correlation/root chain verification;                 (Core §4.2, B-01)
+      oversight audit-record count                         (Actions §3.5/§3.6, A-25)
   R8  I-JSON number range rule                             (State §2.1.2, B-08)
   R9  Content-field mutual exclusivity                     (Core §4.4.7, A-08)
   R10 Effective human-oversight resolution / Rule 3        (Core §4.3.8, A-09)
@@ -155,6 +156,9 @@ def r3():
     check("R3 reserved exact ok", scope_satisfies("arsiaprotocol.state.purge", "arsiaprotocol.state.purge"))
     check("R3 non-reserved lookalike namespace wildcard (A-36)", scope_satisfies("arsiaprotocolx.*", "arsiaprotocolx.read"))
     check("R3 reserved root wildcard satisfies nothing", not scope_satisfies("arsiaprotocol.*", "arsiaprotocol.state.read"))
+    check("R3 arsiaprotocol.state.* grants no state capability (A-5, State §8.2.1)",
+          not any(scope_satisfies("arsiaprotocol.state.*", "arsiaprotocol.state." + c)
+                  for c in ("read", "write", "purge", "snapshot")))
     check("R3 partial capability list", not authorized(["notes.read"], ["notes.read", "notes.write"]))
     check("R3 multi-scope", authorized(["notes.read", "payments.charge"], ["notes.read", "payments.charge"]))
     check("R4 registry member ok", "arsiaprotocol.echo" in REGISTRY)
@@ -179,8 +183,8 @@ MAX_FRACTION = {"token": 8, "entitlement": 2, "service_unit": 4}  # Assets §2.2
 
 def amount_valid(amount, asset_type, currency_or_unit, catalog):
     """Assets §2.1-§2.4 and §3.1.1 amount rules for a string amount."""
-    if not isinstance(amount, str) or len(amount) > 36:
-        return False  # string only; total length at most 36
+    if not isinstance(amount, str):
+        return False  # string only; length is bounded by the digit limits (A-67)
     m = AMOUNT_RE.match(amount)
     if not m or len(m.group(1)) > 16:
         return False  # grammar; integer part at most 16 digits
@@ -192,16 +196,15 @@ def amount_valid(amount, asset_type, currency_or_unit, catalog):
             return False
         exponent = catalog.get(currency_or_unit)
         if exponent is None:
-            # No numeric minor-unit exponent: MUST be rejected (l.556-558). The
-            # "unless a profile or the ActionDescriptor defines an explicit scale"
-            # exception names a mechanism the spec does not define (A-66).
+            # No numeric minor-unit exponent: MUST be rejected (§3.1.1; the undefined
+            # "explicit scale" exception was removed in A-66).
             return False
         return len(frac) == exponent  # fixed scale: exactly the minor-unit digits
     if asset_type in MAX_FRACTION:
         if len(currency_or_unit) > 32 or not UNIT_RE.match(currency_or_unit):
             return False
-        if currency_or_unit in catalog:
-            return False  # MUST NOT match an ISO 4217 code (exact match)
+        if currency_or_unit.upper() in catalog:
+            return False  # MUST NOT match an ISO 4217 code, case-insensitively (A-68)
         return len(frac) <= MAX_FRACTION[asset_type]
     return False  # asset_type outside the normative enumeration (Assets §2)
 
@@ -227,7 +230,10 @@ def r5():
     check("R5 16-digit integer part accepted", amount_valid("1" * 16 + ".00", "currency", "EUR", c))
     check("R5 17-digit integer part rejected", not amount_valid("1" * 17 + ".00", "currency", "EUR", c))
     check("R5 20-digit integer part rejected (A-37)", not amount_valid("1" * 20 + ".00", "currency", "EUR", c))
-    check("R5 37-character amount rejected", not amount_valid("1." + "1" * 35, "token", "api-credits", c))
+    check("R5 35 fraction digits rejected by scale, not length (A-67)", not amount_valid("1." + "1" * 35, "token", "api-credits", c))
+    check("R5 longest token amount (25 chars) accepted (A-67)", amount_valid("1" * 16 + "." + "1" * 8, "token", "api-credits", c))
+    check("R5 unit 'eur' rejected: matches EUR case-insensitively (A-68)", not amount_valid("10", "token", "eur", c))
+    check("R5 unit 'api' accepted: no ISO 4217 match (A-68)", amount_valid("10", "token", "api", c))
     check("R5 token 8 fraction digits", amount_valid("0.12345678", "token", "api-credits", c))
     check("R5 token 9 fraction digits rejected", not amount_valid("0.123456789", "token", "api-credits", c))
     check("R5 entitlement 2 fraction digits", amount_valid("0.50", "entitlement", "premium-seats", c))
@@ -286,6 +292,18 @@ def r7():
     check("R7 invalid enum 'rejected' (B-06)", not verify_decision(bad_enum, pend)[0])
     pend2 = {"P1": {"root_request_id": "R1", "resolved": True}}
     check("R7 duplicate/late decision", not verify_decision(good, pend2)[0])
+    check("R7 single-approval cycle: 4 records (ACTIONS-10)", oversight_records(1) ==
+          ["request", "pending_approval", "approval_decision", "response"])
+    check("R7 multi-approval N=3 ending in a decision: N + 3 = 6 records (A-25)",
+          len(oversight_records(3)) == 6)
+    check("R7 multi-approval denial after 1 approval: N=2, 5 records (A-25)",
+          len(oversight_records(2, final="error")) == 5)
+
+
+def oversight_records(n_decisions, final="response"):
+    """Actions §3.5/§3.6: audit records of an oversight flow that ends with a decision —
+    Record 1, Record 2, one Record 3 per approval_decision received, Record 4."""
+    return ["request", "pending_approval"] + ["approval_decision"] * n_decisions + [final]
 
 
 # ---------------------------------------------------------------- R8 I-JSON

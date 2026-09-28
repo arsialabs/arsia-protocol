@@ -735,11 +735,11 @@ The StateEntry object contains the following fields:
   If the versions do not match, the SET MUST fail with error code `"conflict"`
   (§8.4).
 
-  The version number is monotonically increasing and MUST NOT be reset, even if the
-  entry is deleted and recreated with the same key. When an entry is deleted via
-  DELETE (§3.1) and subsequently recreated via SET, the new entry starts with
-  version `1` — but the implementation MUST retain the version history of the
-  deleted entry for SNAPSHOT purposes (§3.2) if the compliance profile requires
+  Within the lifetime of an entry, the version number is monotonically increasing and
+  MUST NOT be reset or decremented. When an entry is deleted via DELETE (§3.1) and
+  subsequently recreated via SET, the recreated entry is a new entry and starts with
+  version `1` (§2.4, §3.1.2) — but the implementation MUST retain the version history
+  of the deleted entry for SNAPSHOT purposes (§3.2) if the compliance profile requires
   temporal storage.
 
 #### 2.1.13 `deleted` — Deletion Flag
@@ -1311,7 +1311,8 @@ request is received.
 **Constraints on `as_of`:**
 
 1. The `as_of` timestamp MUST NOT be in the future (beyond the clock skew tolerance
-   of ±300 seconds per ARSIA-Core.md §8.3). Requests with a future `as_of` MUST be
+   of ARSIA-Core.md §8.3 — ±300 seconds by default, or the applicable compliance
+   profile's `clock_skew_seconds`). Requests with a future `as_of` MUST be
    rejected with error code `"invalid_request"`.
 
 2. The `as_of` timestamp MUST NOT predate the oldest retained version in the temporal
@@ -1435,8 +1436,9 @@ addressed in §5.3.
 The `arsiaprotocol.state.purge` capability is elevated. It MUST NOT be included in wildcard
 capability grants:
 
-- `arsiaprotocol.state.*` grants `arsiaprotocol.state.read` + `arsiaprotocol.state.write` but does NOT
-  grant `arsiaprotocol.state.purge`.
+- No wildcard grants `arsiaprotocol.state.purge`: a wildcard within the reserved
+  `arsiaprotocol.` namespace (e.g. `arsiaprotocol.state.*`) satisfies no capability
+  (ARSIA-Actions.md §1.2, condition 3).
 - `arsiaprotocol.state.purge` MUST be explicitly granted in the access token's scope.
 
 This restriction exists because PURGE is an irreversible, destructive operation that
@@ -3003,7 +3005,7 @@ by the schema.
 | `event_type` = `approval_decision` | `correlation_id`, `root_request_id`, `decision`, `approver_id` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 |
 | `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, `decision` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 (expiry) |
 | `event_type` = `response` or `error` | — | `correlation_id`, `root_request_id`, `outcome` (final record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 4 |
-| `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`), `pii_special_categories` (when `sensitive`) | §3.1.2; §8.3 rule 3 |
+| `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`); OPTIONAL: `pii_special_categories` (the entry's categories, when `sensitive`) | §3.1.2; §8.3 rule 3; §2.1.11 |
 | `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `timestamp` | — | §3.1.3 |
 | `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `purged_at`, `pii_classification` | `reason` | §3.2.2 |
 | `event_type` = `state_grant` | `grant_id`, `key_pattern`, `grantor_agent_id`, `grantee_agent_id`, `access_level`, `valid_until`, `timestamp` | — | §3.3.1 |
@@ -3014,6 +3016,7 @@ by the schema.
 | `sub_type` = `escrow_disputed` | `payment_reference`, `disputed_by`, `dispute_reason`, `arbitration_agent`, `original_audit_id` | — | ARSIA-Assets.md §4.3.4 |
 | `event_type` = `broker_relay` | `attestation_id`, `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` | — | ARSIA-Routing.md §7.4.2; ARSIA-Core.md §9.2 |
 | `event_type` = `key_rotation` | — | `reason` (`"revocation"` for a key revocation) | ARSIA-Identity.md §2.5 |
+| `event_type` = `rollback` | `original_message_id`, `action_id`, `partial_rollback` | — | ARSIA-Actions.md §4.2 (Rollback Audit) |
 | `human_oversight_status` = `approved` or `denied` | `approver_id` | — | §7.1 (`approver_id`) |
 | any record type | — | `deployer_id` (when the log owner's IdentityRecord sets a `deployer_id` different from its `owner_id`) | ARSIA-Identity.md §4.4 |
 | `event_type` = `ict_incident` (exception) | incident classification fields per ARSIA-Assets.md §6.2 — not yet defined as schema extension fields | — | ARSIA-Assets.md §6.2.3 |
@@ -3239,19 +3242,18 @@ State operations require the following capabilities in the sender's access token
 
 #### 8.2.1 Capability Hierarchy
 
-The `arsiaprotocol.state.*` wildcard capability grants:
+The State capabilities — `arsiaprotocol.state.read`, `arsiaprotocol.state.write`,
+`arsiaprotocol.state.purge`, and `arsiaprotocol.state.snapshot` — are in the reserved
+`arsiaprotocol.` namespace and are therefore matched by exact scope entries only, per
+the single normative matching rule of ARSIA-Actions.md §1.2 (condition 3). A wildcard
+such as `arsiaprotocol.state.*` grants none of them: Authorization Servers do not
+issue it and state implementations treat it as satisfying nothing (ARSIA-Actions.md
+§1.2).
 
-- `arsiaprotocol.state.read`
-- `arsiaprotocol.state.write`
-
-The `arsiaprotocol.state.*` wildcard does NOT grant:
-
-- `arsiaprotocol.state.purge`
-- `arsiaprotocol.state.snapshot`
-
-These elevated capabilities MUST be explicitly granted in the access token's `scope`
-claim. They cannot be obtained through wildcards. This restriction is normative and
-MUST be enforced by both Authorization Servers (when issuing tokens) and by state
+`arsiaprotocol.state.purge` and `arsiaprotocol.state.snapshot` are elevated
+capabilities. They MUST be explicitly granted in the access token's `scope` claim.
+They cannot be obtained through wildcards. This restriction is normative and MUST be
+enforced by both Authorization Servers (when issuing tokens) and by state
 implementations (when validating tokens).
 
 **Rationale:** PURGE is an irreversible, destructive operation that overrides
@@ -3259,10 +3261,10 @@ retention safeguards. SNAPSHOT provides access to historical data that may have 
 logically deleted. Both operations require explicit authorisation because their misuse
 has regulatory consequences.
 
-> **Note (informative).** Defence-in-depth: the non-delegable capability mechanism
-> defined in ARSIA-Actions.md §1.2 (condition 3) and §1.4 provides protocol-level
-> enforcement of this restriction at the PEP layer, complementing the Authorization
-> Server policy described above.
+> **Note (informative).** This section adds no wildcard semantics of its own: the
+> non-delegable capability mechanism of ARSIA-Actions.md §1.2 (condition 3) and §1.4
+> is the rule, enforced at the PEP layer and complemented by the Authorization Server
+> policy described above.
 
 #### 8.2.2 Capability Enforcement
 
@@ -3533,8 +3535,9 @@ These layers are cumulative. An agent must pass all four layers to perform a sta
 operation. A failure at any layer results in rejection.
 
 **Principle of least privilege.** Agents SHOULD request only the capabilities they
-need. An agent that only reads state SHOULD request `arsiaprotocol.state.read` only, not
-`arsiaprotocol.state.*`. An agent that never needs to purge data SHOULD NOT be granted
+need. An agent that only reads state SHOULD request `arsiaprotocol.state.read` only
+(wildcards within the reserved namespace satisfy nothing — ARSIA-Actions.md §1.2).
+An agent that never needs to purge data SHOULD NOT be granted
 `arsiaprotocol.state.purge`.
 
 ### 10.2 Injection and Abuse

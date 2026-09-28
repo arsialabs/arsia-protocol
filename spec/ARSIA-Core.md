@@ -303,8 +303,8 @@ instrumentation at the application layer.
 The fifth goal is developer adoption through simplicity. Despite its regulatory
 capabilities, the ARSIA core protocol is designed to be straightforward to implement. A
 minimal conformant agent requires only the ability to parse and produce JSON messages,
-verify Ed25519 signatures, expose a discovery endpoint, and handle the ten standard
-error codes. The compliance layer is opt-in: agents that do not operate under regulatory
+verify Ed25519 signatures, expose a discovery endpoint, and handle the fourteen
+standard error codes (§11.2). The compliance layer is opt-in: agents that do not operate under regulatory
 constraints can use ARSIA as a simple, secure messaging protocol without engaging with
 the compliance extensions.
 
@@ -692,7 +692,8 @@ is missing any of these fields is invalid and MUST be rejected with error code
   exactly three fractional digits (millisecond precision). Implementations MUST NOT
   use local timezone offsets. Recipients MAY reject messages whose `ts` value differs
   from the recipient's current time by more than the clock skew tolerance defined in
-  §8.3 (±300 seconds).
+  §8.3 (±300 seconds by default, or the applicable compliance profile's
+  `clock_skew_seconds`).
 
 #### 4.1.4 `from` — Sender Agent Identifier
 
@@ -798,7 +799,8 @@ and the field is absent, the message is invalid and MUST be rejected with error 
   this message MUST NOT be processed. The timestamp format is identical to the `ts`
   field (§4.1.3). The `expires_at` value MUST be strictly greater than the `ts`
   value. Recipients MUST reject messages whose `expires_at` is in the past (after
-  accounting for the clock skew tolerance of ±300 seconds defined in §8.3) with
+  accounting for the clock skew tolerance defined in §8.3 — ±300 seconds by default,
+  or the applicable compliance profile's `clock_skew_seconds`) with
   error code `invalid_request`. The `expires_at` field serves two purposes: it
   prevents stale requests from being executed, and it bounds the window during which
   replay attacks using captured messages could succeed.
@@ -1587,8 +1589,11 @@ to the Draft-01 input on failure (§4.1.1 rule 6, §5.2).
 [RFC 8785] to the modified clone. This produces a deterministic byte sequence (a
 UTF-8 encoded string) that serves as the signing input. The JCS procedure:
 - Serializes the JSON value with no whitespace.
-- Orders object members lexicographically by their member names (Unicode code point
-  order).
+- Orders object members by their member names, recursively, comparing each name as
+  an array of UTF-16 code units treated as unsigned integers, independent of locale
+  settings ([RFC 8785] §3.2.3). This order differs from Unicode code point order when
+  member names contain characters outside the Basic Multilingual Plane (encoded as
+  surrogate pairs).
 - Represents numbers in their shortest form per ECMAScript rules.
 - Escapes string characters as required by [RFC 8785] §3.2.2.
 
@@ -2014,7 +2019,8 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs...
    - The `htm` and `htu` claims in the DPoP proof match the HTTP method and URL.
    - The `ath` claim equals the base64url-encoded SHA-256 hash of the access token
      presented with the proof ([RFC 9449] §4.3).
-   - The `iat` claim is within the clock skew tolerance (±300 seconds).
+   - The `iat` claim is within the clock skew tolerance of §8.3 (±300 seconds by
+     default, or the applicable compliance profile's `clock_skew_seconds`).
    - The `jti` claim has not been seen before (replay protection).
 
 Implementations SHOULD use DPoP for proof-of-possession security, especially when
@@ -2033,8 +2039,10 @@ message. The enforcement procedure is as follows:
    - `iss` MUST exactly match a trusted issuer in the agent's issuer trust
      configuration (§6.5); the signing key MUST be resolved from that issuer's
      configured key origin.
-   - `exp` MUST be in the future (with clock skew tolerance of ±300 seconds).
-   - `iat` MUST be in the past (with clock skew tolerance).
+   - `exp` MUST be in the future (with the clock skew tolerance of §8.3 — ±300
+     seconds by default, or the applicable compliance profile's
+     `clock_skew_seconds`).
+   - `iat` MUST be in the past (with the same clock skew tolerance).
    - `sub` MUST equal the message's `from` field.
    - `aud` MUST equal the message's `to` field (the receiving agent's own
      identifier), and MUST be within the audience policy configured for the issuer
@@ -2174,8 +2182,8 @@ fields:
 | `capabilities_supported`        | array    | Array of capability strings that this agent accepts. |
 | `max_message_bytes`             | integer  | Maximum message size in bytes that this agent accepts. |
 | `request_timeout_ms`            | integer  | Maximum time in milliseconds that this agent will spend processing a request before timing out. |
-| `server_min`                    | string   | Minimum ARSIA protocol version this agent supports (e.g., `"1.0"`). |
-| `server_max`                    | string   | Maximum ARSIA protocol version this agent supports (e.g., `"1.0"`). |
+| `server_min`                    | string   | Minimum ARSIA protocol version this agent supports (e.g., `"2.0"`). |
+| `server_max`                    | string   | Maximum ARSIA protocol version this agent supports (e.g., `"2.0"`). |
 
 #### Optional Fields
 
@@ -2253,8 +2261,8 @@ The discovery endpoint SHOULD set the following HTTP response headers:
     "EU-AI-ACT-HIGH-RISK",
     "MIFID-II"
   ],
-  "server_min": "1.0",
-  "server_max": "1.0"
+  "server_min": "2.0",
+  "server_max": "2.0"
 }
 ```
 
@@ -2454,14 +2462,19 @@ envelope and the `server_min` and `server_max` fields in the discovery response.
    - `v` against its own supported range (`server_min` through `server_max`).
    - If `min_v` is present, checks that its own `server_max` ≥ `min_v`.
 
-3. **Negotiation succeeds** if and only if both conditions hold:
-   - `server_min` ≤ `v` (the recipient supports the sender's version or an earlier
-     version in the same range).
-   - `min_v` ≤ `server_max` (the recipient's maximum version meets the sender's
-     minimum requirement). If `min_v` is absent, this condition is trivially
-     satisfied.
+3. **Negotiation succeeds** if and only if all three conditions hold:
+   - **Lower bound:** `server_min` ≤ `v`.
+   - **Upper bound:** `v` ≤ `server_max`, or `v` has the same major version as
+     `server_max` and a newer minor version — such a `v` satisfies the upper bound,
+     because a newer minor version within a supported major version is accepted
+     under the major-version compatibility rules (§4.1.1 rules 2-3). A `v` whose
+     major version differs from that of `server_max` does not satisfy the upper
+     bound (§4.1.1 rule 6).
+   - **Sender minimum:** `min_v` ≤ `server_max` (the recipient's maximum version
+     meets the sender's minimum requirement). If `min_v` is absent, this condition
+     is trivially satisfied.
 
-4. **Negotiation fails** if either condition is violated. The recipient MUST respond
+4. **Negotiation fails** if any of these conditions is violated. The recipient MUST respond
    with error code `not_implemented` (§11.2) and MUST include the following fields in
    `payload.error.details`:
 
@@ -2782,11 +2795,11 @@ exceed 300 seconds — compliance profiles can only tighten the tolerance, never
 it. This tolerance applies to:
 
 - The `ts` field (§4.1.3): A message with a `ts` that differs from the recipient's
-  current time by more than 300 seconds MAY be rejected.
+  current time by more than the tolerance MAY be rejected.
 - The `expires_at` field (§4.2.2): A message is considered expired when the
-  recipient's current time exceeds `expires_at` + 300 seconds.
-- Access token `exp` and `iat` claims (§6.1): Token validation applies the same
-  ±300-second tolerance.
+  recipient's current time exceeds `expires_at` + the tolerance.
+- Access token `exp` and `iat` claims (§6.1) and DPoP proof `iat` (§6.3): Token and
+  proof validation apply the same tolerance.
 
 When a compliance profile specifies `clock_skew_seconds`, the profile-specific tolerance
 replaces the 300-second default for all timestamp validation listed above. For example, a
@@ -3628,7 +3641,8 @@ ARSIA mitigates capability escalation through independent verification:
 
 ARSIA mitigates timing-based attacks through:
 
-- **Clock skew tolerance.** A tolerance of ±300 seconds is applied to all timestamp
+- **Clock skew tolerance.** A default tolerance of ±300 seconds, or the applicable
+  compliance profile's stricter `clock_skew_seconds`, is applied to all timestamp
   validation (§8.3). This tolerance is conservative enough to accommodate typical
   clock drift while narrow enough to limit the window for time-based exploits.
   Compliance profiles for regulated environments (e.g., MIFID-II, EU-AI-ACT-HIGH-RISK)
@@ -3933,8 +3947,8 @@ signature.
 
 Note: The `security.sig` value in this example is illustrative. In a real
 implementation, it would be the base64url-encoded Ed25519 signature computed over the
-RFC 8785 canonical form of the message without the `security` field, as specified in
-§5.1.
+RFC 8785 canonical form of the message with only the `security.sig` property removed —
+`alg` and `kid` remain in the signing input — as specified in §5.1 Step 2.
 
 ### A.2 Full Request with EU-AI-ACT-HIGH-RISK Compliance Profile
 

@@ -25,7 +25,8 @@ import uuid
 try:
     import rfc8785
 except ImportError:  # pragma: no cover
-    rfc8785 = None
+    # No fallback: code-point key order (json.dumps sort_keys) is not RFC 8785 (Core §5.1).
+    sys.exit("ERROR: rfc8785 library required (scripts/requirements.txt)")
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -38,8 +39,6 @@ REPLY_INTENTS = {"response", "error", "pending_approval", "approval_decision"}
 
 
 def jcs(obj) -> bytes:
-    if rfc8785 is None:
-        return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     return rfc8785.dumps(obj)
 
 

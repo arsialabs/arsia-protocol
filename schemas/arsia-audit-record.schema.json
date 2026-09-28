@@ -336,6 +336,30 @@
       ],
       "description": "Final outcome of an oversight cycle, carried by its final response or error record. Per ARSIA-Actions.md §3.5 Record 4."
     },
+    "original_message_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        {
+          "description": "The id of the original response message that confirmed the execution being rolled back — the value of the rollback request's payload.args.original_message_id. Required in rollback records. Per ARSIA-Actions.md §4.2 (Rollback Request, Rollback Audit)."
+        }
+      ]
+    },
+    "action_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/payload-type"
+        },
+        {
+          "description": "The action_id of the rolled-back action (ARSIA-Actions.md §2.1). Required in rollback records. Per ARSIA-Actions.md §4.2 (Rollback Audit)."
+        }
+      ]
+    },
+    "partial_rollback": {
+      "type": "boolean",
+      "description": "Whether the rollback was partial (true) or full (false). Required in rollback records. Per ARSIA-Actions.md §4.2 (Rollback Semantics rule 3, Rollback Audit)."
+    },
     "key": {
       "type": "string",
       "description": "State entry key. Present in state_set, state_delete, and state_purge audit records. Per ARSIA-State.md §3.1.2, §3.1.3, §3.2.2."
@@ -398,7 +422,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "GDPR Art. 9(1) special category types. Present in state_set audit records when pii_classification is 'sensitive'. Per ARSIA-State.md §2.1.11."
+      "description": "GDPR Art. 9(1) special category types. OPTIONAL in state_set audit records: when present, the entry's pii_special_categories (pii_classification 'sensitive'). Per ARSIA-State.md §2.1.11 and §7.1."
     },
     "legal_basis": {
       "type": "string",
@@ -857,27 +881,6 @@
       "if": {
         "properties": {
           "event_type": {
-            "const": "state_set"
-          },
-          "pii_classification": {
-            "const": "sensitive"
-          }
-        },
-        "required": [
-          "event_type",
-          "pii_classification"
-        ]
-      },
-      "then": {
-        "required": [
-          "pii_special_categories"
-        ]
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "event_type": {
             "const": "state_delete"
           }
         },
@@ -983,6 +986,25 @@
         ]
       },
       "$comment": "broker_relay extension fields per Routing §7.4.2 (M-05 unification)"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "rollback"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "original_message_id",
+          "action_id",
+          "partial_rollback"
+        ]
+      }
     }
   ]
 }

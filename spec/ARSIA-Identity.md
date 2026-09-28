@@ -147,10 +147,12 @@ for this agent's actions and what obligations apply to its operation.
 
 All three layers MUST be consistent. Consistency means that a message from
 `agent:acme.billing` MUST be signed by a key whose `kid` starts with
-`agent:acme.billing#`, and that key MUST be published at the JWKS endpoint hosted by
-the same infrastructure that owns the `acme` domain. The IdentityRecord served at
-`/.well-known/arsia/identity` on that same domain MUST declare the legal entity that
-owns `agent:acme.billing` via the `owner_id` and `owner_name` fields.
+`agent:acme.billing#`, and that key MUST be published at the JWKS endpoint of the
+origin resolved for `agent:acme.billing` per ARSIA-Core.md §6.6 (agent identifier
+resolution) — an explicit agent-directory mapping, never an origin derived from the
+identifier's segments. The IdentityRecord served at `/.well-known/arsia/identity` at
+that same resolved origin MUST declare the legal entity that owns
+`agent:acme.billing` via the `owner_id` and `owner_name` fields.
 
 Furthermore, if the IdentityRecord declares `ai_system_classification` as `"high-risk"`,
 all outbound request and response messages from that agent MUST carry appropriate
@@ -452,8 +454,13 @@ A recipient MUST verify the message signature using the following procedure:
     clone — `alg`, `kid`, and any encryption metadata remain in the signing input
     (ARSIA-Core.md §5.1 Step 2).
 8.  Canonicalize the clone using JSON Canonicalization Scheme (JCS) per RFC 8785.
-9.  Verify the Ed25519 signature (from `security.sig`, base64url-decoded) over the
-    canonicalized bytes using the public key from step 5.
+9.  Verify the signature (from `security.sig`, base64url-decoded) over the
+    canonicalized bytes using the public key from step 5 and the algorithm declared
+    in `security.alg`, after the algorithm-coherence checks of ARSIA-Core.md §5.2
+    Step 5: `security.alg` MUST be in the implementation's algorithm allowlist (§5.1
+    Supported Algorithms) and compatible with the key's `kty`/`crv` (`EdDSA` —
+    OKP/Ed25519, `ES256` — EC/P-256, `RS256` — RSA). An unknown, disallowed, or
+    mismatched algorithm is rejected with error code `"unauthorized"`.
 10. If signature verification fails, reject the message with error code `"unauthorized"`.
 
 **JWKS caching.** Recipients MAY cache JWKS responses subject to the normative bounds
@@ -486,7 +493,10 @@ The receiving agent MUST verify the access token using the following procedure:
    Verify the `nbf` claim if present (token MUST NOT be used before this time).
 4. Verify that the `aud` claim equals `message.to` (the receiving agent's agent-id).
 5. Verify that the `sub` claim equals `message.from` (the sending agent's agent-id).
-6. Verify that the `scope` claim contains ALL strings listed in `message.capabilities`.
+6. Verify that the `scope` claim satisfies EVERY capability listed in
+   `message.capabilities`, using the single normative matching rule of
+   ARSIA-Actions.md §1.2 (exact match, trailing wildcards, and the reserved-namespace
+   exact-match exception) as referenced by ARSIA-Core.md §6.4.
 7. If any check fails, reject the request with error code `"unauthorized"` (for
    authentication failures) or `"forbidden"` (for insufficient scope/capabilities).
 
@@ -527,7 +537,9 @@ Payload:
 3. Verify the DPoP proof JWT signature using the `jwk` embedded in the proof header.
 4. Verify that `htu` matches the inbox URL that received the request.
 5. Verify that `htm` equals `"POST"`.
-6. Verify that `iat` is within ±300 seconds of the current time.
+6. Verify that `iat` is within the clock skew tolerance of the current time —
+   ARSIA-Core.md §8.3: ±300 seconds by default, or the applicable compliance
+   profile's `clock_skew_seconds`.
 7. Verify that `ath` equals the base64url-encoded SHA-256 hash of the access token.
 8. Verify that the `jwk` in the proof header matches the `cnf` (confirmation) claim in
    the access token.
@@ -1343,11 +1355,14 @@ that require oversight.
 **CHECK-04 — Audit trail format.** The gateway fetches
 `GET {agent_base_url}/.well-known/arsia/audit` (ARSIA-State.md §7.4) and verifies:
 
-- The response MUST be a JSON array of audit records.
+- The response MUST be the JSON object defined in ARSIA-State.md §7.4, whose
+  `records` array contains the audit records (alongside `total`, `has_more`, and,
+  when present, `next_cursor`).
 - Each record MUST include the fields defined in ArsiaAuditRecord
   (ARSIA-State.md §7.1): `record_id`, `message_id`, `event_type`, `from_agent`,
   `to_agent`, `intent`, `payload_type`, `payload_hash`, `compliance_profile_declared`,
-  `compliance_profile_resolved`, `processed_at`, `retained_until`, `operator_id`.
+  `compliance_profile_resolved`, `declared_retention` (which may be `null`),
+  `retention_source`, `processed_at`, `retained_until`, `operator_id`.
 - Records MUST use `payload_hash` (a hash of the payload), NOT the raw payload content.
   This satisfies ARSIA-State.md §7.1 immutability requirements.
 
@@ -1634,7 +1649,7 @@ rule, finds `status: "allowed"`, and places it in the `freely_allowed` list. The
 (ARSIA-Actions.md §1.4, recommended maximum for `arsiaprotocol.audit.read` tokens).
 
 **Phase 5 — Token issuance.** Upon approval, the gateway issues a scoped JWT containing
-`scope: ["arsiaprotocol.audit.read"]`, `sub` set to the auditor's agent-id, `exp` set to
+`scope: "arsiaprotocol.audit.read"`, `sub` set to the auditor's agent-id, `exp` set to
 300 seconds from issuance, and `iss` set to the gateway's agent-id. The token structure
 follows the requirements in §9.1. The gateway records an `approval_decision` audit event
 per §9.3.

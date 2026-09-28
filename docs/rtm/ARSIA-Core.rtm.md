@@ -40,7 +40,7 @@
 | CORE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | Message identifiers MUST NOT be sequential or predictable | — | — |
 | CORE-§4.1.3-01 | 4.1.3 | MUST | sdk | structural | Timestamp ts MUST be RFC 3339 UTC with exactly millisecond precision (Z suffix) | arsia-message | INV-03 |
 | CORE-§4.1.3-02 | 4.1.3 | MUST_NOT | sdk | behavioural_negative | Timestamp ts MUST NOT use local timezone offsets | arsia-message | — |
-| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages with ts exceeding ±300 seconds clock skew tolerance | — | ITV-408 |
+| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408 |
 | CORE-§4.1.4-01 | 4.1.4 | MUST | sdk | structural | The from field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — |
 | CORE-§4.1.4-02 | 4.1.4 | MUST | sdk | behavioural_positive | The from field MUST match the access token sub claim | — | ITV-409 |
 | CORE-§4.1.4-03 | 4.1.4 | MUST | sdk | behavioural_negative | Mismatched from vs. token sub MUST cause rejection with error unauthorized | — | ITV-409 |
@@ -58,7 +58,7 @@
 | CORE-§4.2.2-01 | 4.2.2 | REQUIRED | sdk | structural | expires_at is REQUIRED when intent is request or pending_approval | arsia-message | CTV-01, CTV-08, INV-05 |
 | CORE-§4.2.2-02 | 4.2.2 | MUST_NOT | sdk | behavioural_negative | Messages MUST NOT be processed after their expires_at timestamp | — | — |
 | CORE-§4.2.2-03 | 4.2.2 | MUST | sdk | structural | expires_at value MUST be strictly greater than the message ts value | — | CTV-01 |
-| CORE-§4.2.2-04 | 4.2.2 | MUST | sdk | behavioural_negative | Recipients MUST reject messages with past expires_at (±300s skew tolerance) as invalid_request | — | ITV-411 |
+| CORE-§4.2.2-04 | 4.2.2 | MUST | sdk | behavioural_negative | Recipients MUST reject messages with past expires_at (after the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) as invalid_request | — | ITV-411 |
 | CORE-§4.2.3-01 | 4.2.3 | REQUIRED | sdk | structural | capabilities array is REQUIRED when intent is request or approval_decision | arsia-message | CTV-01, ITV-532, ITV-533 |
 | CORE-§4.2.3-02 | 4.2.3 | MUST | sdk | structural | capabilities array MUST contain at least one element | arsia-message | — |
 | CORE-§4.2.3-03 | 4.2.3 | MUST | sdk | structural | Each capability string MUST be unique within the capabilities array | arsia-message | — |
@@ -166,7 +166,7 @@
 | CORE-§4.5-04 | 4.5 | MUST | sdk | behavioural_negative | Messages exceeding the advertised size limit MUST be rejected with payload_too_large | — | ITV-424 |
 | CORE-§4.5-05 | 4.5 | SHOULD | sdk_enabled | interoperability | Large payloads SHOULD use a reference pattern (URL/ID) instead of embedding content | — | — |
 | CORE-§5.1-01 | 5.1 | MUST | sdk | interoperability | Implementations MUST use a standards-compliant Ed25519 implementation | — | — |
-| CORE-§5.1-02 | 5.1 | MUST | sdk | procedural | Message signing MUST follow the normative 6-step procedure (clone, strip security, JCS, sign, b64url, populate) | — | CTV-01, ITV-551, ITV-552 |
+| CORE-§5.1-02 | 5.1 | MUST | sdk | procedural | Message signing MUST follow the normative 6-step procedure (clone, remove only security.sig, JCS per RFC 8785 with UTF-16 code-unit member order, sign, b64url, populate) | — | CTV-01, ITV-551, ITV-552, ITV-590 |
 | CORE-§5.1-03 | 5.1 | MUST | sdk | interoperability | All conformant implementations MUST support Ed25519 signature generation and verification | — | — |
 | CORE-§5.1-04 | 5.1 | RECOMMENDED | sdk | interoperability | ES256 support is RECOMMENDED for ECDSA interoperability | — | ITV-551, INV-18 |
 | CORE-§5.1-05 | 5.1 | MUST_NOT | sdk | behavioural_negative | RS256 MUST NOT be used for new deployments; legacy interoperability only | — | ITV-552, INV-19 |
@@ -228,8 +228,8 @@
 | CORE-§6.3-01 | 6.3 | RECOMMENDED | sdk | interoperability | DPoP proof-of-possession is RECOMMENDED for high-security deployments or intermediary traversal | arsia-dpop-proof | ITV-33, ITV-34, ITV-126 |
 | CORE-§6.3-02 | 6.3 | SHOULD | sdk | interoperability | Implementations SHOULD use DPoP when the compliance profile requires high-risk controls | arsia-dpop-proof | — |
 | CORE-§6.4-01 | 6.4 | MUST | sdk | procedural | Receiving agent MUST enforce capability-based authorization for every request message | — | — |
-| CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (±300 seconds clock skew tolerance) | — | ITV-434 |
-| CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (±300 seconds clock skew tolerance) | — | ITV-435, ITV-447, ITV-448 |
+| CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-434 |
+| CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-435, ITV-447, ITV-448 |
 | CORE-§6.4-04 | 6.4 | MUST | sdk | behavioural_positive | Token sub claim MUST equal the message from field during enforcement | — | ITV-436 |
 | CORE-§6.4-05 | 6.4 | MUST | sdk | behavioural_positive | Token aud claim MUST equal the message to field (receiving agent's identifier) | — | ITV-437 |
 | CORE-§6.4-06 | 6.4 | MUST | sdk | structural | Capability-denied error MUST include required_capabilities and provided_capabilities in details | arsia-message | — |
@@ -315,7 +315,7 @@
 | CORE-§8.3-03 | 8.3 | SHOULD_NOT | sdk_enabled | behavioural_negative | Sender SHOULD NOT retry immediately after a request timeout (see §11.3) | — | — |
 | CORE-§8.3-04 | 8.3 | MAY | sdk_enabled | behavioural_positive | Sender MAY check the async status URL after timeout if one was provided | — | — |
 | CORE-§8.3-05 | 8.3 | SHOULD | deployment | behavioural_positive | Idle WebSocket connections (no frames for 60 seconds) SHOULD be closed by the server | — | — |
-| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing more than ±300 seconds (default, may be overridden by compliance profile) from recipient time MAY be rejected | — | ITV-440 |
+| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected | — | ITV-440 |
 | CORE-§8.3-07 | 8.3 | SHOULD | deployment | behavioural_positive | Implementations SHOULD synchronise clocks using NTP or equivalent time protocol | — | — |
 | CORE-§8.3-08 | 8.3 | SHOULD | deployment | behavioural_positive | Compliance-sensitive agents SHOULD use multiple NTP sources and log drift exceeding 10 seconds | — | — |
 | CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547 |

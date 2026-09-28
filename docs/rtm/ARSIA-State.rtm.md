@@ -95,7 +95,7 @@
 | STATE-§2.1.11-03 | 2.1.11 | MUST | sdk | structural | pii_special_categories MUST contain at least one value from the GDPR Art. 9(1) enum | arsia-state-entry | — |
 | STATE-§2.1.12-01 | 2.1.12 | MUST | sdk | behavioural_positive | SET with expected_version MUST verify current version matches before applying the update | arsia-state-operations | — |
 | STATE-§2.1.12-02 | 2.1.12 | MUST | sdk | behavioural_positive | SET MUST fail with error code "conflict" when expected_version does not match current version | arsia-message | ITV-82 |
-| STATE-§2.1.12-03 | 2.1.12 | MUST_NOT | sdk | behavioural_negative | Entry version number is monotonically increasing and MUST NOT be reset within a lifecycle | arsia-state-entry | — |
+| STATE-§2.1.12-03 | 2.1.12 | MUST_NOT | sdk | behavioural_negative | Entry version number is monotonically increasing and MUST NOT be reset or decremented within an entry's lifetime | arsia-state-entry | — |
 | STATE-§2.1.12-04 | 2.1.12 | MUST | sdk | behavioural_positive | Recreated entries start at version 1, but implementations MUST retain prior version history for SNAPSHOT | — | ITV-204 |
 | STATE-§2.1.13-01 | 2.1.13 | MAY | sdk_enabled | behavioural_positive | Logically deleted entries MAY appear in SNAPSHOT results for times when they were active | — | ITV-206 |
 | STATE-§2.1.13-02 | 2.1.13 | MUST_NOT | sdk | behavioural_negative | The deleted flag MUST NOT be set directly by agents; only the implementation sets it on DELETE | arsia-state-entry | STV-03 |
@@ -179,7 +179,7 @@
 | STATE-§3.2.1-05 | 3.2.1 | MUST | deployment | behavioural_positive | Temporal storage MUST retain version history for each entry's effective retention period | — | — |
 | STATE-§3.2.1-06 | 3.2.1 | MAY | sdk_enabled | behavioural_positive | After the retention period expires, historical versions MAY be purged from the temporal store | — | — |
 | STATE-§3.2.1-07 | 3.2.1 | MUST | sdk | behavioural_positive | Non-SNAPSHOT implementations MUST return "not_implemented" with feature "temporal_storage" | arsia-message | — |
-| STATE-§3.2.1-08 | 3.2.1 | MUST_NOT | sdk | behavioural_negative | SNAPSHOT as_of MUST NOT be in the future (beyond ±300s clock skew tolerance) | — | ITV-229, ITV-230 |
+| STATE-§3.2.1-08 | 3.2.1 | MUST_NOT | sdk | behavioural_negative | SNAPSHOT as_of MUST NOT be in the future (beyond the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-229, ITV-230 |
 | STATE-§3.2.1-09 | 3.2.1 | MUST | sdk | behavioural_positive | Requests with a future as_of MUST be rejected with error code "invalid_request". | — | ITV-229, ITV-230 |
 | STATE-§3.2.1-10 | 3.2.1 | MUST_NOT | sdk | behavioural_negative | SNAPSHOT as_of MUST NOT predate the oldest retained version in the temporal store | — | ITV-231, ITV-232 |
 | STATE-§3.2.1-11 | 3.2.1 | MUST | sdk | behavioural_positive | SNAPSHOT MUST return "invalid_request" with snapshot_unavailable when as_of predates history | — | ITV-231, ITV-232 |
@@ -374,7 +374,7 @@
 | STATE-§10.1-02 | 10.1 | MUST | sdk | interoperability | State operation messages MUST be signed per ARSIA-Core §5.1 | arsia-message | — |
 | STATE-§10.1-03 | 10.1 | MUST | sdk | interoperability | State operation messages MUST carry a valid access token with the required capabilities | arsia-message | ITV-272 |
 | STATE-§10.1-04 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD request only the capabilities they need (least privilege) | — | — |
-| STATE-§10.1-05 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Read-only agents SHOULD request arsiaprotocol.state.read, not arsiaprotocol.state.* | — | — |
+| STATE-§10.1-05 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Read-only agents SHOULD request arsiaprotocol.state.read only (reserved-namespace wildcards satisfy nothing, ARSIA-Actions.md §1.2) | — | — |
 | STATE-§10.1-06 | 10.1 | SHOULD_NOT | sdk_enabled | behavioural_positive | Agents that never purge SHOULD NOT be granted arsiaprotocol.state.purge | — | — |
 | STATE-§10.2-01 | 10.2 | MUST | sdk | behavioural_positive | Implementations MUST validate keys against the §2.1.1 pattern before processing any operation | arsia-state-entry, arsia-state-operations | — |
 | STATE-§10.2-02 | 10.2 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT interpret or execute state value contents | — | — |

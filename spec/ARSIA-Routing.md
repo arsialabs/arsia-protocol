@@ -224,8 +224,10 @@ fastest path for message delivery.
    {ARSIA message envelope}
    ```
 
-6. **Recipient processing.** The recipient receives the message and performs the
-   following validation steps in order:
+6. **Recipient processing.** The recipient receives the message and validates it.
+   The normative processing order is the Message Processing Pipeline of
+   ARSIA-Core.md §5.2; the list below is an informative summary of the checks
+   involved, not an order:
 
    a. Verify the message size does not exceed `max_message_bytes` (ARSIA-Core.md §4.5).
    b. Parse the JSON envelope and validate required fields (ARSIA-Core.md §4.1).
@@ -234,7 +236,8 @@ fastest path for message delivery.
    e. Verify protocol version compatibility (ARSIA-Core.md §7.4).
    f. Check idempotency key for deduplication (ARSIA-Core.md §10).
    g. Check message expiration: if `expires_at` is in the past (after accounting for
-      ±300 seconds clock skew tolerance per ARSIA-Core.md §8.3), reject with error
+      the clock skew tolerance of ARSIA-Core.md §8.3 — ±300 seconds by default, or
+      the applicable compliance profile's `clock_skew_seconds`), reject with error
       code `invalid_request`.
    h. Process the message payload.
 
@@ -1234,7 +1237,11 @@ The sender MUST follow this procedure when implementing at-least-once delivery:
 1. Send the message with an idempotency key.
 2. If the response is a success (HTTP 200/202): delivery is confirmed. Stop.
 3. If the response is a non-retryable error (HTTP 400, 401, 403, 404, 409, 413, 501):
-   delivery failed permanently. Do NOT retry. Stop.
+   delivery failed permanently. Do NOT retry. Stop. Exception (ARSIA-Core.md §11.3):
+   an HTTP 409 `conflict` response that carries a `Retry-After` header indicating
+   that the idempotent request is still in progress (ARSIA-Core.md §10.3) is not a
+   permanent failure — the sender SHOULD resend the identical message (step 6) after
+   the indicated delay.
 4. If the response is HTTP 429 (rate limited): wait for the duration specified in the
    `Retry-After` header (or `payload.error.details.retry_after_seconds`, or 60 seconds
    as fallback). Then retry.
@@ -1442,7 +1449,10 @@ processed.
 **Notes:** Whether DELIVERY_FAILED is terminal depends on the error code. Errors
 `rate_limited` (429), `internal_error` (500), and `service_unavailable` (503) are
 retryable per ARSIA-Core.md §11.3. All other errors (400, 401, 403, 404, 409, 413,
-501) are non-retryable — the sender MUST NOT retry without modifying the request.
+501) are non-retryable — the sender MUST NOT retry without modifying the request —
+except a 409 `conflict` carrying a `Retry-After` header for an idempotent request
+still in progress, which the sender SHOULD retry unchanged after the indicated delay
+(ARSIA-Core.md §11.3).
 
 #### 4.1.9 EXPIRED
 
@@ -1451,7 +1461,7 @@ before the message reached the DELIVERED state. The message MUST NOT be processe
 
 | Property      | Value                                                        |
 |---------------|--------------------------------------------------------------|
-| Entry condition | Current time exceeds `message.expires_at` (after ±300s clock skew tolerance per ARSIA-Core.md §8.3) before DELIVERED. |
+| Entry condition | Current time exceeds `message.expires_at` (after the clock skew tolerance of ARSIA-Core.md §8.3 — ±300 s by default, or the profile's `clock_skew_seconds`) before DELIVERED. |
 | Exit condition  | Terminal state. Message MUST NOT be processed.             |
 | Audit event     | Sender logs `expired` event with message ID, `expires_at` value, and timestamp of expiration detection. |
 
@@ -2060,10 +2070,12 @@ broker operates as a transparent relay and does not gain access to application-l
 data.
 
 **Rule 5: Forward delivery.** The broker MUST forward the message to the recipient's
-inbox using direct routing (§1.2.1). The broker:
+inbox as specified in §1.2.2 step 7. The broker:
 
 a. Discovers the recipient's inbox URL from the recipient's discovery endpoint.
-b. Obtains an access token for the recipient.
+b. Presents the sender's end-to-end token (`T_e2e`), any forwarded DPoP proof, and
+   its signed relay attestation (§1.2.2 step 7). The broker does NOT obtain any
+   token of its own for the recipient.
 c. Sends the message to the recipient's inbox via HTTP POST (§2.1).
 
 **Rule 6: Response relay.** The broker MUST return the recipient's response to the
@@ -2305,7 +2317,7 @@ tests at the applicable conformance level.
 | **description**   | Verify that expired messages are rejected                      |
 | **conformance**   | Core                                                           |
 | **preconditions** | Agent A constructs a message with `expires_at` set to `current_time - 600` (10 minutes in the past). This guarantees the message is expired regardless of ±300-second clock skew tolerance (§8.3). |
-| **action**        | Agent A sends the pre-expired message to Agent B's inbox. Agent B receives the message and checks `expires_at` against its current time (with ±300 seconds clock skew tolerance per ARSIA-Core.md §8.3). |
+| **action**        | Agent A sends the pre-expired message to Agent B's inbox. Agent B receives the message and checks `expires_at` against its current time (with the clock skew tolerance of ARSIA-Core.md §8.3 — at most ±300 seconds). |
 | **expected**      | Agent B rejects the message with HTTP 400 and error code `invalid_request`. The error `description` indicates that the message has expired. |
 
 > **Note (informative).** Implementations MAY additionally test with a shorter expiry

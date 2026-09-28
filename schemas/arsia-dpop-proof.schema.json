@@ -28,7 +28,7 @@
     },
     "iat": {
       "type": "number",
-      "description": "Issued-at time as NumericDate. MUST be within ±300 seconds of the receiver's clock. ARSIA-Core.md §6.3."
+      "description": "Issued-at time as NumericDate. MUST be within the clock skew tolerance of the receiver's clock — ±300 seconds by default, or the applicable compliance profile's clock_skew_seconds (ARSIA-Core.md §8.3). ARSIA-Core.md §6.3."
     },
     "ath": {
       "type": "string",

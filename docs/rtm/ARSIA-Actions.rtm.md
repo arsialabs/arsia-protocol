@@ -67,7 +67,7 @@
 | ACT-§1.4-33 | 1.4 | MUST | sdk_enabled | behavioural_positive | Escrow creator MUST specify valid release_agent and timeout_at in EscrowConditions | arsia-escrow-conditions | — |
 | ACT-§1.4-34 | 1.4 | SHOULD | sdk | behavioural_positive | Human oversight SHOULD be required for currency escrow releases | — | — |
 | ACT-§1.4-35 | 1.4 | RECOMMENDED | operational_policy | informational | Human oversight RECOMMENDED for non-currency escrow releases above a defined threshold | — | — |
-| ACT-§1.4-36 | 1.4 | MUST | external | behavioural_positive | Escrow releaser identity MUST match the release_agent field in EscrowConditions | — | ITV-290 |
+| ACT-§1.4-36 | 1.4 | MUST | external | behavioural_positive | Escrow releaser identity MUST match the release_agent field in EscrowConditions (or the arbitration_agent while DISPUTED, ARSIA-Assets.md §4.1) | — | ITV-290, ITV-591 |
 | ACT-§1.4-37 | 1.4 | MUST | external | behavioural_positive | Escrow release message MUST be signed by the releasing agent's Ed25519 key | — | ITV-291, ITV-292 |
 | ACT-§1.4-38 | 1.4 | MAY | sdk_enabled | informational | Human oversight MAY be required for escrow cancellation | — | — |
 | ACT-§1.4-39 | 1.4 | SHOULD | deployment | behavioural_positive | Access tokens with assets.audit.read scope SHOULD have a short lifetime (max 300s) | — | — |
@@ -205,7 +205,7 @@
 | ACT-§3.4-02 | 3.4 | MUST | external | behavioural_positive | Executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve capability | — | ITV-314 |
 | ACT-§3.4-03 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject the approval_decision with error forbidden if approver capability is missing | — | ITV-315 |
 | ACT-§3.4-04 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute the action if approver lacks the required capability | — | ITV-316 |
-| ACT-§3.4-05 | 3.4 | MUST | sdk | procedural | Executing agent MUST verify current time is before the approval_deadline (±300s clock skew tolerance) | — | ITV-317 |
+| ACT-§3.4-05 | 3.4 | MUST | sdk | procedural | Executing agent MUST verify current time is before the approval_deadline (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-317 |
 | ACT-§3.4-06 | 3.4 | MUST | sdk | procedural | Executing agent MUST treat action as expired (Path 3) if the approval_deadline has passed | — | ITV-318 |
 | ACT-§3.4-07 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action whose approval_deadline has passed, even if approval was sent in time | — | ITV-319 |
 | ACT-§3.4-08 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST verify approval_decision correlation_id matches a previously sent pending_approval id | arsia-message | ITV-320 |
@@ -258,7 +258,8 @@
 | ACT-§4.2-08 | 4.2 | MUST | sdk | behavioural_positive | Partial rollback response MUST include details with partial_rollback, rolled_back, and not_rolled_back lists | arsia-message | ITV-85 |
 | ACT-§4.2-09 | 4.2 | MUST | sdk | behavioural_negative | Rollback of an already ROLLED_BACK action MUST produce error conflict with already_rolled_back: true | arsia-message | ITV-335 |
 | ACT-§4.2-10 | 4.2 | SHOULD | sdk_enabled | behavioural_positive | Rollback of actions that required human oversight SHOULD also require oversight unless explicitly bypassed | — | — |
-| ACT-§4.2-11 | 4.2 | MUST | sdk | behavioural_positive | Successful rollback MUST generate an audit record with event_type: "rollback" and action details | arsia-audit-record | ITV-99 |
+| ACT-§4.2-11 | 4.2 | MUST | sdk | behavioural_positive | Successful rollback MUST generate an audit record with event_type: "rollback" carrying original_message_id, action_id and partial_rollback | arsia-audit-record | ITV-99, INV-50 |
+| ACT-§4.2-12 | 4.2 | REQUIRED | sdk | structural | original_message_id, action_id and partial_rollback extension fields are REQUIRED on every rollback audit record | arsia-audit-record | ITV-99, INV-50 |
 | ACT-§4.3-01 | 4.3 | MUST | sdk | behavioural_positive | Executing agent MUST cease execution and release all resources when the timeout is exceeded | — | — |
 | ACT-§4.3-02 | 4.3 | MUST | sdk | behavioural_positive | Executing agent MUST respond with error code service_unavailable on action timeout | arsia-message | ITV-336 |
 | ACT-§4.3-03 | 4.3 | SHOULD | sdk | behavioural_positive | Timeout error response SHOULD include timeout_ms and elapsed_ms in the details object | — | ITV-336 |
@@ -341,10 +342,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 328 |
-| Schema ≠ — | 151 |
-| Vector ≠ — | 115 |
-| Both ≠ — | 59 |
+| Total requirements | 329 |
+| Schema ≠ — | 152 |
+| Vector ≠ — | 116 |
+| Both ≠ — | 60 |
 | Both = — (gaps) | 121 |
 
 ### Per-section breakdown
@@ -354,7 +355,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 72 | 21 | 26 | 8 | 33 |
 | 2 | 82 | 47 | 27 | 18 | 26 |
 | 3 | 85 | 41 | 40 | 19 | 23 |
-| 4 | 52 | 16 | 12 | 7 | 31 |
+| 4 | 53 | 17 | 13 | 8 | 31 |
 | 5 | 28 | 18 | 7 | 5 | 8 |
 | 6 | 9 | 8 | 3 | 2 | 0 |
 

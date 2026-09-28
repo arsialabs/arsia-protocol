@@ -140,10 +140,12 @@
 | ROUTE-§3.2-02 | 3.2 | MUST | sdk_enabled | procedural | Sender MUST follow the retry-with-idempotency procedure for at-least-once delivery | arsia-message | — |
 | ROUTE-§3.2-03 | 3.2 | RECOMMENDED | sdk_enabled | behavioural_positive | Maximum retry count of 3 is RECOMMENDED for at-least-once delivery | — | — |
 | ROUTE-§3.2-04 | 3.2 | MUST | sdk_enabled | behavioural_positive | Sender MUST abandon the request and report failure after 3 failed retries | — | — |
+| ROUTE-§3.2-05 | 3.2 | SHOULD | sdk_enabled | behavioural_positive | A 409 conflict with Retry-After for an in-progress idempotent request SHOULD be resent identically after the delay (ARSIA-Core.md §11.3) | — | — |
 | ROUTE-§4.1.7-01 | 4.1.7 | MAY | sdk_enabled | behavioural_positive | Sender MAY retry DISPATCH_FAILED messages using exponential backoff | — | — |
 | ROUTE-§4.1.7-02 | 4.1.7 | RECOMMENDED | sdk_enabled | behavioural_positive | DISPATCH_FAILED becomes terminal after maximum retries (3 RECOMMENDED) | — | — |
 | ROUTE-§4.1.7-03 | 4.1.7 | MUST | sdk_enabled | behavioural_positive | Retried messages MUST preserve the original id and idempotency key for deduplication | arsia-message | — |
-| ROUTE-§4.1.8-01 | 4.1.8 | MUST_NOT | sdk_enabled | behavioural_negative | HTTP 400/401/403/404/409/413/501 errors are non-retryable; sender MUST NOT retry | arsia-message | — |
+| ROUTE-§4.1.8-01 | 4.1.8 | MUST_NOT | sdk_enabled | behavioural_negative | HTTP 400/401/403/404/409/413/501 errors are non-retryable; sender MUST NOT retry without modifying the request (409 with Retry-After for an in-progress idempotent request excepted, ARSIA-Core.md §11.3) | arsia-message | — |
+| ROUTE-§4.1.8-02 | 4.1.8 | SHOULD | sdk_enabled | behavioural_positive | A 409 conflict carrying Retry-After for an in-progress idempotent request SHOULD be retried unchanged after the delay | — | — |
 | ROUTE-§4.1.9-01 | 4.1.9 | MUST_NOT | sdk | behavioural_negative | Expired messages (past expires_at) MUST NOT be processed | — | ITV-498 |
 | ROUTE-§4.1.9-02 | 4.1.9 | MUST_NOT | sdk | behavioural_negative | EXPIRED is a terminal state; the message MUST NOT be processed or retried | — | ITV-499 |
 | ROUTE-§4.1.9-03 | 4.1.9 | MUST | sdk | behavioural_positive | Messages expiring during DISPATCHED or BROKER_RELAYED state MUST transition to EXPIRED | arsia-message | — |
@@ -237,7 +239,7 @@
 | ROUTE-§7.3-18 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT read or log payload contents | — | — |
 | ROUTE-§7.3-19 | 7.3 | MAY | external | informational | Broker MAY compute and log a SHA-256 payload hash for audit purposes | arsia-audit-record | — |
 | ROUTE-§7.3-20 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT store, inspect, index, or transmit payload contents to any party other than the recipient | — | — |
-| ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox using direct routing | arsia-audit-record | RTV-01 |
+| ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox as specified in §1.2.2 step 7 (sender's T_e2e and relay attestation; no broker token of its own) | arsia-audit-record | RTV-01 |
 | ROUTE-§7.3-22 | 7.3 | MUST | external | behavioural_positive | Broker MUST return the recipient response to the sender unmodified | — | ITV-516 |
 | ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every relayed message, including errors | arsia-audit-record, arsia-audit-record | RTV-02 |
 | ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain attestation_id, message_id, from_agent, to_agent, message_ts, broker_agent_id, residency_zone, received_at, forwarded_at, relay_latency_ms, forwarding_result, and payload_hash | arsia-audit-record | RTV-02, ITV-43, INV-48 |
@@ -277,11 +279,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 262 |
+| Total requirements | 264 |
 | Schema ≠ — | 107 |
 | Vector ≠ — | 78 |
 | Both ≠ — | 50 |
-| Both = — (gaps) | 127 |
+| Both = — (gaps) | 129 |
 
 ### Per-section breakdown
 
@@ -289,8 +291,8 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 50 | 21 | 17 | 9 | 21 |
 | 2 | 81 | 20 | 6 | 5 | 60 |
-| 3 | 5 | 2 | 0 | 0 | 3 |
-| 4 | 8 | 4 | 3 | 1 | 2 |
+| 3 | 6 | 2 | 0 | 0 | 4 |
+| 4 | 9 | 4 | 3 | 1 | 3 |
 | 5 | 24 | 11 | 3 | 2 | 12 |
 | 6 | 16 | 6 | 2 | 0 | 8 |
 | 7 | 75 | 43 | 46 | 33 | 19 |

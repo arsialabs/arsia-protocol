@@ -577,9 +577,11 @@ non-currency escrows above an implementation-defined threshold.
 
 **Constraints:**
 
-- Only the `release_agent` specified in the EscrowConditions may release the escrow.
-  Possessing this capability alone is necessary but not sufficient — the agent's
-  identity MUST also match the `release_agent` field.
+- Only the `release_agent` specified in the EscrowConditions may release the escrow
+  (or, while the escrow is `DISPUTED`, the `arbitration_agent` — ARSIA-Assets.md §4.1
+  dispute resolution exception). Possessing this capability alone is necessary but
+  not sufficient — the agent's identity MUST also match the `release_agent` field (or
+  that `arbitration_agent`).
 - The release message MUST be signed by the releasing agent's Ed25519 key.
 
 #### `arsiaprotocol.assets.escrow.cancel`
@@ -1438,7 +1440,8 @@ with error code `forbidden` and MUST NOT execute the action.
 
 The executing agent MUST verify that the current time is before the `approval_deadline`
 declared in the original `pending_approval` message. Formally: `current_time <
-approval_deadline` (with a clock skew tolerance of ±300 seconds per ARSIA-Core.md §8.3).
+approval_deadline` (with the clock skew tolerance of ARSIA-Core.md §8.3 — ±300 seconds
+by default, or the applicable compliance profile's `clock_skew_seconds`).
 If the deadline has passed, the executing agent MUST treat the action as expired (Path 3
 below) and MUST NOT execute the action, even if the `approval_decision` was sent before
 the deadline but arrived after it.
@@ -1732,9 +1735,13 @@ from agents with different `from` values.
    action is denied via the expiry path (§3.4, Path 3).
 
 5. All individual `approval_decision` messages MUST be logged as separate audit records
-   (§3.5, Record 3). The total number of audit records for a multi-approval flow is
-   3 + N + 1, where N is the number of `approval_decision` messages received (including
-   any denials).
+   (§3.5, Record 3). For a multi-approval flow that ends with a decision (all required
+   approvals received, or a denial), the total number of audit records is N + 3:
+   Record 1, Record 2, one Record 3 for each of the N `approval_decision` messages
+   received (including any denial), and Record 4.
+
+   *Editor's note:* the record count for a flow that ends by deadline expiry (step 4)
+   is not yet specified.
 
 **Ordering.** Approvals may arrive in any order. The executing agent MUST track the set
 of approvers who have approved and MUST NOT accept duplicate approvals from the same
@@ -2003,10 +2010,16 @@ The following rules govern rollback behavior:
 When rollback succeeds, the executing agent MUST generate an audit record with
 `event_type: "rollback"` that includes:
 
-- The original action's `message_id` and `action_id`.
-- The rollback request's `message_id`.
-- The timestamp of the rollback.
-- Whether the rollback was full or partial.
+- The original action's `message_id` and `action_id`, as the extension fields
+  `original_message_id` (the value of the rollback request's
+  `payload.args.original_message_id`) and `action_id`.
+- The rollback request's `message_id`, as the record's `message_id` base field.
+- The timestamp of the rollback, as the record's `processed_at` base field.
+- Whether the rollback was full or partial, as the boolean extension field
+  `partial_rollback` (`true` for a partial rollback per rule 3 above).
+
+These extension fields are REQUIRED on every `rollback` record (ARSIA-State.md §7.1,
+per-event-type extension fields).
 
 ### 4.3 Execution Timeouts
 

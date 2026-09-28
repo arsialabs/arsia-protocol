@@ -42,7 +42,8 @@ runtime-only vectors, and the declared guarantees still lacking evidence.
 | C1 | Remediation tracking artefacts | `63a233b` | `e77c0ca` ("docs: add Draft-02 remediation ledger and design record") | closed |
 | C2 | Regulatory and standards citation alignment (28 citation defects + A-69) | `e77c0ca` | `a8e9930` ("fix: align regulatory and standards citations with official texts") | implemented; per-item closure in §4, §5 and §9 |
 | C3a | Prose ↔ schema parity (A-1, A-2, A-3, A-9, A-10, A-27, A-59) | `a8e9930` | `aa5547d` ("fix: align audit, compliance and onboarding schemas with prose (C3a)") | implemented; per-item closure in §4 and §10 |
-| C2.1 | Regulatory currency results applied (OD-4; A-71, A-72, A-73) | `aa5547d` | this commit | implemented; per-item state in §4, §5 and §11 |
+| C2.1 | Regulatory currency results applied (OD-4; A-71, A-72, A-73) | `aa5547d` | `08633a5` ("fix: align AI Act and CAP citations with the applicable texts (C2.1)") | implemented; per-item state in §4, §5 and §11 |
+| C3b | Decision-independent cross-spec conflicts, RFC 8785 canonicalization, dispositions, C3a findings (A-74..A-81) | `08633a5` | this commit | implemented; per-item state in §4 and §12 |
 
 ## 3. Decision register
 
@@ -69,13 +70,13 @@ Rows: 10 (6 DR, 4 OD).
 |---|---|---|---|---|---|---|---|---|
 | F-1 | 1 | CONF | per DR-3, DR-1 | open | Aligned quotes (Core Rule 3, State §6.2, Actions §3.7) + executed high-risk/not_required vector | pending | DR-3, DR-1 | pending |
 | F-2 | 2 | CONF | pending | IPC | Harness shared-cache two-call test, revoked kid, reject/reject | harness R13 (C0.5) | IPC, C0.5 | C0.5 / 260ac73 |
-| F-3 | 3 | CONF | pending | open | Core §5.1 text citing UTF-16 code units + signed vector with non-BMP keys | pending | prose cycle; prerequisite of DR-5 | pending |
+| F-3 | 3 | CONF | pending | closed | Core §5.1 text citing UTF-16 code units + signed vector with non-BMP keys | Core §5.1 Step 3: RFC 8785 §3.2.3 UTF-16 code-unit order. ITV-590 (non-BMP names) verifies under RFC 8785 bytes, fails under code-point order (consistency check) | prose cycle; prerequisite of DR-5 | C3b |
 | A-1 | 1 | CONF | pending | closed | Schema validation passing records built literally from Actions §3.5 (1-4, expiry) | Actions §3.5 Records 1-4 and the expiry record, built literally from the prose tables, validate (ITV-581..585); INV-46 (decision missing) rejected (§10) | prerequisite of DR-5 | C3a |
 | A-2 | 1 | PART (State §7.4 l.3093 is a query parameter, not a record field) | State §7.4 `compliance_profile` is a query-parameter name, not a record field: name unchanged; the filter is defined as matching `compliance_profile_resolved` (owner decision 2026-09-28) | closed | Schema validation of Rule 7, deployer_id, cancellation records; CHECK-04/STATE-15 names aligned | Routing §7.4.2 record incl. broker_agent_id (§7.4.2 example + base fields; INV-48), deployer_id (ITV-588) and cancellation (ITV-586; INV-47) records validate; CHECK-04/STATE-15 aligned (§10) | prerequisite of DR-5 | C3a |
 | A-3 | 1 | PART (delivery_failed sub-claim interpretive) | `delivery_failed` is an operational routing-log event (Routing §4.1 audit classification note), not a canonical `ArsiaAuditRecord` event_type; not added to the enum | IPC | Schema validation of compliance_warning/oversight_timeout records, or disposition placing them outside the canonical trail | `compliance_warning` added to prose and schema enum and validated (ITV-587). Gap: `oversight_timeout` suspended — it is one of the three `required_within_24h` definitions that DR-2 replaces (§10) | — | C3a (partial) |
 | A-4 | 1 | PART (holds: post-execution window undefined) | per DR-2 | open | Aligned quotes for one within_24h evidence event + defined post-execution mechanism; executed C-09 | pending | DR-2 | pending |
-| A-5 | 1 | CONF | pending | open | Aligned State §8.2.1 / Actions §1.2 quotes + executed reserved-wildcard vector | pending | — | pending |
-| A-6 | 1 | INT (Core §6.4 names Actions §1.2 the single rule) | Core §6.4 names Actions §1.2 the single rule | open | Disposition + editorial alignment of Identity §3.2 step 6; ITV-566 executed | pending | — | pending |
+| A-5 | 1 | CONF | pending | closed | Aligned State §8.2.1 / Actions §1.2 quotes + executed reserved-wildcard vector | State §3.2.2, §8.2.1, §10.1 aligned: `arsiaprotocol.state.*` grants nothing. ITV-567 + new R3 case executed | — | C3b |
+| A-6 | 1 | INT (Core §6.4 names Actions §1.2 the single rule) | Core §6.4 names Actions §1.2 the single rule | closed (by disposition) | Disposition + editorial alignment of Identity §3.2 step 6; ITV-566 executed | Identity §3.2 step 6 applies Actions §1.2; ITV-566 executed (R3) | — | C3b |
 | A-7 | 1 | CONF | pending | open | Aligned PURGE/retention quotes (Core §13.1 #9, State §3.2.2/§5.3.2) | pending | DR-4 axis rules | pending |
 | A-8 | 1 | CONF | per DR-5 | open | New chain construction + claim quotes; executed tamper test on a non-hashed field | pending | DR-5; A-1, A-2, A-59, F-3 | pending |
 | A-9 | 1 | PART (extras limited to registered fields) | pending | closed | Schema description consistent with keyword; validation of declared extension behaviour | Core §4.3.6 note and schema description now state the registered-fields reading; additionalProperties:false kept; INV-49 (unregistered member) rejected (§10) | — | C3a |
@@ -83,34 +84,34 @@ Rows: 10 (6 DR, 4 OD).
 | A-11 | 1 | CONF | per DR-1 | open | Aligned denied/expired response form; ASSETS-06 executed | pending | DR-1 | pending |
 | A-12 | 1 | PART (risk_level sub-claim fails) | per DR-1 | open | Aligned quote defining trigger source relative to Actions §3.7 | pending | DR-1 | pending |
 | A-13 | 1 | CONF | per DR-1 | open | Aligned Identity §7.3/§7.7 vs Actions §3.7 quotes | pending | DR-1 | pending |
-| A-14 | 1 | INT (Assets l.1855-1858 checks token capabilities) | Assets l.1855-1858 checks token capabilities | open | Disposition + executed vector with token lacking transfer.approve | pending | DR-1 (touches, per design record) | pending |
-| A-15 | 1 | PART (rules scoped to ESCROWED) | pending | open | Explicit arbitration exception in Assets §4.1 + dispute vector | pending | — | pending |
-| A-16 | 1 | PART (Rule 6 vs §2.3.3 interpretive) | pending | open | Aligned Rule 5/step 7 quotes; disposition on Rule 6 scope | pending | — | pending |
-| A-17 | 1 | CONF | pending | open | Aligned 409/Retry-After quotes (Routing §3.2/§4.1.8, Core §11.3) | pending | — | pending |
-| A-18 | 1 | PART (literal only at Identity l.526, Core l.2002) | pending | open | Profile-aware tolerance in each timestamp check; ITV-545/546/547 executed | pending | — | pending |
-| A-19 | 1 | PART (step 2 does check the range) | pending | open | Aligned step 3 quotes; discovery example validated with consistent versions | pending | — | pending |
-| A-20 | 1 | CONF | pending | open | Appendix A.1 note aligned with §5.1 Step 2 | pending | F-3 | pending |
-| A-21 | 1 | CONF | pending | open | Identity §1.1 references Core §6.6 resolution | pending | — | pending |
-| A-22 | 1 | PART (step 9 Ed25519-only holds) | pending | open | Identity §3.1 step 9 aligned; ES256 vector executed | pending | — | pending |
+| A-14 | 1 | INT (Assets l.1855-1858 checks token capabilities) | Assets l.1855-1858 checks token capabilities | closed (by disposition) | Disposition + executed vector with token lacking transfer.approve | Executed vector moved to the coverage program (owner, C3b) | DR-1 (touches, per design record) | C3b |
+| A-15 | 1 | PART (rules scoped to ESCROWED) | pending | closed | Explicit arbitration exception in Assets §4.1 + dispute vector | Assets §4.1 DISPUTED-only arbitration exception; §4.2.1, §4.2.4, §4.3.2-3, §5.1.5, Actions §1.4 aligned. ITV-591 signed, verifies | — | C3b |
+| A-16 | 1 | PART (Rule 6 vs §2.3.3 interpretive) | Rule 6 relays a recipient envelope; §2.3.3 "Relay error" is the broker's own delivery failure — different scopes | closed | Aligned Rule 5/step 7 quotes; disposition on Rule 6 scope | Rule 5 follows §1.2.2 step 7 (no broker token) | — | C3b |
+| A-17 | 1 | CONF | pending | closed | Aligned 409/Retry-After quotes (Routing §3.2/§4.1.8, Core §11.3) | Routing §3.2 step 3 and §4.1.8: 409 + Retry-After SHOULD be retried (Core §11.3); ROUTE-§3.2-05, §4.1.8-02 added | — | C3b |
+| A-18 | 1 | PART (literal only at Identity l.526, Core l.2002) | pending | IPC | Profile-aware tolerance in each timestamp check; ITV-545/546/547 executed | All fixed ±300 s timestamp checks now cite the §8.3 resolved tolerance (§12). Gap: ITV-545/546/547 execution (vector cycle) | — | C3b (partial) |
+| A-19 | 1 | PART (step 2 does check the range) | pending | closed | Aligned step 3 quotes; discovery example validated with consistent versions | Core §7.4 step 3 explicit (lower; upper incl. same-major newer minor, different major fails; min_v). Example at 2.0 validates | — | C3b |
+| A-20 | 1 | CONF | pending | closed | Appendix A.1 note aligned with §5.1 Step 2 | Appendix A.1: only `security.sig` removed | F-3 | C3b |
+| A-21 | 1 | CONF | pending | closed | Identity §1.1 references Core §6.6 resolution | Identity §1.1: origin resolved per Core §6.6 | — | C3b |
+| A-22 | 1 | PART (step 9 Ed25519-only holds) | pending | closed | Identity §3.1 step 9 aligned; ES256 vector executed | Step 9: declared, allowlisted, key-coherent alg (Core §5.2 Step 5). ITV-551 executed; IDENT-§3.1-08 added | — | C3b |
 | A-23 | 1 | CONF | per DR-4 | open | Per-axis composition quote; disposition for multi-regime agents | pending | DR-4 | pending |
-| A-24 | 1 | CONF | pending | open | Aligned version-reset quotes (State §2.1.12/§2.4) | pending | — | pending |
-| A-25 | 1 | CONF | pending | open | Aligned arithmetic; ACTIONS-10-style count assertion for N>1 | pending | — | pending |
-| A-26 | 1 | CONF | pending | open | Aligned CHECK-04 / State §7.4 response shape | pending | — | pending |
+| A-24 | 1 | CONF | Reset on recreation, decided by State §2.4 item 4 and §3.1.2 | closed | Aligned version-reset quotes (State §2.1.12/§2.4) | §2.1.12: never reset within an entry's lifetime; recreated entry starts at 1. Consequence: A-79 | — | C3b |
+| A-25 | 1 | CONF | pending | closed | Aligned arithmetic; ACTIONS-10-style count assertion for N>1 | Actions §3.6: N + 3 for a flow ending with a decision; editor's note for expiry (A-80). Harness R7: N=1/2/3 → 4/5/6 | — | C3b |
+| A-26 | 1 | CONF | pending | closed | Aligned CHECK-04 / State §7.4 response shape | CHECK-04 expects the State §7.4 response object | — | C3b |
 | A-27 | 1 | PART (§7.8 informative) | pending | closed | Schema minItems aligned with prose (or relaxed prose); §7.8 scenario validated | Identity §7.6 relaxed to the intended behaviour (effective_capabilities non-empty; sub-lists may be empty); §7.8 scenario validates (ITV-589); schema unchanged (§10) | — | C3a |
 | A-28 | 1 | INT (State qualifies its own claim) | State qualifies its own claim | closed (C2); currency confirmed 2026-09-28 (via V-14) | Disposition; State §6.3 opening sentence rewritten via V-14 | V-14 rewrite of the State §6.3 PSD2 paragraph (§9, row V-14); disposition as recorded | regulatory cycle | C2 |
-| A-29 | 1 | INT | Core's SHOULD reconnect and Routing's MUST back off when reconnecting can both hold; the idle-close MAY does not negate Core's SHOULD. | open | Disposition on modal strength; drift-linter rule | pending | — | pending |
-| A-30 | 1 | PART (all sub-claims hold; "normative" overstated) | pending | open | Per-example schema validation; error-code count aligned | pending | — | pending |
-| A-31 | 1 | INT | Core step 6 selects the signing profile while Routing step (e) is §7.4 negotiation — different operations; Core's pipeline does not order expiry or idempotency; the missing compliance step is an omission, not a contradiction. | open | Disposition marking Routing §1.2.1 step 6 non-normative, or aligned order | pending | — | pending |
+| A-29 | 1 | INT | Core's SHOULD reconnect and Routing's MUST back off when reconnecting can both hold; the idle-close MAY does not negate Core's SHOULD. | closed (by disposition) | Disposition on modal strength; drift-linter rule | Consistency check "A-29 reconnection modals" pins both modals | — | C3b |
+| A-30 | 1 | PART (all sub-claims hold; "normative" overstated) | pending | closed | Per-example schema validation; error-code count aligned | Five corrections; JSON examples validate (§12) | — | C3b |
+| A-31 | 1 | INT | Core step 6 selects the signing profile while Routing step (e) is §7.4 negotiation — different operations; Core's pipeline does not order expiry or idempotency; the missing compliance step is an omission, not a contradiction. | closed (by disposition) | Disposition marking Routing §1.2.1 step 6 non-normative, or aligned order | Routing §1.2.1 step 6 marked informative; order is Core §5.2 pipeline | — | C3b |
 | A-32 | 2 | CONF | per DR-3 | open | Harness rule equal for None / GDPR-STANDARD; ITV-579 and C-06(c) aligned to prose | pending | DR-3 | pending |
 | A-33 | 2 | CONF | pending | IPC | Executed alg/key-mismatch vector asserted to fail | negative control run; repo vector pending | IPC, C0.5 (negative control run; repo vector pending) | C0.5 / 260ac73 |
 | A-34 | 2 | CONF | pending | IPC | INV-18/19 asserted negatives with checker assertion | INV-18/19 asserted (C0.5); caveat: unauthorized proxy exact for current corpus only | IPC, C0.5; caveat: unauthorized proxy exact for current corpus only | C0.5 / 260ac73 |
-| A-35 | 2 | CONF | pending | open | Checker/generator refuse without RFC 8785, or fallback validated against RFC 8785 data | pending | open | pending |
+| A-35 | 2 | CONF | pending | closed | Checker/generator refuse without RFC 8785, or fallback validated against RFC 8785 data | Checker and generator exit without rfc8785; fallbacks removed | open | C3b |
 | A-36 | 2 | CONF | pending | IPC | Harness case arsiaprotocolx.* → True | pending | IPC, C0.5 | C0.5 / 260ac73 |
 | A-37 | 2 | CONF | pending | IPC | Harness cases for SEK, length/digit limits, non-currency scales | pending | IPC, C0.5; spawned A-66 | C0.5 / 260ac73 |
 | A-38 | 2 | CONF | pending | IPC | Harness cases for max-age below ceiling and revocation-event invalidation | harness R13 (C0.5) | IPC, C0.5 | C0.5 / 260ac73 |
 | A-39 | 2 | CONF | pending | open | ITV-404/406/438/439 expectations aligned with Core §4.1.1 and executed | pending | vector cycle, DR-0.4 | pending |
 | A-40 | 2 | CONF | pending | open | Generator dry-run validated against v2 schemas; envelope_hash used or documented | pending | — | pending |
-| A-41 | 2 | INT (Core §11.2 defines the mandatory set) | Core §11.2 defines the mandatory set | open | Disposition or aligned pseudocode quote | pending | — | pending |
+| A-41 | 2 | INT (Core §11.2 defines the mandatory set) | Core §11.2 defines the mandatory set | closed (by disposition) | Disposition or aligned pseudocode quote | Disposition recorded; no text change | — | C3b |
 | A-42 | 2 | PART (16, not 17, expected-valid) | pending | validator IPC (C0.5); vectors open | 94 skip vectors structurally valid; ITV-545/546 aligned | pending | validator IPC C0.5; vectors open | C0.5 / 260ac73 (validator) |
 | A-43 | 3 | CONF via V-1..V-5 | pending | closed (C2); currency re-verified 2026-09-28 — V-1..V-4 confirmed; V-5 reopened as A-71 | Corrected AI Act citations matched to official text | V-1..V-5 corrected and matched to Reg. (EU) 2024/1689 (§9) | regulatory cycle | C2 |
 | A-44 | 3 | CONF via O-1, V-6..V-9 | pending | IPC; currency confirmed 2026-09-28 (O-1, V-6..V-9); gap remains A-70 | Corrected MiFID II / 2017/565 citations | O-1 and V-6..V-9 corrected (§9). Gap: the MiFID II / 2017/565 retention attributions (five-year basis, Art. 16(7) used for general record-keeping) remain uncorrected and are tracked as A-70 | regulatory cycle | C2 |
@@ -135,20 +136,28 @@ Rows: 10 (6 DR, 4 OD).
 | A-63 | 4 | PART (A-30 explanation corrected) | pending | open | Extraction rule validating every non-envelope normative example | pending | coverage program | pending |
 | A-64 | 4 | CONF | pending | open | RTM statistics: each MUST row mapped to evidence or disposition | pending | coverage program | pending |
 | A-65 | 4 | PART (7 unsupported, 4 overstated) | pending | open | Skip-classification entries matched one-to-one to harness cases | pending | vector cycle | pending |
-| A-66 | 1 | CONF (from C0.5) | pending | open | Assets §3.1.1 explicit-scale exception defined or removed | pending | prose/schema cycle | pending (raised in C0.5) |
-| A-67 | E | CONF (from C0.5) | pending | open | Assets §3.1.1 36-char limit made effective or removed | pending | prose cycle | pending (raised in C0.5) |
-| A-68 | E | CONF (from C0.5) | pending | open | Assets §3.1.1 ISO-code match rule made effective or removed | pending | prose cycle | pending (raised in C0.5) |
+| A-66 | 1 | CONF (from C0.5) | pending | closed | Assets §3.1.1 explicit-scale exception defined or removed | Exception removed (a scale mechanism would be DR-4-adjacent); R5 comment updated | prose/schema cycle | C3b |
+| A-67 | E | CONF (from C0.5) | pending | closed | Assets §3.1.1 36-char limit made effective or removed | Restated as derived; maxLength 36 is a structural ceiling; R5 cases updated | prose cycle | C3b |
+| A-68 | E | CONF (from C0.5) | pending | closed | Assets §3.1.1 ISO-code match rule made effective or removed | Case-insensitive match; R5 "eur" rejected, "api" accepted | prose cycle | C3b |
 | A-69 | 3 | new (DR-0.2) | per DR-0.2 | closed; currency confirmed 2026-09-28; applicability tracked in A-73 | EU-AI-ACT-HIGH-RISK prose attributes pre-execution approval as profile choice; Art. 14 cited correctly | State §6.2 and the Assets §6.3.1 echo rewritten; every other Art. 14 mention reviewed (§9, row A-69) | regulatory cycle | C2 |
 | A-70 | 3 | new (C2); evidence updated by currency re-verification 2026-09-28 | pending | open | MIFID-II floor re-grounded (e.g. MiFIR Art. 25(1) for order and transaction data) with scope, anchor and day-count justified, or the floor and its attributions corrected; all echoes aligned | The MIFID-II profile's retention floor (P1827D) and its attributions (MiFID II Art. 16(7); Del. Reg. (EU) 2017/565 Art. 72) are not supported as written. In the sources consulted, five-year periods appear only in: (i) MiFIR (Reg. (EU) No 600/2014) Art. 25(1), unchanged in the consolidated version of 23.11.2025 — investment firms keep at the disposal of the competent authority, "for five years", the relevant data relating to all orders and all transactions in financial instruments carried out on own account or on behalf of a client; (ii) MiFIR Art. 25(2), as replaced by Art. 3 of Reg. (EU) 2024/2809 with effect from 4 December 2024 (entry into force on the twentieth day after publication in OJ L of 14.11.2024; Art. 3 is not among the provisions deferred by Art. 4(2)-(4)) — operators of trading venues keep order data "for at least five years", in a machine-readable format and using a common template; (iii) MiFID II Art. 16(7) — records of telephone conversations and electronic communications, five years (up to seven on request); (iv) 2017/565 Art. 76(8) — copy of recordings available on request for five years. None sets a period for "all services, activities and transactions"; 2017/565 Art. 72 sets none. MiFIR Art. 25 states no anchor for the count (2017/565 Art. 76(11) anchors at record creation, within Art. 76 only). The conversion of "five years" to P1827D and the extension of the floor to every record under the profile (state entries, audit records, asset-transfer records not concerning financial instruments) are ARSIA technical decisions requiring their own justification; A-70 remains open as to that correspondence. Corrigenda 32014L0065R(19) and 32017R0565R(07)-R(09) have no English edition (manifest) and do not alter the English wording relied on. Echoes: Core §4.3.8 Rule 4; Assets §1.1.6, §6.1.2, §6.1.4, §8.2; State §4.1.2, §5.3.2, §6.3, §12.2; profiles catalog MIFID-II retention_reference and regulatory references | retention-axis cycle (DR-4) | pending (raised in C2; updated in currency passes) |
 | A-71 | 3 | new (currency) | per this cycle | closed | Core passages aligned with Art. 113 as amended; official text cited | Core (at a8e9930, l.250-253) stated that Article 6(1) with its corresponding obligations applies from 2 August 2027. Reg. (EU) 2026/1744, Art. 1(40)(b), replaced Art. 113, third paragraph, point (c): Chapter III, Sections 1, 2 and 3 (except Art. 6(5)) apply from 2 December 2027 for systems classified under Art. 6(2) and Annex III, and from 2 August 2028 under Art. 6(1) and Annex I; Art. 1(40)(a) and (c) also set 2 December 2026 for Art. 5(1)(ba)/(bb) and 5(1a)/(1b), and 27 July 2026 for Arts. 102-110. Reg. (EU) 2026/1744 entered into force on the third day after publication in OJ L of 24.7.2026 (27 July 2026; Art. 4), matching the consolidated version of 27.07.2026. Core "through 2027" was also outdated. C2.1: Core l.164-167 and l.252-258 aligned with Art. 113 as amended; [EU-AI-Act-2026/1744] reference added; dates verified against 32026R1744 Art. 1(40), Art. 4 and the consolidated Art. 113 (§11) | A-73 | C2.1 |
 | A-72 | 3 | new (currency) | DR-0.2 (profile choice) | closed | State §6.4 and the catalog no longer rely on Art. 54; the default stated as a profile choice | State §6.4 and the PAC-AGRICULTURE catalog entry cited Reg. (EU) 2021/2116 Art. 54 ("Annual performance clearance") as the basis for the profile's explainability_required default. Art. 54 was deleted by Reg. (EU) 2025/2649, Art. 2, point (10); that regulation entered into force on the day after publication in OJ L of 31.12.2025, and under its Art. 4 the deletion applies in respect of agricultural financial year 2025 and all subsequent agricultural financial years. No transitional rule preserves the annual performance clearance: Art. 3(3)-(4) only empower the Commission to amend Delegated Regulation (EU) 2022/127 and Implementing Regulation (EU) 2022/128 to reflect the deletion; recital 61 states the output-matching requirement of Art. 37(1)(b)(i) is covered by the conformity procedure of Art. 55. C2.1: State §6.4 paragraph restated as a profile choice citing the deletion (Art. 2(10), Art. 4 verified in 32025R2649); the MUST kept without the suppressed-process clause; catalog reference to Art. 54 removed; 2025/2649 added to State references (§11) | — | C2.1 |
-| A-73 | 3 | new (currency) | sentences aligned (this cycle); framing question referred to DR-3/DR-4 | IPC | remainder resolved in the DR-3/DR-4 cycle | Sentences asserting current applicability of AI Act Chapter III obligations aligned with Art. 113(c) as amended (seven replacements above). Open remainder: the sentences claiming the profile satisfies/implements Arts. 12, 13, 26(6) and the Annex III classification statements (locations listed in the C2.1 report) — what the EU-AI-ACT-HIGH-RISK profile claims to implement before 2 December 2027 is referred to the owner. C2.1: the nine sentences applied (Actions l.392-393, l.981-985, l.993-1000, l.1165-1167; Core l.1297-1299; State l.1716, §6.2). Open remainder: State l.2348-2349 (Art. 12 "satisfied"), State l.2358 ("This satisfies Article 26(6)"), Core l.1110 ("implements EU AI Act Article 13"), Identity l.206, State l.2293-2294 and l.2363-2364 (Annex III classification) (§11) | DR-3, DR-4; V-4; A-69 | C2.1 (partial) |
+| A-73 | 3 | new (currency) | sentences aligned (this cycle); framing question referred to DR-3/DR-4 | IPC | remainder resolved in the DR-3/DR-4 cycle | Sentences asserting current applicability of AI Act Chapter III obligations aligned with Art. 113(c) as amended (seven replacements above). Open remainder: the sentences claiming the profile satisfies/implements Arts. 12, 13, 26(6) and the Annex III classification statements (locations listed in the C2.1 report) — what the EU-AI-ACT-HIGH-RISK profile claims to implement before 2 December 2027 is referred to the owner. C2.1: the nine sentences applied (Actions l.392-393, l.981-985, l.993-1000, l.1165-1167; Core l.1297-1299; State l.1716, §6.2). Open remainder: State l.2348-2349 (Art. 12 "satisfied"), State l.2358 ("This satisfies Article 26(6)"), Core l.1110 ("implements EU AI Act Article 13"), Identity l.206, State l.2293-2294 and l.2363-2364 (Annex III classification) (§11); Actions l.990-991 (C3b) | DR-3, DR-4; V-4; A-69 | C2.1 (partial) |
+| A-74 | 1 | new (C3a) | pending | closed | Actions §4.2 rollback fields in schema, State §7.1 table and A-59 guard | original_message_id, action_id, partial_rollback named from Actions §4.2 prose; schema + table row; ITV-99 valid, INV-50 invalid | — | C3b |
+| A-75 | 1 | new (C3a) | No requirement exists: Assets defines only the record's existence (§3.2.1 `audit_id`) | closed | Exact row if Assets defines the record, else disposition | No defining passage; no row restored | — | C3b |
+| A-76 | 1 | new (C3a) | Not intended by prose (State §3.1.2, §8.3 rule 3 silent): schema relaxed | closed | Prose added if intended, else schema relaxed | Conditional removed; property OPTIONAL in the §7.1 row (§2.1.11) | — | C3b |
+| A-77 | 1 | new (C3a) | pending | closed | CHECK-04 aligned to the State §7.1 required set | Adds retention_source and declared_retention | A-81 | C3b |
+| A-78 | 1 | new (C3a) | pending | open | Schema closes the canonical pending_approval field set (Actions §3.2) | pending (register only) | DR-1 | pending |
+| A-79 | 1 | new (C3b) | pending | open | (key, version) history unambiguous across generations after reset (State §2.1.12/§2.4) | pending | DR-5 | pending |
+| A-80 | 1 | new (C3b) | pending | open | Record count for a multi-approval flow ending by expiry specified; Actions §3.6 editor's note removed | pending | — | pending |
+| A-81 | 1 | new (C3b) | pending | open | declared_retention requiredness equal in State §7.1 and schema; guard exception removed | pending (declared A-59 guard exception) | DR-4 | pending |
 
-**Counts (this register only, 76 rows).**
-- By class: 1 = 33; 2 = 12; 3 = 16; 4 = 13; E = 2.
-- By triage status: CONF 48; PART 17; INT 6; UNV 0; new 5.
-- By remediation state: open 47; IPC 10; mixed (validator IPC, vectors open) 1; closed 18.
-- By disposition: per DR 10; interpretive justification or recorded disposition 11; pending 55.
+**Counts (this register only, 84 rows).**
+- By class: 1 = 41; 2 = 12; 3 = 16; 4 = 13; E = 2.
+- By triage status: CONF 48; PART 17; INT 6; UNV 0; new 13.
+- By remediation state: open 28; IPC 11; mixed (validator IPC, vectors open) 1; closed 44 (of which 5 by disposition).
+- By disposition: per DR 10; interpretive justification or recorded disposition 15; pending 59.
 
 ## 5. Regulatory citation register
 
@@ -185,11 +194,11 @@ Rows: 10 (6 DR, 4 OD).
 | A-52 | V-22 | Reg. (EU) 2021/2116 Art. 59, protection of the Union's financial interests | CORRECT | EUR-Lex `32021R2116.pdf` | `02021R2116-20260818 v004.001; derogating acts 32022R1172, 32023R1508, 32024R2434, 32025R1796 (no effect on cited articles)` | CORRECT (C0); currency confirmed 2026-09-28 |
 | A-52 | V-23 | Impl. Reg. (EU) 2022/128 Art. 34, retention periods for supporting documents | CORRECT | EUR-Lex `32022R0128.pdf` | `02022R0128-20260722 (HTML) v004.001` | CORRECT (C0); currency confirmed 2026-09-28 |
 | A-48 | T-1 | ETSI EN 319 412-5: QcCompliance described as the seal indicator; the seal type is QcType id-etsi-qct-eseal | DEFECT | ETSI EN 319 412-5 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
-| A-48 | T-2 | ETSI EN 319 412-5: "any QcStatements" wording | CORRECT (restrictive reading) | ETSI EN 319 412-5 (triage) | `official host (C2); out of scope of OD-4 pass` | open |
+| A-48 | T-2 | ETSI EN 319 412-5: "any QcStatements" wording | CORRECT (restrictive reading) | ETSI EN 319 412-5 (triage) | `official host (C2); out of scope of OD-4 pass` | CORRECT (C0); no remediation |
 | A-49 | T-3 | RFC 9449 §4.3: Core receiver checks omit ath | DEFECT | RFC 9449 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-49 | T-4 | RFC 9449 §4.3: Identity omits typ/alg checks | DEFECT | RFC 9449 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-49 | T-5 | RFC 9449 §4.2: the schema forbids nonce | DEFECT | RFC 9449 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
-| A-49 | T-6 | RFC 9449 §4.3: jti replay as a requirement | CORRECT (not required) | RFC 9449 (triage) | `official host (C2); out of scope of OD-4 pass` | open |
+| A-49 | T-6 | RFC 9449 §4.3: jti replay as a requirement | CORRECT (not required) | RFC 9449 (triage) | `official host (C2); out of scope of OD-4 pass` | CORRECT (C0); no remediation |
 | A-50 | T-7 | W3C Trace Context: all-zero ids accepted | DEFECT | W3C Trace Context (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-51 | T-8 | BCP 14: MAY used as a prohibition | DEFECT | BCP 14 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-52 | T-9 | EDPB Guidelines 05/2021 v2.0 dated Feb 2022; the correct date is 14 Feb 2023 | DEFECT | EDPB (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
@@ -200,7 +209,7 @@ Rows: 10 (6 DR, 4 OD).
 - Defects: 28 (19 V + 7 T + 2 O).
 - Correct: 6 (4 V + 2 T).
 - Unverified: 0.
-- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); open 2 (T-2, T-6: verified correct, out of scope of the OD-4 pass).
+- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass).
 - Currency totals (26 items): CONFIRMADO 24 / REABERTO 2 / PENDENTE 0; A-70 apart: evidence complete, finding open.
 
 ## 6. Runtime-vector register
@@ -358,8 +367,8 @@ error, truncated.
 - **A-34 proxy:** exact for the current corpus (INV-18, INV-19). An explicit
   crypto field is the definitive fix (vector/meta-schema cycle).
 - **ITV-546:** its coverage gap is mapped to A-62.
-- **A-35:** the canonicalization fallback stays latent while rfc8785 is
-  installed.
+- **A-35:** resolved in C3b — the checker and the generator refuse to run without
+  rfc8785.
 - **CI:** `validate-vectors` has been red by design since C0.5, and stays red
   until the vector cycle.
 - **Out-of-date docs:** `docs/draft-02-skip-classification.md` and
@@ -477,7 +486,19 @@ error, truncated.
 - **Actions risk-tier table notes (C2.1 observation):** the Risk 7–8 table still reads
   "Article 14 human oversight applies." and "Article 13 transparency is mandatory."
   (Actions l.990-991), in the present tense. These are not among the nine A-73
-  sentences, so they were left for the DR-3/DR-4 framing question.
+  sentences, so they were left for the DR-3/DR-4 framing question. C3b: added to the
+  A-73 open remainder.
+- **ITV-99 `payload_type` (C3b):** `arsiaprotocol.actions/rollback` does not follow
+  the Actions §4.2 `{action_id}/rollback` form (vector cycle).
+- **Reversal records (C3b, A-75):** Assets §3.3.2 requires the reversal record to
+  reference the original `audit_id` and `payment_reference`, but no schema
+  discriminator identifies reversal records; adding one is a design choice.
+- **Routing §2.3.3 (C3b, A-16):** "recipient error" among the cannot-forward causes
+  is read as a failure to obtain a recipient envelope, per the A-16 disposition.
+- **Stale counts outside scope (C3b):** CLAUDE.md still cites 1903 / 1109 RTM rows;
+  the repository now has 1909 / 1117 (documentation outside C3b scope).
+- **A-59 guard (C3b):** the guard now also compares State §7.1 base-field
+  requiredness with the schema; `AUDIT_BASE_EXCEPTIONS` holds A-81.
 
 ## 9. C2 closure evidence
 
@@ -554,3 +575,19 @@ References: the Actions and State EU AI Act entries gain Art. 113, and both gain
 Regulation (EU) 2026/1744 entry; State also gains a Regulation (EU) 2025/2649 entry.
 RTM: no row references the edited sentences, so no rows were re-traced and the counts
 stay at 1903 / 1114.
+
+## 12. C3b closure evidence
+
+Checked at the C3b commit. RFC 8785 §3.2.3 was read at rfc-editor.org
+(2026-09-28): "Property name strings to be sorted are formatted as arrays of UTF-16
+code units", compared "as unsigned integers, independent of locale settings".
+
+| Item | Evidence |
+|---|---|
+| F-3 / A-35 | Core §5.1 Step 3 rewritten; ITV-590 member names `message`, U+1F600, U+FF21 sort in that order (D83D < FF21); a consistency check verifies the signature over the RFC 8785 bytes and rejects it over code-point order |
+| A-18 | Aligned: Core §4.1.3, §4.2.2, §6.3, §6.4, §8.3 bullets, §13.2.4; Identity §3.3 step 6; Actions §3.4 Step 2; Routing §1.2.1 step g, §4.1.9, §8 test action; State §3.2.1; dpop-proof `iat`. Token-lifetime 300 s literals are not skew checks |
+| A-30 | Assets §3.2.3 receipt, Assets §6.3.2 token (with `jti`) and the Core §7.1 discovery example (A-19) validate against their schemas; the ASSETS-06 amount matches the amount pattern |
+| A-74 / A-81 guard | Removing `partial_rollback` from the table, or the `declared_retention` exception, fails the A-59 guard; so does requiring `declared_retention` in the schema while the exception is kept |
+| Vectors | 669 (ITV-590, ITV-591, INV-50 added; ITV-99 gains the rollback fields): 430 valid / 145 invalid / 637 pass / 32 runtime-only failures, unchanged; crypto 85/85; error paths 0 mismatches |
+| Tooling | check_consistency 94 checks, all pass; harness all pass (new R3, R5, R7 cases); 76 example blocks OK; links OK |
+| RTM | 1909 rows / 1117 MUST+MUST_NOT (+6 rows: ASSETS-§4.1-19/20, ROUTE-§3.2-05, ROUTE-§4.1.8-02, ACT-§4.2-12, IDENT-§3.1-08); 26 rows re-traced; coverage summaries recomputed |

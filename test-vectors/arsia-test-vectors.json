@@ -4338,7 +4338,7 @@
     },
     {
       "id": "ITV-99",
-      "description": "Valid audit record — rollback event_type — action rollback record. Per Actions §4.2, State §7.1.",
+      "description": "Valid audit record — rollback event_type — action rollback record with its REQUIRED extension fields original_message_id, action_id and partial_rollback. Per Actions §4.2 (Rollback Audit), State §7.1.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -4356,7 +4356,10 @@
         "human_oversight_status": "not_required",
         "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
         "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
-        "retention_source": "profile-minimum"
+        "retention_source": "profile-minimum",
+        "original_message_id": "b0000093-0003-4001-8001-000000000093",
+        "action_id": "com.example.notes/create",
+        "partial_rollback": false
       },
       "expected_error": null
     },
@@ -18603,6 +18606,106 @@
         "com_example_consent_ref": "abc"
       },
       "expected_error": "Additional properties are not allowed — Core §4.3.6"
+    },
+    {
+      "id": "ITV-590",
+      "description": "Core §5.1 Step 3 / RFC 8785 §3.2.3: signed request whose payload.args member names include a non-BMP character ('😀', U+1F600, UTF-16 D83D DE00) and a BMP character above the surrogate range ('Ａ', U+FF21). RFC 8785 orders by UTF-16 code units, so '😀' sorts before 'Ａ'; Unicode code point order reverses them. The signature verifies over the RFC 8785 bytes and fails over code-point-ordered bytes (asserted by check_consistency.py).",
+      "valid": true,
+      "category": "core",
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30392d32385431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2263336230303539302d303030312d343030312d383030312d303030303030303030353930222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f222c22f09f9880223a226772696e6e696e672066616365222c22efbca1223a2266756c6c77696474682041227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30392d32385431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "bXvJaOgVl6dcMGSjVESzXv6AAPYhnF4kuNNRU2IwvWvnZmHk12t0Vw2VvmW5CkV4q37TSLwBIIRhTusSze7tBg"
+      },
+      "message": {
+        "v": "2.0",
+        "id": "c3b00590-0001-4001-8001-000000000590",
+        "ts": "2026-09-28T10:00:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:acme.echo-server",
+        "intent": "request",
+        "expires_at": "2026-09-28T10:00:30.000Z",
+        "capabilities": [
+          "echo.ping"
+        ],
+        "payload": {
+          "type": "com.acme.echo/ping",
+          "args": {
+            "Ａ": "fullwidth A",
+            "😀": "grinning face",
+            "message": "hello"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "bXvJaOgVl6dcMGSjVESzXv6AAPYhnF4kuNNRU2IwvWvnZmHk12t0Vw2VvmW5CkV4q37TSLwBIIRhTusSze7tBg"
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-591",
+      "description": "Assets §4.1 dispute resolution exception / §4.2.3: while the escrow is DISPUTED, the arbitration_agent named in the EscrowConditions (here agent:arsialabs.demo.risk-assessor) sends the release trigger in place of the release_agent; the escrow holder MUST accept it (§4.2.1 checks with the arbitration_agent substituted, timeout_at check not applied) and the escrow transitions to RELEASED. Signed with the arbitration agent's Ed25519 key and carrying arsiaprotocol.assets.escrow.release (§5.1.5).",
+      "valid": true,
+      "category": "assets",
+      "crypto": {
+        "private_key_hex": "2f8fc328a104c098d22cae1605ebc76c26d1e201759247e7978da802a6dfc9ad",
+        "public_key_hex": "0c5c624e4cf8e2f607003286184e2a0fbbcb0b1df9fb88cccf4973e4d012c8b9",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e6173736574732e657363726f772e72656c65617365225d2c22657870697265735f6174223a22323032362d30392d32385431313a30303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2263336230303539312d303030312d343030312d383030312d303030303030303030353931222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b227061796d656e745f7265666572656e6365223a2241525349412d455343524f572d323032362d30392d32382d444953505554453031227d2c2274797065223a22617273696170726f746f636f6c2e6173736574732f657363726f772d72656c65617365227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30392d32385431313a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "isgGxLXvCejxIvAtBi407ho2QFXuzh7ztS_ja2br4veEkVZLkmUfRRvfBgnbSxVZOhc2cJFNj8NMWZMQknLBBA"
+      },
+      "message": {
+        "v": "2.0",
+        "id": "c3b00591-0001-4001-8001-000000000591",
+        "ts": "2026-09-28T11:00:00.000Z",
+        "from": "agent:arsialabs.demo.risk-assessor",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "expires_at": "2026-09-28T11:00:30.000Z",
+        "capabilities": [
+          "arsiaprotocol.assets.escrow.release"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.assets/escrow-release",
+          "args": {
+            "payment_reference": "ARSIA-ESCROW-2026-09-28-DISPUTE01"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.risk-assessor#key1",
+          "sig": "isgGxLXvCejxIvAtBi407ho2QFXuzh7ztS_ja2br4veEkVZLkmUfRRvfBgnbSxVZOhc2cJFNj8NMWZMQknLBBA"
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "INV-50",
+      "description": "INVALID — rollback audit record missing the REQUIRED extension field partial_rollback (Actions §4.2 Rollback Audit; State §7.1 per-event-type extension fields).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000093-0001-4001-8001-000000000093",
+        "message_id": "b0000093-0002-4001-8001-000000000093",
+        "event_type": "rollback",
+        "from_agent": "agent:arsialabs.demo.risk-assessor",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.actions/rollback",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "original_message_id": "b0000093-0003-4001-8001-000000000093",
+        "action_id": "com.example.notes/create"
+      },
+      "expected_error": "partial_rollback is required for rollback records — Actions §4.2, State §7.1"
     }
   ]
 }
