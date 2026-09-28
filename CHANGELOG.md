@@ -16,7 +16,9 @@ and this project adheres to the versioning scheme described in
 
 - Test vectors: every valid vector that carries a signature is now signed with
   a published key (49 test keypairs published); test-vector counts in the
-  documentation corrected to what the validation tools report.
+  documentation corrected to what the validation tools report; every vector
+  marked valid is now valid by the schema, except three version-compatibility
+  vectors (ITV-406, ITV-438, ITV-439) that test tolerance of unknown fields.
 
 ## [Draft-01] — 2026-04-01
 

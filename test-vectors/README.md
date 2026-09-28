@@ -5,9 +5,12 @@
 613 test vectors (415 valid, 125 invalid, 73 runtime-only skipped) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
-placeholders in valid vectors. 189 verified by --check-crypto; 22
-schema-ref envelopes are signed with published keys and verifiable, but
-not checked by the tool.
+placeholders in valid vectors. Every signature in a valid vector
+verifies with a published key: 170 through `--check-crypto` (166
+message-only, 4 hybrid), and the 22 schema-ref envelopes signed in `data`
+separately, as the tool does not read `data`. `--check-crypto` checks 189
+vectors — the 170 valid ones plus 19 invalid ones, for which it checks
+canonical bytes but does not require verification to fail.
 
 ## Files
 
