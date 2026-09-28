@@ -109,8 +109,10 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   of date; they are not vector or RTM totals, so LM left them.
 - **Propagation impact (DR-5):** implementations must emit the chain fields at
   Compliance and Full, serve chain queries in State §7.4 (`chain_id`,
-  `after_chain_seq`), verify chains in CHECK-04, and pick up the new tombstone schema
-  in the re-sync.
+  `after_chain_seq`, `next_cursor` as record_id or chain_seq), verify chains in
+  CHECK-04, and pick up the new tombstone schema in the re-sync.
+- **Query-response schema (DR-5):** it admits tombstones in any response; State §7.4
+  allows them only in `chain_id` queries (schema more permissive than prose).
 - **Published counts after DR-5:** 32 schemas (incl. meta), 679 vectors
   (438/147/94), RTM 1922 / 1130. README.md, CLAUDE.md (also "R1-R13", no R14) and
   docs are left for the maintenance step.

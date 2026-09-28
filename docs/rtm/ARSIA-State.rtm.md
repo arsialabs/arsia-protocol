@@ -348,6 +348,8 @@
 | STATE-§7.2-18 | 7.2 | MUST | sdk | behavioural_negative | A verifier holding an independent head MUST reject the chain on missing or duplicate positions, foreign chain_id or format, recomputed value mismatch, tombstone previous-value mismatch, or head mismatch | arsia-audit-record, arsia-audit-chain-tombstone | ITV-597, ITV-598, ITV-599; check_consistency (DR-5 tampered); harness R14 (b)-(h) |
 | STATE-§7.2-19 | 7.2 | MUST_NOT | operational_policy | behavioural_negative | Implementations MUST NOT claim stronger tamper-evidence properties than those stated in §7.2 | — | — |
 | STATE-§7.2-20 | 7.2 | MUST | operational_policy | procedural | When external anchoring is deployed, its scope and cadence MUST be documented in the operator's audit policy | — | — |
+| STATE-§7.2-21 | 7.2 | MUST | sdk | structural | The four chain fields (hash_chain, chain_id, chain_seq, chain_format) MUST be present together or not at all | arsia-audit-record | INV-51, ITV-95, ITV-592, ITV-593, ITV-594, ITV-596; harness R14 (f) |
+| STATE-§7.2-22 | 7.2 | MUST | deployment | behavioural_positive | A tombstone MUST persist for as long as its chain exists | arsia-audit-chain-tombstone | ITV-595; harness R14 (a), (c) |
 | STATE-§7.3-01 | 7.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Minimum audit record retention varies by profile (RECOMMENDED: 90 days for GDPR-STANDARD) | arsia-compliance-field | — |
 | STATE-§7.3-02 | 7.3 | MAY | sdk_enabled | behavioural_positive | Audit records past retained_until MAY be moved to cold storage (archive) | — | — |
 | STATE-§7.3-03 | 7.3 | MUST | deployment | behavioural_positive | Archived audit records MUST remain available for regulatory inspection for 12 months | — | — |
@@ -422,10 +424,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 409 |
-| Schema ≠ — | 154 |
-| Vector ≠ — | 202 |
-| Both ≠ — | 97 |
+| Total requirements | 411 |
+| Schema ≠ — | 156 |
+| Vector ≠ — | 204 |
+| Both ≠ — | 99 |
 | Both = — (gaps) | 150 |
 
 ### Per-section breakdown
@@ -438,7 +440,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 35 | 8 | 12 | 6 | 21 |
 | 6 | 20 | 15 | 5 | 5 | 5 |
-| 7 | 54 | 31 | 19 | 15 | 19 |
+| 7 | 56 | 33 | 21 | 17 | 19 |
 | 8 | 15 | 5 | 13 | 4 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |

@@ -48,7 +48,7 @@ runtime-only vectors, and the declared guarantees still lacking evidence.
 | C2.1 | Regulatory currency results applied (OD-4; A-71, A-72, A-73) | `aa5547d` | `08633a5` ("fix: align AI Act and CAP citations with the applicable texts (C2.1)") | implemented; per-item state in §4, [§5][reg5] and [§11][reg11] |
 | C3b | Decision-independent cross-spec conflicts, RFC 8785 canonicalization, dispositions, C3a findings (A-74..A-81) | `08633a5` | `59addd5` ("fix: resolve cross-spec conflicts and canonicalization text (C3b)") | implemented; per-item state in §4 and [§12][ev12] |
 | LM | Ledger maintenance: regulatory and vector registers split out, Description column, published counts refreshed | `59addd5` | `eaeb308` ("docs: split regulatory register and add finding descriptions to ledger") | implemented |
-| DR-5 | Audit hash chain over full canonical records (A-8, A-60; A-82..A-92) | `eaeb308` | this commit | implemented; per-item closure in §4 and [§13][ev13]. Totals before → after: vectors 669 → 679; RTM 1909 / 1117 → 1922 / 1130; schemas (incl. meta) 31 → 32 |
+| DR-5 | Audit hash chain over full canonical records (A-8, A-60; A-82..A-92) | `eaeb308` | `036f239` ("feat: define audit hash chain over full canonical records (DR-5)") | implemented; per-item closure in §4 and [§13][ev13]. Totals before → after: vectors 669 → 679; RTM 1909 / 1117 → 1922 / 1130; schemas (incl. meta) 31 → 32 |
 
 ## 3. Decision register
 

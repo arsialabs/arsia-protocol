@@ -3121,7 +3121,7 @@ below).
 conformance levels (ARSIA-Core.md §12.2, §12.3), every audit record MUST carry the
 chain fields `hash_chain`, `chain_id`, `chain_seq`, and `chain_format` (§7.1) and MUST
 be chained as defined below; at Core conformance, chaining is RECOMMENDED. The four
-chain fields are present together or not at all.
+chain fields MUST be present together or not at all.
 
 - *Chains.* An audit log MAY consist of several chains (for example, one per storage
   partition). Each record belongs to exactly one chain, identified by its `chain_id`.
@@ -3160,8 +3160,8 @@ chain fields are present together or not at all.
   `chain_seq`, `chain_format`, `hash_chain` (the deleted record's chain value), and
   `previous_chain_value` (the value `P` used to compute it). A tombstone carries no
   field of the deleted record; it holds only chain position and chain values, from
-  which the deleted content cannot be recovered. A tombstone persists for as long as
-  its chain exists.
+  which the deleted content cannot be recovered. A tombstone MUST persist for as long
+  as its chain exists.
 - *Verification.* A verifier holding an independently obtained head — a `chain_id`,
   a position h, and the chain value at h — retrieves the chain by its `chain_id`
   (§7.4) and MUST reject the chain if any of the following holds:

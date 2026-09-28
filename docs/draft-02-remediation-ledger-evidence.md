@@ -82,3 +82,11 @@ conformance mandate (D1) and CHECK-04 read the chain fields, not any profile.
 error paths 0 → 0 mismatches; check_consistency 94 → 98 checks, all pass (every
 earlier check unchanged); harness 110 → 126 assertions, all pass (R14); examples 76
 blocks OK; links OK; RTM 1909 / 1117 → 1922 / 1130.
+
+**Follow-up (normative modals, after `036f239`).** Two State §7.2 sentences that
+stated no modal now carry MUST, each with an RTM row: STATE-§7.2-21 — the chain
+fields MUST be present together or not at all (`arsia-audit-record`
+`dependentRequired`; INV-51, ITV-95, ITV-592..594, ITV-596; harness R14 (f));
+STATE-§7.2-22 — a tombstone MUST persist for as long as its chain exists
+(`arsia-audit-chain-tombstone`; ITV-595; harness R14 (a), (c)). RTM 1922 / 1130 →
+1924 / 1132; every other battery output unchanged.
