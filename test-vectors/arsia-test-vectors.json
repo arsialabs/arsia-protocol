@@ -2220,7 +2220,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u",
+          "sig": "oJ6q8UxWT80QAAfFLP3wNz2-il-Zu9EJHNN3oT5Ow9X5X3CJeOMwUxHWMVXMhBrHV_9KWeOyF5runerOUiXlAA",
           "encrypted": true,
           "enc_method": "A256GCM"
         }
@@ -2471,7 +2471,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "CLua_EOL8F_zXIjrmsTeljWeZssO3lKUbGXl0VDcEepZh_nPwuNavFKIaHxRq4I8bm2F0cIuvMJG2ci4-aBuAg"
         }
       },
       "expected_error": "context.trace_id must match pattern ^[0-9a-f]{32}$ \u2014 Core \u00a74.3.4"
@@ -2498,7 +2498,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "6mppIpb8F2yntPcnzp1253Wssim3T4Evv8sM7nv0JqekjpRUNQq9fNWubevZ7CsTVnvcYasJnapz90uZ0T6qDw"
         }
       },
       "expected_error": "context.span_id must match pattern ^[0-9a-f]{16}$ \u2014 Core \u00a74.3.4"
@@ -2525,7 +2525,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "q45nlBLK2Agz01xibcC6-B0yucfK4NAR6LCohCpSuyLBZNCKIoOkYjJDo0NzOOmNySbio3YcJOfTnp6p1DK5Cg"
         }
       },
       "expected_error": "context.flags must be <= 255 \u2014 Core \u00a74.3.4"
@@ -2552,7 +2552,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "V18zkL8GHbpuLgxyqtdEO1Ig5wAx8vC0-o7fE0qS8RYdQkg-ql34b2y-EWvxl4BaOQZnjGYoDOd9NUOKZRe3Bw"
         }
       },
       "expected_error": "context.priority must be <= 10 \u2014 Core \u00a74.3.4"
@@ -3345,7 +3345,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "5wbFSwNjxsuSvMXgmPLXsQnr4noqYrW5wVWxP0qXWUmE00gjfsaBcZPna_Ja5fw3yTl2w4N9TL36UChzZANvBQ"
         }
       },
       "expected_error": "pattern mismatch \u2014 capability 'read' has single segment, requires 2+ \u2014 Actions \u00a71.1"
@@ -3372,7 +3372,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "wa6RGM36Hj6i9cDrfAcuVLOw3mSR_SIKj-kRHrf8lxn_MzVWOdHrA2EBJG8XGlJyW2icalz2LFIVkGH52COADQ"
         }
       },
       "expected_error": "maxLength \u2014 capability exceeds 128 characters \u2014 Actions \u00a71.1"
@@ -3904,7 +3904,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.state-server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Q7RwbeyJVOpTH0Vvp-eOMA1Wr6uQ41gL02h1K1qyxefser7GJQ7MQp0Bn_2X_LeDGE5HOxSSTQevAU3lbY94Cg"
         }
       },
       "expected_error": "required \u2014 details missing 'expected_version' when conflict-version conditional fires \u2014 State \u00a78.4"
@@ -9970,7 +9970,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "zerlUyvnZU4vnYVpxgTsbNMry3g15SejBEn9zYdeVG-xgpaAyBpvGrGMEguIhieOQw_n9quRr3lrEKsjZcgOBw"
         }
       },
       "expected_error": "required_property_missing"
@@ -10077,7 +10077,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "1BV73HC-l53YWGBsNX03_3Zr1DivtkJYtvRg52nrICJ9eeLa31iulD5ef6j4ZCobHsLKxZAy8zUSQDrrANmHCg"
         }
       },
       "expected_error": "required_property_missing"
@@ -11039,7 +11039,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.compliance-officer#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "K_iJ7HNSZJq2h-Ua9Wv6-T3KJeIu_HmqDj5DehYlToPLUXTYXZ-hHwTA0k4PWX5gR5S8yG6eEDBDIlb3OcFCCg"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-reversal",
@@ -11803,7 +11803,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.qa-inspector#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "Rsvz_AWGwlHLG4AmJ1LjPgQx0lfccBd_gp-EeUtS0YKv_v1KjnE62qVyF31ea1t5gm-vuIEkwl2MDEjwouRNAQ"
         },
         "payload": {
           "type": "com.example.delivery/confirmed",
@@ -12085,7 +12085,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "1TcE41_-k2YFjOHjgPRwsYJUgk1WtDx3cnHsrq2MLoA24ubMZ4wWf3wRMsAu6EkHEOkSSlv9GEO8aENdizmTDQ"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -12116,7 +12116,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "Oeb1C7VElWoN2btqTscF3m5j2JK7bOr8p_EK6a_8hvpUvmgoov93IU00JUDbHbyqjDg4mhNpsg5FkxSvYmrzBA"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -12147,7 +12147,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "yflFVH3_Uc4Q-KEpfKrYxEAdKjwg9QcAW2TjyHZ9yU9-XsXIqI6_ZAdJ5jj_FI_Eq4uMggjoTcf53QaPVLLQCQ"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -12312,7 +12312,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.compliance-agent#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "FLhw2jxrYOAZSvZdRvdP2-X6liSKWKsUNHCWOGSQWFFnsUfbk6WmpF3qzryYCYrgWl2MoKduXYfHHT3nN3cgAw"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-cancel",
@@ -12412,11 +12412,12 @@
         "from": "agent:acme.transfer-processor",
         "to": "agent:acme.billing",
         "intent": "pending_approval",
+        "correlation_id": "e5000401-0000-4000-a000-000000000002",
         "expires_at": "2026-04-15T13:50:00.000Z",
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "1X0vJX7ADPjoIhjFzvF19cH7dmw398cCMdLlLhC3S5UpPeE5UnDtdeYY8bWyPU6_P2HIVdlbBJOxA8Itvt5ZBA"
         },
         "payload": {
           "type": "arsiaprotocol.oversight/pending",
@@ -13128,7 +13129,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "xXlWVuzdaGezZ3J4-JfMLsoWSSQiegBtJtnVMC1IdMIjm8L5EETXSgIgazQ0uYwHwrSZyPdCh2Y1AeSKEeyfDg",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -13157,7 +13158,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "0QMBbe6Jnxb58fUZ1jdtmCP8XsMuPFj1ogqOa1PjPgwaGlESvJaH0358EoxPxiXPd8Bgf9HSNgTV1tFAYsoZBA",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -13183,7 +13184,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "urMZIcR_k8xUKnDNHAzQkiXtFm7upolVwZBRE-_4UGJlaqkTdj1D2G4SSau8HDxCjdk8eDNamvLLzibEH6x-Ag",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -13240,7 +13241,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.shipping#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "LBxOiyGRAlyPoYFIXBDJ08orviADvYOJGl1VkSUgVTYiDQA7HsDw7BJwnVXObNuSMNW5yVUeCBrfpt1ftnDGBg"
         }
       },
       "expected_error": "unauthorized"
@@ -13272,7 +13273,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "kaCalOdnz-m_0kA7nIC_RdnWwg9Ub7wShA9LT7qMejc4HJLnWwOwDmmBsP_HxB842bU36RgleSz088vq_KtcBw"
         }
       },
       "expected_error": "unauthorized"
@@ -13306,7 +13307,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "If_AyiEvrnSls0paTozYQJi36x3o0JfUvKz8YbbT9SgZSffU0IqZuHbkt_iAvYdUv1aNEnnTu1104vN0ho0dCg"
         }
       },
       "expected_error": "forbidden"
@@ -13339,7 +13340,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "EYf75lVDqY-rVaWL94ZqxWp9kkoe1V-I6_EwH5lDLp66lr8oV7raqhM7stgVepp6pVooxgoRsQD-7lbMxPUEBg"
         }
       },
       "expected_error": "unauthorized"
@@ -13372,7 +13373,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "NSZpiQyts-wnDU-_YdhV6g7VAGwftX8pxlv6v7uFN0LIZ8vQlUAS79lhTgLpChKM7vPI8jM_lPEx0djMV6JtBw"
         }
       },
       "expected_error": "unauthorized"
@@ -13405,7 +13406,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "JJwdoXnse6db8RylTNX99X3LZ4y7j0ofrXn9EGAqIbg7_vYB8_Sjb3qhxvl9xIvQFR2wbEqJo_D2VIABqYDrAw"
         }
       },
       "expected_error": "unauthorized"
@@ -13438,7 +13439,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "fdJWl-0Wqbw1RUcZ8jCn05CmUFNvczHDXMc7CuqJfb_QPEcytRSQa2Hr61jfzK-VqkCXr98XJv9pDTFqsVnsBQ"
         }
       },
       "expected_error": "unauthorized"
@@ -13685,7 +13686,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "7dI8jIo9yLuZAMN6SNqlxg4EqUDMot36SokxIIb6xAYHNDHjpeU3vjTIBkgvDbgqU-n3QI_13fFG0L0MzFjWBg"
         },
         "compliance": {
           "profile": "EU-AI-ACT-HIGH-RISK",
@@ -14471,7 +14472,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "toPKPoiUb7oirSn8XJ5rnN3SvrZPLqZmCP73H__EfJcHSpG1jz3sf2TGmT9tcHvMsWjgIy9OT36r27YQNR4CCQ"
         }
       },
       "expected_error": "conformance_failed"
@@ -14504,7 +14505,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "uMGqvyLlayQGfCLo2wcPG7aciuEMTeOv1rGKHxYeWHEBHaSA5LGm9CEF9Wtxv2yYXR0M3xJ_MdzxKyQiX9WVAw"
         }
       },
       "expected_error": "payload.type must be arsiaprotocol.oversight/pending for pending_approval intent"
@@ -14536,7 +14537,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "cagQ3HhI68T8DdCNvIfLiY2lZHfKP5gU8f94ZHjCZcbkQCqW7luD_PAGIJN0IMtuuZPaByYUkgFUXg_fHNzzBw"
         }
       },
       "expected_error": "expires_at required for pending_approval intent"
@@ -15771,7 +15772,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "DCZqpzA0VUGj_YD0j2bCRI_CjtpD6UGGhx6U6E7Af10TeXM4rLCLb5O7lImCL8ZgGIPvldJORKpQWGmOf508Ag"
         },
         "compliance": {
           "profile": "MIFID-II",
@@ -15931,7 +15932,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "47PoCdmOCzpU3ehAqtnEtQQDuN2uwmL075iZ53BIjNPOLGsnKiUKRpIz5bo8KkLF_thG6I5X1uRwLdQmHQWpDA"
         }
       },
       "expected_error": "'capabilities' is a required property"
@@ -17182,7 +17183,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.gdpr-agent#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Dcb4ZUYyYAojOKTV40v47ohbY_NL6mdLTJ2QKa-oJJjZ6W6o6__QcHExPKDouo1kvvrqGfBoDOvSCDxGqJcTDQ"
         }
       },
       "test_metadata": {
@@ -17220,7 +17221,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.audit-inspector#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "xbzim61ZrFN65fkltbc9TsuK1p9J5RcYb1uDQAZ1smR4-X8Z8ZDYnjExyx81opK8qrUBkpihfbH6SEgbndM9AA"
         }
       },
       "test_metadata": {
@@ -17242,7 +17243,7 @@
         "ts": "2026-05-05T10:00:00.000Z",
         "from": "agent:acme.oversight-panel",
         "to": "agent:acme.risk-assessor",
-        "intent": "inform",
+        "intent": "approval_decision",
         "correlation_id": "a1000099-0000-4000-a000-000000000001",
         "capabilities": [
           "arsiaprotocol.oversight.approve"
@@ -17258,7 +17259,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Ab_s0EQAg16kXrNR93FHG0APxJItYuwUxyEpm51JlxtFtWsdS898DDt288usGlTaOyL6PIlK6veYBES-07s1CA"
         }
       },
       "test_metadata": {
