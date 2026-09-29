@@ -47,7 +47,7 @@ unchanged.
   in the README, security model, getting-started guide, FAQ and test-vector
   README; the Draft-01 entry below states the Draft-01 corpus as the tools
   report it (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto`
-  coverage statement; the RTM row count (1,994 requirement rows; the earlier
+  coverage statement; the RTM row count (1,903 requirement rows; the earlier
   2,086 counted every table line).
 - RTM coverage-gap tables: every figure is recomputed from the requirement rows
   of the Core, Identity, Actions, State and Assets RTMs; the Assets gap list now
