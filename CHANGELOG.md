@@ -28,12 +28,17 @@ unchanged.
   tolerance of unknown fields.
 - Test vectors: INV-25 and ITV-401 no longer carry a second, unintended defect
   besides the one they test.
+- Test vectors: ITV-498 and ITV-518, whose `expires_at` is earlier than `ts`, are
+  now invalid runtime-only vectors (`invalid_request`, Core §4.2.2); CTV-03 is now
+  a conforming AssetTransferRequest (Assets §3.1).
 - Test keypairs: 55 published (51 Ed25519, 2 ES256, 2 RS256), keyed by agent-id,
   or by full `kid` when an agent publishes more than one key.
-- Published counts: test-vector counts (415 valid, 125 invalid, 73 runtime-only)
-  in the README, security model, getting-started guide, test-vector README and
-  the Draft-01 entry below; the `--check-crypto` coverage statement; the RTM
-  row count (1,994 requirement rows; the earlier 2,086 counted every table line).
+- Published counts: test-vector counts (413 valid, 125 invalid, 75 runtime-only)
+  in the README, security model, getting-started guide and test-vector README;
+  the Draft-01 entry below states the Draft-01 corpus as the tools report it
+  (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto` coverage
+  statement; the RTM row count (1,994 requirement rows; the earlier 2,086
+  counted every table line).
 - Links: the security-model links in the README and the getting-started guide,
   and the test-vector and RTM links in the security model.
 - Documentation: the profiles README names the current release; the
