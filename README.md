@@ -60,7 +60,7 @@ ARSIA defines three [conformance levels](spec/ARSIA-Core.md#12-conformance-level
 
 Start with the [7 compliance profiles](profiles/) that map EU regulation directly to protocol fields — see the [profiles table](#compliance-profiles) below. The [FAQ](docs/FAQ.md) covers common compliance questions, including profile selection, retention semantics, and audit requirements.
 
-Key protocol sections for regulatory review: human oversight workflow ([Actions §3](spec/ARSIA-Actions.md#3-human-oversight)), audit trail requirements ([State §7](spec/ARSIA-State.md#7-audit-trail)), and data residency enforcement ([Routing §2](spec/ARSIA-Routing.md#2-data-residency)). For a deeper understanding, read the full spec sections on oversight, audit, and data residency.
+Key protocol sections for regulatory review: human oversight workflow ([Actions §3](spec/ARSIA-Actions.md#3-human-oversight-signaling-eu-ai-act-art-14)), audit trail requirements ([State §7](spec/ARSIA-State.md#7-audit-trail)), and data residency enforcement ([Routing §5](spec/ARSIA-Routing.md#5-data-residency-in-routing)). For a deeper understanding, read the full spec sections on oversight, audit, and data residency.
 
 ### For Regulators
 

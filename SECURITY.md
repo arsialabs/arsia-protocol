@@ -91,7 +91,7 @@ ARSIA uses OAuth 2.0 with the client credentials grant for agent-to-agent author
 
 ## 4. Data Protection
 
-ARSIA addresses data protection across five dimensions.
+ARSIA addresses data protection across six dimensions.
 
 **Transport encryption.** TLS 1.3 is mandatory for all connections. WebSocket connections require `wss://`. HSTS is recommended (Core §8.1, §8.2).
 

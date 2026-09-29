@@ -183,7 +183,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 613 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that validates the 613 test vectors against the JSON Schemas — 540 validated and 73 runtime-only vectors skipped — with optional cryptographic signature verification:
 
 ```bash
 cd scripts/

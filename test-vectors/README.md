@@ -113,17 +113,29 @@ python3 scripts/validate_vectors.py --check-errors --format summary
 
 ```python
 import json, base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, padding
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid'] or 'crypto' not in v:
+    valid = v.get('valid', v.get('expected') == 'valid')
+    if not valid or 'crypto' not in v:
         continue
     c = v['crypto']
-    pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(c['public_key_hex']))
+    alg = v['message']['security']['alg']
+    pub = bytes.fromhex(c['public_key_hex'])
     sig = base64.urlsafe_b64decode(c['signature_base64url'] + '==')
     canonical = bytes.fromhex(c['canonical_bytes_hex'])
-    pub.verify(sig, canonical)
+    if alg == 'EdDSA':
+        Ed25519PublicKey.from_public_bytes(pub).verify(sig, canonical)
+    elif alg == 'ES256':  # raw r||s -> DER
+        der = encode_dss_signature(int.from_bytes(sig[:32], 'big'), int.from_bytes(sig[32:], 'big'))
+        ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub).verify(der, canonical, ec.ECDSA(hashes.SHA256()))
+    else:  # RS256, DER public key
+        load_der_public_key(pub).verify(sig, canonical, padding.PKCS1v15(), hashes.SHA256())
     print(f'{v["id"]}: VALID')
 ```
 
@@ -134,7 +146,8 @@ import json, rfc8785
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid']:
+    valid = v.get('valid', v.get('expected') == 'valid')
+    if not valid or 'crypto' not in v:
         continue
     msg = dict(v['message'])
     msg.pop('security', None)

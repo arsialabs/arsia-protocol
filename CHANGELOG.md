@@ -36,6 +36,11 @@ unchanged.
   row count (1,994 requirement rows; the earlier 2,086 counted every table line).
 - Links: the security-model links in the README and the getting-started guide,
   and the test-vector and RTM links in the security model.
+- Documentation: the profiles README names the current release; the
+  getting-started guide states what the validation script checks; the security
+  model's data-protection count; the README's oversight and data-residency
+  links; the test-vector README's verification snippets; the Draft-01 entry's
+  oversight attribution.
 
 ### Changed
 
@@ -51,12 +56,13 @@ Initial public release of the ARSIA Protocol specification.
 ### Specification Documents
 
 - **ARSIA-Core** — Core envelope structure, message security (Ed25519,
-  JCS, JWE), authorization (JWT, DPoP), compliance profiles, transport
-  bindings, discovery, conformance levels, and security considerations.
+  JCS, JWE), authorization (JWT, DPoP), compliance profiles and human
+  oversight modes, transport bindings, discovery, conformance levels, and
+  security considerations.
 - **ARSIA-Identity** — Agent identity, key management (JWKS), signature
   verification, identity records, certificates, and onboarding.
-- **ARSIA-Actions** — Action execution, human oversight (pre-execution
-  and post-execution), risk classification, and action lifecycle.
+- **ARSIA-Actions** — Action execution, pre-execution human oversight,
+  risk classification, and action lifecycle.
 - **ARSIA-Routing** — Topology selection, broker-assisted routing, data
   residency, delivery lifecycle, rate limiting, and priority resolution.
 - **ARSIA-State** — State operations (set, get, delete), GDPR data
