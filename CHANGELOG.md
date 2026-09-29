@@ -61,13 +61,16 @@ unchanged.
   getting-started guide states what the validation script checks; the security
   model's data-protection count; the README's oversight and data-residency
   links; the test-vector README's verification snippets; the Draft-01 entry's
-  oversight attribution.
+  oversight attribution; the getting-started guide's cookbook recipe count;
+  where the test-vector README's Python snippets run.
 
 ### Changed
 
 - VERSIONING.md: errata may also correct published artefacts (test vectors,
   keypairs, documentation) without changing the wire version; test vectors carry
-  a Semantic Versioning `version` field (the test-vector file is now 1.0.1).
+  a Semantic Versioning `version` field (the test-vector file is now 1.0.1);
+  schemas are no longer listed among the files with a `version` field; errata
+  retrocompatibility applies to the specification text.
 - README version badge shows the current release, Draft-01.1.
 
 ### Removed

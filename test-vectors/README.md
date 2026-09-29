@@ -111,6 +111,8 @@ python3 scripts/validate_vectors.py --check-errors --format summary
 
 ### Verify signatures (Python)
 
+The Python snippets below run from the `test-vectors/` directory.
+
 ```python
 import json, base64
 from cryptography.hazmat.primitives import hashes

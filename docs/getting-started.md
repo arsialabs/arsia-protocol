@@ -221,7 +221,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 **Build with the SDK:**
 
 - [Learning Path](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/learning-path.md) — step-by-step from install to production
-- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 19 copy-pasteable recipes
+- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 22 copy-pasteable recipes
 
 **Evaluate for compliance:**
 
