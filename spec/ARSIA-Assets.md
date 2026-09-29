@@ -9,7 +9,7 @@
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4 (message envelope), §10 (idempotency),
+**Draft-01.1 | September 2026 | References: ARSIA-Core.md §4 (message envelope), §10 (idempotency),
 §11 (error handling), ARSIA-Actions.md §2 (risk levels), §3 (human oversight —
 pending_approval/approval_decision), ARSIA-Identity.md §3.3 (DPoP for proof of possession),
 ARSIA-State.md §6 (compliance profiles), §7 (audit trail format)**
@@ -35,7 +35,7 @@ how do agents transact, under what constraints, and with what accountability.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Assets Primitive. This specification is
+This document specifies Draft-01.1 of the ARSIA Assets Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
@@ -2526,7 +2526,7 @@ payment provider call times out (simulated infrastructure failure).
 ### 8.1 Normative References
 
 **[ARSIA-Core]**
-ARSIA Protocol — Core Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA Protocol — Core Specification, Draft-01.1. Arsia Labs, September 2026.
 - §4: Message Envelope
 - §10: Idempotency
 - §11: Error Handling
@@ -2538,19 +2538,19 @@ ARSIA Protocol — Core Specification, Draft-01. Arsia Labs, March 2026.
 - §4.3.6: Compliance Field Definition
 
 **[ARSIA-Actions]**
-ARSIA-Actions — Actions Primitive Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-Actions — Actions Primitive Specification, Draft-01.1. Arsia Labs, September 2026.
 - §1: Capability Model
 - §2: Action Registry (§2.2: Risk Level to EU AI Act Mapping)
 - §3: Human Oversight Signaling (pending_approval / approval_decision)
 - §4: Action Execution Semantics
 
 **[ARSIA-Identity]**
-ARSIA-Identity — Identity Primitive Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-Identity — Identity Primitive Specification, Draft-01.1. Arsia Labs, September 2026.
 - §1.2: IdentityRecord
 - §3.3: DPoP for Proof of Possession
 
 **[ARSIA-State]**
-ARSIA-State — State Extension Specification, Draft-01. Arsia Labs, March 2026.
+ARSIA-State — State Extension Specification, Draft-01.1. Arsia Labs, September 2026.
 - §6: Compliance Profiles
 - §7: Audit Trail Format
 

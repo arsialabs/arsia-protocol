@@ -12,7 +12,7 @@ This directory contains the ARSIA Protocol compliance profiles registry.
 
 ## Profiles
 
-All profiles are **active** in the current specification (Draft-02).
+All profiles are **active** in the current specification (Draft-01.1).
 
 | Profile | Regulation | Retention | Description |
 |---------|------------|-----------|-------------|

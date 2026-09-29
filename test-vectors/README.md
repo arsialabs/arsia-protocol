@@ -2,17 +2,24 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-613 test vectors (514 valid, 99 invalid, 73 runtime-only skipped) for
+611 test vectors (413 valid, 123 invalid, 75 runtime-only skipped) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
-placeholders.
+placeholders in valid vectors. Every signature in a valid vector
+verifies with a published key: 169 through `--check-crypto` (165
+message-only, 4 hybrid), and the 22 schema-ref envelopes signed in `data`
+separately, as the tool does not read `data`. `--check-crypto` checks 190
+vectors — the 169 valid ones plus 21 invalid ones, for which it checks
+canonical bytes but does not require verification to fail. In invalid
+vectors, a signature fails to verify only where the signature, key, `kid`
+or `alg` is the object of the test.
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 613 test vectors |
-| [keypairs.json](keypairs.json) | 9 test keypairs: 7 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally) |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 611 test vectors |
+| [keypairs.json](keypairs.json) | 57 test keypairs: 53 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
 
 ## Vector Formats
 
@@ -21,7 +28,7 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 295 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `message-only` | 293 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
 | `schema-ref` | 314 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 
@@ -29,7 +36,7 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 560 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 558 |
 | `INV-` | Invalid (all specs) | 25 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
@@ -41,16 +48,16 @@ Next available ID: **ITV-561** / **INV-26**
 
 ## Runtime-Only Vectors
 
-73 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+75 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone.
 
 | Category | Count |
 |----------|-------|
-| Temporal / clock | 36 |
+| Temporal / clock | 35 |
 | Token / credential context | 10 |
 | X.509 certificate validation | 7 |
-| Cross-field comparison | 6 |
+| Cross-field comparison | 9 |
 | Cross-object / cross-message | 5 |
 | Non-delegable capability matching | 3 |
 | Forward-compatibility | 3 |
@@ -104,19 +111,33 @@ python3 scripts/validate_vectors.py --check-errors --format summary
 
 ### Verify signatures (Python)
 
+The Python snippets below run from the `test-vectors/` directory.
+
 ```python
 import json, base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, padding
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid'] or 'crypto' not in v:
+    valid = v.get('valid', v.get('expected') == 'valid')
+    if not valid or 'crypto' not in v:
         continue
     c = v['crypto']
-    pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(c['public_key_hex']))
+    alg = v['message']['security']['alg']
+    pub = bytes.fromhex(c['public_key_hex'])
     sig = base64.urlsafe_b64decode(c['signature_base64url'] + '==')
     canonical = bytes.fromhex(c['canonical_bytes_hex'])
-    pub.verify(sig, canonical)
+    if alg == 'EdDSA':
+        Ed25519PublicKey.from_public_bytes(pub).verify(sig, canonical)
+    elif alg == 'ES256':  # raw r||s -> DER
+        der = encode_dss_signature(int.from_bytes(sig[:32], 'big'), int.from_bytes(sig[32:], 'big'))
+        ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub).verify(der, canonical, ec.ECDSA(hashes.SHA256()))
+    else:  # RS256, DER public key
+        load_der_public_key(pub).verify(sig, canonical, padding.PKCS1v15(), hashes.SHA256())
     print(f'{v["id"]}: VALID')
 ```
 
@@ -127,7 +148,8 @@ import json, rfc8785
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid']:
+    valid = v.get('valid', v.get('expected') == 'valid')
+    if not valid or 'crypto' not in v:
         continue
     msg = dict(v['message'])
     msg.pop('security', None)

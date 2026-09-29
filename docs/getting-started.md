@@ -183,7 +183,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 613 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that validates the 611 test vectors against the JSON Schemas — 536 validated and 75 runtime-only vectors skipped — with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -192,7 +192,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 514 valid and 99 invalid cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 413 valid, 123 invalid and 75 runtime-only cases; signed valid cases use real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 
@@ -221,13 +221,13 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 **Build with the SDK:**
 
 - [Learning Path](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/learning-path.md) — step-by-step from install to production
-- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 19 copy-pasteable recipes
+- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 22 copy-pasteable recipes
 
 **Evaluate for compliance:**
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
-- [Security model](security.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,086 rows)
+- [Security model](../SECURITY.md) — threat model, cryptographic foundation, data protection
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,903 rows)
 
 ---
 

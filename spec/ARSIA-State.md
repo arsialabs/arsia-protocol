@@ -9,7 +9,7 @@
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4 (message envelope), §4.3.6 (compliance
+**Draft-01.1 | September 2026 | References: ARSIA-Core.md §4 (message envelope), §4.3.6 (compliance
 field definition), §4.3.7 (field inheritance), §4.3.8 (validation rules), §6.4 (capability
 enforcement), §9.2 (brokered routing — data residency), ARSIA-Identity.md §1.2 (IdentityRecord)**
 **Arsia Labs — arsiaprotocol.org**
@@ -32,7 +32,7 @@ data. This separation is deliberate: ARSIA is a protocol, not a database.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA State Primitive. This specification is
+This document specifies Draft-01.1 of the ARSIA State Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
@@ -3397,7 +3397,7 @@ and cross-system audit verification.
 
 ### 12.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.1.
   §3 (Agent Identifier Format), §4 (Message Envelope), §4.2.1 (Correlation ID),
   §4.2.2 (Expiration), §4.3.6 (Compliance Field Definition),
   §4.3.7 (Field Inheritance), §4.3.8 (Validation Rules),
@@ -3405,11 +3405,11 @@ and cross-system audit verification.
   §8.1 (HTTP/2 Transport), §8.3 (Timing),
   §9.2 (Brokered Routing — Data Residency), §11.2 (Error Codes).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive, Draft-01.1.
   §1.2 (IdentityRecord — `owner_id`, `owner_name` for Art. 30 records),
   §2.1 (Key Pair Requirements — key management for encryption at rest).
 
-- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.
+- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.1.
   §1.1 (Capability Naming).
 
 - **RFC 2119** — Key words for use in RFCs to Indicate Requirement Levels.

@@ -180,7 +180,7 @@ Transport-layer headers are visible to intermediaries (load balancers, brokers) 
 
 This follows the standard conformance tier pattern used in protocol specifications. OPTIONAL at the protocol level means an implementation may choose not to support the feature. REQUIRED at the Full conformance tier means an implementation that claims Full conformance must support it. An implementation can be conformant at the Core tier without these features. The tiers provide a progression path: Core → Compliance → Full.
 
-### Why does ARSIA publish 613 test vectors?
+### Why does ARSIA publish 611 test vectors?
 
 Comprehensive test vectors enable deterministic conformance testing across languages and platforms. Each vector tests a specific constraint — valid vectors exercise real schema and protocol rules, invalid vectors verify that implementations correctly reject malformed input. The vectors are the executable specification: if an implementation passes all vectors, it handles the same edge cases as every other conformant implementation. 70+ vectors are marked skip_schema for constraints that require runtime enforcement (cross-object validation, temporal logic, token context).
 

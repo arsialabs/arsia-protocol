@@ -91,7 +91,7 @@ ARSIA uses OAuth 2.0 with the client credentials grant for agent-to-agent author
 
 ## 4. Data Protection
 
-ARSIA addresses data protection across five dimensions.
+ARSIA addresses data protection across six dimensions.
 
 **Transport encryption.** TLS 1.3 is mandatory for all connections. WebSocket connections require `wss://`. HSTS is recommended (Core §8.1, §8.2).
 
@@ -133,9 +133,9 @@ ARSIA defines three conformance levels that allow implementations to progressive
 
 **Level 3 — Full.** All Compliance requirements plus all five domain primitives (Identity, Routing, Actions, State, Assets), all compliance profiles, WebSocket transport, payload encryption, ES256 signature support, and 100% conformance test suite passage.
 
-**Traceability.** Six Requirements Traceability Matrices (2,086 rows) in [`docs/rtm/`](rtm/) map every MUST, SHOULD, and MAY in the specifications to the corresponding JSON Schema and test vector.
+**Traceability.** Six Requirements Traceability Matrices (1,903 rows) in [`docs/rtm/`](docs/rtm/) map every MUST, SHOULD, and MAY in the specifications to the corresponding JSON Schema and test vector.
 
-**Validation.** 613 test vectors (514 valid, 99 invalid, 73 runtime-only) in [`test-vectors/`](../test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
+**Validation.** 611 test vectors (413 valid, 123 invalid, 75 runtime-only) in [`test-vectors/`](test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
 
 ---
 

@@ -9,7 +9,7 @@
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §7, §8, §9**
+**Draft-01.1 | September 2026 | References: ARSIA-Core.md §7, §8, §9**
 **Arsia Labs — arsiaprotocol.org**
 
 ---
@@ -29,7 +29,7 @@ a `compliance.data_residency` constraint.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Routing Primitive. This specification is
+This document specifies Draft-01.1 of the ARSIA Routing Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
@@ -2161,7 +2161,7 @@ tests at the applicable conformance level.
 
 ### 9.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.1.
   §3 (Agent Identifier Format), §4 (Message Envelope), §4.3.6 (Compliance Metadata),
   §5 (Message Security), §5.1 (Digital Signatures), §5.2 (Signature Verification),
   §6 (Authorization), §6.2 (Token Request), §6.3 (Token Presentation),
@@ -2176,10 +2176,10 @@ tests at the applicable conformance level.
   §11.2 (Standard Error Codes), §11.3 (Retry Policy),
   §12 (Conformance Levels), §12.1 (Core Conformance).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.1.
   §1.2 (Agent Identity Record), §1.3 (Well-Known Identity Endpoint).
 
-- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.
+- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.1.
   §7 (Audit Trail).
 
 - **RFC 2119** — Bradner, S., "Key words for use in RFCs to Indicate Requirement
