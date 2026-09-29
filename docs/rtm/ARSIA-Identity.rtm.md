@@ -268,10 +268,10 @@
 
 | Metric | Count |
 |--------|-------|
-| Total requirements | 257 |
-| Schema ≠ — | 114 |
-| Vector ≠ — | 78 |
-| Both ≠ — | 39 |
+| Total requirements | 259 |
+| Schema ≠ — | 115 |
+| Vector ≠ — | 77 |
+| Both ≠ — | 37 |
 | Both = — (gaps) | 104 |
 
 ### Gaps by section
@@ -279,12 +279,12 @@
 | Section | Gaps | Total |
 |---------|------|-------|
 | §1 (Identity) | 15 | 38 |
-| §2 (Cryptographic) | 20 | 27 |
+| §2 (Cryptographic) | 19 | 27 |
 | §3 (Verification) | 8 | 15 |
 | §4 (Compliance) | 6 | 11 |
 | §5 (Conformance L1) | 1 | 2 |
 | §6 (Certificate Trust) | 27 | 51 |
-| §7 (Onboarding) | 19 | 75 |
+| §7 (Onboarding) | 20 | 77 |
 | §8 (Capability Policy) | 2 | 16 |
 | §9 (Token & Audit) | 5 | 21 |
 | §10 (Conformance L2) | 1 | 1 |

@@ -49,6 +49,9 @@ unchanged.
   report it (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto`
   coverage statement; the RTM row count (1,994 requirement rows; the earlier
   2,086 counted every table line).
+- RTM coverage-gap tables: every figure is recomputed from the requirement rows
+  of the Core, Identity, Actions, State and Assets RTMs; the Assets gap list now
+  includes ASSETS-§4.2.3-03 and ASSETS-§4.2.3-04.
 - Links: the security-model links in the README and the getting-started guide,
   and the test-vector and RTM links in the security model.
 - Documentation: the profiles README names the current release; the
