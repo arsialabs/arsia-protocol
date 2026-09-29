@@ -12,8 +12,11 @@ and this project adheres to the versioning scheme described in
 
 ## [Draft-01.1] — 2026-09-29
 
-Errata to Draft-01: corrections to published artefacts and documentation. The
-specification text and the wire version (`1.0`) are unchanged.
+Errata to Draft-01: corrections to published artefacts and documentation.
+Specification version labels and the Core §4.4.1 errata label were updated; the
+errata note's example locations and the Core table-of-contents link to §10.4
+were corrected; no normative text changed, and the wire version (`1.0`) is
+unchanged.
 
 ### Fixed
 

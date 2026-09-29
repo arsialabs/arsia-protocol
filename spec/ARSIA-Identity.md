@@ -9,7 +9,7 @@
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §3, §5, §7**
+**Draft-01.1 | September 2026 | References: ARSIA-Core.md §3, §5, §7**
 **Arsia Labs — arsiaprotocol.org**
 
 ---
@@ -32,7 +32,7 @@ Protocol implementations at Compliance Conformance level or above.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Identity Primitive. This specification is
+This document specifies Draft-01.1 of the ARSIA Identity Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
@@ -1840,18 +1840,18 @@ tests.
 
 ### Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.1.
   §3 (Agent Identifier Format), §4.1 (intent — request, approval_decision),
   §4.2 (correlation_id, expires_at, capabilities), §5 (Message Security),
   §5.1 (Digital Signatures), §5.2 (Signature Verification), §6 (Authorization),
   §6.4 (Capability Enforcement), §7 (Discovery), §7.1 (Discovery Endpoint),
   §7.2 (Capability Discovery), §7.3 (JWKS Endpoint), §8 (Error Handling),
   §9.2 (Brokered Routing), §11.2 (Standard Error Codes), §12 (Conformance Levels).
-- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.
+- **ARSIA-Actions.md** — ARSIA Actions Primitive, Draft-01.1.
   §1 (Capability Model), §1.1 (Capability Naming), §2.2 (Risk Level to EU AI Act
   Mapping), §3 (Human Oversight Signaling), §3.2 (The pending_approval Message),
   §3.3 (The approval_decision Message).
-- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.
+- **ARSIA-State.md** — ARSIA State Primitive Specification, Draft-01.1.
   §6 (Compliance Profiles), §6.3 (MIFID-II), §7 (Audit Trail),
   §7.1 (ArsiaAuditRecord Structure), §7.2 (Immutability Requirements),
   §7.4 (Audit Trail Query Endpoint).

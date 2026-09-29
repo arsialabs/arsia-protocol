@@ -9,7 +9,7 @@
 - Kirk Patrick (Arsia Labs) — kirk@arsialabs.ai
 - Greici Savoldi (Arsia Labs) — greici@arsialabs.ai
 
-**Draft-01 | March 2026 | References: ARSIA-Core.md §4.1 (intent enum), §4.2 (conditional
+**Draft-01.1 | September 2026 | References: ARSIA-Core.md §4.1 (intent enum), §4.2 (conditional
 required fields), §4.4 (payload structure), §6.4 (capability enforcement)**
 **Arsia Labs — arsiaprotocol.org**
 
@@ -35,7 +35,7 @@ accountability.
 
 ## Status of This Memo
 
-This document specifies Draft-01 of the ARSIA Actions Primitive. This specification is
+This document specifies Draft-01.1 of the ARSIA Actions Primitive. This specification is
 a working draft published by Arsia Labs for review and comment. Implementors should
 expect breaking changes between draft revisions.
 
@@ -2334,7 +2334,7 @@ tests at the applicable conformance level.
 
 ### 7.1 Normative References
 
-- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.
+- **ARSIA-Core.md** — ARSIA Protocol Core Specification, Draft-01.1.
   §4.1 (Required Fields — intent enum), §4.1.6 (intent field definition),
   §4.2 (Conditional Required Fields — correlation_id, expires_at, capabilities),
   §4.3.6 (compliance metadata), §4.4 (Payload Structure — type, version, args, result,
@@ -2342,11 +2342,11 @@ tests at the applicable conformance level.
   Endpoint), §8 (Transport Bindings), §8.3 (Request/Response Timing — clock skew
   tolerance), §10 (Idempotency), §11.2 (Standard Error Codes).
 
-- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.
+- **ARSIA-Identity.md** — ARSIA Identity Primitive Specification, Draft-01.1.
   §1.2 (Agent Identity Record), §2.4 (Key Rotation), §3.1 (Message-Level Authentication),
   §4 (Identity in the Compliance Context), §4.2 (Classification Consistency Rule).
 
-- **ARSIA-Routing.md** — ARSIA Routing Primitive Specification, Draft-01.
+- **ARSIA-Routing.md** — ARSIA Routing Primitive Specification, Draft-01.1.
   §7 (Compliance Broker specification).
 
 - **ARSIA-State.md** — ARSIA State Primitive Specification (forward reference).
