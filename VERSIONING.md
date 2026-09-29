@@ -6,7 +6,7 @@ The ARSIA Protocol uses three versioning layers.
 
 **Document drafts** (`Draft-01`, `Draft-02`, …) are revisions of the specification text. Drafts may contain breaking changes. The current release is **Draft-01.1** of all six specs. Implementors should expect changes between drafts.
 
-**Errata** (`Draft-01.1`, `Draft-01.2`, …) are corrections to a published draft that do not constitute a new draft. Errata fix bugs where the specification text contradicts its own normative examples or other sections. Errata are retrocompatible — they never reject inputs that the original draft accepted. The current release is **Draft-01.1** (errata: payload.type regex corrected to match normative examples).
+**Errata** (`Draft-01.1`, `Draft-01.2`, …) are corrections to a published draft that do not constitute a new draft. Errata fix bugs where the specification text contradicts its own normative examples or other sections. An erratum may also correct published artefacts (test vectors, keypairs, documentation) without changing the wire version. Errata are retrocompatible — they never reject inputs that the original draft accepted. The current release is **Draft-01.1** (errata: test-vector signatures made verifiable with published keys, valid test vectors made schema-valid, test keypairs published, and published counts, claims and links corrected).
 
 **Wire version** (`v` field in the message envelope) identifies the protocol version on the wire. The current wire version is **`1.0`**. A minor bump (`1.0` → `1.1`) adds new optional fields — existing implementations continue to work by ignoring unknown fields. A major bump (`1.0` → `2.0`) indicates incompatible changes and is expected to be rare.
 

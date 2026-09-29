@@ -10,32 +10,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to the versioning scheme described in
 [VERSIONING.md](VERSIONING.md).
 
-## [Test vectors 1.0.1] — 2026-09-29
+## [Draft-01.1] — 2026-09-29
+
+Errata to Draft-01: corrections to published artefacts and documentation. The
+specification text and the wire version (`1.0`) are unchanged.
 
 ### Fixed
 
-- Test vectors: every valid vector that carries a signature is now signed with
-  a published key (55 test keypairs published); test-vector counts in the
-  documentation corrected to what the validation tools report; every vector
-  marked valid is now valid by the schema, except three version-compatibility
-  vectors (ITV-406, ITV-438, ITV-439) that test tolerance of unknown fields;
-  in invalid vectors, a signature fails to verify only where the signature,
-  key, `kid` or `alg` is the object of the test.
+- Test vectors: every signature in a valid vector verifies with a published key;
+  in invalid vectors, a signature fails to verify only where the signature, key,
+  `kid` or `alg` is the object of the test.
+- Test vectors: every vector marked valid is now valid by the schema, except
+  three version-compatibility vectors (ITV-406, ITV-438, ITV-439) that test
+  tolerance of unknown fields.
+- Test vectors: INV-25 and ITV-401 no longer carry a second, unintended defect
+  besides the one they test.
+- Test keypairs: 55 published (51 Ed25519, 2 ES256, 2 RS256), keyed by agent-id,
+  or by full `kid` when an agent publishes more than one key.
+- Published counts: test-vector counts (415 valid, 125 invalid, 73 runtime-only)
+  in the README, security model, getting-started guide, test-vector README and
+  the Draft-01 entry below; the `--check-crypto` coverage statement; the RTM
+  row count (1,994 requirement rows; the earlier 2,086 counted every table line).
+- Links: the security-model links in the README and the getting-started guide,
+  and the test-vector and RTM links in the security model.
 
-## [Draft-01.1] — 2026-05-12
+### Changed
 
-Errata to Draft-01 (ERRATA-01): a correction to a published draft that does not
-constitute a new draft.
-
-### Fixed
-
-- Core §4.4.1: the `payload.type` pattern is corrected to match the spec's own
-  normative examples (`com.acme.billing/create-invoice` and
-  `com.example.notes/create/rollback`). The Draft-01 pattern omitted the hyphen
-  from the path-segment character class and allowed at most one path segment.
-  The corrected pattern is a strict superset of the Draft-01 pattern — every
-  previously valid `payload.type` value remains valid. Text correction only;
-  the wire protocol version remains `1.0`.
+- VERSIONING.md: errata may also correct published artefacts (test vectors,
+  keypairs, documentation) without changing the wire version; test vectors carry
+  a Semantic Versioning `version` field (the test-vector file is now 1.0.1).
+- README version badge shows the current release, Draft-01.1.
 
 ## [Draft-01] — 2026-04-01
 
