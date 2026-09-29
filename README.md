@@ -8,7 +8,7 @@
 [![Spec License](https://img.shields.io/badge/spec-CC%20BY--SA%204.0-brightgreen.svg)](licenses/LICENSE-SPEC.md)
 [![Artifacts License](https://img.shields.io/badge/artifacts-Apache%202.0-green.svg)](licenses/LICENSE-ARTIFACTS.md)
 [![Code License](https://img.shields.io/badge/code-BSL%201.1-blue.svg)](licenses/LICENSE-CODE.md)
-[![Version](https://img.shields.io/badge/version-Draft--01-orange.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-Draft--01.1-orange.svg)](CHANGELOG.md)
 [![Status](https://img.shields.io/badge/status-draft-yellow.svg)](spec/ARSIA-Core.md)
 
 ---

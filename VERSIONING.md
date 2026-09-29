@@ -10,7 +10,7 @@ The ARSIA Protocol uses three versioning layers.
 
 **Wire version** (`v` field in the message envelope) identifies the protocol version on the wire. The current wire version is **`1.0`**. A minor bump (`1.0` → `1.1`) adds new optional fields — existing implementations continue to work by ignoring unknown fields. A major bump (`1.0` → `2.0`) indicates incompatible changes and is expected to be rare.
 
-**Extensions** add capabilities without changing the wire version. New compliance profiles, new transport bindings, and new payload types are extensions. They are published as separate documents and do not modify the core specs. JSON artefact files (profiles, schemas) carry a top-level `version` field following [Semantic Versioning](https://semver.org/).
+**Extensions** add capabilities without changing the wire version. New compliance profiles, new transport bindings, and new payload types are extensions. They are published as separate documents and do not modify the core specs. JSON artefact files (profiles, schemas, test vectors) carry a top-level `version` field following [Semantic Versioning](https://semver.org/).
 
 When Draft-01 stabilises after community feedback and interoperability testing, it will be published as **v1.0 Final**. Until then, the specs carry `Status: Draft` in their headers.
 

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to the versioning scheme described in
 [VERSIONING.md](VERSIONING.md).
 
-## [Unreleased]
+## [Test vectors 1.0.1] — 2026-09-29
 
 ### Fixed
 
@@ -21,6 +21,21 @@ and this project adheres to the versioning scheme described in
   vectors (ITV-406, ITV-438, ITV-439) that test tolerance of unknown fields;
   in invalid vectors, a signature fails to verify only where the signature,
   key, `kid` or `alg` is the object of the test.
+
+## [Draft-01.1] — 2026-05-12
+
+Errata to Draft-01 (ERRATA-01): a correction to a published draft that does not
+constitute a new draft.
+
+### Fixed
+
+- Core §4.4.1: the `payload.type` pattern is corrected to match the spec's own
+  normative examples (`com.acme.billing/create-invoice` and
+  `com.example.notes/create/rollback`). The Draft-01 pattern omitted the hyphen
+  from the path-segment character class and allowed at most one path segment.
+  The corrected pattern is a strict superset of the Draft-01 pattern — every
+  previously valid `payload.type` value remains valid. Text correction only;
+  the wire protocol version remains `1.0`.
 
 ## [Draft-01] — 2026-04-01
 
