@@ -2,14 +2,14 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-613 test vectors (413 valid, 125 invalid, 75 runtime-only skipped) for
+611 test vectors (413 valid, 124 invalid, 74 runtime-only skipped) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
 placeholders in valid vectors. Every signature in a valid vector
-verifies with a published key: 168 through `--check-crypto` (164
+verifies with a published key: 169 through `--check-crypto` (165
 message-only, 4 hybrid), and the 22 schema-ref envelopes signed in `data`
-separately, as the tool does not read `data`. `--check-crypto` checks 189
-vectors — the 168 valid ones plus 21 invalid ones, for which it checks
+separately, as the tool does not read `data`. `--check-crypto` checks 190
+vectors — the 169 valid ones plus 21 invalid ones, for which it checks
 canonical bytes but does not require verification to fail. In invalid
 vectors, a signature fails to verify only where the signature, key, `kid`
 or `alg` is the object of the test.
@@ -18,8 +18,8 @@ or `alg` is the object of the test.
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 613 test vectors |
-| [keypairs.json](keypairs.json) | 55 test keypairs: 51 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 611 test vectors |
+| [keypairs.json](keypairs.json) | 57 test keypairs: 53 Ed25519, 2 ES256, 2 RS256 (NOT secrets — committed intentionally). Entries are keyed by agent-id, except when an agent publishes more than one key: then by the full kid. |
 
 ## Vector Formats
 
@@ -28,7 +28,7 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 295 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `message-only` | 293 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
 | `schema-ref` | 314 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 
@@ -36,7 +36,7 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 560 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 558 |
 | `INV-` | Invalid (all specs) | 25 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
@@ -48,13 +48,13 @@ Next available ID: **ITV-561** / **INV-26**
 
 ## Runtime-Only Vectors
 
-75 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+74 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone.
 
 | Category | Count |
 |----------|-------|
-| Temporal / clock | 36 |
+| Temporal / clock | 35 |
 | Token / credential context | 10 |
 | X.509 certificate validation | 7 |
 | Cross-field comparison | 8 |

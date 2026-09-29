@@ -31,14 +31,24 @@ unchanged.
 - Test vectors: ITV-498 and ITV-518, whose `expires_at` is earlier than `ts`, are
   now invalid runtime-only vectors (`invalid_request`, Core §4.2.2); CTV-03 is now
   a conforming AssetTransferRequest (Assets §3.1).
-- Test keypairs: 55 published (51 Ed25519, 2 ES256, 2 RS256), keyed by agent-id,
+- Test vectors: invalid vectors that also lacked `security` (ITV-201, ITV-266,
+  ITV-409 to ITV-414, ITV-416, ITV-418, ITV-422 to ITV-424, ITV-477, INV-20,
+  INV-22), `capabilities` (ITV-402) or a UUID v4 `id` (ITV-550) now carry only
+  the defect they test.
+- Test vectors: ITV-448 and ITV-450, a token `iat` or `nbf` in the future, are
+  now expected invalid, as their descriptions and Identity §3.2 state; ITV-449's
+  skip reason no longer claims that the schema rejects `nbf`.
+- Test vectors: ITV-546 is now a valid vector: a `ts` 90 seconds in the past is
+  within the EU-AI-ACT-HIGH-RISK profile's 120-second clock skew tolerance
+  (Core §8.3).
+- Test keypairs: 57 published (53 Ed25519, 2 ES256, 2 RS256), keyed by agent-id,
   or by full `kid` when an agent publishes more than one key.
-- Published counts: test-vector counts (413 valid, 125 invalid, 75 runtime-only)
-  in the README, security model, getting-started guide and test-vector README;
-  the Draft-01 entry below states the Draft-01 corpus as the tools report it
-  (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto` coverage
-  statement; the RTM row count (1,994 requirement rows; the earlier 2,086
-  counted every table line).
+- Published counts: test-vector counts (413 valid, 124 invalid, 74 runtime-only)
+  in the README, security model, getting-started guide, FAQ and test-vector
+  README; the Draft-01 entry below states the Draft-01 corpus as the tools
+  report it (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto`
+  coverage statement; the RTM row count (1,994 requirement rows; the earlier
+  2,086 counted every table line).
 - Links: the security-model links in the README and the getting-started guide,
   and the test-vector and RTM links in the security model.
 - Documentation: the profiles README names the current release; the
@@ -53,6 +63,17 @@ unchanged.
   keypairs, documentation) without changing the wire version; test vectors carry
   a Semantic Versioning `version` field (the test-vector file is now 1.0.1).
 - README version badge shows the current release, Draft-01.1.
+
+### Removed
+
+- Test vector ITV-545: its invalid outcome rests on a MAY (Core §8.3: a message
+  whose `ts` exceeds the clock skew tolerance "MAY be rejected"), which the
+  test-vector format cannot declare. Its ID is not reused.
+- Test vector ITV-482: Draft-01 gives an onboarding `approval_decision` two
+  incompatible `capabilities` values (Actions §3.3 requires
+  `arsiaprotocol.oversight.approve`; Identity §7.6 specifies
+  `arsiaprotocol.onboarding.evaluate`), and resolving this needs a wire change
+  that an erratum cannot make. Its ID is not reused.
 
 ## [Draft-01] — 2026-04-01
 

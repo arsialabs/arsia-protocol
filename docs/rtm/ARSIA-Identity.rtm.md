@@ -203,7 +203,7 @@
 | IDENT-§7.5-04 | 7.5 | MAY | operational_policy | informational | Organization's human oversight process MAY use provenance as an input to approval | — | — |
 | IDENT-§7.6-01 | 7.6 | MUST | sdk | structural | Onboarding decision message MUST conform to the approval_decision envelope structure | arsia-onboarding-decision | ITV-03, ITV-04, ITV-38, ITV-130 |
 | IDENT-§7.6-02 | 7.6 | REQUIRED | sdk | structural | Decision message compliance field is REQUIRED with the organization's applicable profile | arsia-onboarding-decision | — |
-| IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | ITV-482 |
+| IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | — |
 | IDENT-§7.6-04 | 7.6 | MUST | sdk | behavioural_positive | Approval token MUST be a valid JWT with scope matching effective_capabilities | arsia-jwt-claims, arsia-onboarding-decision | ITV-38, ITV-130 |
 | IDENT-§7.6-05 | 7.6 | MUST | sdk | structural | Approval decision token_expires_at MUST be present in RFC 3339 format | arsia-onboarding-decision | ITV-130 |
 | IDENT-§7.6-06 | 7.6 | MUST | sdk | structural | Approval decision effective_capabilities, freely_allowed, and oversight_required MUST be non-empty | arsia-onboarding-decision | ITV-130 |
