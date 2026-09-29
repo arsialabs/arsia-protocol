@@ -41,9 +41,12 @@ unchanged.
 - Test vectors: ITV-546 is now a valid vector: a `ts` 90 seconds in the past is
   within the EU-AI-ACT-HIGH-RISK profile's 120-second clock skew tolerance
   (Core §8.3).
+- Test vectors: INV-21 is now a signed runtime-only vector, like INV-20 and
+  INV-22; its description no longer claims a schema conditional (State §2.1.10,
+  §2.1.11).
 - Test keypairs: 57 published (53 Ed25519, 2 ES256, 2 RS256), keyed by agent-id,
   or by full `kid` when an agent publishes more than one key.
-- Published counts: test-vector counts (413 valid, 124 invalid, 74 runtime-only)
+- Published counts: test-vector counts (413 valid, 123 invalid, 75 runtime-only)
   in the README, security model, getting-started guide, FAQ and test-vector
   README; the Draft-01 entry below states the Draft-01 corpus as the tools
   report it (415 valid, 125 invalid, 73 runtime-only); the `--check-crypto`

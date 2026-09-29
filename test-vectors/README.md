@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-611 test vectors (413 valid, 124 invalid, 74 runtime-only skipped) for
+611 test vectors (413 valid, 123 invalid, 75 runtime-only skipped) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
 placeholders in valid vectors. Every signature in a valid vector
@@ -48,7 +48,7 @@ Next available ID: **ITV-561** / **INV-26**
 
 ## Runtime-Only Vectors
 
-74 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+75 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone.
 
@@ -57,7 +57,7 @@ checks) that cannot be validated by JSON Schema alone.
 | Temporal / clock | 35 |
 | Token / credential context | 10 |
 | X.509 certificate validation | 7 |
-| Cross-field comparison | 8 |
+| Cross-field comparison | 9 |
 | Cross-object / cross-message | 5 |
 | Non-delegable capability matching | 3 |
 | Forward-compatibility | 3 |
