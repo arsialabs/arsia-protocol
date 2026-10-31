@@ -4,7 +4,7 @@
 
 JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structures.
 
-## Schemas (32)
+## Schemas (33)
 
 | Schema | Spec | Validates |
 |--------|------|-----------|
@@ -33,6 +33,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-state-entry.schema.json](arsia-state-entry.schema.json) | State §2.1 | State entry |
 | [arsia-audit-record.schema.json](arsia-audit-record.schema.json) | State §7.1 | Audit trail record |
 | [arsia-audit-chain-tombstone.schema.json](arsia-audit-chain-tombstone.schema.json) | State §7.2 | Tombstone replacing a permanently deleted chained audit record |
+| [arsia-obligation-rules.schema.json](arsia-obligation-rules.schema.json) | Core §4.3.10 | Declarative obligation rules artifact (`profiles/arsia-obligation-rules.json`) |
 | [arsia-state-operations.schema.json](arsia-state-operations.schema.json) | State §3 | Payload args/result for all 8 state operations |
 | [arsia-audit-query-response.schema.json](arsia-audit-query-response.schema.json) | State §7.4 | Paginated response from audit trail query endpoint |
 | [arsia-broker-entry.schema.json](arsia-broker-entry.schema.json) | Routing §7.2 | Compliance broker entry |

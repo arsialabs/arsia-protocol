@@ -1,0 +1,50 @@
+{
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "$schema": "https://arsiaprotocol.org/schemas/v2.0/arsia-obligation-rules.schema.json",
+  "version": "2.0.0",
+  "generated": "2026-10-31T00:00:00.000Z",
+  "procedure": "ARSIA-Core.md §4.3.10",
+  "axes": ["oversight", "audit", "explainability", "retention", "residency"],
+  "rules": [
+    {
+      "id": "high-risk-request",
+      "reference": "ARSIA-Core.md §4.3.8 Rule 3; §4.3.10.3",
+      "scope": {"intents": ["request"]},
+      "trigger": {
+        "fact": "ai_system_classification",
+        "equals": "high-risk",
+        "from": ["identity-record", "message-declaration"]
+      },
+      "requirements": [
+        {"axis": "oversight", "kind": "restriction", "excludes": ["not_required"], "diagnostic": "high_risk_missing_oversight"},
+        {"axis": "audit", "kind": "value", "value": true},
+        {"axis": "explainability", "kind": "value", "value": true}
+      ],
+      "exceptions": [
+        {"axis": "audit", "on": "explicit-conflict", "effect": "override", "warning_event_type": "compliance_warning", "reference": "ARSIA-Core.md §4.3.8 Rule 7"}
+      ]
+    },
+    {
+      "id": "pii-audit",
+      "reference": "ARSIA-Core.md §4.3.8 Rule 7",
+      "scope": {"intents": "all"},
+      "trigger": {"field": "pii_involved", "equals": true},
+      "requirements": [
+        {"axis": "audit", "kind": "value", "value": true}
+      ],
+      "exceptions": [
+        {"axis": "audit", "on": "explicit-conflict", "effect": "override", "warning_event_type": "compliance_warning", "reference": "ARSIA-Core.md §4.3.8 Rule 7"}
+      ]
+    },
+    {
+      "id": "profile-retention-floor",
+      "reference": "ARSIA-Core.md §4.3.8 Rule 4",
+      "scope": {"intents": "all"},
+      "trigger": {"profile_member": "retention_minimum", "present": true},
+      "requirements": [
+        {"axis": "retention", "kind": "floor", "value_from": "profile.retention_minimum", "diagnostic": "insufficient_retention"}
+      ],
+      "exceptions": []
+    }
+  ]
+}

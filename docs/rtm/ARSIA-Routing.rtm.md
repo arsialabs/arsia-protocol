@@ -164,7 +164,7 @@
 | ROUTE-§5.2-03 | 5.2 | MUST | external | behavioural_positive | EU broker IdentityRecord.jurisdiction MUST be an ISO 3166-1 alpha-2 code of an EU/EEA member state | arsia-identity-record | — |
 | ROUTE-§5.2-04 | 5.2 | MUST | deployment | behavioural_positive | EU-zone audit logs MUST be stored on servers physically located in an EU/EEA member state | arsia-audit-record | — |
 | ROUTE-§5.2-05 | 5.2 | MUST | operational_policy | behavioural_positive | Non-EU senders MUST ensure an appropriate GDPR transfer mechanism for EU-originating response data containing personal data | — | — |
-| ROUTE-§5.2-06 | 5.2 | MUST | sdk | behavioural_positive | Implementations MUST maintain an up-to-date list of EU/EEA member states for zone matching | — | — |
+| ROUTE-§5.2-06 | 5.2 | MUST | sdk | behavioural_positive | Implementations MUST maintain an up-to-date list of EU/EEA member states for zone matching; the published list is dated (revision) and identified by its SHA-256, and residency normalization expands "EU" to it | — | ITV-617 |
 | ROUTE-§5.2-07 | 5.2 | SHOULD | sdk | behavioural_positive | EU/EEA membership changes SHOULD be reflected in implementations within 90 days of the effective date | — | — |
 | ROUTE-§5.3-01 | 5.3 | MUST | sdk | behavioural_positive | For country-code zones, broker jurisdiction MUST exactly equal the required zone code | arsia-broker-entry | — |
 | ROUTE-§5.3-02 | 5.3 | MUST | sdk | behavioural_positive | For the EU regional zone, broker jurisdiction MUST be an ISO 3166-1 alpha-2 code of an EU/EEA member state | arsia-broker-entry | ITV-501 |

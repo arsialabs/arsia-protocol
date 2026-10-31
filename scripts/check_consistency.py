@@ -31,10 +31,7 @@ AUDIT_EXTENSION_EXCEPTIONS = {
 
 # State §7.1 base fields whose prose requiredness deliberately differs from the schema's
 # top-level `required`. Each needs a written reason; any other divergence fails.
-AUDIT_BASE_EXCEPTIONS = {
-    "declared_retention": "prose REQUIRED (nullable), schema does not require it — "
-                          "retention axis, DR-4 (A-81)",
-}
+AUDIT_BASE_EXCEPTIONS = {}
 
 
 def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
@@ -65,9 +62,10 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
     collect_values(audit_schema)
 
     def condition(entry):
-        # single-field condition of an allOf/if entry -> (field, frozenset(values))
+        # single-field condition of an allOf/if entry -> (field, frozenset(values));
+        # compound and nested conditions are matched against their own table rows below
         p = entry.get("if", {}).get("properties", {})
-        if len(p) != 1:
+        if len(p) != 1 or any("properties" in v for v in p.values()):
             return None
         field, spec = next(iter(p.items()))
         vals = spec.get("enum", [spec["const"]] if "const" in spec else [])
@@ -84,6 +82,14 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
         else:
             single[c] = (set(then.get("required", [])), alts)
 
+    def spec_values(spec):
+        return frozenset(spec.get("enum", [spec["const"]] if "const" in spec else []))
+
+    def needs_row(cond_props):
+        # DR-3/DR-4 conditions: covered records (intent) and nested resolution outcome
+        return "intent" in cond_props or any("properties" in v for v in cond_props.values())
+
+    matched_multi = set()
     exceptions_seen = set()
     covered = set()
     for cells in rows:
@@ -104,6 +110,32 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
         for name in required | optional:
             if name not in props and name not in enum_values:
                 problems.append(f"{rtype}: `{name}` is neither a schema property nor a schema value")
+        rcond = re.sub(r"\([^)]*\)", "", rtype).strip()
+        nested = re.match(r"`([a-z_]+)`\.`([a-z_]+)` = `([a-z_]+)`$", rcond)
+        if " and " in rcond or nested:
+            if nested:
+                want = {nested.group(1): ("nested", nested.group(2), frozenset([nested.group(3)]))}
+            else:
+                want = {f: ("flat", None, frozenset(re.findall(r"`([a-z_]+)`", vals)))
+                        for f, vals in re.findall(r"`([a-z_]+)` (?:=|∈) ((?:`[a-z_]+`(?:, )?)+)", rcond)}
+            hit = None
+            for i, (cond_props, req) in enumerate(multi):
+                got = {}
+                for f, spec in cond_props.items():
+                    if "properties" in spec:
+                        (sub, sspec), = spec["properties"].items()
+                        got[f] = ("nested", sub, spec_values(sspec))
+                    else:
+                        got[f] = ("flat", None, spec_values(spec))
+                if got == want:
+                    hit = i
+                    if req != required:
+                        problems.append(f"{rtype}: table REQUIRED {sorted(required)} != schema {sorted(req)}")
+            if hit is None:
+                problems.append(f"{rtype}: no schema condition with exactly this compound/nested condition")
+            else:
+                matched_multi.add(hit)
+            continue
         m = re.match(r"`([a-z_]+)` = (.+)$", rtype)
         if not m:
             if required:  # rows without a schema condition may only list optional fields
@@ -128,6 +160,9 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
     for key, (req, _alts) in single.items():
         if key not in covered and req:
             problems.append(f"schema condition {key[0]}={sorted(key[1])} has no table row")
+    for i, (cond_props, req) in enumerate(multi):
+        if needs_row(cond_props) and req and i not in matched_multi:
+            problems.append(f"schema condition {sorted(cond_props)} has no table row")
     if exceptions_seen != set(AUDIT_EXTENSION_EXCEPTIONS):
         problems.append(f"exception rows {sorted(exceptions_seen)} != declared {sorted(AUDIT_EXTENSION_EXCEPTIONS)}")
 
@@ -181,9 +216,206 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
 # the vector format, until the vector cycle adds an explicit field (see the A-34 proxy note).
 CHAIN_TAMPERED = {
     "ITV-597": ("ITV-593", "chain value mismatch"),
+    "ITV-602": ("ITV-594", "chain value mismatch"),
     "ITV-598": ("ITV-594", "foreign chain_id"),
     "ITV-599": ("ITV-595", "tombstone previous value mismatch"),
 }
+
+
+# ------------------------------------ DR-3/DR-4: effective obligation resolution (Core §4.3.10)
+def resolution_vector_mismatches(vectors, rh):
+    """Runtime vectors stating a scenario: their expected results equal the reference resolver's."""
+    out = []
+    for v in vectors:
+        meta = v.get("test_metadata", {})
+        if meta.get("scenario") in ("resolution", "router"):
+            miss = rh.subset_match(meta["expect"], rh.scenario_result(meta))
+            if miss:
+                out.append(f"{v['id']}: {', '.join(miss)}")
+    return out
+
+
+def a32_equivalence(rh):
+    """A-32: absent profile and explicit GDPR-STANDARD give the same verdict, diagnostics and effective
+    values; provenance keeps the difference in fill source and declared profile."""
+    out = []
+
+    def sem(r):
+        return (r["outcome"], [c["diagnostic"] for c in r.get("conflicts", [])],
+                {k: (a["status"], a["result"]) for k, a in r["axes"].items()})
+
+    for cls in (None, "limited-risk", "high-risk"):
+        ident = cls and {"agent_id": "agent:acme.analyst", "ai_system_classification": cls, "evidence": rh.TEST_EVIDENCE}
+        for mode in (None, "not_required", "required_before_execution", "required_within_24h", "required_post_execution"):
+            extra = {} if mode is None else {"human_oversight": mode}
+            a = rh.resolve_obligations("request", dict(extra), ident)
+            b = rh.resolve_obligations("request", dict(extra, profile="GDPR-STANDARD"), ident)
+            if sem(a) != sem(b):
+                out.append(f"{cls}/{mode}: {sem(a)} != {sem(b)}")
+            for k in a["axes"]:
+                fa, fb = (a["axes"][k]["fill"] or {}).get("source"), (b["axes"][k]["fill"] or {}).get("source")
+                if fa == "no-profile-default" and fb != "profile-default":
+                    out.append(f"{cls}/{mode}/{k}: fill source not preserved ({fa} vs {fb})")
+            if a["profile"]["declared"] is not None or b["profile"]["declared"] != "GDPR-STANDARD":
+                out.append(f"{cls}/{mode}: declared profile not preserved")
+    return out
+
+
+def obligation_rules_table_parity(core, rules):
+    """Core §4.3.10.3 table states the artifact's values: scope, trigger, requirements, exceptions."""
+    head = "| Entry `id` | Scope | Trigger | Requirements | Exceptions |"
+    if head not in core:
+        return ["Core §4.3.10.3 table not found (header marker missing)"]
+    rows = {}
+    for ln in core[core.index(head):].split("\n\n", 1)[0].splitlines()[2:]:
+        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+        m = re.match(r"`([a-z0-9-]+)`$", cells[0])
+        if m and len(cells) == 5:
+            rows[m.group(1)] = cells[1:]
+    out = []
+    ids = [r["id"] for r in rules["rules"]]
+    if sorted(rows) != sorted(ids):
+        out.append(f"table entries {sorted(rows)} != artifact {sorted(ids)}")
+    for r in rules["rules"]:
+        if r["id"] not in rows:
+            continue
+        scope, trig, reqs, exc = rows[r["id"]]
+        intents = r["scope"]["intents"]
+        want_scope = "all intents" if intents == "all" else ", ".join(f"`{i}`" for i in intents)
+        if scope != want_scope:
+            out.append(f"{r['id']} scope: table {scope!r} != artifact {want_scope!r}")
+        t = r["trigger"]
+        if "fact" in t:
+            need = [f"`{t['fact']}`", f'`"{t["equals"]}"`']
+            need += ["authenticated IdentityRecord"] if "identity-record" in t["from"] else []
+            need += ["per-message declaration"] if "message-declaration" in t["from"] else []
+        elif "field" in t:
+            need = [f"`{t['field']}` is `{str(t['equals']).lower()}`"]
+        else:
+            need = [f"defines `{t['profile_member']}`"]
+        out += [f"{r['id']} trigger: table lacks {n!r}" for n in need if n not in trig]
+        want = []
+        for q in r["requirements"]:
+            if q["kind"] == "restriction":
+                want.append(f"`{q['axis']}`: restriction, excludes " + ", ".join(f'`"{x}"`' for x in q["excludes"]))
+            elif q["kind"] == "value":
+                want.append(f"`{q['axis']}`: `{str(q['value']).lower()}`")
+            else:
+                want.append(f"`{q['axis']}`: floor equal to `retention_minimum`")
+        got = [p.strip() for p in reqs.split(";")]
+        if sorted(got) != sorted(want):
+            out.append(f"{r['id']} requirements: table {got} != artifact {want}")
+        want_exc = [f"`{e['axis']}`: explicit `false` is overridden (Rule 7)"
+                    for e in r["exceptions"] if e["effect"] == "override"] or ["—"]
+        if [p.strip() for p in exc.split(";")] != want_exc:
+            out.append(f"{r['id']} exceptions: table {exc!r} != artifact {want_exc}")
+    return out
+
+
+def diagnostic_parity(core, audit_schema, rules, rules_schema):
+    """Core §4.3.10.6: the diagnostic table equals the audit conflict enum; the artifact's diagnostics are
+    in the table and belong to the rule they cite; the artifact-schema enum is a subset of the table."""
+    head = "| Failure | `details` diagnostic |"
+    if head not in core:
+        return ["Core §4.3.10.6 table not found (header marker missing)"]
+    table = {}
+    for ln in core[core.index(head):].split("\n\n", 1)[0].splitlines()[2:]:
+        cells = [c.strip() for c in ln.strip().strip("|").split("|")]
+        m = re.match(r"`([a-z_0-9]+): true`", cells[1]) if len(cells) == 2 else None
+        if m:
+            table[m.group(1)] = set(re.findall(r"Rule (\d)", cells[0]))
+    out = []
+    enum = audit_schema["$defs"]["conflict"]["properties"]["diagnostic"]["enum"]
+    if sorted(table) != sorted(enum):
+        out.append(f"table diagnostics {sorted(table)} != audit conflict enum {sorted(enum)}")
+    for r in rules["rules"]:
+        cited = set(re.findall(r"Rule (\d)", r["reference"]))
+        for q in r["requirements"]:
+            d = q.get("diagnostic")
+            if d and d not in table:
+                out.append(f"{r['id']}: diagnostic {d} not in the Core table")
+            elif d and not (table[d] & cited):
+                out.append(f"{r['id']}: diagnostic {d} belongs to Rule {sorted(table[d])}, rule cites {sorted(cited)}")
+    extra = set(rules_schema["$defs"]["diagnostic"]["enum"]) - set(table)
+    if extra:
+        out.append(f"rules-schema diagnostics not in the Core table: {sorted(extra)}")
+    return out
+
+
+def decision_example_problems(identity_text, onboarding_schema, registry, rh):
+    """Identity §7.6 decision example validates against its schema; its context_sha256 recomputes."""
+    from jsonschema import Draft202012Validator
+    blocks = [b for b in re.findall(r"```json\n(.*?)\n```", identity_text, re.S)
+              if '"arsiaprotocol.onboarding/decision"' in b and '"authenticated_context"' in b]
+    if len(blocks) != 1:
+        return [f"expected one Identity §7.6 decision example with authenticated_context, found {len(blocks)}"]
+    ex = json.loads(blocks[0])
+    out = [f"schema: {e.message[:90]}" for e in
+           list(Draft202012Validator(onboarding_schema, registry=registry).iter_errors(ex))[:3]]
+    ctx = ex["args"]["authenticated_context"]
+    if rh.context_digest(ctx) != ctx.get("context_sha256"):
+        out.append("context_sha256 does not recompute (Identity §7.2 Step 7 formula)")
+    return out
+
+
+def retention_derivation_problems(vectors, rh):
+    """State §7.1: a record's retention fields equal those derived from its obligation_resolution."""
+    out = []
+    for v in vectors:
+        if v.get("expected") != "valid":
+            continue
+        d = v.get("data", {})
+        recs = [d] if v.get("schema_ref") == "arsia-audit-record.schema.json" else (
+            d.get("records", []) if v.get("schema_ref") == "arsia-audit-query-response.schema.json" else [])
+        for r in recs:
+            if "obligation_resolution" in r:
+                want = rh.legacy_retention(r["obligation_resolution"], r["processed_at"])
+                got = {k: r.get(k) for k in want}
+                if got != want:
+                    out.append(f"{v['id']}: {got} != {want}")
+    return out
+
+
+def source_digest_problems(vectors, rules, catalog, rh):
+    """Every recorded source digest recomputes from the artifact entry or the catalog entry it names."""
+    rule_d = {r["id"]: rh.jcs_sha256(r) for r in rules["rules"]}
+    prof_d = {n: rh.jcs_sha256(p) for n, p in catalog["profiles"].items()}
+    out = []
+
+    def walk(o, vid):
+        if isinstance(o, dict):
+            if o.get("class") == "protocol-rule" and rule_d.get(o.get("id")) != o.get("sha256"):
+                out.append(f"{vid}: protocol-rule {o.get('id')} digest")
+            if o.get("class") == "profile-floor" and prof_d.get(o.get("id")) != o.get("sha256"):
+                out.append(f"{vid}: profile-floor {o.get('id')} digest")
+            if set(o) == {"name", "sha256"} and o["name"] in prof_d and prof_d[o["name"]] != o["sha256"]:
+                out.append(f"{vid}: profile {o['name']} digest")
+            for x in o.values():
+                walk(x, vid)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x, vid)
+    for v in vectors:
+        walk(v.get("data"), v["id"])
+        walk(v.get("message"), v["id"])
+    return out
+
+
+def eu_list_problems(routing, rh):
+    """Routing §5.2: the dated EU member list is sorted, equals the resolver's, and its digest recomputes."""
+    m = re.search(r"\*\*Member list, revision `(\d{4}-\d{2})`\.\*\*(.*?)\n\n", routing, re.S)
+    if not m:
+        return ["Routing §5.2 member list not found (marker missing)"]
+    codes = re.findall(r"`([A-Z]{2})`", m.group(2))
+    digest = re.search(r"`sha256:([0-9a-f]{64})`", m.group(2))
+    out = []
+    if codes != sorted(set(codes)):
+        out.append("member list not sorted or not unique")
+    if codes != rh.EU_MEMBERS or m.group(1) != rh.EU_REVISION:
+        out.append("member list or revision differs from the reference resolver")
+    if not digest or digest.group(1) != rh.jcs_sha256(codes):
+        out.append("declared digest does not recompute")
+    return out
 
 
 def main() -> int:
@@ -495,7 +727,7 @@ def main() -> int:
         ok_, why, _ = verify_chain(vs, (base["chain_id"], last["chain_seq"], last["hash_chain"]))
         if ok_ or why != reason:
             bad_t.append(f"{tid}: expected '{reason}', got ({ok_}, {why})")
-    check("DR-5 tampered chain vectors fail verification with the stated reason (ITV-597..599)",
+    check("DR-5 tampered chain vectors fail verification with the stated reason (ITV-597..599, ITV-602)",
           not bad_t, "; ".join(bad_t))
 
     # error-code registry: Core §11.2 table == every standard-code enum copy (A-04)
@@ -578,6 +810,48 @@ def main() -> int:
     check("RTM cross-document drift (near-identical requirements, diverging modal/values)",
           not flagged,
           "; ".join(f"{a}~{b} [{r}]" for a, b, r in flagged[:5]))
+
+    # DR-3/DR-4: effective obligation resolution (Core §4.3.10)
+    sys.path.insert(0, "scripts")
+    import runtime_harness as rh
+    from referencing import Registry, Resource
+    reg = Registry().with_resources([(j["$id"], Resource.from_contents(j)) for j in schemas.values()])
+    rules = json.load(open("profiles/arsia-obligation-rules.json"))
+    vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
+    identity_text = open("spec/ARSIA-Identity.md", encoding="utf-8").read()
+    routing_text = open("spec/ARSIA-Routing.md", encoding="utf-8").read()
+    errs = list(Draft202012Validator(schemas["arsia-obligation-rules.schema.json"]).iter_errors(rules))
+    check("obligation rules artifact valid against its schema", not errs, "; ".join(e.message[:60] for e in errs[:3]))
+    probs = resolution_vector_mismatches(vectors, rh)
+    check("runtime resolution vectors: expected results == reference resolver (Core §4.3.10)", not probs,
+          "; ".join(probs[:4]))
+    probs = a32_equivalence(rh)
+    check("A-32 absent profile == explicit GDPR-STANDARD (semantic; provenance keeps the difference)", not probs,
+          "; ".join(probs[:4]))
+    probs = obligation_rules_table_parity(core, rules)
+    check("Core §4.3.10.3 table == obligation rules artifact (scope, trigger, requirements, exceptions)",
+          not probs, "; ".join(probs[:4]))
+    probs = diagnostic_parity(core, schemas["arsia-audit-record.schema.json"], rules,
+                              schemas["arsia-obligation-rules.schema.json"])
+    check("Core §4.3.10.6 diagnostics == audit conflict enum; artifact diagnostics belong to their rule",
+          not probs, "; ".join(probs[:4]))
+    probs = decision_example_problems(identity_text, schemas["arsia-onboarding-decision.schema.json"], reg, rh)
+    check("Identity §7.6 decision example valid; context_sha256 recomputes", not probs, "; ".join(probs[:4]))
+    probs = retention_derivation_problems(vectors, rh)
+    check("retention fields == those derived from obligation_resolution (State §7.1)", not probs,
+          "; ".join(probs[:4]))
+    probs = source_digest_problems(vectors, rules, catalog, rh)
+    check("recorded source digests recompute (Core §4.3.10.2)", not probs, "; ".join(probs[:4]))
+    probs = eu_list_problems(routing_text, rh)
+    check("Routing §5.2 EU member list sorted, == resolver, digest recomputes", not probs, "; ".join(probs[:4]))
+    skip_doc = open("docs/draft-02-skip-classification.md", encoding="utf-8").read()
+    classified = re.findall(r"^\| ([A-Z]+-\d+) \|", skip_doc, re.M)
+    skipped = [v["id"] for v in vectors if v.get("skip_schema")]
+    total = re.search(r"— total (\d+)\.", skip_doc)
+    check("skip classification rows == skip_schema vectors, total stated",
+          sorted(classified) == sorted(skipped) and total and int(total.group(1)) == len(skipped),
+          f"missing {sorted(set(skipped) - set(classified))[:4]} extra {sorted(set(classified) - set(skipped))[:4]}"
+          f" total {total.group(1) if total else None} vs {len(skipped)}")
 
     print()
     print(f"{'ALL CHECKS PASSED' if not FAIL else f'{len(FAIL)} FAILURES: ' + ', '.join(FAIL)}")

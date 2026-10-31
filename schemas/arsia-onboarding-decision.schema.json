@@ -101,6 +101,9 @@
             "no_permitted_capabilities"
           ],
           "description": "Reason for denial. 'discovery_failed': Phase 1 Step 1 failed (§7.2). 'identity_verification_failed': Phase 1 Steps 2-5 failed (§7.2). 'unacceptable_risk_classification': Phase 1 Step 6 — agent classified as unacceptable-risk (§7.2). 'conformance_failed': Phase 2 — one or more conformance checks failed (§7.3). 'no_permitted_capabilities': Phase 3 — no capabilities matched the policy (§8.3)."
+        },
+        "authenticated_context": {
+          "$ref": "#/$defs/authenticated-context"
         }
       },
       "allOf": [
@@ -125,7 +128,8 @@
               "token_expires_at",
               "conformance_result",
               "provenance",
-              "policy_version"
+              "policy_version",
+              "authenticated_context"
             ],
             "properties": {
               "effective_capabilities": {
@@ -168,7 +172,7 @@
   "$defs": {
     "conformance-check": {
       "type": "object",
-      "description": "Result of a single conformance check run during Phase 2 of onboarding. Five normative checks are defined: CHECK-01 (envelope validity), CHECK-02 (signature verification), CHECK-03 (human oversight compliance), CHECK-04 (audit trail format), CHECK-05 (classification consistency). Per ARSIA-Identity.md §7.3.",
+      "description": "Result of a single conformance check run during Phase 2 of onboarding. Five normative checks are defined: CHECK-01 (envelope validity), CHECK-02 (signature verification), CHECK-03 (human oversight compliance), CHECK-04 (audit trail format), CHECK-05 (authenticated context, every agent). Per ARSIA-Identity.md §7.3.",
       "required": [
         "test_id",
         "status"
@@ -187,7 +191,7 @@
             "fail",
             "skip"
           ],
-          "description": "Result status. 'pass': check criteria met. 'fail': check criteria not met. 'skip': preconditions not met (e.g. CHECK-05 skipped for non-high-risk agents, CHECK-04 skipped when audit endpoint unavailable). Per ARSIA-Identity.md §7.3."
+          "description": "Result status. 'pass': check criteria met. 'fail': check criteria not met. 'skip': preconditions not met (e.g. CHECK-04 skipped when audit endpoint unavailable). Per ARSIA-Identity.md §7.3."
         },
         "details": {
           "type": "string",
@@ -261,6 +265,71 @@
         "provenance_verified": {
           "type": "boolean",
           "description": "true if both identity_created_at and earliest_audit_record are present, are valid RFC 3339 timestamps, and earliest_audit_record is not earlier than identity_created_at. false otherwise. Per ARSIA-Identity.md §7.5."
+        }
+      }
+    },
+    "authenticated-context": {
+      "type": "object",
+      "required": [
+        "context_id",
+        "agent_id",
+        "ai_system_classification",
+        "evidence",
+        "context_sha256"
+      ],
+      "additionalProperties": false,
+      "description": "Authenticated context prepared in Phase 1, Step 7, verified by CHECK-05 and bound to the admission (ARSIA-Identity.md §7.2, §7.6). context_sha256 = SHA-256 of the RFC 8785 form of the context without its context_sha256 member.",
+      "properties": {
+        "context_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "agent_id": {
+          "$ref": "arsia-common.schema.json#/$defs/agent-id"
+        },
+        "ai_system_classification": {
+          "enum": [
+            "minimal-risk",
+            "limited-risk",
+            "high-risk"
+          ]
+        },
+        "evidence": {
+          "type": "object",
+          "required": [
+            "signed_body_sha256",
+            "signature",
+            "jwk",
+            "verified_at",
+            "record_sha256"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "signed_body_sha256": {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            },
+            "signature": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "jwk": {
+              "type": "object",
+              "required": [
+                "kty"
+              ]
+            },
+            "verified_at": {
+              "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+            },
+            "record_sha256": {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            }
+          }
+        },
+        "valid_until": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "context_sha256": {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
         }
       }
     }

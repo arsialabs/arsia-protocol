@@ -293,9 +293,8 @@
 | STATE-§6.1-04 | 6.1 | MUST | sdk | behavioural_positive | GDPR-STANDARD with pii_involved true: audit_required is always effectively true (Core §4.3.8, Rule 7) | arsia-compliance-field | ITV-553, ITV-554 |
 | STATE-§6.2-01 | 6.2 | RECOMMENDED | sdk_enabled | behavioural_positive | EU-AI-ACT-HIGH-RISK: data_residency "EU" is RECOMMENDED for EU-based operators | — | — |
 | STATE-§6.2-02 | 6.2 | MUST | sdk | behavioural_positive | EU-AI-ACT-HIGH-RISK: every response MUST include payload.explanation with reasoning, confidence, and inputs_used | arsia-compliance-field | — |
-| STATE-§6.2-03 | 6.2 | MUST_NOT | sdk | behavioural_negative | EU-AI-ACT-HIGH-RISK: actions MUST NOT execute until human approval via pending_approval flow | arsia-compliance-field, arsia-message | — |
-| STATE-§6.2-04 | 6.2 | MUST | sdk | behavioural_positive | EU-AI-ACT-HIGH-RISK: agent IdentityRecord.ai_system_classification MUST be "high-risk" | arsia-compliance-field | — |
-| STATE-§6.2-05 | 6.2 | SHOULD | sdk_enabled | behavioural_positive | Agents detecting a profile vs. ai_system_classification mismatch SHOULD log a compliance warning | — | — |
+| STATE-§6.2-03 | 6.2 | MUST_NOT | sdk | behavioural_negative | EU-AI-ACT-HIGH-RISK: when the effective oversight set includes required_before_execution, the action MUST NOT execute until human approval via the pending_approval flow | arsia-compliance-field, arsia-message | ITV-421, ITV-609 |
+| STATE-§6.2-05 | 6.2 | SHOULD | sdk_enabled | behavioural_positive | A receiving agent that receives EU-AI-ACT-HIGH-RISK from an agent not classified as high-risk SHOULD log a compliance warning | — | — |
 | STATE-§6.3-01 | 6.3 | MUST | external | behavioural_positive | MIFID-II: major ICT-related incidents MUST be reported to competent authorities | — | — |
 | STATE-§6.3-02 | 6.3 | MUST | sdk | procedural | MIFID-II: all AssetTransferRequest messages MUST generate MiFID II audit records | arsia-compliance-field | — |
 | STATE-§6.3-03 | 6.3 | MUST | sdk | procedural | MIFID-II: asset transfer audit records MUST contain all fields per ARSIA-Assets §6.1.1 | arsia-compliance-field | — |
@@ -328,6 +327,11 @@
 | STATE-§7.1-19 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.compliance_profile_declared (profile as declared, null, or "none") and compliance_profile_resolved (profile actually applied, or "none") fields are REQUIRED | arsia-audit-record | — |
 | STATE-§7.1-20 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.operator_id field is REQUIRED (owner_id from the agent's IdentityRecord) | arsia-audit-record | — |
 | STATE-§7.1-21 | 7.1 | OPTIONAL | sdk | structural | ArsiaAuditRecord.plaintext_hash field is OPTIONAL; present only when the originating message has security.encrypted=true | arsia-audit-record | ITV-525, ITV-526 |
+| STATE-§7.1-22 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.declared_retention is REQUIRED (nullable; null when omitted, including a rejected declaration) (A-81) | arsia-audit-record | INV-53, ITV-622 |
+| STATE-§7.1-23 | 7.1 | MUST_NOT | sdk | behavioural_positive | On a record carrying obligation_resolution, the retention fields MUST NOT diverge from those derived from its retention member (rejection records: evidence retained under the profile minimum) | arsia-audit-record | ITV-97, ITV-600, ITV-622 |
+| STATE-§7.1-24 | 7.1 | REQUIRED | sdk | structural | obligation_resolution is REQUIRED on covered records (intent request; event_type request, state_set, state_delete, state_purge, state_grant, state_revoke, asset_transfer, rollback) and on compliance rejection records | arsia-audit-record | ITV-601, ITV-600, INV-54, INV-56 |
+| STATE-§7.1-25 | 7.1 | MUST | sdk | structural | A record with rejection_cause compliance MUST have event_type error, a rejected obligation_resolution with non-empty conflicts, and correlation_id set to the rejected message's id | arsia-audit-record | ITV-600, INV-57, INV-58, INV-59, INV-60 |
+| STATE-§7.1-26 | 7.1 | MUST | sdk | behavioural_negative | Every rejection produced by compliance validation MUST produce a rejection_cause compliance record, whatever audit_required the rejected message declares | arsia-audit-record | ITV-603, ITV-622, INV-62 |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 |
 | STATE-§7.2-02 | 7.2 | MUST_NOT | deployment | behavioural_negative | Once an ArsiaAuditRecord is written, it MUST NOT be modified. | — | — |
 | STATE-§7.2-03 | 7.2 | MUST | sdk | procedural | New audit records MUST be created for status changes; existing records MUST NOT be updated | — | STV-07 |

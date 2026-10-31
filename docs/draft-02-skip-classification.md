@@ -17,11 +17,11 @@ IDENTITY-*/STATE-*/ROUTING-*/ASSETS-* in the specs, executed against a real
 deployment); `deployment inspection` / `operational evidence` = release-gate
 procedures, not suite tests (see Core §12.3).
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 7, cross-object: 5, crypto-behaviour: 7, forward-compat: 4, numeric: 2, other: 17, retention-floor: 6, temporal: 12, token: 15, transport: 5, x509: 7 — total 94.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 7, forward-compat: 4, numeric: 2, other: 17, retention-floor: 6, temporal: 12, token: 15, transport: 5, x509: 7 — total 119.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Runtime-test candidate / coverage |
 |---|---|---|---|---|---|
-| INV-07 | Identity §4.2 | Runtime constraint — classification↔profile binding (Identity §4.2) | compliance-resolution | behavioural-runtime | covered: harness R10 (partial) |
+| INV-07 | Identity §4.2, Core §4.3.8 Rule 3 | Runtime constraint — high-risk requirement set over the composed oversight set (Core §4.3.10) | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
 | INV-08 | Core §4.3.8 Rule 4 | Runtime constraint — calendar retention-floor comparison (Core §4.3.8 Rule 4); Draft-02 moved floors from sche | retention-floor | behavioural-runtime | covered: harness R2 |
 | INV-09 | — | Runtime constraint — currency precision enforced programmatically | other | behavioural-runtime | yes |
 | INV-11 | — | Runtime constraint — kid↔from cryptographic binding | other | behavioural-runtime | yes |
@@ -115,6 +115,31 @@ procedures, not suite tests (see Core §12.3).
 | ITV-577 | State §2.1.2 | Runtime constraint — I-JSON number-range rule (State §2.1.2); JSON Schema cannot distinguish 2^53+1 reliably | numeric | behavioural-runtime | covered: harness R8 |
 | ITV-578 | State §2.1.2 | Runtime constraint — value-semantics round-trip behaviour (State §2.1.2) | numeric | behavioural-runtime | covered: harness R1/R8 |
 | ITV-579 | Core §4.3.7/§4.3.8 Rule 3 | Runtime constraint — effective-oversight resolution across profile defaults (Core §4.3.7/§4.3.8 Rule 3) | compliance-resolution | behavioural-runtime | covered: harness R10 (partial) |
+| ITV-603 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-604 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-605 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-606 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-607 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-608 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-609 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-610 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-611 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-612 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-613 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-614 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-615 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-616 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-617 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-618 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-619 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-620 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-621 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-622 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-623 | Identity §7.2 Step 7, CHECK-05 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-624 | Identity §7.2 Step 7, CHECK-05 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-625 | Identity §7.2 Step 7, CHECK-05 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-626 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-627 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
 
 ## Residual risk statement
 

@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-679 test vectors (438 schema-valid, 147 expected-invalid, 94 runtime-only skipped — validator classification) for
+717 test vectors (441 schema-valid, 157 expected-invalid, 119 runtime-only skipped — validator classification) for
 validating ARSIA Protocol implementations. Vectors use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
 placeholders.
@@ -11,7 +11,7 @@ placeholders.
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 679 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 717 test vectors |
 | [keypairs.json](keypairs.json) | 9 test keypairs: 7 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally) |
 
 ## Vector Formats
@@ -29,15 +29,15 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 599 |
-| `INV-` | Invalid (all specs) | 52 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 627 |
+| `INV-` | Invalid (all specs) | 62 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-600** / **INV-53**
+Next available ID: **ITV-628** / **INV-63**
 
 ## Runtime-Only Vectors
 
@@ -46,7 +46,7 @@ is the RFC 8785 canonical form of the envelope with `security` present and only 
 `security.sig` property removed (Core §5.1). Vectors are regenerated with
 `scripts/regen_v2.py`; verify with `--check-crypto`.
 
-94 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+119 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone.
 

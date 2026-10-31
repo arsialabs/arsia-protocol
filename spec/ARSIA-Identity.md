@@ -155,12 +155,12 @@ that same resolved origin MUST declare the legal entity that owns
 `agent:acme.billing` via the `owner_id` and `owner_name` fields.
 
 Furthermore, if the IdentityRecord declares `ai_system_classification` as `"high-risk"`,
-all outbound request and response messages from that agent MUST carry appropriate
-compliance metadata (see §4.2 for the classification consistency rule). A receiving
-agent that detects an inconsistency between the three layers — for example, a message
-signed by a key not present in the sender's JWKS, or a high-risk agent sending messages
-without the required compliance profile — MUST reject the message or log a compliance
-warning, depending on the specific violation.
+receiving agents MUST resolve every request from that agent using the high-risk
+requirement set (§4.2; ARSIA-Core.md §4.3.10.3), regardless of the declared compliance
+profile and including when `compliance` is absent. A receiving agent that detects an
+inconsistency between the three layers — for example, a message signed by a key not
+present in the sender's JWKS — MUST reject the message or log a compliance warning,
+depending on the specific violation.
 
 ### 1.2 Agent Identity Record
 
@@ -205,11 +205,14 @@ The IdentityRecord contains the following fields:
     has jurisdiction over the agent's operator.
 
 **`ai_system_classification`** (string, REQUIRED)
-:   Agent-level classification per EU AI Act Annex III categories. MUST be one of:
-    `"minimal-risk"`, `"limited-risk"`, `"high-risk"`, or `"unacceptable-risk"`. This is
-    the worst-case classification across all intended uses of this agent. Per-message
-    classification (in the `compliance.ai_system_classification` envelope field) MAY be
-    equal to or lower than this value but MUST NEVER be higher.
+:   Agent-level classification, declared by the operator with reference to the EU AI Act
+    risk categories (Article 6 and Annex III for high-risk systems); the protocol records
+    the declaration and does not assess it. MUST be one of: `"minimal-risk"`,
+    `"limited-risk"`, `"high-risk"`, or `"unacceptable-risk"`. This is the worst-case
+    classification across all intended uses of this agent. Per-message classification (in
+    the `compliance.ai_system_classification` envelope field) MAY be equal to or lower
+    than this value but MUST NEVER be higher; a lower per-message value does not by itself
+    reduce the obligations derived from this value (ARSIA-Core.md §4.3.10.3).
 
 **`regulated_entity`** (object, OPTIONAL)
 :   Declares the owner's status as a regulated entity. Structure:
@@ -577,14 +580,16 @@ processing MUST be used — not a stale cached version from a prior interaction.
 
 If `IdentityRecord.ai_system_classification` is `"high-risk"`:
 
-- Every outbound `request` and `response` message from this agent MUST have
-  `compliance.profile` set to at least `"EU-AI-ACT-HIGH-RISK"`.
-- **Exception:** Messages with `intent` of `"error"` or `"event"` are exempt from this
-  requirement, as these are informational and do not represent substantive agent actions.
-- **Violation handling:** A receiving agent SHOULD log a compliance warning if a
-  high-risk agent sends a message without the expected compliance profile. A receiving
-  agent MAY reject such messages with error code `"invalid_request"` and
-  `details: { "classification_mismatch": true }`.
+- Every `request` from this agent is resolved by its receivers with the high-risk
+  requirement set (ARSIA-Core.md §4.3.10.3), whatever compliance profile it declares,
+  and also when it declares none or omits `compliance`. A request that cannot satisfy
+  the set is rejected (ARSIA-Core.md §4.3.10.6).
+- The agent MAY declare any profile, including `"MIFID-II"`; it is not required to
+  declare `"EU-AI-ACT-HIGH-RISK"`. Obligations are compared per axis, not by profile
+  name (ARSIA-Core.md §4.3.10).
+- Messages with another intent are not operations; the set does not apply to them.
+- A lower per-message classification does not by itself reduce these obligations
+  (ARSIA-Core.md §4.3.7).
 
 If `IdentityRecord.ai_system_classification` is `"unacceptable-risk"`:
 
@@ -704,10 +709,10 @@ tests at the applicable conformance level.
 | Field           | Value                                                                 |
 |-----------------|-----------------------------------------------------------------------|
 | **test_id**     | `IDENTITY-06`                                                         |
-| **description** | Verify classification consistency check for high-risk agents          |
-| **preconditions** | Sender agent's IdentityRecord has `ai_system_classification: "high-risk"`. Sender sends a `request` message without `compliance.profile`. |
-| **action**      | Receiving agent retrieves sender's IdentityRecord and checks classification consistency per §4.2. |
-| **expected**    | Receiving agent logs a compliance warning. Receiving agent MAY reject the message with error code `"invalid_request"` and `details: { "classification_mismatch": true }`. |
+| **description** | Verify that the high-risk requirement set applies to a high-risk agent's requests whatever profile they declare |
+| **preconditions** | Sender agent's IdentityRecord has `ai_system_classification: "high-risk"`. The sender sends three `request` messages: (a) `compliance.profile: "MIFID-II"`, no `human_oversight`; (b) `compliance.profile: "GDPR-STANDARD"`, no `human_oversight`; (c) no `compliance` field. |
+| **action**      | Receiving agent retrieves the sender's IdentityRecord and resolves each request per ARSIA-Core.md §4.3.10. |
+| **expected**    | (a) accepted: the profile default `"required_before_execution"` satisfies the oversight restriction, and `audit_required` and `explainability_required` are effective `true`. (b) and (c) rejected with error code `"invalid_request"` and `details: { "high_risk_missing_oversight": true }`. Each case produces an audit record carrying `obligation_resolution` (ARSIA-State.md §7.1). |
 
 ### IDENTITY-07: Key rotation (both keys valid during overlap)
 
@@ -1202,9 +1207,9 @@ The trust establishment proceeds as follows:
    Ed25519 private key corresponding to the public key published in its JWKS.
 
 2. **Compliance trust** is established when the external agent passes all five conformance
-   checks (Phase 2). This confirms that the agent correctly implements the ARSIA Protocol's
-   compliance semantics — envelope structure, signature verification, human oversight
-   signaling, audit trail generation, and classification consistency.
+   checks (Phase 2). These checks cover envelope structure, signature verification, human
+   oversight signaling, and audit trail generation, together with validation of the
+   authenticated context prepared by the gateway (CHECK-05).
 
 3. **Capability trust** is established when the gateway applies its CapabilityPolicy to
    scope the agent's effective permissions (Phase 3). The agent is granted only the
@@ -1213,6 +1218,12 @@ The trust establishment proceeds as follows:
 4. **Operational trust** is maintained through token-scoped enforcement by the
    infrastructure router (Phase 6). Every request is verified against the token's scope.
    Trust is revocable at any time by revoking the token.
+
+5. **Context binding** is established when the gateway binds the agent's authenticated
+   context (Phase 1, Step 7; verified by CHECK-05) to the admission (Phase 5). The
+   binding determines which authenticated facts apply to the agent's requests; it does
+   not establish the agent's future conduct. The infrastructure router evaluates every
+   request against the bound context (§7.7, ARSIA-Core.md §4.3.10).
 
 The gateway MUST NOT grant trust based on out-of-band information such as email
 confirmations, verbal agreements, or manual configuration entries. All trust decisions
@@ -1292,7 +1303,20 @@ classified as unacceptable-risk MUST NOT be deployed. If the classification is
 `"unacceptable-risk"`, the gateway MUST deny onboarding with
 `denial_reason = "unacceptable_risk_classification"`.
 
-If all six steps succeed, Phase 1 passes and the gateway proceeds to Phase 2.
+**Step 7 — Authenticated context.** Prepare the agent's authenticated context: a
+`context_id` (UUID v4); the `agent_id`; the classification fact taken from the
+verified IdentityRecord; the identity evidence of ARSIA-Core.md §4.3.10.2 — the SHA-256
+of the raw signed body bytes retrieved in Step 2 (`signed_body_sha256`), the
+`X-ARSIA-Sig` signature, the JWK used in Step 4, `verified_at` and `record_sha256`;
+and the record's `valid_until` when present. The context carries `context_sha256`,
+defined by a single formula used by this step, CHECK-05, the binding (§7.6) and the
+infrastructure router (§7.7):
+
+    context_sha256 = SHA-256( RFC 8785 form of the context without its context_sha256 member )
+
+The gateway MUST retain the raw signed body bytes per ARSIA-Core.md §4.3.10.2.
+
+If all seven steps succeed, Phase 1 passes and the gateway proceeds to Phase 2.
 
 ### 7.3 Phase 2 — Compliance Conformance Test
 
@@ -1310,8 +1334,8 @@ object with the following structure:
 ```
 
 The `status` field MUST be one of `"pass"`, `"fail"`, or `"skip"`. A check MAY be skipped
-only when its preconditions are not met (e.g., CHECK-05 is skipped when the agent is not
-classified as high-risk).
+only when its preconditions are not met (e.g., CHECK-04 when the agent exposes no audit
+endpoint).
 
 **CHECK-01 — Envelope validity.** The gateway sends a `request` message to the external
 agent with a known payload type (e.g., `"arsiaprotocol.onboarding/ping"`) and verifies the
@@ -1379,16 +1403,21 @@ records SHOULD carry the hash chain of ARSIA-State.md §7.2; at the Compliance a
 levels they MUST. If the endpoint returns data that does not conform, the check
 fails.
 
-**CHECK-05 — Classification consistency.** This check applies only when the external
-agent's `ai_system_classification` (from the IdentityRecord retrieved in Phase 1) is
-`"high-risk"`. Per ARSIA-Identity.md §4.2:
+**CHECK-05 — Authenticated context.** The gateway verifies the context prepared in
+Phase 1, Step 7:
 
-- The gateway verifies that the response from CHECK-01 includes
-  `compliance.profile` set to at least `"EU-AI-ACT-HIGH-RISK"`.
-- If the agent is classified as high-risk but sends messages without the required
-  compliance profile, the check fails.
+- the context is present, `context_id` is well formed, and `context_sha256` equals the
+  formula of Phase 1, Step 7 recomputed over the context;
+- its `agent_id` is the external agent's;
+- its evidence matches Phase 1: `signed_body_sha256` is the SHA-256 of the signed
+  bytes retrieved in Step 2, the signature verifies with the JWK used in Step 4, and
+  the classification fact equals the record's `ai_system_classification`;
+- the record is not expired: `valid_until`, when present, is later than the time of
+  the check.
 
-If the agent is not classified as high-risk, this check is marked as `"skip"`.
+CHECK-05 applies to every external agent. It checks no token and no onboarding
+decision: neither exists in Phase 2. It verifies the context that Phase 5 will bind; it
+does not verify the agent's future conduct. If any condition fails, the check fails.
 
 **Aggregate result.** ALL checks with status `"pass"` or `"skip"` MUST be achieved for
 Phase 2 to pass. If any check has status `"fail"`, the gateway MUST deny onboarding with
@@ -1505,7 +1534,7 @@ The decision message MUST conform to the following structure:
         { "test_id": "CHECK-02", "status": "pass", "duration_ms": 18.3 },
         { "test_id": "CHECK-03", "status": "pass", "duration_ms": 156.0 },
         { "test_id": "CHECK-04", "status": "skip", "details": "Audit endpoint not available" },
-        { "test_id": "CHECK-05", "status": "skip", "details": "Agent is not high-risk" }
+        { "test_id": "CHECK-05", "status": "pass", "duration_ms": 3.1 }
       ],
       "all_passed": true,
       "total_duration_ms": 259.3
@@ -1517,7 +1546,25 @@ The decision message MUST conform to the following structure:
     },
     "policy_version": "finco-2026-q1",
     "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
-    "token_expires_at": "2026-03-25T18:00:00.000Z"
+    "token_expires_at": "2026-03-25T18:00:00.000Z",
+    "authenticated_context": {
+      "context_id": "7c1e2d3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+      "agent_id": "agent:acme.echo-client",
+      "ai_system_classification": "minimal-risk",
+      "evidence": {
+        "signed_body_sha256": "d3565ed89bd16ceb2af431b11ba9de5ec11cf686d283c27b0888b9ffd3f04f7b",
+        "signature": "dSqbBKrg2vwTwclWHd-ZDkf5ct7EaEF_uP6P9bjffh5UF6IcfIkHmCuFkc_-NvLsBgoTof5emFn0GlTjBdAFCA",
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "kid": "agent:acme.echo-client#key1",
+          "x": "2yBga3e_Y0iNdj9COkyqEcksOlTLhF7ySNaR3IxyIL0"
+        },
+        "verified_at": "2026-04-01T09:05:00.000Z",
+        "record_sha256": "288d7effa5151277d07fe0931cf91f976affb70f4922c38819fbfbfffac231cb"
+      },
+      "context_sha256": "a1d5bc99b08415f10887f4e57e5facc58fe05424bfe64541473f474dba39a22b"
+    }
   }
 }
 ```
@@ -1533,6 +1580,11 @@ The decision message MUST conform to the following structure:
   capabilities is meaningless). Either `freely_allowed` or `oversight_required` MAY be
   empty when the policy evaluation (§7.4, §8.3) places no capability in it — as in
   §7.8, where the only granted capability is freely allowed.
+- The `authenticated_context` field MUST be present and MUST be the context prepared in
+  Phase 1, Step 7 and verified by CHECK-05, unchanged, with its `context_id` and its
+  `context_sha256` computed by the formula of Step 7. The gateway MUST record the association of the issued token (its
+  `jti`), the decision's `id` and the `context_id`; this association is the binding the
+  infrastructure router verifies (§7.7).
 
 **Denial.** When `decision` is `"denied"`:
 
@@ -1573,6 +1625,27 @@ the token is valid and returns the associated scope (effective capabilities). If
 token is invalid, expired, or revoked, the router MUST reject the message with error code
 `"unauthorized"` (ARSIA-Core.md §11.2).
 
+**Authenticated context.** For a valid token, the verification response MUST also return
+the `authenticated_context` bound to the token (§7.6) and the `id` of its onboarding
+decision. The router MUST verify that the context is the one bound to that token's own
+decision — its `context_sha256`, recomputed by the formula of Phase 1, Step 7, matches
+the value bound at Phase 5 — that its `agent_id` is
+both the token's subject and the message's `from`, and that it is usable (below). The
+router MUST then resolve the request's obligations per ARSIA-Core.md §4.3.10, with the
+context's facts as the `identity-record` source, **before** forwarding the request. A
+request rejected by the resolution is not forwarded; the router answers per
+ARSIA-Core.md §4.3.10.6 and records the rejection per ARSIA-State.md §7.1. If the
+context is missing, invalid or unusable, or is bound to another agent or another
+admission, the router MUST NOT forward the request and MUST reject it with error code
+`"unauthorized"`; it MUST NOT treat the agent as having a lower classification.
+
+**Context validity.** The context stops being usable at the first applicable limit: the
+token's expiry; the IdentityRecord's `valid_until`, when present; or an invalidation or
+revocation received through an authenticated and authorized path — a token revocation
+(§7.7) or a new IdentityRecord whose signature the gateway verifies as in Phase 1. An
+unauthenticated announcement does not invalidate the context and does not require
+re-onboarding.
+
 **Capability enforcement.** The router MUST verify that the requested capabilities
 (from the message's `capabilities` field per ARSIA-Core.md §4.2) are a subset of the
 token's scope. If the message requests capabilities not present in the token's scope, the
@@ -1600,7 +1673,10 @@ router SHOULD verify DPoP proofs when present.
 the onboarding flow to obtain a new token. Implementations MAY provide a lightweight
 renewal mechanism that skips Phases 1–4 if the agent's identity and compliance posture
 have not changed, but this optimization is NOT REQUIRED and is outside the scope of this
-specification.
+specification. Every renewal, lightweight or full, MUST bind a valid context: the
+gateway retrieves the IdentityRecord again, verifies it as in Phase 1, Steps 2–5,
+prepares a new context (Step 7) and binds it to the new token (§7.6). A renewal never
+extends a context whose evidence has expired.
 
 ### 7.8 Example — Regulatory Auditor Onboarding
 
@@ -1878,14 +1954,14 @@ tests.
 | **action**        | Gateway executes the full six-phase onboarding flow against the external agent. |
 | **expected**      | Phase 1 passes (identity verified). Phase 2 passes (all 5 checks pass or skip). Phase 3 produces non-empty `effective_capabilities`. Phase 4 records provenance. Phase 5 emits the onboarding decision (`request` with payload type `arsiaprotocol.onboarding/decision`, §7.6) with `decision: "approved"`, a valid JWT token, `effective_capabilities`, `freely_allowed`, and `oversight_required` lists. An ArsiaAuditRecord with `event_type: "approval_decision"` is created. |
 
-### IDENTITY-14: Rejection — agent lacks required compliance profile
+### IDENTITY-14: Rejection — authenticated context does not match Phase 1
 
 | Field             | Value                                                              |
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-14`                                                      |
-| **description**   | Verify that a high-risk agent without compliance profile is rejected |
-| **preconditions** | External agent's IdentityRecord has `ai_system_classification: "high-risk"`. Agent sends response messages without `compliance.profile` field. |
-| **action**        | Gateway executes Phase 1 (passes) and Phase 2. CHECK-05 (classification consistency) evaluates the agent's responses. |
+| **description**   | Verify that onboarding is denied when the authenticated context does not match the evidence authenticated in Phase 1. |
+| **preconditions** | Phase 1 passes with a valid, unexpired IdentityRecord containing `valid_until`. Before Phase 2, the context prepared in Step 7 is altered: `valid_until` is removed or extended, or `record_sha256` is changed. Its `context_sha256` is recomputed after the alteration. |
+| **action**        | The gateway executes Phase 2. CHECK-05 compares the authenticated context with the evidence authenticated in Phase 1. |
 | **expected**      | CHECK-05 fails. Phase 2 fails. Gateway emits the onboarding decision (`request`, payload type `arsiaprotocol.onboarding/decision`) with `decision: "denied"` and `denial_reason: "conformance_failed"`. The `conformance_result` includes CHECK-05 with `status: "fail"`. |
 
 ### IDENTITY-15: Rejection — identity signature verification fails

@@ -1579,7 +1579,7 @@ declares where message processing MUST occur.
 
   | Code | Region                                    | Member states                      |
   |------|-------------------------------------------|------------------------------------|
-  | `"EU"` | European Union / European Economic Area | All EU/EEA member states.          |
+  | `"EU"` | European Union / European Economic Area | All EU/EEA member states — the member list of §5.2. |
 
   This table is the **closed normative registry** of regional codes: the valid
   `data_residency` value set is exactly (ISO 3166-1 alpha-2 country codes) ∪
@@ -1674,9 +1674,23 @@ Norway (EEA members). Switzerland is NOT an EU/EEA member state and does NOT sat
 the `"EU"` zone, despite its geographic proximity and certain bilateral agreements with
 the EU.
 
+**Member list, revision `2026-03`.** This list is the single authority for the members
+of the `"EU"` regional code (§5.1); the normalization of residency restrictions
+(ARSIA-Core.md §4.3.10.5) expands `"EU"` to it. ISO 3166-1 alpha-2 codes, sorted:
+`AT`, `BE`, `BG`, `CY`, `CZ`, `DE`, `DK`, `EE`, `ES`, `FI`, `FR`, `GR`, `HR`, `HU`,
+`IE`, `IS`, `IT`, `LI`, `LT`, `LU`, `LV`, `MT`, `NL`, `NO`, `PL`, `PT`, `RO`, `SE`,
+`SI`, `SK`. Its identifier is the revision together with the SHA-256 of the RFC 8785
+form of the sorted JSON array of the codes —
+`sha256:1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a` for revision
+`2026-03`. A resolution that expands `"EU"` records the revision and the SHA-256 of
+the list it used.
+
 Implementations MUST maintain an up-to-date list of EU/EEA member states. Changes to
 EU/EEA membership (e.g., new accessions) SHOULD be reflected in implementations within
-90 days of the effective date of the membership change.
+90 days of the effective date of the membership change. A list that reflects such a
+change is a new revision, identified by the effective date of the change (`YYYY-MM`)
+and its SHA-256 computed as above; it replaces the published list here, and each
+revision applies from its identifier onward.
 
 ### 5.3 Residency Verification
 

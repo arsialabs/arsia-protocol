@@ -2303,11 +2303,11 @@ implementation-defined, but the key MUST NOT be extractable in plaintext.
 
 **Applicability.** Option A is RECOMMENDED for human-in-the-loop flows where a natural
 person reviews and approves each financial operation. This is the typical pattern for
-MiFID II-regulated operations where the applicable compliance profile requires human
-approval of each operation. Per-operation approval is the profile's technical choice,
-not a literal requirement of EU AI Act Article 14, which requires oversight measures
-commensurate with the risks, level of autonomy and context of use of a high-risk AI
-system (Article 14(3)) and enabling the assigned natural persons to decide not to use,
+MiFID II-regulated operations where the effective oversight set includes
+`required_before_execution` (for example the `MIFID-II` default). Per-operation
+approval is the profile's default, not a literal requirement of EU AI Act Article 14,
+which requires oversight measures commensurate with the risks, level of autonomy and
+context of use of a high-risk AI system (Article 14(3)) and enabling the assigned natural persons to decide not to use,
 or to disregard, override or reverse, its output (Article 14(4)(d)).
 
 **Limitations.** Option A does not provide an inherence factor. PSD2 Article 97(1)

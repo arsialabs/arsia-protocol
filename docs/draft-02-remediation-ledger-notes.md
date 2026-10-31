@@ -126,5 +126,31 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   left it (regeneration is a separate step).
 - **Unchained audit-record vectors (DR-5):** older audit-record vectors carry no
   chain fields; the level mandate is enforced by harness R14 (f) and CHECK-04.
+- **ITV-18/19 and post-execution review (DR-3/DR-4):** they stay structurally valid;
+  accepting `required_within_24h` or `required_post_execution` in a resolution is not
+  evidence that post-execution review works — that mechanism is DR-2.
+- **Resolved is not fulfilled (DR-3/DR-4):** `obligation_resolution` records which
+  obligations applied; fulfilment evidence comes from the flows that carry them out.
+- **Resolver-contract tests (DR-3/DR-4):** ITV-609, ITV-617 and ITV-618 compose
+  executor-class requirements to test the resolver's contract; they do not claim the
+  executor integration, which is DR-1.
+- **Removed RTM rows (DR-3/DR-4):** IDENT-§4.2-02 and -03 (warning and
+  `classification_mismatch` rejection) and STATE-§6.2-04 (profile applicable only to
+  high-risk agents) traced requirements that the cycle removed.
+- **CHECK-05 (DR-3/DR-4):** the new check states no RFC 2119 keyword; it is traced
+  through IDENT-§7.3-17 (all checks pass) and IDENT-§7.6-11, and exercised by the
+  vectors carrying the authenticated context.
+- **Stale CORE-§4.3.7-02/-03 (observed in DR-3/DR-4, not fixed):** the rows describe a
+  retention clamp and an override warning that Core §4.3.7 forbids ("MUST NOT silently
+  raise"); they predate the cycle and are left for the RTM pass (A-64 domain).
+- **Stale profiles/README.md retention column (observed in DR-3/DR-4, not fixed):** it
+  states day counts (e.g. 180 days for EU-AI-ACT-HIGH-RISK, 730 for DSA-VLOP) that differ
+  from the catalog (P6M, P1096D); out of the cycle's scope.
+- **getting-started breakdown (DR-3/DR-4):** the vector breakdown "430 / 145 / 94" missed
+  by LM2 now carries the tool-computed figures.
+- **Published counts after DR-3/DR-4:** 33 schemas (incl. meta), 717 vectors
+  (441/157/119), RTM 1940 / 1147, 110 consistency checks; README.md, CLAUDE.md,
+  docs/FAQ.md, docs/getting-started.md and test-vectors/README.md updated. The generated
+  overview stays a dated snapshot.
 
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

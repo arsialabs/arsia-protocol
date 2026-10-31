@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-obligation-rules.schema.json",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "title": "ARSIA Obligation Rules",
+  "description": "Declarative requirement entries interpreted by the effective obligation resolution (ARSIA-Core.md §4.3.10). Validates profiles/arsia-obligation-rules.json. The entries carry no algorithm: scope, trigger, requirements and exceptions only.",
+  "type": "object",
+  "required": ["version", "generated", "procedure", "axes", "rules"],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {"type": "string"},
+    "$schema": {"type": "string"},
+    "version": {"type": "string", "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"},
+    "generated": {"type": "string", "format": "date-time"},
+    "procedure": {"const": "ARSIA-Core.md §4.3.10"},
+    "axes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/axis"},
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/rule"}
+    }
+  },
+  "$defs": {
+    "axis": {"enum": ["oversight", "audit", "explainability", "retention", "residency"]},
+    "intent": {"enum": ["request", "response", "event", "error", "pending_approval", "approval_decision"]},
+    "diagnostic": {"enum": ["high_risk_missing_oversight", "insufficient_retention", "obligation_conflict"]},
+    "rule": {
+      "type": "object",
+      "required": ["id", "reference", "scope", "trigger", "requirements", "exceptions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+        "reference": {"type": "string", "minLength": 1},
+        "scope": {
+          "type": "object",
+          "required": ["intents"],
+          "additionalProperties": false,
+          "properties": {
+            "intents": {
+              "oneOf": [
+                {"const": "all"},
+                {"type": "array", "items": {"$ref": "#/$defs/intent"}, "minItems": 1, "uniqueItems": true}
+              ]
+            }
+          }
+        },
+        "trigger": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["fact", "equals", "from"],
+              "additionalProperties": false,
+              "properties": {
+                "fact": {"const": "ai_system_classification"},
+                "equals": {"enum": ["minimal-risk", "limited-risk", "high-risk"]},
+                "from": {
+                  "type": "array",
+                  "items": {"enum": ["identity-record", "message-declaration"]},
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["field", "equals"],
+              "additionalProperties": false,
+              "properties": {
+                "field": {"enum": ["pii_involved"]},
+                "equals": {"type": "boolean"}
+              }
+            },
+            {
+              "type": "object",
+              "required": ["profile_member", "present"],
+              "additionalProperties": false,
+              "properties": {
+                "profile_member": {"enum": ["retention_minimum"]},
+                "present": {"const": true}
+              }
+            }
+          ]
+        },
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["axis", "kind", "excludes"],
+                "additionalProperties": false,
+                "properties": {
+                  "axis": {"const": "oversight"},
+                  "kind": {"const": "restriction"},
+                  "excludes": {
+                    "type": "array",
+                    "items": {"enum": ["not_required", "required_before_execution", "required_within_24h", "required_post_execution"]},
+                    "minItems": 1,
+                    "uniqueItems": true
+                  },
+                  "diagnostic": {"$ref": "#/$defs/diagnostic"}
+                }
+              },
+              {
+                "type": "object",
+                "required": ["axis", "kind", "value"],
+                "additionalProperties": false,
+                "properties": {
+                  "axis": {"enum": ["audit", "explainability"]},
+                  "kind": {"const": "value"},
+                  "value": {"type": "boolean"},
+                  "diagnostic": {"$ref": "#/$defs/diagnostic"}
+                }
+              },
+              {
+                "type": "object",
+                "required": ["axis", "kind", "value_from"],
+                "additionalProperties": false,
+                "properties": {
+                  "axis": {"const": "retention"},
+                  "kind": {"const": "floor"},
+                  "value_from": {"const": "profile.retention_minimum"},
+                  "diagnostic": {"$ref": "#/$defs/diagnostic"}
+                }
+              }
+            ]
+          }
+        },
+        "exceptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["axis", "on", "effect", "reference"],
+            "additionalProperties": false,
+            "properties": {
+              "axis": {"const": "audit"},
+              "on": {"const": "explicit-conflict"},
+              "effect": {"const": "override"},
+              "warning_event_type": {"const": "compliance_warning"},
+              "reference": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

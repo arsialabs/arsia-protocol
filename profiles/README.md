@@ -9,6 +9,7 @@ This directory contains the ARSIA Protocol compliance profiles registry.
 | File | Description |
 |------|-------------|
 | `arsia-compliance-profiles.json` | All 7 compliance profiles with defaults and regulatory references |
+| `arsia-obligation-rules.json` | Declarative requirement rules (scope, trigger, requirements, exceptions) interpreted by the effective obligation resolution of ARSIA-Core.md §4.3.10; validated by `arsia-obligation-rules.schema.json` |
 
 ## Profiles
 

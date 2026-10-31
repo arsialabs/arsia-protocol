@@ -1109,8 +1109,10 @@ months", which is a calendar period of six months, not 180 days).
 - **Description:** Whether responses to this message MUST include a
   `payload.explanation` object conforming to ARSIA-Actions.md §5.2. When `true`, the
   response MUST include an explanation with `reasoning`, `confidence`, and `inputs_used`
-  fields. This field implements EU AI Act Article 13 transparency obligations at the
-  message level.
+  fields. This field provides, at message level, a technical means to support the
+  transparency that EU AI Act Article 13 requires of high-risk systems (from 2 December
+  2027 for Annex III systems, Article 113(c)); it is not by itself evidence that a
+  system meets Article 13.
 
 #### 4.3.6.7 `pii_involved`
 
@@ -1190,13 +1192,18 @@ months", which is a calendar period of six months, not 180 days).
   message to declare a risk classification that differs from the agent-level
   classification in `IdentityRecord.ai_system_classification`
   (ARSIA-Identity.md §1.2), subject to the constraint defined in §4.3.7. A high-risk
-  agent MAY send a minimal-risk message (classification downgrade). A minimal-risk agent
-  MUST NOT send a high-risk message (classification escalation is prohibited).
+  agent MAY declare a lower classification for a message; the declaration is recorded,
+  but it does not by itself reduce any obligation derived from the agent-level
+  classification (§4.3.10.3). A minimal-risk agent MUST NOT send a high-risk message
+  (classification escalation is prohibited).
 
 #### 4.3.7 Field Inheritance and Defaults
 
-The effective value of each compliance sub-field is determined by the following
-precedence chain. Higher-priority sources override lower-priority sources.
+The precedence chain below determines the **filled value** of each compliance
+sub-field: it is the *fill* step of the effective obligation resolution (§4.3.10).
+Higher-priority sources override lower-priority sources. Filled values are then
+checked against the requirements of the applicable requirement sources (§4.3.10.4);
+the precedence chain fills values and never cancels a requirement.
 
 **Priority 1 — Per-message field value (highest).** An explicit value set in the
 message's `compliance` object takes precedence over all other sources. This is the
@@ -1213,21 +1220,32 @@ no `profile` is declared, the `GDPR-STANDARD` profile defaults apply. This ensur
 that any message with a `compliance` field receives at least baseline GDPR coverage.
 
 **Priority 4 — No compliance (lowest).** When the `compliance` field is entirely
-absent from the message envelope, no compliance obligations apply at the protocol level.
-The message is processed under Core conformance only (§12.1). This is
-the default for agents that do not operate in regulated environments.
+absent from the message envelope, no sub-field is filled: neither profile defaults
+nor `GDPR-STANDARD` defaults apply. Requirements of requirement sources still apply
+(§4.3.10) — in particular the high-risk requirement set derived from the sender's
+authenticated IdentityRecord (§4.3.10.3) — and a request that cannot satisfy them is
+rejected (§4.3.10.6). When no requirement source applies, the message is processed
+under Core conformance only (§12.1); this is the default for agents that do not
+operate in regulated environments.
 
 Profile defaults fill any field not explicitly set in the message. Per-message values
 override profile defaults for that specific message only — they do not modify the
-profile definition.
+profile definition. Profile defaults are defaults, not requirements: a per-message
+value may replace a profile default, and a replaced default never becomes an
+obligation (§4.3.10.5). The only profile member that acts as a requirement is
+`retention_minimum` (Rule 4).
 
 **`ai_system_classification` constraint.** The per-message `ai_system_classification`
 field interacts with the agent-level classification in
 `IdentityRecord.ai_system_classification` (ARSIA-Identity.md §1.2) as follows:
 
 - If `IdentityRecord.ai_system_classification` is `"high-risk"` and the message's
-  `compliance.ai_system_classification` is `"minimal-risk"`: this is ALLOWED. A
-  high-risk agent may perform actions that are individually classified as minimal-risk.
+  `compliance.ai_system_classification` is `"minimal-risk"`: the declaration is
+  ALLOWED and is recorded separately (§4.3.10.7), but it does not by itself reduce
+  any obligation derived from the authenticated agent-level classification. Reducing
+  an obligation requires an `authorized-reduction` source (§4.3.10.2); this
+  specification defines no instance of that class, so a declared downgrade never
+  dispenses a requirement.
 
 - If `IdentityRecord.ai_system_classification` is `"minimal-risk"` and the message's
   `compliance.ai_system_classification` is `"high-risk"`: this is PROHIBITED.
@@ -1291,14 +1309,21 @@ extension):
 `"invalid_request"` and `details: { "missing_legal_basis": true }`. This enforces
 GDPR Article 6(1): processing of personal data requires a lawful basis.
 
-**Rule 3 — High-risk requires human oversight.** If the effective
-`compliance.ai_system_classification` is `"high-risk"`, the effective
-`compliance.human_oversight` MUST NOT be null or absent. If no human oversight mode is
-declared (neither per-message nor via profile defaults), the message MUST be rejected
-with error code `"invalid_request"` and
-`details: { "high_risk_missing_oversight": true }`. This implements at protocol level
-the human-oversight requirement of EU AI Act Article 14, which applies to Annex III
-high-risk systems from 2 December 2027 (Article 113(c)).
+**Rule 3 — High-risk requires human oversight.** For a message with `intent`
+`"request"` to which the high-risk requirement set applies (§4.3.10.3), the composed
+oversight set (§4.3.10.5) MUST contain at least one mode other than `"not_required"`;
+a valid mode filled from a profile default counts. A request whose composed set
+contains no such mode — oversight absent or null, or filled only by a
+`"not_required"` default, with no source demanding a mode — or whose oversight is
+explicitly declared `"not_required"`, MUST be rejected with error code
+`"invalid_request"` and
+`details: { "high_risk_missing_oversight": true, "declared": <declared value or
+null>, "sources": [<requirement sources>] }`. A declared post-execution mode never
+cancels a requirement for prior approval; both apply (§4.3.10.5). This is a
+protocol rule (§4.3.10.3). It provides a technical basis for the human oversight
+that EU AI Act Article 14 requires of high-risk systems — applicable to Annex III
+systems from 2 December 2027 (Article 113(c)) — and is not by itself evidence that
+a system meets Article 14.
 
 **Rule 4 — Profile retention floor.** If the effective profile defines a retention
 minimum (`retention_minimum`, ARSIA-State.md §6) and the message **explicitly
@@ -1330,7 +1355,8 @@ Article 72), DORA (`P1827D`), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
 EU-AI-ACT-HIGH-RISK (`P6M`, a calendar period), and EU-AI-ACT-LIMITED-RISK. A
 profile's retention minimum is a **profile floor**; whether it is also a legal
 minimum is recorded per profile in the catalog (`retention_basis`,
-ARSIA-State.md §6).
+ARSIA-State.md §6). The retention minimum is a requirement source of the effective
+obligation resolution (§4.3.10.2); its composition follows §4.3.10.5.
 
 **Rule 5 — Data residency triggers brokered routing.** If `compliance.data_residency`
 is set, the message MUST be routed through a Compliance Broker whose infrastructure
@@ -1352,7 +1378,10 @@ value or profile default. If a sender explicitly sets `audit_required` to `false
 message with `pii_involved` set to `true`, the receiving agent MUST override
 `audit_required` to `true` and SHOULD log a compliance warning with `event_type`
 `"compliance_warning"`. This enforces GDPR Article 5(2) accountability: processing of
-personal data must produce evidence of compliance.
+personal data must produce evidence of compliance. The audit requirement and this
+override are entries of the obligation rules (§4.3.10.3); the override is the only
+case in which an explicit value conflicting with a requirement is replaced instead of
+rejected (§4.3.10.6).
 
 **Rule 8 — Sensitive data requires Art. 9(2) legal basis.** When a SET operation
 creates or updates a state entry with `pii_classification` of `"sensitive"`, the
@@ -1388,6 +1417,214 @@ ordinary personal data.
   with the relay attestation's `authorization_token_hash`
   (ARSIA-Routing.md §7.4.1), this closes mix-and-match splicing of envelopes,
   tokens, proofs, and attestations.
+
+#### 4.3.10 Effective Obligation Resolution
+
+This section defines the single procedure by which a receiving agent determines the
+compliance obligations that apply to a message. The precedence chain (§4.3.7), the
+validation rules (§4.3.8), profile application (ARSIA-State.md §6), the onboarding
+context applied by infrastructure routers (ARSIA-Identity.md §7.7) and the audit
+provenance (ARSIA-State.md §7.1) reference this procedure; none of them defines
+another. The declarative content of the protocol's requirement rules is published in
+`profiles/arsia-obligation-rules.json`, validated by
+`arsia-obligation-rules.schema.json`; this section is the only algorithm that
+interprets it.
+
+##### 4.3.10.1 Terms and axes
+
+- **Filled value** — the value of a compliance sub-field after the precedence chain
+  of §4.3.7, together with its *fill source*: `message` (declared in the message),
+  `profile-default` (default of the applied profile), `no-profile-default` (the
+  `GDPR-STANDARD` defaults applied when `compliance` is present without `profile`) or,
+  for retention only, `platform-default` (ARSIA-State.md §7.3). A sub-field that is
+  not filled has no value (Priority 4).
+- **Requirement** — a constraint on an axis contributed by a requirement source
+  (§4.3.10.2). A requirement is **unambiguous** when exactly one value satisfies it
+  (for example `audit_required` MUST be `true`), and a **restriction** when it
+  excludes values without designating one (for example oversight MUST NOT be
+  `"not_required"`).
+- **Composed result** — the per-axis outcome of §4.3.10.5.
+- **Resolved, not fulfilled** — the resolution establishes which obligations apply.
+  It is not evidence that they were carried out: fulfilment is evidenced by the flows
+  that carry the obligations out (for example the oversight records of
+  ARSIA-Actions.md §3.5).
+
+The procedure resolves five axes:
+
+| Axis | Compliance sub-field | Composed result |
+|------|----------------------|-----------------|
+| `oversight` | `human_oversight` (§4.3.6.5) | a set of oversight modes |
+| `audit` | `audit_required` (§4.3.6.3) | a boolean |
+| `explainability` | `explainability_required` (§4.3.6.6) | a boolean |
+| `retention` | `retention` (§4.3.6.4) | a duration with its anchor and `retained_until` |
+| `residency` | `data_residency` (§4.3.6.2) | a set of ISO 3166-1 alpha-2 codes, or no restriction |
+
+##### 4.3.10.2 Sources
+
+**Value sources** (fill only): the message, the applied profile's defaults, and the
+no-profile defaults (§4.3.7). Value sources never contribute requirements.
+
+**Requirement sources** belong to the following classes. Each requirement is recorded
+with the identification of its source.
+
+| Class | Contributes | Identification |
+|-------|-------------|----------------|
+| `protocol-rule` | The requirements of an entry of the obligation rules (§4.3.10.3) whose scope and trigger hold | Entry `id` and the SHA-256 of the entry's RFC 8785 canonical form |
+| `profile-floor` | The applied profile's `retention_minimum` (Rule 4) | Profile name and the SHA-256 of the RFC 8785 canonical form of its catalog entry |
+| `identity-record` | Authenticated **facts** about the sender — its `ai_system_classification` (ARSIA-Identity.md §1.2). Facts are not requirements: a `protocol-rule` entry turns a fact into requirements, and the provenance links the two | `agent_id` and the identity evidence below |
+| `executor-policy` | Requirements of the receiving side: the ActionDescriptor (ARSIA-Actions.md §2.1), a gateway CapabilityPolicy (ARSIA-Identity.md §8) or an executor risk assessment (ARSIA-Assets.md §5.2). Those sections govern oversight triggering directly (ARSIA-Actions.md §3.7); in this specification their requirements are not inputs of this procedure. When they are supplied, they compose under §4.3.10.5 unchanged | As defined by the supplying section |
+| `authorized-reduction` | An authenticated, authorized reduction of an obligation, with defined scope and verifiable provenance | This specification defines no instance of this class. A declared lower classification is not a reduction (§4.3.7) |
+
+**Identity evidence.** The receiving agent obtains the sender's IdentityRecord
+through the signed identity endpoint (ARSIA-Identity.md §1.3) or, at an
+infrastructure router, from the context bound at onboarding
+(ARSIA-Identity.md §7.6–§7.7). The evidence recorded for an `identity-record` source
+is: the SHA-256 of the raw response body bytes that `X-ARSIA-Sig` signs
+(`signed_body_sha256`); the signature; the JWK actually used to verify it;
+`verified_at`; and the SHA-256 of the RFC 8785 canonical form of the parsed record
+(`record_sha256`), which identifies its semantic content. A key identifier and a
+verification instant document a verification but do not allow it to be repeated;
+the receiving agent therefore MUST retain the raw signed body bytes, retrievable by
+`signed_body_sha256`, for as long as any audit record that references them is
+retained.
+
+**Retrievability.** A digest identifies content; it does not reconstruct it. The
+publisher of a profile catalog (ARSIA-State.md §6; the defining organisation for
+extension profiles, §4.3.8 Rule 1) and of `arsia-obligation-rules.json` MUST keep
+every published revision retrievable by the digest that identifies it.
+
+##### 4.3.10.3 The obligation rules
+
+An entry of the obligation rules declares a **scope** (the intents it applies to),
+a **trigger** (the fact or field condition that activates it), its
+**requirements** (per axis: unambiguous value, restriction or floor) and its
+**exceptions** (how an explicit conflicting declaration is handled, when it is not
+rejected). The entries are:
+
+| Entry `id` | Scope | Trigger | Requirements | Exceptions |
+|------------|-------|---------|--------------|------------|
+| `high-risk-request` | `request` | `ai_system_classification` is `"high-risk"`, from the sender's authenticated IdentityRecord or from a per-message declaration | `oversight`: restriction, excludes `"not_required"`; `audit`: `true`; `explainability`: `true` | `audit`: explicit `false` is overridden (Rule 7) |
+| `pii-audit` | all intents | effective `pii_involved` is `true` | `audit`: `true` | `audit`: explicit `false` is overridden (Rule 7) |
+| `profile-retention-floor` | all intents | the applied profile defines `retention_minimum` | `retention`: floor equal to `retention_minimum` | — |
+
+The `high-risk-request` entry is the **high-risk requirement set**. It is a protocol
+technical rule: it does not import the defaults or the retention minimum of the
+`EU-AI-ACT-HIGH-RISK` profile, and it does not require prior approval. A per-message
+classification may raise obligations — declaring `"high-risk"` triggers the set — but
+never lowers them (§4.3.7). The set applies to operations only: a `response`,
+`error`, `event`, `pending_approval` or `approval_decision` message is not an
+operation, and oversight is never required of it.
+
+The entries correspond one to one to the content of `arsia-obligation-rules.json`.
+
+##### 4.3.10.4 Procedure
+
+For each message, the receiving agent MUST perform the following steps in order:
+
+1. **Fill.** Determine the filled value and fill source of each axis (§4.3.7).
+2. **Collect.** Determine the facts of the `identity-record` source and evaluate
+   every entry of the obligation rules whose scope includes the message's intent and
+   whose trigger holds; add its requirements, each with its source identification.
+   Add the `profile-floor` requirement of the applied profile.
+3. **Compose.** Compose each axis (§4.3.10.5).
+4. **Evaluate.** Evaluate sufficiency and conflicts on the composed result
+   (§4.3.10.6). A filled value is never rejected before composition.
+5. **Record.** Record the resolution (§4.3.10.7), whether the message is accepted or
+   rejected.
+
+##### 4.3.10.5 Per-axis composition
+
+**Defaults and declarations.** A filled value whose fill source is a default is not
+a declaration. A default that does not satisfy an unambiguous requirement is replaced
+by the required value, without a conflict. A default never becomes an obligation, and
+a value is never chosen for a restriction.
+
+**`oversight`.** The composed set is the filled mode, whatever its fill source —
+unless it is `"not_required"` — together with every mode that a requirement source
+demands. Restrictions are evaluated on the composed set: a restriction excluding
+`"not_required"` is satisfied when the set contains at least one other mode, including
+a valid mode filled from a profile default (for example `"required_before_execution"`
+from `MIFID-II`). When the set contains no such mode — no mode filled other than
+`"not_required"`, and no source demanding one — the restriction is unmet and the
+message is rejected (§4.3.10.6); a mode is never selected on the sender's behalf.
+There is no ordering among modes: a declared post-execution mode never cancels a
+requirement for prior approval, and when both are present both apply, each with the
+semantics of §4.3.6.5. Separately from sufficiency, an explicit `"not_required"`
+declaration conflicts with every requirement or restriction that demands oversight,
+and the message is rejected even if a source contributes a mode to the set.
+
+**`audit` and `explainability`.** A requirement of `true` replaces a `false` default.
+An explicit `false` declaration conflicts with it; on the `audit` axis the conflict
+is resolved by the Rule 7 override (`true`, with a `compliance_warning`), and on the
+`explainability` axis the message is rejected.
+
+**`retention`.** Retention requirements are floors on the same retained object. Each
+is compared by the instant it produces from that object's own retention anchor
+(§4.3.6.4.1); durations are never compared directly. A declared value that satisfies
+every floor is the composed retention. A declared value below a floor is rejected
+(Rule 4). When no value is declared, the composed retention is the floor whose
+`retained_until` is latest. When no value is declared and no floor applies, the
+composed retention is the platform default of ARSIA-State.md §7.3 (`P90D`), with fill
+source `platform-default`. Requirements that apply to different retained objects are
+not composed with each other. A rejected declaration is never applied: the audit
+record of the rejection is retained under the rule for `effective_retention`
+(ARSIA-State.md §7.1), which governs the retention of that evidence and is not an
+acceptance or correction of the rejected value.
+
+**`residency`.** Each restriction — a declared or filled `data_residency` and every
+residency requirement — is normalized to a set of ISO 3166-1 alpha-2 codes; a
+regional code is expanded to its member list (ARSIA-Routing.md §5.2), and the
+revision of that list is recorded. An absent value is *no restriction*, which is not
+the empty set. The composed result is the intersection of all restrictions; an empty
+intersection is a conflict.
+
+##### 4.3.10.6 Rejection and diagnostics
+
+A message that fails the evaluation is rejected with error code `"invalid_request"`
+(§11.2) in every case; the diagnostic is carried in `details`. Each failure has
+exactly one diagnostic, and the specific diagnostics of §4.3.8 take precedence over
+the generic one:
+
+| Failure | `details` diagnostic |
+|---------|----------------------|
+| Unknown profile in strict mode (Rule 1) | `unknown_profile: true` |
+| Personal data without legal basis (Rule 2) | `missing_legal_basis: true` |
+| High-risk oversight restriction unmet: absent, insufficient default or explicit `"not_required"` (Rule 3) | `high_risk_missing_oversight: true`, with `declared` and `sources` |
+| Declared retention below a floor (Rule 4) | `insufficient_retention: true`, with the members defined in Rule 4 |
+| Classification escalation (Rule 6) | `classification_escalation: true` |
+| Special-category data without an Art. 9(2) basis (Rule 8) | `sensitive_requires_art9_basis: true` |
+| Any other conflict between an explicit declaration and a requirement, or an empty residency intersection | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
+
+When several failures apply, the reported diagnostic is the first in the order of
+the rules of §4.3.8, with `obligation_conflict` last; the provenance records every
+conflict found. Every rejection produced by this evaluation, for a message of any
+intent, MUST produce an audit record (ARSIA-State.md §7.1, `rejection_cause:
+"compliance"`) correlated with the rejected message, whatever value of
+`audit_required` that message declares.
+
+##### 4.3.10.7 Provenance
+
+The receiving agent MUST record the resolution, in the `obligation_resolution`
+member defined in ARSIA-State.md §7.1, on every audit record that State §7.1
+designates as covered for an accepted request, and on the audit record of every
+rejection. The record holds the resolution inline. It allows each axis to be rebuilt:
+the declared value, distinguishing omission from an explicit value; the default used
+and its source; each requirement with the identification of its source and, for a
+requirement derived from a fact, the fact and its evidence; the composed result,
+including accumulated oversight modes; and any override or conflict.
+
+Three situations are recorded distinctly and never by an invented value: an axis
+with **no value** (nothing declared or filled, and no requirement); an axis with **no
+obligation** (no requirement, whatever its value); and an axis whose **result was not
+obtained** because of a conflict. Conflicts raised by validation rules that have no
+composition axis (Rules 1, 2, 6 and 8) are recorded with the compliance sub-field or
+fact they concern instead of an axis; their diagnostics are unchanged.
+
+On records subject to the audit hash chain (ARSIA-State.md §7.2), the resolution is
+part of the committed record content. The retention fields of the record
+(`declared_retention`, `effective_retention`, `retention_source`, `retention_anchor`)
+are derived from the same resolution as defined in ARSIA-State.md §7.1, which also
+covers the retention of rejection records.
 
 ### 4.4 Payload Structure
 

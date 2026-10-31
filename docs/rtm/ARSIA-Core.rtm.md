@@ -128,8 +128,8 @@
 | CORE-§4.3.8-05 | 4.3.8 | MUST | sdk | behavioural_positive | Non-strict mode: unknown profile MUST log warning and apply GDPR-STANDARD defaults | — | ITV-415 |
 | CORE-§4.3.8-06 | 4.3.8 | MUST | sdk | behavioural_negative | Strict mode: unknown profile MUST reject with invalid_request | — | ITV-416 |
 | CORE-§4.3.8-07 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 2: pii_involved=true without legal_basis MUST reject with invalid_request | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
-| CORE-§4.3.8-08 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 3: high-risk classification MUST have human_oversight set (not null) | arsia-message | CTV-03, ITV-421 |
-| CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | High-risk message without human_oversight MUST be rejected with invalid_request | — | ITV-421 |
+| CORE-§4.3.8-08 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 3: for a request under the high-risk requirement set, the composed oversight set MUST contain a mode other than not_required; a valid mode filled from a profile default counts | arsia-compliance-field | ITV-421, ITV-579, ITV-610, ITV-611 |
+| CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | A high-risk request whose composed set has no mode other than not_required, or that explicitly declares not_required, MUST be rejected with invalid_request and details high_risk_missing_oversight (declared, sources) | — | ITV-579, ITV-603, ITV-604, ITV-605, ITV-608, INV-07, ITV-452, ITV-454 |
 | CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 (5 years) | arsia-compliance-field | CTV-03, ITV-417 |
 | CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 |
 | CORE-§4.3.8-12 | 4.3.8 | MUST | deployment | procedural | Rule 5: data_residency MUST trigger routing through an in-zone Compliance Broker | — | — |
@@ -139,6 +139,11 @@
 | CORE-§4.3.8-16 | 4.3.8 | SHOULD | sdk | behavioural_positive | Rule 7: when audit_required is overridden, agent SHOULD log a compliance_warning event | — | ITV-553 |
 | CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations | ITV-555, INV-20 |
 | CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | — | INV-20 |
+| CORE-§4.3.10-01 | 4.3.10.4 | MUST | sdk | procedural | Receiving agent MUST resolve a message's obligations in order: fill, collect, compose, evaluate, record (sufficiency evaluated on the composed result) | arsia-obligation-rules | ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 |
+| CORE-§4.3.10-02 | 4.3.10.2 | MUST | sdk | behavioural_positive | Receiving agent MUST retain the raw signed IdentityRecord body bytes, retrievable by signed_body_sha256, while any referencing audit record is retained | — | — |
+| CORE-§4.3.10-03 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of a profile catalog and of arsia-obligation-rules.json MUST keep every published revision retrievable by its digest | arsia-obligation-rules | — |
+| CORE-§4.3.10-04 | 4.3.10.6 | MUST | sdk | behavioural_negative | Every rejection produced by compliance evaluation, for a message of any intent, MUST produce an audit record (rejection_cause compliance) correlated with the rejected message, whatever audit_required declares | arsia-audit-record | ITV-600, ITV-603, ITV-622, INV-56, INV-58, INV-62 |
+| CORE-§4.3.10-05 | 4.3.10.7 | MUST | sdk | behavioural_positive | Receiving agent MUST record the resolution inline in obligation_resolution on covered records of accepted requests and on the audit record of every rejection | arsia-audit-record | ITV-600, ITV-601, ITV-55, INV-54 |
 | CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 |
 | CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — |
 | CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — |

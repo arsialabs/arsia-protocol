@@ -192,6 +192,55 @@ definitions expose their axes.
 
 **Dependencies.** DR-0.1.
 
+**Addendum — 2026-10-31 (owner decisions for the DR-3/DR-4 cycle).**
+- **D1 — Scope.** DR-3 and DR-4 form a bounded stage of the single resolution
+  component (DR-0.1, Core §4.3.10). The component's contract is complete — sources,
+  per-axis requirements, provenance, accumulation, conflicts — and integrates the
+  message-side sources (declared values, profile, authenticated IdentityRecord,
+  carried through onboarding to the router). DR-1 integrates the executor sources
+  into the same component. The cycle demonstrates resolution and validation, not
+  equivalence with execution: Actions §3.7 is unchanged, so F-1 stays partial.
+- **D2 — High-risk oversight minimum.** `not_required`, absent and null never
+  satisfy it; sufficiency is evaluated on the composed oversight set, where a valid
+  mode filled from a default counts. A post-execution mode suffices only when no
+  applicable source requires prior approval; distinct requirements accumulate. It is
+  a protocol rule, not a reading of Article 14. Accepting a post-execution mode is
+  not evidence that post-execution review works (DR-2).
+- **D3 — Downgrade.** A lower classification declared by the sender does not, by
+  itself, reduce obligations established by trusted context. A reduction needs an
+  authenticated, authorized source with scope and provenance; none is defined, so a
+  declared downgrade dispenses nothing and is recorded separately.
+- **D4 — Axes.** Oversight, audit, explainability, retention and residency, without
+  resolving A-70 (grounding of the MIFID-II floor) or A-7 (PURGE × retention).
+  Retention requirements on the same object are compared by `retained_until` from
+  that object's anchor; residency restrictions are normalized to member sets before
+  intersecting (absent ≠ empty); oversight is a set.
+- **D5 — Profile oversight is a substitutable default.** Fill (message, profile
+  default, no-profile default), then apply requirement sources. Defaults never
+  accumulate as obligations; `retention_minimum` is the only profile requirement.
+- **D6 — High-risk requirement set.** Oversight ≠ `not_required`,
+  `audit_required: true`, `explainability_required: true`, for `request` messages
+  only; it imports neither P6M nor prior approval. A protocol technical rule, not a
+  compliance claim.
+- **D7 — Provenance.** Inline in the audit record (State §7.1
+  `obligation_resolution`) and in rejection details; in the signed executor response
+  with DR-1. Rebuildable per axis; normative presence; chained content; one
+  resolution feeds the retention fields; "resolved" ≠ "fulfilled".
+- **D8 — Authenticated context.** Prepared in Phase 1 (Identity §7.2 Step 7),
+  verified by CHECK-05, bound at Phase 5 to the decision and token, verified by the
+  router, which resolves before forwarding. Usable until the first of token expiry,
+  IdentityRecord `valid_until`, or authenticated invalidation; renewal re-binds a
+  valid context. The binding is not evidence of the agent's future conduct.
+- **D9 — Source identification.** A declarative rules artifact
+  (`profiles/arsia-obligation-rules.json`) interpreted only by Core §4.3.10; sources
+  identified by content digests (RFC 8785); identity evidence keeps the signed
+  bytes' hash, signature and JWK, and the bytes are retained.
+- **D10 — Rejections.** Every compliance rejection, for any intent, produces an
+  `error` audit record with `rejection_cause: "compliance"`, whatever
+  `audit_required` declares. The wire error code stays `invalid_request`; the
+  specific diagnostics of Core §4.3.8 take precedence over the generic
+  `obligation_conflict`.
+
 ---
 
 ## DR-5 — Audit hash chain (A-8 → option a)

@@ -989,8 +989,8 @@ controls.
 | Requirement                | Level           | Notes                                   |
 |----------------------------|-----------------|-----------------------------------------|
 | `audit_required`           | MUST be true    | Full audit trail is mandatory.          |
-| `human_oversight_required` | SHOULD be true  | Article 14 human oversight applies.     |
-| `explainability_required`  | MUST be true    | Article 13 transparency is mandatory.   |
+| `human_oversight_required` | SHOULD be true  | ARSIA control anticipating Art. 14 (from 2 Dec 2027). |
+| `explainability_required`  | MUST be true    | ARSIA control anticipating Art. 13 (from 2 Dec 2027). |
 
 **EU AI Act mapping:** High-risk per Annex III. Article 14 human oversight obligations
 apply from 2 December 2027 for Annex III systems (Article 113(c)): the AI system must

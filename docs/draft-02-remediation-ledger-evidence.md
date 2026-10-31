@@ -90,3 +90,89 @@ fields MUST be present together or not at all (`arsia-audit-record`
 STATE-§7.2-22 — a tombstone MUST persist for as long as its chain exists
 (`arsia-audit-chain-tombstone`; ITV-595; harness R14 (a), (c)). RTM 1922 / 1130 →
 1924 / 1132; every other battery output unchanged.
+
+## 14. DR-3/DR-4 closure evidence
+
+Each closure criterion was checked against the evidence below, at the DR-3/DR-4 commit
+(execution baseline `94b8fc9`). Contract: Core §4.3.10 (new), §4.3.6.9, §4.3.7,
+§4.3.8 Rules 3, 4 and 7; State §6, §6.2, §7.1; Identity §1.2, §4.2, §7.1.2, §7.2
+Step 7, CHECK-05, §7.6, §7.7; Routing §5.1, §5.2; `profiles/arsia-obligation-rules.json`;
+design record DR-3/DR-4 addendum (D1-D10).
+
+| Finding | Closure criterion (clause by clause) | Evidence | Met |
+|---|---|---|---|
+| F-1 | (1) aligned quotes Core Rule 3 / State §6.2 / Actions §3.7; (2) executed high-risk/not_required vector | (1) Core Rule 3 and State §6.2 aligned on the composed oversight set; Actions §3.7 unchanged (DR-1). (2) ITV-608 (explicit not_required, MIFID-II, high-risk) rejected with high_risk_missing_oversight; INV-07, ITV-579, ITV-603..605 (R10) | partial (IPC) |
+| A-32 | Harness rule equal for None / GDPR-STANDARD; ITV-579 and CORE-COMPLIANCE-06 (c) aligned to prose | `resolve_obligations` fills the no-profile defaults; check_consistency "A-32 absent profile == explicit GDPR-STANDARD" over classification × oversight (semantic comparison; fill source and declared profile preserved); ITV-604/605 executed; CORE-COMPLIANCE-06 (c) and ITV-579 now describe the composed-set rejection | yes |
+| A-23 | Per-axis composition quote; disposition for multi-regime agents | Identity §4.2: any profile may be declared, the high-risk requirement set applies whatever the profile (Core §4.3.10.3); ITV-610: high-risk agent declaring MIFID-II, forwarded by the router after resolution with the bound context; IDENTITY-06 rewritten | yes |
+| A-81 | declared_retention requiredness equal in State §7.1 and schema; guard exception removed | schema `required` includes declared_retention; `AUDIT_BASE_EXCEPTIONS` empty and the A-59 guard passes; INV-53 rejected | yes |
+| A-73 (remainder) | Remainder resolved in the DR-3/DR-4 cycle | Core §4.3.6.6, Identity §1.2, State §6.2 (Art. 12, Art. 26(6), "Applied when", Annex III) and the Actions risk-table notes no longer present technical controls as proof of compliance | yes |
+
+**Migration without masking (owner condition).** Every pre-existing vector keeps its
+exact error signature (path, validator, message) — compared before and after, 0
+differences; INV-07, which encoded the replaced Identity §4.2 rule, was re-expressed to
+fail for the new reason (high-risk restriction unmet) and re-signed. The 12 invalid
+audit vectors that lacked declared_retention and the 8 invalid covered records keep
+their original single cause. The failing set of `validate_vectors.py` is the same 32 IDs
+with the same structural reasons (list diffed). Chains: the chained records were
+updated first, then ITV-95 and ITV-592..596 recomputed, then ITV-597..599 re-derived
+from their updated bases with the same tampering; ITV-602 adds a tampered resolution.
+ITV-03 was re-signed with `scripts/regen_v2.py`; crypto 85/85.
+
+**Guards (each mutation-tested, 19/19 detected).** In `check_consistency.py`: runtime
+vectors' stated results == reference resolver; A-32 semantic equivalence; Core
+§4.3.10.3 table == rules artifact (scope, trigger, requirements, exceptions); Core
+§4.3.10.6 diagnostics == audit conflict enum, artifact diagnostics belong to their rule,
+artifact-schema enum ⊆ table; Identity §7.6 example valid with a recomputable
+`context_sha256`; retention fields == derivation from `obligation_resolution`; source
+digests recompute; Routing §5.2 list == resolver and digest recomputes; A-59 guard
+extended to compound and nested conditions; chain tamper map incl. ITV-602. Mutations:
+altered vector expectation, resolver dropping the audit requirement, absent profile
+treated as no compliance, artifact scope/restriction/exception changes, Core table row
+removed, diagnostic attached to the wrong rule, example digest altered and member
+removed, diverging retention_source, catalog changed under recorded digests, EU list
+member removed and digest altered, schema covered condition removed, State nested row
+removed, ITV-602 substitution. Skip classification: `docs/draft-02-skip-classification.md`
+rows == `skip_schema` vectors and its stated total (mutations: row removed, total
+altered).
+
+**Acceptance.** Audited rejection: every record the receiver and router simulations
+emit is validated as a whole against `arsia-audit-record.schema.json` (R10): the
+compliance `error` record of a request declaring audit_required false, the record of
+the full INV-07 envelope, the request and `compliance_warning` records of a Rule 7
+override, and the records of every runtime vector. Router: the trace shows resolution
+before forwarding and no forwarding for a missing, expired, foreign-agent or
+foreign-admission context (ITV-610, ITV-613..616), nor for a binding whose context is
+null or malformed (ITV-626, ITV-627: `unauthorized`, no resolution). CHECK-05 compares
+the prepared context with the Phase 1 evidence — record_sha256, signature, JWK,
+classification and the presence and value of the record's valid_until — so a context
+edited and re-hashed fails and is not admitted (ITV-623..625). The independent
+expectation of INV-07 found a resolver defect (the conflict reported the filled default
+as `declared`), fixed before the commit.
+
+**Owner review before commit (2026-10-31).** The review reproduced the battery and found
+three harness paths below the approved acceptance criteria: CHECK-05 accepted a context
+whose valid_until had been removed and re-hashed, and an incorrect record_sha256; the
+router raised an exception, instead of answering `unauthorized`, for a null context in
+an existing binding; the emitted rejection record lacked record_id, payload_type,
+payload_hash, retained_until and operator_id, so it was not schema-valid although this
+section stated otherwise. All three were corrected in the harness (no change to the
+contract), reproduced by ITV-623..627 and the R10 schema validation, and
+mutation-tested: 6 of 7 mutations detected; the seventh (CHECK-05 reading the
+context's valid_until instead of the record's) is equivalent once their equality is
+checked. The same pass found the 25 runtime vectors of this cycle missing from the skip
+classification; they were classified and the guard above added. It also found three
+Identity passages still echoing the replaced rules, corrected with owner-approved
+wording: §1.1 (receivers resolve every request of a high-risk agent with the high-risk
+requirement set, whatever the profile and also without `compliance`; the former
+obligation on request and response metadata removed; RTM IDENT-§1.1-06 re-traced),
+§7.1.2 item 2 (compliance trust includes validation of the gateway's authenticated
+context, CHECK-05) and IDENTITY-14 (denial when the authenticated context does not match
+Phase 1). ITV-623..625 exercise CHECK-05's detection of the mismatch and the absence of
+admission; they do not build the complete onboarding decision with
+`conformance_failed`, which remains the normative expectation of IDENTITY-14.
+
+**Battery (before → after).** Vectors 679 → 717: 438 → 441 valid, 147 → 157 invalid,
+94 → 119 runtime-only, the same 32 known structural failures; error paths 0 → 0
+mismatches; crypto 85/85; check_consistency 98 → 110 checks, all pass (every earlier
+check unchanged); harness 126 → 199 assertions, all pass (R10 rewritten); examples 76
+blocks OK; links OK; RTM 1924 / 1132 → 1940 / 1147.
