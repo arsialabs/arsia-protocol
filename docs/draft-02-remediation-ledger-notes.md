@@ -21,7 +21,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **A-35:** resolved in C3b — the checker and the generator refuse to run without
   rfc8785.
 - **CI:** `validate-vectors` has been red by design since C0.5, and stays red
-  until the vector cycle.
+  until the vector cycle. Since LM2, CLAUDE.md states this next to the validation
+  command (32 runtime-only vectors fail by design).
 - **Out-of-date docs:** `docs/draft-02-skip-classification.md` and
   `scripts/README.md` are out of date on the ITV-545/546 reasons, skip
   semantics and crypto output (follow-up under A-65).
@@ -106,7 +107,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   schema/profile JSON only; it does not read `docs/` or relative Markdown links. The
   ledger files were checked by a one-off script (tooling program).
 - **Other stale CLAUDE.md figures (LM):** "91 repo invariants" and "R1-R13" are out
-  of date; they are not vector or RTM totals, so LM left them.
+  of date; they are not vector or RTM totals, so LM left them. Resolved in LM2:
+  CLAUDE.md states 98 repo invariants and R1-R14.
 - **Propagation impact (DR-5):** implementations must emit the chain fields at
   Compliance and Full, serve chain queries in State §7.4 (`chain_id`,
   `after_chain_seq`, `next_cursor` as record_id or chain_seq), verify chains in
@@ -115,7 +117,13 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   allows them only in `chain_id` queries (schema more permissive than prose).
 - **Published counts after DR-5:** 32 schemas (incl. meta), 679 vectors
   (438/147/94), RTM 1922 / 1130. README.md, CLAUDE.md (also "R1-R13", no R14) and
-  docs are left for the maintenance step.
+  docs are left for the maintenance step. Resolved in LM2: `README.md`, `CLAUDE.md`,
+  `docs/FAQ.md` and `docs/getting-started.md` carry 32 schemas, 679 vectors
+  (438/147/94) and RTM 1924 / 1132 (after the DR-5 follow-up).
+- **Generated overview (LM2):** `docs/generated/arsia-protocol-overview.md` is a
+  dated snapshot (commit `c4bc506`, extraction 2026-08-06) that still states 649
+  vectors and RTM 1903 / 1109; it says to regenerate rather than hand-edit, so LM2
+  left it (regeneration is a separate step).
 - **Unchained audit-record vectors (DR-5):** older audit-record vectors carry no
   chain fields; the level mandate is enforced by harness R14 (f) and CHECK-04.
 

@@ -140,7 +140,7 @@ print(errors[0].message)
 
 ## 4. Validate Against JSON Schemas
 
-The protocol ships 31 JSON Schemas (Draft 2020-12) in [`schemas/`](../schemas/) that validate every structure in the spec.
+The protocol ships 32 JSON Schemas (Draft 2020-12) in [`schemas/`](../schemas/) that validate every structure in the spec.
 
 **Option A — SDK convenience function:**
 
@@ -184,7 +184,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 669 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that checks all 679 test vectors against the JSON Schemas, with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -228,7 +228,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
 - [Security model](security.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,909 rows)
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,924 rows)
 
 ---
 

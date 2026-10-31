@@ -48,7 +48,8 @@ runtime-only vectors, and the declared guarantees still lacking evidence.
 | C2.1 | Regulatory currency results applied (OD-4; A-71, A-72, A-73) | `aa5547d` | `08633a5` ("fix: align AI Act and CAP citations with the applicable texts (C2.1)") | implemented; per-item state in §4, [§5][reg5] and [§11][reg11] |
 | C3b | Decision-independent cross-spec conflicts, RFC 8785 canonicalization, dispositions, C3a findings (A-74..A-81) | `08633a5` | `59addd5` ("fix: resolve cross-spec conflicts and canonicalization text (C3b)") | implemented; per-item state in §4 and [§12][ev12] |
 | LM | Ledger maintenance: regulatory and vector registers split out, Description column, published counts refreshed | `59addd5` | `eaeb308` ("docs: split regulatory register and add finding descriptions to ledger") | implemented |
-| DR-5 | Audit hash chain over full canonical records (A-8, A-60; A-82..A-92) | `eaeb308` | `036f239` ("feat: define audit hash chain over full canonical records (DR-5)") | implemented; per-item closure in §4 and [§13][ev13]. Totals before → after: vectors 669 → 679; RTM 1909 / 1117 → 1922 / 1130; schemas (incl. meta) 31 → 32 |
+| DR-5 | Audit hash chain over full canonical records (A-8, A-60; A-82..A-92) | `eaeb308` | `036f239` ("feat: define audit hash chain over full canonical records (DR-5)"); follow-up `4343376` ("fix: make chain field co-presence and tombstone persistence normative") | implemented; per-item closure in §4 and [§13][ev13]. Totals before → after: vectors 669 → 679; RTM 1909 / 1117 → 1922 / 1130 (follow-up: → 1924 / 1132); schemas (incl. meta) 31 → 32 |
+| LM2 | Ledger maintenance after DR-5: published counts refreshed; coverage register rows for A-59 and A-60 closed | `4343376` | this commit | implemented |
 
 ## 3. Decision register
 
@@ -208,8 +209,8 @@ counts. Its counts are never merged with those of any other register.
 | Revocation under cache ceiling | harness R13 (C0.5) | keep; add vector sequence | A-58, F-2 | open |
 | jwks_fetched_at recording | none | schema rule + audit-record vectors | A-58 | open |
 | Key-revocation event invalidation | harness R13 (C0.5) | keep; add vector | A-58 | open |
-| Audit prose↔schema parity | event-type enum only | consistency rule over extension table | A-59 | open |
-| Hash-chain tamper evidence | ITV-95 schema only | chain vectors incl. tamper case | A-60, A-8 | open |
+| Audit prose↔schema parity | event-type enum only | consistency rule over extension table | A-59 | closed (C3a) |
+| Hash-chain tamper evidence | ITV-95 schema only | chain vectors incl. tamper case | A-60, A-8 | closed (DR-5) |
 | I-JSON conformance | none | strict-parser vectors | A-61 | open |
 | Duplicate-member rejection | none | raw-text vectors with duplicate detection | A-61 | open |
 | Profile clock-skew override | 3 skipped vectors; ITV-546 reclassified | harness rule + executed ITV-545/546/547 + clean 90 s/120 s case | A-62 | open |
@@ -217,7 +218,7 @@ counts. Its counts are never merged with those of any other register.
 | RTM MUST rows | 1,297 rows: 369 no evidence, 61 skipped-only | each row mapped to evidence or disposition | A-64 | open |
 | Runtime-vector coverage claims | skip-classification doc (7 unsupported, 4 overstated) | one-to-one vector→harness map | A-65 | open |
 
-**Counts (this register only, 18 rows):** open 18; closed 0.
+**Counts (this register only, 18 rows):** open 16; closed 2.
 
 ## 8. Open notes
 
