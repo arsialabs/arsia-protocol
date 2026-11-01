@@ -103,12 +103,7 @@
 | CORE-§4.3.6.4-02 | 4.3.6.4 | MUST_NOT | sdk | behavioural_negative | Per-message retention MUST NOT be less than the profile minimum | arsia-compliance-field | — |
 | CORE-§4.3.6.4-03 | 4.3.6.4 | MUST | sdk | behavioural_positive | Receiving agent MUST use the profile minimum when per-message retention is lower | — | — |
 | CORE-§4.3.6.4-04 | 4.3.6.4 | SHOULD | sdk | behavioural_positive | Receiving agent SHOULD log a compliance warning when overriding retention | — | — |
-| CORE-§4.3.6.5-01 | 4.3.6.5 | MAY | sdk | informational | human_oversight not_required: agent MAY execute actions autonomously | arsia-compliance-field | ITV-134 |
 | CORE-§4.3.6.5-02 | 4.3.6.5 | MUST_NOT | sdk_enabled | behavioural_negative | human_oversight required_before_execution: action MUST NOT execute until human approves | arsia-compliance-field | CTV-02 |
-| CORE-§4.3.6.5-03 | 4.3.6.5 | MUST | sdk_enabled | procedural | Agent MUST respond with pending_approval and await approval_decision for pre-execution oversight | — | CTV-08, CTV-09 |
-| CORE-§4.3.6.5-04 | 4.3.6.5 | MAY | sdk_enabled | behavioural_positive | human_oversight required_within_24h: action MAY execute immediately | arsia-compliance-field | — |
-| CORE-§4.3.6.5-05 | 4.3.6.5 | MUST | operational_policy | procedural | A human MUST review the action and results within 24 hours of execution | — | — |
-| CORE-§4.3.6.5-06 | 4.3.6.5 | MUST | sdk | behavioural_positive | Missing 24-hour review MUST trigger a compliance warning with event oversight_timeout | — | — |
 | CORE-§4.3.6.6-01 | 4.3.6.6 | MUST | sdk | behavioural_positive | explainability_required declares whether responses MUST include payload.explanation | arsia-compliance-field | — |
 | CORE-§4.3.6.6-02 | 4.3.6.6 | MUST | sdk | behavioural_positive | When explainability_required is true, response MUST include reasoning, confidence, and inputs_used | arsia-explanation | — |
 | CORE-§4.3.6.7-01 | 4.3.6.7 | MUST | sdk | structural | When pii_involved is true, legal_basis MUST be set | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
@@ -144,6 +139,8 @@
 | CORE-§4.3.10-03 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of a profile catalog and of arsia-obligation-rules.json MUST keep every published revision retrievable by its digest | arsia-obligation-rules | — |
 | CORE-§4.3.10-04 | 4.3.10.6 | MUST | sdk | behavioural_negative | Every rejection produced by compliance evaluation, for a message of any intent, MUST produce an audit record (rejection_cause compliance) correlated with the rejected message, whatever audit_required declares | arsia-audit-record | ITV-600, ITV-603, ITV-622, INV-56, INV-58, INV-62 |
 | CORE-§4.3.10-05 | 4.3.10.7 | MUST | sdk | behavioural_positive | Receiving agent MUST record the resolution inline in obligation_resolution on covered records of accepted requests and on the audit record of every rejection | arsia-audit-record | ITV-600, ITV-601, ITV-55, INV-54 |
+| CORE-§4.3.10-06 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of ActionDescriptors and CapabilityPolicies MUST keep published revisions retrievable by digest, and executing agents MUST retain risk-assessment records retrievable by digest, while referenced | — | — |
+| CORE-§4.3.10-07 | 4.3.10.7 | MUST | sdk | behavioural_positive | Executing agent MUST carry the resolution in payload.obligation_resolution of its pending_approval and of the response or error reporting the outcome | arsia-message | ITV-631, ITV-640, ITV-644 |
 | CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 |
 | CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — |
 | CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — |
@@ -165,6 +162,9 @@
 | CORE-§4.4.7-02 | 4.4.7 | SHOULD | sdk | behavioural_positive | Implementations SHOULD log a warning if multiple content fields are present | — | — |
 | CORE-§4.4.7-03 | 4.4.7 | MUST | sdk | behavioural_positive | Implementations MUST process the content field matching the message intent | — | — |
 | CORE-§4.4.7-04 | 4.4.7 | MUST | sdk | behavioural_positive | Implementations MUST ignore content fields not matching the message intent | — | — |
+| CORE-§4.4.8-01 | 4.4.8 | REQUIRED | sdk | structural | obligation_resolution is REQUIRED on pending_approval and on the response or error reporting the outcome of a resolved action | arsia-message | INV-65, ITV-631 |
+| CORE-§4.4.8-02 | 4.4.8 | MUST | sdk | behavioural_positive | A message carrying obligation_resolution MUST be signed by the executing agent, whatever its intent | arsia-message | INV-67, ITV-631 |
+| CORE-§4.4.8-03 | 4.4.8 | MUST | sdk | behavioural_negative | Receiver MUST verify the signature before relying on obligation_resolution and MUST treat an unsigned or unverifiable resolution as absent | — | — |
 | CORE-§4.5-01 | 4.5 | MAY | sdk | behavioural_positive | Implementations MAY increase the 1 MiB default message size limit | — | — |
 | CORE-§4.5-02 | 4.5 | MUST | sdk | behavioural_positive | Agent max message size MUST be advertised via max_message_bytes in discovery | arsia-discovery-response | — |
 | CORE-§4.5-03 | 4.5 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD check recipient max_message_bytes before sending large messages | — | — |
@@ -187,6 +187,7 @@
 | CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — |
 | CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — |
 | CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on unknown kid, expired max-age, or every 24 hours | — | — |
+| CORE-§5.2-12 | 5.2 | REQUIRED | sdk | behavioural_positive | Signature verification is REQUIRED for an error carrying obligation_resolution and for the post-execution review events | arsia-message | ITV-657 |
 | CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — |
 | CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — |
 | CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 |
@@ -221,6 +222,9 @@
 | CORE-§6.1-15 | 6.1 | MUST | external | behavioural_positive | Authorization Server MUST sign access tokens using EdDSA, ES256, or RS256 per §5.1 | — | — |
 | CORE-§6.1-16 | 6.1 | MUST | external | behavioural_positive | Authorization Server signing key MUST be discoverable via a standard JWKS endpoint | — | — |
 | CORE-§6.1-17 | 6.1 | MUST | sdk | procedural | Token recipients MUST verify the JWT signature before extracting claims | — | — |
+| CORE-§6.1-18 | 6.1 | OPTIONAL | sdk | structural | arsia_oversight claim: requirement, capabilities and policy (issuer, version, sha256) | arsia-jwt-claims | ITV-639, INV-76 |
+| CORE-§6.1-19 | 6.1 | MUST | external | behavioural_positive | A token whose scope includes a capability under the policy's oversight requirement MUST carry arsia_oversight listing it | arsia-jwt-claims | ITV-642, ITV-669 |
+| CORE-§6.1-20 | 6.1 | MUST | external | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 |
 | CORE-§6.2-01 | 6.2 | MUST | sdk | structural | Token request grant_type parameter MUST be "client_credentials" | arsia-jwt-claims | — |
 | CORE-§6.2-02 | 6.2 | REQUIRED | sdk | structural | Token request MUST include client_id with the requesting agent's identifier, URL-encoded | arsia-jwt-claims | — |
 | CORE-§6.2-03 | 6.2 | REQUIRED | sdk | structural | Token request MUST include scope with space-separated requested capabilities | arsia-jwt-claims | — |
@@ -320,7 +324,7 @@
 | CORE-§8.3-03 | 8.3 | SHOULD_NOT | sdk_enabled | behavioural_negative | Sender SHOULD NOT retry immediately after a request timeout (see §11.3) | — | — |
 | CORE-§8.3-04 | 8.3 | MAY | sdk_enabled | behavioural_positive | Sender MAY check the async status URL after timeout if one was provided | — | — |
 | CORE-§8.3-05 | 8.3 | SHOULD | deployment | behavioural_positive | Idle WebSocket connections (no frames for 60 seconds) SHOULD be closed by the server | — | — |
-| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected | — | ITV-440 |
+| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected; a terminal result retrieved from result_url is not compared with the current time (Actions §4.3) | — | ITV-440, ITV-665 |
 | CORE-§8.3-07 | 8.3 | SHOULD | deployment | behavioural_positive | Implementations SHOULD synchronise clocks using NTP or equivalent time protocol | — | — |
 | CORE-§8.3-08 | 8.3 | SHOULD | deployment | behavioural_positive | Compliance-sensitive agents SHOULD use multiple NTP sources and log drift exceeding 10 seconds | — | — |
 | CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547 |

@@ -787,6 +787,10 @@ and the field is absent, the message is invalid and MUST be rejected with error 
   3. **Late correlation:** a reply that arrives after the correlated message's
      terminal state was reached (expired, completed, or failed) MUST NOT alter that
      state. The receiver MUST log the late arrival and treat the reply per rule 2.
+     A post-execution review's `overdue` state is not terminal
+     (ARSIA-Actions.md §3.9.4): a review decision that arrives after the review
+     deadline is processed per that section. It never alters the execution, whose
+     terminal state is not reopened.
 
 #### 4.2.2 `expires_at` — Expiration Timestamp
 
@@ -1082,25 +1086,29 @@ months", which is a calendar period of six months, not 180 days).
 - **Description:** The human oversight mode required for actions triggered by this
   message.
 
-  `"not_required"` — No human oversight is needed for this message. The agent MAY
-  execute actions autonomously.
+  `"not_required"` — The message requests no human oversight. It is a value, not a
+  dispensation: it removes no requirement contributed by another source
+  (§4.3.10.5).
 
   `"required_before_execution"` — The action MUST NOT execute until a human approves
-  it. This triggers the `pending_approval` / `approval_decision` flow defined in
-  ARSIA-Actions.md §3. The receiving agent MUST respond with a `pending_approval`
-  message and wait for an `approval_decision` from an agent with the
-  `arsiaprotocol.oversight.approve` capability.
+  it, through the `pending_approval` / `approval_decision` flow of
+  ARSIA-Actions.md §3.2–§3.6.
 
-  `"required_within_24h"` — The action MAY execute immediately, but a human MUST
-  review the action and its results within 24 hours of execution. If no review occurs
-  within 24 hours, the implementation MUST log a compliance warning with event type
-  `"oversight_timeout"`. This mode is suitable for time-sensitive actions where
-  blocking is impractical but post-hoc review is mandated.
+  `"required_within_24h"` — The action may execute without prior approval. A
+  post-execution review (ARSIA-Actions.md §3.9) is opened when execution ends, with a
+  review deadline of the execution instant plus 24 hours. No source extends this
+  deadline.
 
-  `"required_post_execution"` — The action executes immediately. Results are audited
-  and made available for human review. No blocking occurs, and no timeout enforcement
-  is applied. This mode is suitable for low-risk actions under profiles that require
-  traceability but not pre-approval.
+  `"required_post_execution"` — The action may execute without prior approval. A
+  post-execution review (ARSIA-Actions.md §3.9) is opened when execution ends, with a
+  review deadline of the execution instant plus the review period that the executing
+  agent announces for that action (`post_execution_review_period`,
+  ARSIA-Actions.md §2.1). An executing agent with no such period rejects the request
+  before any effect (ARSIA-Actions.md §3.9.1).
+
+  These modes apply to actions that an executing agent performs for a `request`
+  (§4.3.10.3). The applicable modes are the composed oversight set of §4.3.10.5; when
+  it contains several modes, each applies with its own semantics.
 
 #### 4.3.6.6 `explainability_required`
 
@@ -1472,7 +1480,7 @@ with the identification of its source.
 | `protocol-rule` | The requirements of an entry of the obligation rules (§4.3.10.3) whose scope and trigger hold | Entry `id` and the SHA-256 of the entry's RFC 8785 canonical form |
 | `profile-floor` | The applied profile's `retention_minimum` (Rule 4) | Profile name and the SHA-256 of the RFC 8785 canonical form of its catalog entry |
 | `identity-record` | Authenticated **facts** about the sender — its `ai_system_classification` (ARSIA-Identity.md §1.2). Facts are not requirements: a `protocol-rule` entry turns a fact into requirements, and the provenance links the two | `agent_id` and the identity evidence below |
-| `executor-policy` | Requirements of the receiving side: the ActionDescriptor (ARSIA-Actions.md §2.1), a gateway CapabilityPolicy (ARSIA-Identity.md §8) or an executor risk assessment (ARSIA-Assets.md §5.2). Those sections govern oversight triggering directly (ARSIA-Actions.md §3.7); in this specification their requirements are not inputs of this procedure. When they are supplied, they compose under §4.3.10.5 unchanged | As defined by the supplying section |
+| `executor-policy` | Requirements of the executing agent, collected only by the agent that executes the requested action: its ActionDescriptor (ARSIA-Actions.md §2.1), the gateway CapabilityPolicy carried by the access token (§6.1, `arsia_oversight`; ARSIA-Identity.md §8) and its risk assessment (ARSIA-Assets.md §5.2). Each of them demands the oversight mode `"required_before_execution"` or nothing; a source that demands nothing contributes nothing, and no source removes a requirement contributed by another (ARSIA-Actions.md §3.7) | ActionDescriptor: `id` `action-descriptor:<action_id>`, `sha256` of the RFC 8785 form of the descriptor as published (ARSIA-Actions.md §2.3). CapabilityPolicy: `id` `capability-policy:<policy.issuer>/<policy.version>`, `sha256` = the claim's `policy.sha256`. Risk assessment: `id` `risk-assessment:<action_id>`, `sha256` of the RFC 8785 form of the assessment record (ARSIA-Assets.md §5.2) |
 | `authorized-reduction` | An authenticated, authorized reduction of an obligation, with defined scope and verifiable provenance | This specification defines no instance of this class. A declared lower classification is not a reduction (§4.3.7) |
 
 **Identity evidence.** The receiving agent obtains the sender's IdentityRecord
@@ -1491,7 +1499,11 @@ retained.
 **Retrievability.** A digest identifies content; it does not reconstruct it. The
 publisher of a profile catalog (ARSIA-State.md §6; the defining organisation for
 extension profiles, §4.3.8 Rule 1) and of `arsia-obligation-rules.json` MUST keep
-every published revision retrievable by the digest that identifies it.
+every published revision retrievable by the digest that identifies it. The publisher
+of an ActionDescriptor or of a CapabilityPolicy MUST keep each published revision
+retrievable by its digest, and the executing agent MUST retain each risk-assessment
+record retrievable by its digest, for as long as any audit record that references
+them is retained.
 
 ##### 4.3.10.3 The obligation rules
 
@@ -1525,10 +1537,15 @@ For each message, the receiving agent MUST perform the following steps in order:
 2. **Collect.** Determine the facts of the `identity-record` source and evaluate
    every entry of the obligation rules whose scope includes the message's intent and
    whose trigger holds; add its requirements, each with its source identification.
-   Add the `profile-floor` requirement of the applied profile.
+   Add the `profile-floor` requirement of the applied profile. The executing agent
+   also adds the `executor-policy` requirements (§4.3.10.2), before any effect of the
+   action. An agent that does not execute the requested action — an infrastructure
+   router among them — does not collect `executor-policy` sources.
 3. **Compose.** Compose each axis (§4.3.10.5).
 4. **Evaluate.** Evaluate sufficiency and conflicts on the composed result
-   (§4.3.10.6). A filled value is never rejected before composition.
+   (§4.3.10.6). A filled value is never rejected before composition. At the
+   executing agent, the evaluation includes the review configuration of every
+   post-execution mode of the composed oversight set (ARSIA-Actions.md §3.9.1).
 5. **Record.** Record the resolution (§4.3.10.7), whether the message is accepted or
    rejected.
 
@@ -1552,6 +1569,19 @@ requirement for prior approval, and when both are present both apply, each with 
 semantics of §4.3.6.5. Separately from sufficiency, an explicit `"not_required"`
 declaration conflicts with every requirement or restriction that demands oversight,
 and the message is rejected even if a source contributes a mode to the set.
+
+**Review configuration.** When the composed set contains `"required_within_24h"` or
+`"required_post_execution"` and the executing agent lacks an element of the review
+configuration that mode needs (ARSIA-Actions.md §3.9.1), the `oversight` axis has a
+conflict: its `status` is `"conflict"` and its `result` is `null`. The axis's
+`declared` and `fill` keep what the message declared and what was filled, with its
+fill source — a mode filled from a default stays a default and is never recorded as
+a declaration or as a requirement. The conflict item carries `declared` — the value
+the message declared, or `null` when `human_oversight` was omitted; `required` —
+`{"mode": <the post-execution mode>, "missing": <"review_endpoint" |
+"escalation_destination" | "post_execution_review_period">}`; and `sources` — the
+requirement sources that demanded the mode, empty when the mode is only a filled
+value.
 
 **`audit` and `explainability`.** A requirement of `true` replaces a `false` default.
 An explicit `false` declaration conflicts with it; on the `audit` axis the conflict
@@ -1593,7 +1623,7 @@ the generic one:
 | Declared retention below a floor (Rule 4) | `insufficient_retention: true`, with the members defined in Rule 4 |
 | Classification escalation (Rule 6) | `classification_escalation: true` |
 | Special-category data without an Art. 9(2) basis (Rule 8) | `sensitive_requires_art9_basis: true` |
-| Any other conflict between an explicit declaration and a requirement, or an empty residency intersection | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
+| Any other conflict between an explicit declaration and a requirement, an empty residency intersection, or a post-execution mode lacking its review configuration (§4.3.10.5) | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
 
 When several failures apply, the reported diagnostic is the first in the order of
 the rules of §4.3.8, with `obligation_conflict` last; the provenance records every
@@ -1625,6 +1655,12 @@ part of the committed record content. The retention fields of the record
 (`declared_retention`, `effective_retention`, `retention_source`, `retention_anchor`)
 are derived from the same resolution as defined in ARSIA-State.md §7.1, which also
 covers the retention of rejection records.
+
+The executing agent MUST also carry the resolution in the `obligation_resolution`
+member of the payload (§4.4.8) of the `pending_approval` it sends and of the
+`response` or `error` with which it reports the outcome of the action, so that its
+signed message records the effective requirements and their sources. The requester's
+envelope is never modified.
 
 ### 4.4 Payload Structure
 
@@ -1751,7 +1787,24 @@ deliberate Draft-02 hardening — Draft-01's "warn and process the intent's fiel
 rule made receivers diverge on which content they acted on while the message schema
 already rejected the combination; prose and schema now enforce the same hard rule.
 A payload with no content field at all is likewise rejected with
-`invalid_request`.
+`invalid_request`. `explanation` (ARSIA-Actions.md §5.2) and `obligation_resolution`
+(§4.4.8) are not content fields.
+
+#### 4.4.8 `obligation_resolution` — Executor Provenance
+
+- **Type:** object, as defined for the `obligation_resolution` member of
+  ARSIA-State.md §7.1.
+- **REQUIRED** on a `pending_approval` (ARSIA-Actions.md §3.2) and on the `response`
+  or `error` with which an executing agent reports the outcome of an action it
+  resolved (ARSIA-Actions.md §3.4, §3.7, §4.3), including the asynchronous terminal
+  result. OPTIONAL on other messages.
+- **Signature.** A message carrying `obligation_resolution` MUST be signed by the
+  executing agent, whatever its intent. Its receiver MUST verify that signature per
+  §5.2 before relying on the resolution, and MUST treat an unsigned or unverifiable
+  resolution as absent.
+- **Description:** The effective obligation resolution of the request (§4.3.10.7) as
+  computed by the executing agent, with its `executor-policy` sources. It is not a
+  content field and does not count towards §4.4.7.
 
 ### 4.5 Message Size Limits
 
@@ -1885,7 +1938,9 @@ accommodate high-throughput event streams where verification latency may be
 prohibitive — except for compliance-relevant event payloads (breach notification,
 ICT incident, key revocation, on-wire audit events), which MUST be signed and
 verified per ARSIA-Identity.md §3.1. Signature verification on `"error"` messages
-is RECOMMENDED.
+is RECOMMENDED, and REQUIRED for an `error` that carries `obligation_resolution`
+(§4.4.8). Signature verification is also REQUIRED for the post-execution review
+events of ARSIA-Actions.md §3.9.3.
 
 #### Message Processing Pipeline (Normative Order)
 
@@ -2122,6 +2177,18 @@ The following claim is OPTIONAL:
 | Claim   | Type    | Description                                              | Required |
 |---------|---------|----------------------------------------------------------|----------|
 | `cnf`   | object  | Confirmation claim for proof-of-possession per [RFC 9449]. | OPTIONAL |
+| `arsia_oversight` | object | Oversight requirement of the gateway CapabilityPolicy (ARSIA-Identity.md §9.1). REQUIRED when `scope` includes a capability that policy marks `oversight_required`. | OPTIONAL |
+
+**`arsia_oversight`.** An object with three members: `requirement` — the mode the
+policy demands, `"required_before_execution"`; `capabilities` — the exact capability
+strings of `scope` subject to it; and `policy` — its identification: `issuer` (the
+agent-id of the gateway that applied it), `version` (its `policy_version`) and
+`sha256` (the SHA-256 of its RFC 8785 form). A token whose scope includes a
+capability under that requirement MUST carry the claim listing it. A token issued in
+exchange for another (ARSIA-Identity.md §9.1) MUST carry, for every capability of its
+scope that the original claim lists, the same `requirement` and `policy`. A reduced
+scope reduces `capabilities` and never removes the requirement of a remaining
+capability.
 
 The `sub` claim MUST match the `from` field of any message presented with this token.
 The `aud` claim MUST match the `to` field of any message presented with this token.
@@ -2317,6 +2384,13 @@ message. The enforcement procedure is as follows:
      `capabilities` field. The `provided_capabilities` array lists the capabilities
      that were present in the token's scope. This information helps the requesting
      agent or its operator diagnose the authorization failure.
+
+**Oversight claim.** When the token carries `arsia_oversight`, the executing agent
+supplies to the effective obligation resolution (§4.3.10.4, step 2) one
+`executor-policy` requirement demanding the claim's `requirement` for each capability
+of the message's `capabilities` listed in the claim, before any effect of the action.
+A token that lacks the claim for a capability that the onboarding decision bound to
+it lists in `oversight_required` is handled per ARSIA-Identity.md §7.7.
 
 ---
 
@@ -3032,7 +3106,11 @@ exceed 300 seconds — compliance profiles can only tighten the tolerance, never
 it. This tolerance applies to:
 
 - The `ts` field (§4.1.3): A message with a `ts` that differs from the recipient's
-  current time by more than the tolerance MAY be rejected.
+  current time by more than the tolerance MAY be rejected. The `ts` of a terminal
+  result retrieved from `result_url` is not compared with the current time
+  (ARSIA-Actions.md §4.3): such a result is a persisted, authenticated result whose
+  `ts` records the execution instant. This exempts no other message and does not
+  widen the tolerance.
 - The `expires_at` field (§4.2.2): A message is considered expired when the
   recipient's current time exceeds `expires_at` + the tolerance.
 - Access token `exp` and `iat` claims (§6.1) and DPoP proof `iat` (§6.3): Token and
@@ -3723,15 +3801,15 @@ a conformant implementation MUST pass all tests at the Compliance conformance le
 | **action**        | Receiver applies Rules 2, 7, 8. |
 | **expected**      | (a) rejected `{missing_legal_basis: true}` (vector INV-06); (b) rejected per Rule 8 (vectors ITV-553/554); (c) accepted (ITV-555; INV-20 negative). |
 
-#### CORE-COMPLIANCE-09: Oversight timeout (`required_within_24h`)
+#### CORE-COMPLIANCE-09: Post-execution review deadline (`required_within_24h`)
 
 | Field             | Value                                                               |
 |-------------------|---------------------------------------------------------------------|
 | **test_id**       | `CORE-COMPLIANCE-09`                                                |
-| **description**   | Verify the within-24h oversight mode's timeout behaviour            |
-| **preconditions** | Action executed under a profile with `human_oversight = "required_within_24h"` (DSA-VLOP or DORA); no approval within 24 h of execution. |
-| **action**        | The executing agent monitors the post-execution approval window.     |
-| **expected**      | At +24 h without decision: an `approval_expired` audit event is appended referencing the action's audit record; the operator's escalation policy is triggered; the audit trail shows execution, the open window, and the expiry — post-execution oversight is evidenced, not silently skipped. |
+| **description**   | Verify the within-24h review deadline and its overdue consequence   |
+| **preconditions** | An action is executed for a request whose effective oversight set includes `"required_within_24h"` (e.g. the DSA-VLOP or DORA default); the executing agent has a configured review endpoint and escalation destination; no review decision is sent. |
+| **action**        | The executing agent opens the review (ARSIA-Actions.md §3.9) and the deadline passes; an authorized decision then arrives. |
+| **expected**      | A `review-pending` event identifies the terminal result, with `review_deadline` equal to the execution instant + 24 hours. At the deadline a `review_overdue` record is appended and the overdue notice is sent, its delivery result recorded in a separate `review_escalation` record. The execution's terminal state and records are unchanged. The late decision completes the review as `completed_late` and the `review_overdue` record is kept. Reference logic: harness R15. |
 
 ---
 

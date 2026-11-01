@@ -334,14 +334,15 @@
     },
     "pending-approval-args": {
       "type": "object",
-      "description": "Payload args for pending_approval intent — Actions §3.2",
+      "description": "Payload args for pending_approval intent — exactly the closed field set of Actions §3.2",
       "required": [
         "action_id",
         "original_request_id",
         "approval_deadline",
         "approver_capability",
         "context",
-        "risk_level"
+        "risk_level",
+        "request_payload_hash"
       ],
       "properties": {
         "action_id": {
@@ -385,15 +386,27 @@
           "minimum": 0,
           "maximum": 10,
           "description": "Risk level from the ActionDescriptor"
+        },
+        "request_payload_hash": {
+          "allOf": [
+            {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            },
+            {
+              "description": "SHA-256 of the original request's payload, computed as payload_hash in ARSIA-State.md §7.1; binds the approval to the parameters presented — Actions §3.2"
+            }
+          ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "approval-decision-result": {
       "type": "object",
       "description": "Payload result for approval_decision intent (oversight) — Actions §3.3",
       "required": [
         "decision",
-        "approver_id"
+        "approver_id",
+        "request_payload_hash"
       ],
       "properties": {
         "decision": {
@@ -420,6 +433,16 @@
             "type": "string"
           },
           "description": "Conditions attached to the approval"
+        },
+        "request_payload_hash": {
+          "allOf": [
+            {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            },
+            {
+              "description": "The request_payload_hash of the pending_approval decided — Actions §3.3"
+            }
+          ]
         }
       }
     },
@@ -438,6 +461,168 @@
             "failed"
           ],
           "description": "Current execution status"
+        }
+      }
+    },
+    "review-pending-data": {
+      "type": "object",
+      "description": "Payload data of arsiaprotocol.oversight/review-pending — Actions §3.9.3",
+      "required": [
+        "action_id",
+        "original_request_id",
+        "execution_message_id",
+        "executed_at",
+        "outcome",
+        "result_hash",
+        "obligations",
+        "review_deadline",
+        "reviewer_capability",
+        "context",
+        "risk_level"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_request_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "execution_message_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "executed_at": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "error"
+          ]
+        },
+        "result_hash": {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+        },
+        "obligations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": [
+              "mode",
+              "deadline",
+              "period_source"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "mode": {
+                "enum": [
+                  "required_within_24h",
+                  "required_post_execution"
+                ]
+              },
+              "deadline": {
+                "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+              },
+              "period_source": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "arsia-audit-record.schema.json#/$defs/resolution-source"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "review_deadline": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "reviewer_capability": {
+          "const": "arsiaprotocol.oversight.approve"
+        },
+        "context": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "risk_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "review-decision-data": {
+      "type": "object",
+      "description": "Payload data of arsiaprotocol.oversight/review-decision — Actions §3.9.3",
+      "required": [
+        "decision",
+        "reviewer_id",
+        "execution_message_id",
+        "result_hash",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "confirmed",
+            "objected"
+          ]
+        },
+        "reviewer_id": {
+          "$ref": "arsia-common.schema.json#/$defs/agent-id"
+        },
+        "execution_message_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "result_hash": {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 512
+        }
+      }
+    },
+    "review-overdue-data": {
+      "type": "object",
+      "description": "Payload data of arsiaprotocol.oversight/review-overdue — Actions §3.9.3",
+      "required": [
+        "action_id",
+        "original_request_id",
+        "execution_message_id",
+        "mode",
+        "deadline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "original_request_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "execution_message_id": {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        "mode": {
+          "enum": [
+            "required_within_24h",
+            "required_post_execution"
+          ]
+        },
+        "deadline": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         }
       }
     }
@@ -689,6 +874,10 @@
             "data": {},
             "explanation": {
               "$ref": "arsia-explanation.schema.json"
+            },
+            "obligation_resolution": {
+              "$ref": "arsia-audit-record.schema.json#/$defs/obligation-resolution",
+              "description": "Executor provenance — the effective obligation resolution computed by the executing agent (Core §4.4.8). Not a content field."
             }
           },
           "not": {
@@ -1100,6 +1289,10 @@
                   }
                 }
               ]
+            },
+            "obligation_resolution": {
+              "$ref": "arsia-audit-record.schema.json#/$defs/obligation-resolution",
+              "description": "Executor provenance — the effective obligation resolution computed by the executing agent (Core §4.4.8). Not a content field."
             }
           }
         },
@@ -1766,6 +1959,184 @@
         }
       },
       "$comment": "Core §4.2.4: root_request_id MUST be absent on the interaction-initiating request"
+    },
+    {
+      "if": {
+        "properties": {
+          "intent": {
+            "const": "pending_approval"
+          }
+        },
+        "required": [
+          "intent"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "obligation_resolution"
+            ]
+          }
+        }
+      },
+      "$comment": "Core §4.4.8: a pending_approval carries the executor's obligation_resolution"
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "obligation_resolution"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "required": [
+          "security"
+        ]
+      },
+      "$comment": "Core §4.4.8: a message carrying obligation_resolution MUST be signed, whatever its intent"
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "arsiaprotocol.oversight/review-pending"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "security"
+        ],
+        "properties": {
+          "intent": {
+            "const": "event"
+          },
+          "payload": {
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/review-pending-data"
+              }
+            }
+          }
+        }
+      },
+      "$comment": "Actions §3.9.3 review notice"
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "arsiaprotocol.oversight/review-decision"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "security",
+          "capabilities"
+        ],
+        "properties": {
+          "intent": {
+            "const": "event"
+          },
+          "capabilities": {
+            "contains": {
+              "const": "arsiaprotocol.oversight.approve"
+            }
+          },
+          "payload": {
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/review-decision-data"
+              }
+            }
+          }
+        }
+      },
+      "$comment": "Actions §3.9.3 review decision"
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "arsiaprotocol.oversight/review-overdue"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "security"
+        ],
+        "properties": {
+          "intent": {
+            "const": "event"
+          },
+          "payload": {
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/review-overdue-data"
+              }
+            }
+          }
+        }
+      },
+      "$comment": "Actions §3.9.3 overdue notice"
     }
   ],
   "examples": [

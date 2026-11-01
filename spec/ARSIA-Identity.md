@@ -1362,15 +1362,29 @@ ARSIA-Identity.md §3.1:
 If verification fails, the check fails.
 
 **CHECK-03 — Human oversight compliance.** The gateway sends a `request` message for a
-capability that the gateway's policy marks as `oversight_required`. The external agent
-MUST respond with a `pending_approval` message (ARSIA-Actions.md §3.2), NOT with a direct
-`response`. This verifies that the agent implements human oversight signaling per EU AI
-Act Article 14.
+capability that the gateway's policy marks as `oversight_required`, presenting a
+**probe token**. The probe token is not the token of §9.1, which does not exist yet in
+Phase 2: its `sub` is the gateway's agent-id and its `aud` the external agent's
+agent-id; its `scope` contains the probed capability; its `arsia_oversight` claim
+(ARSIA-Core.md §6.1) lists that capability with the identification of the gateway's
+policy (§8.1); and it is issued by an Authorization Server that the external agent's
+issuer trust configuration accepts for that audience (ARSIA-Core.md §6.5).
+Establishing that trust is a precondition of onboarding, provisioned out-of-band as
+§6.5 requires; the gateway gains no trust from the onboarding itself, and the
+external agent validates the probe token like any other token. If the external agent
+rejects the probe with `unauthorized`, the check fails and its `details` record that
+the probe credential was rejected. The external agent MUST respond with a
+`pending_approval` message (ARSIA-Actions.md §3.2), NOT with a direct `response`. This
+verifies that the agent resolves the policy requirement and implements the human
+oversight signaling of ARSIA-Actions.md §3.
 
 - The `pending_approval` message MUST have `intent` set to `"pending_approval"`.
 - The `correlation_id` MUST match the request's `id`.
 - The `payload.type` SHOULD be `"arsiaprotocol.oversight/pending"`.
 - The `expires_at` field MUST be present and set to a future timestamp.
+- `payload.args.request_payload_hash` MUST be the hash of the request's payload.
+- `payload.obligation_resolution` MUST record the `capability-policy` source of the
+  probe token's claim.
 
 If the agent responds with a direct `response` instead of `pending_approval`, the check
 fails. This indicates the agent executes without waiting for human approval on actions
@@ -1436,7 +1450,10 @@ capability falls into one of three categories:
 - **`allowed`** — The agent MAY invoke this capability without additional oversight during
   the operational phase.
 - **`oversight_required`** — The agent MAY invoke this capability, but each invocation
-  MUST trigger a `pending_approval` flow (ARSIA-Actions.md §3.2) before execution.
+  is subject to prior approval: the issued token carries the requirement
+  (`arsia_oversight`, §9.1), which the executing agent resolves (ARSIA-Core.md
+  §4.3.10) so that the `pending_approval` flow (ARSIA-Actions.md §3.2) precedes
+  execution.
 - **`prohibited`** — The agent MUST NOT invoke this capability. The infrastructure router
   MUST reject requests for prohibited capabilities with error code `"forbidden"`.
 
@@ -1456,8 +1473,9 @@ The gateway MUST partition the effective capabilities into two lists:
 - `freely_allowed` — capabilities with policy status `allowed`.
 - `oversight_required` — capabilities with policy status `oversight_required`.
 
-Both lists are included in the onboarding decision (Phase 5) and encoded in the issued
-token's scope.
+Both lists are included in the onboarding decision (Phase 5); the issued token's
+`scope` holds both, and its `arsia_oversight` claim identifies the
+`oversight_required` list with the policy (§9.1).
 
 ### 7.5 Phase 4 — Provenance Verification
 
@@ -1545,6 +1563,7 @@ The decision message MUST conform to the following structure:
       "provenance_verified": true
     },
     "policy_version": "finco-2026-q1",
+    "policy_sha256": "6b8c702884af67342d1aff9949d3474599aa3f84aae9f92a6e3fa0a78f59c698",
     "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9...",
     "token_expires_at": "2026-03-25T18:00:00.000Z",
     "authenticated_context": {
@@ -1575,6 +1594,8 @@ The decision message MUST conform to the following structure:
   exactly the `effective_capabilities`.
 - The `token_expires_at` field MUST be present and set to the token's expiry time in
   RFC 3339 format.
+- The `policy_version` and `policy_sha256` fields MUST be present and identify the
+  CapabilityPolicy applied in Phase 3 (§8.1).
 - The `effective_capabilities`, `freely_allowed`, and `oversight_required` arrays MUST
   be present, and `effective_capabilities` MUST be non-empty (an approval with zero
   capabilities is meaningless). Either `freely_allowed` or `oversight_required` MAY be
@@ -1659,11 +1680,15 @@ exceeds the capability's `max_risk_level`, the router MUST reject the request wi
 code `"forbidden"` (ARSIA-Core.md §11.2) and
 `details: { "risk_level_exceeded": true, "max_risk_level": <N>, "action_risk_level": <M> }`.
 
-**Oversight-required capabilities.** When the message requests a capability marked as
-`oversight_required` in the onboarding decision, the router SHOULD annotate the message
-or signal to the receiving internal agent that oversight is required. The receiving agent
-MUST respond with `pending_approval` per ARSIA-Actions.md §3.2 before executing the
-action.
+**Oversight-required capabilities.** The router MUST reject with `unauthorized` a token
+whose `scope` includes a capability that the onboarding decision bound to it lists in
+`oversight_required` unless the token's `arsia_oversight` lists that capability with
+the decision's policy identification. When the router terminates authorization and
+issues an internal token (§9.1), that token MUST carry the `arsia_oversight`
+requirement and policy identification for every capability of its scope that the
+original claim lists. The executing agent resolves the requirement (ARSIA-Core.md
+§4.3.10, §6.4) and responds with `pending_approval` per ARSIA-Actions.md §3.2 before
+executing the action.
 
 **DPoP binding.** External agents SHOULD use DPoP (ARSIA-Identity.md §3.3) when
 presenting tokens to the infrastructure router, to prevent token theft and replay. The
@@ -1803,6 +1828,13 @@ The policy MUST include the following fields:
 :   An array of capability rules defining the organization's policy for each capability.
     See §8.2 for the CapabilityRule structure.
 
+**Identification.** A CapabilityPolicy is identified by the agent-id of the gateway
+that applies it, its `policy_version` and the SHA-256 of its RFC 8785 canonical form.
+The identification is announced to the external agent in the onboarding decision
+(§7.6) and carried by the issued token (§9.1) and by the probe token of CHECK-03
+(§7.3). A gateway MUST NOT apply two different policies under the same
+`policy_version`, and it retains each revision per ARSIA-Core.md §4.3.10.2.
+
 ### 8.2 CapabilityRule
 
 Each entry in the `capabilities` array defines the policy for a single capability string.
@@ -1878,6 +1910,16 @@ protocol: ARSIA-Core.md §6.4 requires `aud` to equal the message's `to`, and th
 router terminates authorization on behalf of internal agents models this by making
 the router the recipient (`to` = router agent-id) of externally originated
 messages, then re-issuing internal tokens — never by widening `aud`.
+
+**Oversight claim.** A token whose `scope` includes a capability of the
+`oversight_required` list MUST carry the `arsia_oversight` claim (ARSIA-Core.md §6.1),
+listing every such capability with `requirement` `"required_before_execution"` and
+the policy identification of §8.1. A token issued in exchange for this one —
+including an internal token issued by a router that terminates authorization — is a
+new token: its own issuer, audience, subject binding and signature are valid for its
+recipient. It MUST carry the same `requirement` and `policy` for every capability of
+its scope that the original claim lists, and a reduction of scope never removes the
+requirement of a remaining capability.
 
 ### 9.2 Token Theft Mitigation
 
@@ -1980,8 +2022,8 @@ tests.
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-16`                                                      |
 | **description**   | Verify that an agent that bypasses human oversight is rejected      |
-| **preconditions** | Gateway's CapabilityPolicy marks capability `test.unit` as `oversight_required`. External agent is configured to respond directly with `intent: "response"` instead of `intent: "pending_approval"` when receiving a request for `test.unit`. |
-| **action**        | Gateway executes Phase 2, CHECK-03 (human oversight compliance). Gateway sends a request for `test.unit`. |
+| **preconditions** | Gateway's CapabilityPolicy marks capability `test.unit` as `oversight_required`. The external agent trusts the gateway's probe-token issuer (§7.3, ARSIA-Core.md §6.5) and its ActionDescriptor for `test.unit` has `human_oversight_required: false`. It is configured to respond directly with `intent: "response"` instead of `intent: "pending_approval"` when receiving a request for `test.unit`. |
+| **action**        | Gateway executes Phase 2, CHECK-03 (human oversight compliance). Gateway sends a request for `test.unit` with a probe token whose `arsia_oversight` claim lists `test.unit`. |
 | **expected**      | CHECK-03 fails because the agent responded with `intent: "response"` instead of `intent: "pending_approval"`. Phase 2 fails. Gateway emits the onboarding decision (`request`, payload type `arsiaprotocol.onboarding/decision`) with `decision: "denied"` and `denial_reason: "conformance_failed"`. |
 
 ### IDENTITY-17: Capability scoping — prohibited capability rejected post-onboarding
@@ -2000,9 +2042,9 @@ tests.
 |-------------------|--------------------------------------------------------------------|
 | **test_id**       | `IDENTITY-18`                                                      |
 | **description**   | Verify that an oversight-required capability triggers the oversight flow |
-| **preconditions** | External agent has completed onboarding. Capability `test.unit` is in the token's scope and marked as `oversight_required`. Agent sends a request with `capabilities: ["test.unit"]` through the infrastructure router to an internal agent. |
-| **action**        | Internal agent receives the request and checks that `test.unit` requires oversight. |
-| **expected**      | Internal agent responds with `intent: "pending_approval"` per ARSIA-Actions.md §3.2. The action is NOT executed until an `approval_decision` with `decision: "approved"` is received. |
+| **preconditions** | External agent has completed onboarding. Capability `test.unit` is in the token's scope, marked as `oversight_required` and listed in the token's `arsia_oversight` claim (§9.1). The internal agent's ActionDescriptor for `test.unit` has `human_oversight_required: false`. Agent sends a request with `capabilities: ["test.unit"]` through the infrastructure router to an internal agent. |
+| **action**        | Internal agent receives the request, with the token or the internal token issued by the router, and resolves its obligations. |
+| **expected**      | Internal agent responds with `intent: "pending_approval"` per ARSIA-Actions.md §3.2; its `payload.obligation_resolution` records the `executor-policy` source `capability-policy:<gateway>/<policy_version>`. The action is NOT executed until an `approval_decision` with `decision: "approved"` is received. |
 
 ### IDENTITY-19: Token expiry — expired token rejected by infrastructure router
 
@@ -2023,6 +2065,26 @@ tests.
 | **preconditions** | External agent has completed onboarding and has an active (non-expired) token. The organization revokes the agent's token through the gateway. |
 | **action**        | 1. Gateway revokes the token and records an audit event. 2. Agent attempts to send a request through the infrastructure router with the revoked token. 3. Verify that audit records from the agent's operational period are still accessible. |
 | **expected**      | 1. Gateway records an ArsiaAuditRecord with `payload_type: "arsiaprotocol.onboarding/revocation"`. 2. Router calls `/v1/arsia/verify-token`, receives revoked status, rejects the request with error code `"unauthorized"`. 3. Audit records from the agent's operational period remain accessible via the audit query endpoint and are retained per the compliance profile's `retention_minimum`. |
+
+### IDENTITY-21: Router re-issuance preserves the oversight requirement
+
+| Field             | Value                                                              |
+|-------------------|--------------------------------------------------------------------|
+| **test_id**       | `IDENTITY-21`                                                      |
+| **description**   | Verify that an internal token keeps the oversight requirement of every remaining capability, and that a token missing it is rejected |
+| **preconditions** | The onboarding decision lists `test.unit` in `oversight_required` and `code.review` in `freely_allowed`. The router terminates authorization (§9.1). |
+| **action**        | 1. The external agent sends a request with `capabilities: ["test.unit"]`; the router issues an internal token whose scope is reduced to `test.unit`. 2. A second request presents an external token whose scope includes `test.unit` but whose `arsia_oversight` claim is absent. |
+| **expected**      | 1. The internal token carries `arsia_oversight` listing `test.unit` with the same `requirement` and `policy` as the original claim, and its own issuer, audience and signature. 2. The router rejects the request with `unauthorized` and does not forward it. Reference logic: harness R15. |
+
+### IDENTITY-22: CHECK-03 probe token
+
+| Field             | Value                                                              |
+|-------------------|--------------------------------------------------------------------|
+| **test_id**       | `IDENTITY-22`                                                      |
+| **description**   | Verify that CHECK-03 uses a probe token with its own direction, audience and trust |
+| **preconditions** | (a) The external agent's issuer trust configuration accepts the gateway's probe-token issuer for its own agent-id. (b) It does not. |
+| **action**        | Gateway executes CHECK-03 with a probe token (`sub` = gateway, `aud` = external agent, `scope` and `arsia_oversight` listing the probed capability). |
+| **expected**      | (a) The external agent validates the token and responds with `pending_approval`; CHECK-03 passes. (b) The external agent rejects the request with `unauthorized`; CHECK-03 fails with `details` recording the rejected probe credential; Phase 2 fails and the decision is `denied` with `conformance_failed`. The gateway does not retry with another credential. Reference logic: harness R15. |
 
 ---
 

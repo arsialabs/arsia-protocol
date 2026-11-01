@@ -54,6 +54,51 @@
         "jkt"
       ],
       "additionalProperties": false
+    },
+    "arsia_oversight": {
+      "type": "object",
+      "description": "Oversight requirement of the gateway CapabilityPolicy — Core §6.1, Identity §9.1. REQUIRED when scope includes a capability the policy marks oversight_required (runtime rule).",
+      "required": [
+        "requirement",
+        "capabilities",
+        "policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requirement": {
+          "const": "required_before_execution"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "policy": {
+          "type": "object",
+          "required": [
+            "issuer",
+            "version",
+            "sha256"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "issuer": {
+              "$ref": "arsia-common.schema.json#/$defs/agent-id"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            }
+          }
+        }
+      }
     }
   },
   "required": [

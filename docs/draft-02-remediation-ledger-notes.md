@@ -152,5 +152,49 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   (441/157/119), RTM 1940 / 1147, 110 consistency checks; README.md, CLAUDE.md,
   docs/FAQ.md, docs/getting-started.md and test-vectors/README.md updated. The generated
   overview stays a dated snapshot.
+- **ITV-18/19 after DR-1/DR-2:** their descriptions now state the post-execution review
+  the modes open (Actions §3.9); the mechanism is exercised by ITV-645..661.
+- **ACTV-01 retention (observed in DR-1/DR-2, not fixed):** the response declares
+  `retention: "P180D"` under EU-AI-ACT-HIGH-RISK (floor P6M) and would be rejected by
+  the resolver; CTV-02 and ITV-338, which had the same defect and belong to the DR-1/DR-2
+  migration, were corrected by owner exception. Left for the vector cycle.
+- **Non-conformant action_id in CTV-08 and ITV-86 (observed in DR-1/DR-2, not fixed):**
+  their `pending_approval` args carry `ACT-2026-03-24-001` and `ACT-2026-04-27-001`,
+  which are not valid `action_id` values; the migration guard exempts only that pattern
+  error for their reference descriptors (`ACTION_ID_EXEMPT`). Left for the vector cycle.
+- **Shared policy_version with incompatible lists (observed in DR-1/DR-2, not fixed):**
+  ITV-03 (gateway `agent:arsialabs.demo.compliance-checker`) and the payload-only
+  decisions ITV-130, ITV-38 and INV-61 all name `arsialabs-2026-q2`, but
+  `arsiaprotocol.state.write` is oversight-required in ITV-03 and freely allowed in
+  ITV-130. Each carries its own reference policy, which reproduces its lists; Identity
+  §8.1 forbids one gateway applying two policies under one version, and the
+  payload-only decisions name no gateway. The vector cycle should give them distinct
+  versions.
+- **Stale CORE-§4.4.7-01..04 (observed in DR-1/DR-2, not fixed):** the rows still trace
+  the Draft-01 "warn and process" rule that Core §4.4.7 replaced with a hard rejection;
+  they predate the cycle (A-64 domain).
+- **Removed RTM rows (DR-1/DR-2):** CORE-§4.3.6.5-01, -03, -04, -05 and -06 (autonomous
+  execution, the 24 h review MUST and `oversight_timeout`), ACT-§2.1-22 and ACT-§3.7-04
+  (descriptor as dispensation; re-registration as the only way to add oversight),
+  IDENT-§7.4-03 and IDENT-§7.7-07/-08 (pending_approval triggered by the policy status
+  and router annotation) and ASSETS-§5.2-01 (the Assets-only oversight MUST) traced
+  requirements that the cycle replaced; their successors are new rows of Core §4.3.10,
+  §4.4.8, §6.1, Actions §3.2, §3.7, §3.9, Identity §7.7, §9.1 and Assets §5.2.
+- **Both post-execution modes (DR-1/DR-2):** Actions §3.9.2 defines the review when
+  `required_within_24h` and `required_post_execution` both apply, but no source of this
+  cycle can produce that set (executor-policy sources demand prior approval only); R15
+  unit-checks the composition with the modes injected.
+- **Compliance-field description (DR-1/DR-2):** the `human_oversight` description in
+  `arsia-compliance-field.schema.json` still stated the replaced within-24h rule; the
+  echo sweep found it and it now follows Core §4.3.6.5 (guarded).
+- **Actions TOC anchor (observed in DR-1/DR-2, not fixed):** the table of contents links
+  `#14-reserved-system-capabilities`, but the heading is "1.4 Reserved System
+  Capabilities (Normative Registry)"; the dead anchor predates the cycle. The §3.7 and
+  §3.9 entries added or renamed by the cycle resolve.
+- **test-vectors/README format table (DR-1/DR-2):** the format counts (297/378/4) were
+  stale since before DR-3/DR-4; they now carry the tool-computed figures.
+- **Published counts after DR-1/DR-2:** 33 schemas (incl. meta), 780 vectors
+  (453/173/154), RTM 1970 / 1173, 115 consistency checks, harness R1-R15; README.md,
+  CLAUDE.md, docs/FAQ.md, docs/getting-started.md and test-vectors/README.md updated.
 
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

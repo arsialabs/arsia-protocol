@@ -17,7 +17,7 @@ IDENTITY-*/STATE-*/ROUTING-*/ASSETS-* in the specs, executed against a real
 deployment); `deployment inspection` / `operational evidence` = release-gate
 procedures, not suite tests (see Core §12.3).
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 7, forward-compat: 4, numeric: 2, other: 17, retention-floor: 6, temporal: 12, token: 15, transport: 5, x509: 7 — total 119.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 7, executor-oversight: 35, forward-compat: 4, numeric: 2, other: 17, retention-floor: 6, temporal: 12, token: 15, transport: 5, x509: 7 — total 154.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Runtime-test candidate / coverage |
 |---|---|---|---|---|---|
@@ -140,6 +140,41 @@ procedures, not suite tests (see Core §12.3).
 | ITV-625 | Identity §7.2 Step 7, CHECK-05 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
 | ITV-626 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
 | ITV-627 | Identity §7.7 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | covered: harness R10 (test_metadata scenario) |
+| ITV-640 | Actions §3.2, §3.7; Core §4.3.10.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-641 | Actions §3.2, §3.7; Core §4.3.10.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-642 | Actions §3.2, §3.7; Core §4.3.10.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-643 | Actions §3.2, §3.7; Core §4.3.10.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-644 | Actions §3.2, §3.7; Core §4.3.10.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-645 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-646 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-647 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-648 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-649 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-650 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-651 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-652 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-653 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-654 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-655 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-656 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-657 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-658 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-659 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-660 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-661 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-662 | Actions §3.4, §3.6 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-663 | Actions §3.4, §3.6 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-664 | Actions §3.4, §3.6 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-665 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-666 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-667 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-668 | Identity §7.7, §9.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-669 | Identity §7.7, §9.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-670 | Identity §7.3 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-671 | Identity §7.3 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-672 | Assets §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-673 | Assets §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
+| ITV-674 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | covered: harness R15 (test_metadata scenario) |
 
 ## Residual risk statement
 

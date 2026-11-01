@@ -121,6 +121,43 @@ three definitions replaced by one.
 **Dependencies.** DR-0.1; audit-record extension model (A-1/A-2/A-59) for
 the new record types.
 
+**Addendum — 2026-10-31 (owner decisions for the DR-1/DR-2 cycle).**
+- **E1 — Review messages.** The post-execution review uses `event` messages with
+  payload types `arsiaprotocol.oversight/review-pending`,
+  `arsiaprotocol.oversight/review-decision` and `arsiaprotocol.oversight/review-overdue`;
+  the intent enum is unchanged and `pending_approval` keeps meaning that execution is
+  blocked. The contract requires signature, reviewer authority, correlation,
+  identification of the execution and of the reviewed result, and duplicate and late
+  handling. Being events exempts them from the high-risk set only. The review's state
+  is separate from the execution's: a later decision updates the review, never the
+  execution.
+- **E2 — Deadlines.** `required_post_execution` has no protocol default: the executor
+  resolves an explicit deadline from its announced `post_execution_review_period`
+  before any effect, or rejects with `obligation_conflict`. `required_within_24h` keeps
+  a fixed 24 h deadline that no source lengthens; when both modes apply both
+  obligations are kept. `review_deadline` is distinct from `expires_at`.
+- **E3 — Overdue.** Record plus escalation, no universal blocking: the overdue fact is
+  recorded at the deadline independently of the escalation, whose result is appended
+  separately; a late authorized decision is accepted with lateness preserved; an
+  objection starts remediation. Escalation has a configured destination and the
+  retry policy of Core §11.3; an attempt never counts as a review.
+- **E4 — Gateway policy.** The CapabilityPolicy's oversight requirement travels in the
+  token claim `arsia_oversight`, mandatory when it applies, with the policy's
+  identification; re-issuance preserves requirement and origin for every remaining
+  capability. The claim does not replace the announcement of static policies.
+- **Executor choices accepted at review.** Reuse of `arsiaprotocol.oversight.approve`;
+  `post_execution_review_period` in the ActionDescriptor; approval bound by
+  `request_payload_hash`; executor provenance in `payload.obligation_resolution`
+  (Core §4.4.8); A-78 and A-80 in scope.
+- **Contract corrections at review (rev. 2).** Execution instant from the terminal
+  result, including asynchronous success and failure, retrieved results not rejected
+  for the age of their `ts`; overdue fact separate from the escalation result;
+  CHECK-03 probe token with its own direction, audience and trust; signature required
+  on executor errors carrying the resolution; authentication error codes kept for
+  review decisions; declared versus default preserved in the configuration conflict;
+  by-ID migration inventory with reproducible references; the CTV-02 and ITV-338
+  retention exception.
+
 ---
 
 ## DR-3 — High-risk oversight enforcement (Q3 → option c)

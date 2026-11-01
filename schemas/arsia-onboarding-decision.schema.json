@@ -91,6 +91,16 @@
           "minLength": 1,
           "description": "Version identifier of the CapabilityPolicy applied during Phase 3. Establishes which policy version was in effect at onboarding time. Per ARSIA-Identity.md §8.1."
         },
+        "policy_sha256": {
+          "allOf": [
+            {
+              "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+            },
+            {
+              "description": "SHA-256 of the RFC 8785 form of the CapabilityPolicy applied in Phase 3 — Identity §7.6, §8.1"
+            }
+          ]
+        },
         "denial_reason": {
           "type": "string",
           "enum": [
@@ -129,6 +139,7 @@
               "conformance_result",
               "provenance",
               "policy_version",
+              "policy_sha256",
               "authenticated_context"
             ],
             "properties": {

@@ -2514,7 +2514,10 @@ explainability implements this obligation at the protocol level.
 payment processing, eligibility checks) execute and are then audited post-hoc by paying
 agencies and certification bodies. Pre-execution approval is not mandated at the
 individual transaction level; the oversight model is ex-post verification, consistent
-with the CAP assurance framework.
+with the CAP assurance framework. Under this default, an executing agent opens a
+post-execution review whose deadline is its announced `post_execution_review_period`
+(ARSIA-Actions.md §2.1, §3.9); an agent with no such period rejects the request before
+executing it.
 
 **Data residency — `"EU"`.** The Common Agricultural Policy is EU-internal. All CAP
 data — subsidy calculations, eligibility records, payment data — must be processed and
@@ -2645,7 +2648,9 @@ and state entries may be subject to researcher access requests.
 **Human oversight — `"required_within_24h"`.** Content moderation decisions require
 timely human review. Art. 17 requires a statement of reasons for every content
 moderation decision, and Art. 20 requires an internal complaint-handling system —
-both imply human involvement within a reasonable timeframe.
+both imply human involvement within a reasonable timeframe. Under this default, each
+executed action opens a post-execution review due 24 hours after execution
+(ARSIA-Actions.md §3.9).
 
 **PII — `true`.** VLOPs inherently process user personal data. Content moderation,
 advertising, and recommendation all involve personal data processing.
@@ -2727,9 +2732,10 @@ years, ensuring the retention floor is never shorter than five calendar years.
 **Human oversight — `"required_within_24h"`.** Delegated Regulation (EU) 2025/301,
 Art. 5(1)(a), requires the initial notification of a major incident within four hours
 of its classification as major and no later than 24 hours from awareness, implying
-rapid human involvement. 24 hours is the
-protocol default for the profile; major incidents would override per-message with a
-tighter timeframe.
+rapid human involvement. Under this default, each executed action opens a
+post-execution review due 24 hours after execution (ARSIA-Actions.md §3.9). The review
+deadline is an ARSIA control: the notification periods of Delegated Regulation (EU)
+2025/301 Art. 5 run independently and never wait for it.
 
 **Explainability — `false`.** DORA is about operational resilience, not AI transparency.
 ICT incident records require completeness and accuracy, not explainability in the
@@ -2790,7 +2796,8 @@ REQUIRED unless marked OPTIONAL.
   `"approval_decision"`, `"approval_expired"`, `"state_set"`, `"state_delete"`,
   `"state_grant"`, `"state_revoke"`, `"state_purge"`, `"asset_transfer"`,
   `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"ict_incident"`,
-  `"compliance_warning"`
+  `"compliance_warning"`, `"review_pending"`, `"review_decision"`,
+  `"review_overdue"`, `"review_escalation"`
 - **REQUIRED.**
 - **Description:** The type of event being audited. Values correspond to protocol
   operations:
@@ -2816,7 +2823,14 @@ REQUIRED unless marked OPTIONAL.
   `"ict_incident"` — A DORA incident was recorded (ARSIA-Assets.md §6.2.3).
   `"compliance_warning"` — A compliance warning was logged, e.g. an overridden
   `audit_required` on a message with `pii_involved: true` (ARSIA-Core.md §4.3.8,
-  Rule 7).
+  Rule 7), or a failed escalation of an overdue review (ARSIA-Actions.md §3.9.4).
+  `"review_pending"` — A post-execution review was opened (ARSIA-Actions.md §3.9).
+  `"review_decision"` — A post-execution review decision was recorded
+  (ARSIA-Actions.md §3.9).
+  `"review_overdue"` — A post-execution review obligation reached its deadline without
+  a decision (ARSIA-Actions.md §3.9.4).
+  `"review_escalation"` — The result of escalating an overdue review obligation
+  (ARSIA-Actions.md §3.9.4).
 
 #### `from_agent`
 
@@ -3182,6 +3196,10 @@ by the schema.
 | `event_type` = `broker_relay` | `attestation_id`, `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` | — | ARSIA-Routing.md §7.4.2; ARSIA-Core.md §9.2 |
 | `event_type` = `key_rotation` | — | `reason` (`"revocation"` for a key revocation) | ARSIA-Identity.md §2.5 |
 | `event_type` = `rollback` | `original_message_id`, `action_id`, `partial_rollback` | — | ARSIA-Actions.md §4.2 (Rollback Audit) |
+| `event_type` = `review_pending` | `correlation_id`, `root_request_id`, `execution_message_id`, `result_hash`, `review_deadline` | — | ARSIA-Actions.md §3.9.5 |
+| `event_type` = `review_overdue` | `correlation_id`, `root_request_id`, `review_mode`, `review_deadline` | — | ARSIA-Actions.md §3.9.5 |
+| `event_type` = `review_escalation` | `correlation_id`, `root_request_id`, `review_mode`, `escalation_result`, `escalation_attempts` | — | ARSIA-Actions.md §3.9.5 |
+| `event_type` = `review_decision` | `correlation_id`, `root_request_id`, `review_outcome`, `reviewer_id`, `late` | `reason` (string or null) | ARSIA-Actions.md §3.9.5 |
 | `human_oversight_status` = `approved` or `denied` | `approver_id` | — | §7.1 (`approver_id`) |
 | any record type | — | `deployer_id` (when the log owner's IdentityRecord sets a `deployer_id` different from its `owner_id`) | ARSIA-Identity.md §4.4 |
 | `intent` = `request` and `event_type` ∈ `request`, `state_set`, `state_delete`, `state_purge`, `state_grant`, `state_revoke`, `asset_transfer`, `rollback` (covered record) | `obligation_resolution` | — | ARSIA-Core.md §4.3.10.7 |

@@ -176,3 +176,103 @@ admission; they do not build the complete onboarding decision with
 mismatches; crypto 85/85; check_consistency 98 → 110 checks, all pass (every earlier
 check unchanged); harness 126 → 199 assertions, all pass (R10 rewritten); examples 76
 blocks OK; links OK; RTM 1924 / 1132 → 1940 / 1147.
+
+## 15. DR-1/DR-2 closure evidence
+
+Each closure criterion was checked against the evidence below, at the DR-1/DR-2 commit
+(execution baseline `2d40aba`). Contract: Core §4.2.1, §4.3.6.5, §4.3.10.2/.4/.5/.6/.7,
+§4.4.7, §4.4.8 (new), §5.2, §6.1, §6.4, §8.3, CORE-COMPLIANCE-09; Actions §1.4, §2.1,
+§2.3, §3.2–§3.7, §3.9 (new), §4.1, §4.3, ACTIONS-04/05 and ACTIONS-13..19; Identity
+§7.3 CHECK-03, §7.4, §7.6, §7.7, §8.1, §9.1, IDENTITY-16/18/21/22; Assets §5.2,
+ASSETS-06; State §6 (CAP, DSA, DORA), §7.1; design record DR-1/DR-2 addendum (E1–E4).
+
+| Finding | Closure criterion (clause by clause) | Evidence | Met |
+|---|---|---|---|
+| F-1 | (1) aligned quotes Core Rule 3 / State §6.2 / Actions §3.7; (2) executed high-risk/not_required vector | (1) Actions §3.7 now follows the effective oversight set with executor-policy sources; the descriptor is no veto. (2) ITV-608 (DR-3/DR-4) and ITV-640: high-risk sender, MIFID-II default, descriptor `false` → `pending_approval` (R15) — the execution equivalence the DR-3/DR-4 cycle left open | yes |
+| A-3 | Schema validation of compliance_warning/oversight_timeout records, or disposition | `oversight_timeout` removed everywhere (guard); its role is `review_overdue`, in the prose, the enum and the schema (ITV-633), with the escalation result in `review_escalation` (ITV-634/635); `compliance_warning` covers a failed escalation | yes |
+| A-4 | Aligned quotes for one within_24h evidence event + defined post-execution mechanism; executed C-09 | Core §4.3.6.5, Actions §3.9, CORE-COMPLIANCE-09 and State §6 (DSA, DORA, CAP) define one review with `review_overdue`; `required_post_execution` takes its deadline from `post_execution_review_period` or is rejected (ITV-647/648). C-09 executed by R15 ("R15 C-09") and ITV-645..661 | yes |
+| A-11 | Aligned denied/expired response form; ASSETS-06 executed | Assets §5.2 Step 5 answers the Actions §3.4 Path 2/3 errors, no receipt; ASSETS-06 item 9 aligned and executed (ITV-673, "R15 ASSETS-06"); denial ITV-672 | yes |
+| A-12 | Aligned quote defining the trigger source relative to Actions §3.7 | Assets §5.2: the risk assessment is an executor-policy source (Core §4.3.10.2); Actions §3.7 no longer forbids it; ITV-643, ITV-400/401 resolutions record `risk-assessment:` | yes |
+| A-13 | Aligned Identity §7.3/§7.7 vs Actions §3.7 quotes | Identity §7.4/§7.7/§9.1 carry the CapabilityPolicy requirement in `arsia_oversight` (Core §6.1), consumed by the executor (Core §6.4); router rejection and re-issuance rules; CHECK-03 probe token; ITV-642, ITV-668..671 | yes |
+| A-78 | Schema closes the canonical pending_approval field set | `pending-approval-args` closed; Actions §3.2 states the closed set; INV-63; guard | yes |
+| A-80 | Record count for a multi-approval flow ending by expiry specified; editor's note removed | Actions §3.6 step 5: N + 4; ITV-663 (5 records) executed by R15 | yes |
+
+**Migration without masking (owner condition).** Every pre-existing vector keeps its
+exact error signature (path, validator, message): 717 compared before and after, 0
+differences. The failing set of `validate_vectors.py` is the same 32 IDs with the same
+reasons (diffed), and ITV-479 stays a runtime-only vector, structure-validated and
+outside that set. Inventory by structure: 18 `pending_approval` envelopes (12 valid, 6
+invalid, ITV-479 runtime-only) and 10 `approval_decision` envelopes (7 valid, 3
+invalid). Each carries `test_metadata.reference_request` (payload, compliance,
+executor descriptor, claim or assessment) from which `request_payload_hash` and
+`obligation_resolution` recompute (guard); decisions carry the hash of their pending.
+Scenario sources follow the inventory, with one adjustment: ITV-338 and ITV-401 have
+risk 9, and Actions §2.2 requires `human_oversight_required: true` at risk 9-10, so
+their reference descriptors are `true` and their resolutions record the descriptor
+source beside the message or assessment source. Onboarding decisions ITV-130, ITV-38,
+INV-61, ITV-589 and ITV-03 gain `policy_sha256` from a reference CapabilityPolicy whose
+§8.3 evaluation reproduces their lists (guard). Signed vectors re-signed with
+`scripts/regen_v2.py`: CTV-02, CTV-08, CTV-09, CTV-10, INV-14, INV-17, ITV-03; crypto
+89/89.
+
+**Migration exceptions (owner, 2026-10-31).** CTV-02 and ITV-338 declared `retention:
+"P180D"` under EU-AI-ACT-HIGH-RISK, whose floor is P6M; the reference resolver,
+anchored at each envelope's `ts`, rejects both (`insufficient_retention`) and accepts
+P6M. Both now declare `"P6M"`: CTV-02 is re-signed (its payload, and therefore the
+request hash and STV-06/07's references, are unchanged); ITV-338 carries a structural
+test signature and no `crypto` block, so it is not re-signed. ACTV-01 has the same
+defect and is left unchanged for the vector cycle (notes).
+
+**Guards (each mutation-tested, 33/33 detected).** New in `check_consistency.py`:
+migrated pending/decision vectors recompute from their reference request, and a valid
+pending's reference request is accepted with prior approval; onboarding
+`policy_sha256` and lists == reference policy; closed member lists (Actions §3.2 args,
+§3.9.3 review payloads, Core §6.1 claim) == schemas; Core §4.3.10.2 executor source
+ids == harness; replaced rules absent (`oversight_timeout`, router annotation,
+descriptor veto, the old within-24h description); the vector-scenario check extended
+to `execution`; A-59 covers the four review records. Mutations, in R15 and the guards
+(`mutation_evidence`): descriptor veto, claim dropped on re-issue, `review_deadline`
+from `expires_at`, overdue terminal, lateness from timer order, deadline equality on
+time, overdue record waiting for delivery, record mutated after escalation,
+escalation counted as review, unsigned error with resolution accepted, token failures
+as `invalid_request`, default recorded as declared, acknowledgment opening a review,
+deadline moved by retrieval, retrieved result accepted unsigned or rejected for age,
+retry before `Retry-After`, hash binding removed, missing period accepted, CTV-02 back
+to P180D, pending args reopened, review member added, claim member renamed, executor
+prefix changed, `oversight_timeout` reintroduced, review conditional removed, reference
+policy altered, retrieval binding without the `correlation_id` comparison, without the
+`root_request_id` comparison and with the signature only, review notice and overdue
+notice sent to the default destinations, configuration rejection not emitted.
+
+**Acceptance.** Every message and record emitted by R15 validates against
+`arsia-message.schema.json` and `arsia-audit-record.schema.json`, and no record is
+modified after emission (snapshot comparison). The 35 runtime vectors ITV-640..674
+state hand-written expectations, all met; they cover the four prior-approval sources,
+the review deadlines (24 h across midnight, P1M end-of-month), the configuration
+conflict with inherited and declared modes, lateness at and after the deadline before
+any timer, escalation backoff, `Retry-After` and exhaustion, duplicate and rejected
+decisions by error code, objection, approval binding, multi-approval expiry,
+asynchronous success and failure retrieved three days later, token re-issuance, the
+CHECK-03 probe token, the Assets denial and expiry, and configured destinations that
+differ from the defaults (ITV-674). The composition of both
+post-execution modes is unreachable with this cycle's sources (executor-policy sources
+demand prior approval only) and is unit-checked in R15.
+
+**Owner review before commit (2026-11-01).** The review found one functional defect and
+two verification gaps in R15, below the approved criteria; the resolution itself was
+not shown wrong. (1) A configuration rejection was computed and audited but no envelope
+was emitted, so the message checks ran over an empty list: the executor now emits a
+signed `error` carrying the details and `payload.obligation_resolution`, and ITV-647..649
+require it (`rejection_message`, `message_intents`). (2) The review and overdue notices
+used the default destinations instead of the validated configuration: the run keeps the
+configuration the resolution validated, and ITV-674 uses destinations different from
+the defaults. (3) The asynchronous binding check was protected only by the signature,
+because the foreign copy was not re-signed: validly re-signed copies differing only in
+`correlation_id` or only in `root_request_id` are now required to be rejected (ITV-665,
+ITV-666). The six corresponding mutations are detected (33/33 in all).
+
+**Battery (before → after).** Vectors 717 → 780: 441 → 453 valid, 157 → 173 invalid,
+119 → 154 runtime-only, the same 32 known structural failures; error paths 0 → 0
+mismatches; crypto 85 → 89, all pass; check_consistency 110 → 115 checks, all pass;
+harness R1–R14 → R1–R15, 199 → 316 assertions, all pass; examples 78 blocks OK; links
+OK; RTM 1940 / 1147 → 1970 / 1173.

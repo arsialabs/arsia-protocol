@@ -95,9 +95,8 @@
 | ACT-§2.1-17 | 2.1 | MUST | sdk | structural | required_capabilities array MUST contain at least one element | arsia-action-descriptor | — |
 | ACT-§2.1-18 | 2.1 | MUST | sdk | structural | Each optional_capabilities element MUST be a valid capability string per §1.1 grammar | arsia-action-descriptor | — |
 | ACT-§2.1-19 | 2.1 | REQUIRED | sdk | behavioural_positive | human_oversight_required field is REQUIRED in ActionDescriptor | arsia-action-descriptor | — |
-| ACT-§2.1-20 | 2.1 | MUST | sdk | procedural | When human_oversight_required is true, action MUST go through pending_approval flow | arsia-action-descriptor | ITV-293 |
+| ACT-§2.1-20 | 2.1 | MUST | sdk | procedural | When human_oversight_required is true, the descriptor demands required_before_execution (executor-policy source, Core §4.3.10.2) and the action MUST go through the pending_approval flow before execution | arsia-action-descriptor | ITV-293, ITV-641 |
 | ACT-§2.1-21 | 2.1 | MUST_NOT | sdk | behavioural_negative | Agent MUST NOT execute action until approval_decision with decision approved is received | — | ITV-293 |
-| ACT-§2.1-22 | 2.1 | MAY | sdk | informational | When human_oversight_required is false, action MAY execute immediately after authorization | — | — |
 | ACT-§2.1-23 | 2.1 | REQUIRED | sdk | behavioural_positive | audit_required field is REQUIRED in ActionDescriptor | arsia-action-descriptor | — |
 | ACT-§2.1-24 | 2.1 | MUST | sdk | procedural | When audit_required is true, every execution MUST generate an audit record | arsia-action-descriptor | — |
 | ACT-§2.1-25 | 2.1 | MUST | sdk | behavioural_positive | Audit record MUST include action_id, requester identity, timestamp, params, and result | arsia-audit-record | — |
@@ -112,6 +111,7 @@
 | ACT-§2.1-34 | 2.1 | SHOULD | sdk | behavioural_positive | Actions expected to exceed max_execution_ms SHOULD use async execution pattern (§4.3) | — | — |
 | ACT-§2.1-35 | 2.1 | MUST | deployment | procedural | Receiving agent MUST honour the max_execution_ms timeout | — | — |
 | ACT-§2.1-36 | 2.1 | MUST_NOT | deployment | behavioural_negative | Receiving agent MUST NOT continue execution after max_execution_ms without client awareness | — | — |
+| ACT-§2.1-37 | 2.1 | OPTIONAL | sdk | structural | post_execution_review_period (ISO 8601 calendar duration) is OPTIONAL; it is the executing agent's announced review period for required_post_execution | arsia-action-descriptor | ITV-638, INV-77 |
 | ACT-§2.2-01 | 2.2 | MUST | operational_policy | behavioural_positive | Agent operators MUST assign risk levels consistent with the EU AI Act mapping | — | — |
 | ACT-§2.2-02 | 2.2 | MUST | sdk | behavioural_positive | Implementations MUST enforce MUST-level risk-mapping requirements; violation is non-conformance | arsia-action-descriptor | — |
 | ACT-§2.2-03 | 2.2 | MUST | sdk | behavioural_positive | Violation of MUST-level risk-mapping requirements constitutes a conformance failure | arsia-action-descriptor | — |
@@ -158,8 +158,8 @@
 | ACT-§2.4-07 | 2.4 | SHOULD | operational_policy | interoperability | Version migration period SHOULD be documented in the action's description field | — | — |
 | ACT-§2.4-08 | 2.4 | MUST | sdk | interoperability | Receiving agent MUST use latest version when request omits payload.version | — | ITV-302 |
 | ACT-§2.4-09 | 2.4 | MUST | sdk | procedural | Agent MUST respond with not_implemented error for unsupported payload.version values | arsia-message | ITV-301 |
-| ACT-§3.2-01 | 3.2 | MUST | sdk | procedural | Agent receiving a request for an action with human_oversight_required: true MUST follow the pending_approval procedure | arsia-message | ITV-303 |
-| ACT-§3.2-02 | 3.2 | MUST_NOT | sdk | behavioural_negative | Receiving agent MUST NOT execute the action when human_oversight_required is true; request MUST be held pending | — | — |
+| ACT-§3.2-01 | 3.2 | MUST | sdk | procedural | Agent receiving a request whose effective oversight set (with executor-policy sources) includes required_before_execution MUST follow the pending_approval procedure | arsia-message | ITV-303, ITV-640, ITV-641, ITV-642, ITV-643 |
+| ACT-§3.2-02 | 3.2 | MUST_NOT | sdk | behavioural_negative | Receiving agent MUST NOT execute the action while it is held for prior approval | — | ITV-640 |
 | ACT-§3.2-03 | 3.2 | MUST | sdk | procedural | Receiving agent MUST construct and send a pending_approval message with prescribed envelope fields | arsia-message | ITV-303 |
 | ACT-§3.2-04 | 3.2 | MUST | sdk | structural | pending_approval payload MUST contain type, args (action_id, original_request_id, approval_deadline, approver_capability, context, risk_level), and explanation | arsia-message | ITV-86, ITV-303 |
 | ACT-§3.2-05 | 3.2 | REQUIRED | sdk | structural | pending_approval args MUST include action_id from the ActionDescriptor of the held action | arsia-message | — |
@@ -184,6 +184,9 @@
 | ACT-§3.2-24 | 3.2 | MAY | operational_policy | informational | Agent operators MAY configure shorter or longer approval deadlines within the 24-hour upper bound | — | — |
 | ACT-§3.2-25 | 3.2 | MUST | deployment | behavioural_positive | pending_approval message MUST be delivered to the original sender via ARSIA message delivery | — | — |
 | ACT-§3.2-26 | 3.2 | SHOULD | deployment | interoperability | Agent SHOULD also deliver pending_approval to any registered oversight endpoints | — | — |
+| ACT-§3.2-27 | 3.2 | REQUIRED | sdk | structural | pending_approval args MUST include request_payload_hash, the SHA-256 of the original request's payload | arsia-message | INV-64, ITV-640 |
+| ACT-§3.2-28 | 3.2 | MUST | sdk | behavioural_negative | Receiver MUST reject a pending_approval whose payload.args has a member outside the closed field set with invalid_request | arsia-message | INV-63 |
+| ACT-§3.2-29 | 3.2 | REQUIRED | sdk | structural | pending_approval MUST carry payload.obligation_resolution recording the prior-approval requirement and its sources | arsia-message | INV-65, ITV-640 |
 | ACT-§3.3-01 | 3.3 | MUST | sdk | structural | approval_decision payload MUST contain type and result object with decision, approver_id, reason, and conditions | arsia-message | — |
 | ACT-§3.3-02 | 3.3 | REQUIRED | sdk | structural | approval_decision result MUST include decision field as the oversight decision | arsia-message | — |
 | ACT-§3.3-03 | 3.3 | MUST | sdk | behavioural_positive | decision field MUST be one of "approved" or "denied" | arsia-message | — |
@@ -201,6 +204,7 @@
 | ACT-§3.3-15 | 3.3 | MUST | sdk | behavioural_positive | approval_decision from an agent without oversight.approve capability MUST be rejected as forbidden | arsia-message | ITV-311, ITV-532, ITV-533 |
 | ACT-§3.3-16 | 3.3 | MUST | sdk | behavioural_positive | approval_decision MUST be signed by the approver's Ed25519 key, not the executing or requesting agent's key | arsia-message | ITV-312, ITV-313 |
 | ACT-§3.3-17 | 3.3 | MUST | sdk | behavioural_positive | Receiving agent MUST verify the approval_decision signature per ARSIA-Identity.md §3.1 | — | — |
+| ACT-§3.3-18 | 3.3 | REQUIRED | sdk | structural | approval_decision result MUST include the request_payload_hash of the pending_approval decided | arsia-message | INV-66 |
 | ACT-§3.4-01 | 3.4 | MUST | sdk | procedural | Executing agent MUST perform verification steps before executing an approved action | — | — |
 | ACT-§3.4-02 | 3.4 | MUST | external | behavioural_positive | Executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve capability | — | ITV-314 |
 | ACT-§3.4-03 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject the approval_decision with error forbidden if approver capability is missing | — | ITV-315 |
@@ -228,6 +232,8 @@
 | ACT-§3.4-25 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action if approval_decision arrives after the approval_deadline | — | ITV-328 |
 | ACT-§3.4-26 | 3.4 | SHOULD | sdk | behavioural_positive | Executing agent SHOULD respond to late approver with error invalid_request and deadline_exceeded: true | arsia-message | ITV-328 |
 | ACT-§3.4-27 | 3.4 | SHOULD | sdk | behavioural_positive | Late approval_decision SHOULD still be logged in the audit trail for completeness | arsia-audit-record | — |
+| ACT-§3.4-28 | 3.4 | MUST | sdk | behavioural_negative | Executing agent MUST reject an approval_decision whose request_payload_hash differs from the pending_approval's with invalid_request and MUST NOT execute the action | — | ITV-662 |
+| ACT-§3.4-29 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute a materially changed action under an approval; a new pending_approval is required | — | — |
 | ACT-§3.5-01 | 3.5 | MUST | sdk | procedural | Every oversight cycle MUST generate at least four audit records: request, pending_approval, decision, and response | arsia-audit-record | ITV-93, ITV-105, ITV-581, ITV-582, ITV-583, ITV-584, ITV-585 |
 | ACT-§3.6-01 | 3.6 | MAY | sdk_enabled | procedural | Implementations MAY require multiple independent approvals for actions with risk_level 10 | — | — |
 | ACT-§3.6-02 | 3.6 | OPTIONAL | sdk | informational | Multiple approval level support is OPTIONAL in ARSIA Protocol v1.0 | — | — |
@@ -239,10 +245,23 @@
 | ACT-§3.6-08 | 3.6 | MUST | sdk_enabled | procedural | Executing agent MUST track which approvers have approved in a multi-approval flow | — | — |
 | ACT-§3.6-09 | 3.6 | MUST_NOT | sdk_enabled | behavioural_negative | Executing agent MUST NOT accept duplicate approvals from the same approver | — | ITV-329, ITV-330 |
 | ACT-§3.6-10 | 3.6 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD default to required_approvals: 1 and escalate only when warranted | — | — |
-| ACT-§3.7-01 | 3.7 | MUST | sdk | procedural | Agent MUST proceed directly to execution when human_oversight_required is false | — | ITV-331, ITV-332 |
-| ACT-§3.7-02 | 3.7 | MUST | sdk | behavioural_positive | Non-oversight actions with audit_required: true MUST generate at least two audit records (request and response) | arsia-audit-record | — |
-| ACT-§3.7-03 | 3.7 | MUST_NOT | sdk | behavioural_negative | Agent MUST NOT send pending_approval for an action with human_oversight_required: false | — | ITV-332 |
-| ACT-§3.7-04 | 3.7 | MUST | operational_policy | interoperability | Adding oversight to an action MUST be done by updating the ActionDescriptor and re-registering the action | — | — |
+| ACT-§3.7-01 | 3.7 | MUST | sdk | procedural | Agent MUST proceed to execution without pending_approval when the effective oversight set does not include required_before_execution | — | ITV-331, ITV-332, ITV-644 |
+| ACT-§3.7-02 | 3.7 | MUST | sdk | behavioural_positive | When the effective audit obligation is true, execution without prior approval MUST generate at least two audit records (request and terminal response or error) | arsia-audit-record | ITV-644 |
+| ACT-§3.7-03 | 3.7 | MUST_NOT | sdk | behavioural_negative | Agent MUST NOT send pending_approval for a request whose effective oversight set does not include required_before_execution | — | ITV-332, ITV-644 |
+| ACT-§3.7-05 | 3.7 | MUST | sdk | procedural | Receiving agent MUST resolve the effective obligations, including executor-policy sources, before any effect of the action | — | ITV-640, ITV-641, ITV-642, ITV-643 |
+| ACT-§3.9-01 | 3.9.1 | MUST | sdk | procedural | With a post-execution mode in the effective set, the executing agent MUST establish its review configuration (review endpoint, escalation destination, review period for required_post_execution) before any effect | — | ITV-645, ITV-646 |
+| ACT-§3.9-02 | 3.9.1 | MUST | sdk | behavioural_negative | A missing review-configuration element MUST cause rejection with invalid_request / obligation_conflict; the action is not executed | — | ITV-647, ITV-648, ITV-649 |
+| ACT-§3.9-03 | 3.9.3 | MUST | sdk | behavioural_positive | Review notices, review decisions and overdue notices MUST be signed by their sender, and their receivers MUST verify the signature | arsia-message | ITV-628, ITV-629, ITV-630, ITV-657 |
+| ACT-§3.9-04 | 3.9.3 | MUST | sdk | procedural | When a review is opened, the executing agent MUST send a review-pending event to its review endpoint | arsia-message | ITV-628, ITV-645, ITV-674 |
+| ACT-§3.9-05 | 3.9.3 | MUST | sdk | behavioural_negative | Before recording a review decision the executing agent MUST verify signature (unauthorized), token (unauthorized), authority (forbidden) and correlation and binding (invalid_request), in that order | arsia-message | ITV-657, ITV-658, ITV-659, ITV-660, INV-68, INV-69 |
+| ACT-§3.9-06 | 3.9.3 | MUST | sdk | behavioural_negative | A review decision that fails verification is not recorded as a decision and MUST be logged | — | ITV-657 |
+| ACT-§3.9-07 | 3.9.3 | MUST_NOT | sdk | behavioural_negative | A later decision for the same review MUST NOT change the recorded outcome | — | ITV-656 |
+| ACT-§3.9-08 | 3.9.3 | MUST | sdk | procedural | For each overdue obligation the executing agent MUST send a review-overdue event to its escalation destination | arsia-message | ITV-630, ITV-653, ITV-674 |
+| ACT-§3.9-09 | 3.9.4 | MUST | sdk | behavioural_positive | Lateness depends only on the deadline (inclusive) and the receipt instant; the agent MUST record pending overdue facts and send their notices before recording a late decision | arsia-audit-record | ITV-651, ITV-652 |
+| ACT-§3.9-10 | 3.9.4 | MUST | sdk | behavioural_positive | At an obligation deadline without a verified decision the executing agent MUST append a review_overdue record, independent of the escalation | arsia-audit-record | ITV-633, ITV-653 |
+| ACT-§3.9-11 | 3.9.4 | MUST | sdk | procedural | Escalation delivery follows Core §11.3 (server-error backoff, Retry-After for rate_limited, at most 3 retries); its result is appended as review_escalation, and a failure also produces a compliance_warning | arsia-audit-record | ITV-634, ITV-635, ITV-653, ITV-654, ITV-655 |
+| ACT-§3.9-12 | 3.9.4 | MUST | sdk | procedural | On an objected review decision the executing agent MUST start the operator's remediation procedure; the execution's terminal state and records never change | — | ITV-661 |
+| ACT-§3.9-13 | 3.9.4 | MAY | sdk_enabled | informational | Remediation of a reversible action MAY use rollback (§4.2) under its own authorization | — | — |
 | ACT-§4.1-01 | 4.1 | MUST | sdk | behavioural_positive | COMPLETED state MUST generate an audit record when ActionDescriptor has audit_required: true | arsia-audit-record | — |
 | ACT-§4.1-02 | 4.1 | MUST | sdk | behavioural_positive | COMPLETED response MUST include payload.explanation when explainability_required is true | arsia-explanation | ACTV-01 |
 | ACT-§4.1-03 | 4.1 | MUST | sdk | behavioural_positive | FAILED state MUST generate an audit record when ActionDescriptor has audit_required: true | arsia-audit-record | — |
@@ -267,6 +286,8 @@
 | ACT-§4.3-05 | 4.3 | MUST | sdk | behavioural_positive | Agent MUST document partial execution in the audit record when rollback of timed-out side effects is not possible | arsia-audit-record | ITV-337 |
 | ACT-§4.3-06 | 4.3 | SHOULD | sdk_enabled | procedural | Long-running actions exceeding max_execution_ms SHOULD use the asynchronous execution pattern | arsia-message | — |
 | ACT-§4.3-07 | 4.3 | MUST | sdk | structural | Asynchronous status polling status field MUST be one of "running", "completed", or "failed" | arsia-message | — |
+| ACT-§4.3-08 | 4.3 | MUST | sdk | behavioural_positive | The retriever of a terminal result MUST verify its signature and its binding to the execution | — | ITV-665, ITV-666 |
+| ACT-§4.3-09 | 4.3 | MUST_NOT | sdk | behavioural_negative | The retriever MUST NOT reject a retrieved terminal result only because its ts lies outside the clock-skew tolerance | — | ITV-665, ITV-666 |
 | ACT-§4.4-01 | 4.4 | MUST | deployment | behavioural_positive | Actions MUST be executed with isolation guarantees commensurate with their risk level | — | — |
 | ACT-§4.4-02 | 4.4 | SHOULD | deployment | behavioural_positive | Risk 0-4 actions SHOULD use an isolated execution context (separate process or container) | — | — |
 | ACT-§4.4-03 | 4.4 | SHOULD | deployment | behavioural_positive | Risk 0-4 actions SHOULD have filesystem access limited to the designated working directory | — | — |

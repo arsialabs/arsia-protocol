@@ -8,20 +8,20 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 
 | Schema | Spec | Validates |
 |--------|------|-----------|
-| [arsia-message.schema.json](arsia-message.schema.json) | Core §4 | Full message envelope |
+| [arsia-message.schema.json](arsia-message.schema.json) | Core §4, §4.4.8; Actions §3.2, §3.3, §3.9.3 | Full message envelope, including the closed `pending_approval` args, executor provenance (`obligation_resolution`) and the post-execution review payloads |
 | [arsia-compliance-field.schema.json](arsia-compliance-field.schema.json) | Core §4.3.6 | Compliance sub-fields |
 | [arsia-common.schema.json](arsia-common.schema.json) | Core | Shared definitions for the protocol schema suite |
 | [arsia-discovery-response.schema.json](arsia-discovery-response.schema.json) | Core §7.1 | Agent metadata from discovery endpoint |
 | [arsia-capability-descriptor.schema.json](arsia-capability-descriptor.schema.json) | Core §7.2 | Single capability exposed by an agent |
-| [arsia-jwt-claims.schema.json](arsia-jwt-claims.schema.json) | Core §6.1 | Access token JWT claims and OAuth 2.0 token response |
+| [arsia-jwt-claims.schema.json](arsia-jwt-claims.schema.json) | Core §6.1 | Access token JWT claims (including `arsia_oversight`) and OAuth 2.0 token response |
 | [arsia-dpop-proof.schema.json](arsia-dpop-proof.schema.json) | Core §6.3 | DPoP proof JWT payload per RFC 9449 |
 | [arsia-jwk-entry.schema.json](arsia-jwk-entry.schema.json) | Core §7.3 | JWK entry in an agent's JWKS |
 | [arsia-websocket-frame.schema.json](arsia-websocket-frame.schema.json) | Core §8.2 | WebSocket control frames (auth, ping, pong) |
 | [arsia-compliance-profiles.schema.json](arsia-compliance-profiles.schema.json) | Core | Compliance profiles registry structure |
 | [arsia-identity-record.schema.json](arsia-identity-record.schema.json) | Identity §1.2 | Agent identity record |
 | [arsia-capability-policy.schema.json](arsia-capability-policy.schema.json) | Identity §8.1 | Capability policy for onboarding |
-| [arsia-onboarding-decision.schema.json](arsia-onboarding-decision.schema.json) | Identity §7.6 | Onboarding decision (approved/denied) payload |
-| [arsia-action-descriptor.schema.json](arsia-action-descriptor.schema.json) | Actions §2.1 | Action registry entries |
+| [arsia-onboarding-decision.schema.json](arsia-onboarding-decision.schema.json) | Identity §7.6 | Onboarding decision (approved/denied) payload, with the applied policy's `policy_version` and `policy_sha256` |
+| [arsia-action-descriptor.schema.json](arsia-action-descriptor.schema.json) | Actions §2.1 | Action registry entries, including `post_execution_review_period` |
 | [arsia-explanation.schema.json](arsia-explanation.schema.json) | Actions §5.2 | Explainability object (EU AI Act Art. 13) |
 | [arsia-action-discovery-response.schema.json](arsia-action-discovery-response.schema.json) | Actions §2.3 | Paginated response from action discovery endpoint |
 | [arsia-asset-transfer-request.schema.json](arsia-asset-transfer-request.schema.json) | Assets §3.1.1 | Transfer request payload |
@@ -31,7 +31,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-dora-incident.schema.json](arsia-dora-incident.schema.json) | Assets §6.2.2 | DORA incident event payload |
 | [arsia-mifid-audit-record.schema.json](arsia-mifid-audit-record.schema.json) | Assets §6.1 | MiFID II audit record for asset transfers |
 | [arsia-state-entry.schema.json](arsia-state-entry.schema.json) | State §2.1 | State entry |
-| [arsia-audit-record.schema.json](arsia-audit-record.schema.json) | State §7.1 | Audit trail record |
+| [arsia-audit-record.schema.json](arsia-audit-record.schema.json) | State §7.1 | Audit trail record, including the post-execution review records (Actions §3.9.5) |
 | [arsia-audit-chain-tombstone.schema.json](arsia-audit-chain-tombstone.schema.json) | State §7.2 | Tombstone replacing a permanently deleted chained audit record |
 | [arsia-obligation-rules.schema.json](arsia-obligation-rules.schema.json) | Core §4.3.10 | Declarative obligation rules artifact (`profiles/arsia-obligation-rules.json`) |
 | [arsia-state-operations.schema.json](arsia-state-operations.schema.json) | State §3 | Payload args/result for all 8 state operations |

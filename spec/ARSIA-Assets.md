@@ -1781,11 +1781,15 @@ authority agents.
 
 ### 5.2 Two-Party Authorisation for Financial Operations
 
-When the risk level of a financial operation is ≥ 7 (per ARSIA-Actions.md §2.2, which
-classifies risk levels 7-8 as "High Risk" and 9-10 as "Critical Risk"), the transfer
-MUST require human oversight before execution. This requirement implements the principle
-of dual control for financial operations: no single agent can both initiate and execute
-a high-risk financial transaction.
+When the risk level the transfer processor assesses for a financial operation is ≥ 7
+(per ARSIA-Actions.md §2.2, which classifies risk levels 7-8 as "High Risk" and 9-10 as
+"Critical Risk"), its risk assessment demands prior approval. It is an
+`executor-policy` requirement source of the effective obligation resolution
+(ARSIA-Core.md §4.3.10.2), whatever the ActionDescriptor's `human_oversight_required`
+says, and the transfer follows the flow of ARSIA-Actions.md §3.2–§3.6 before
+execution. This requirement implements the principle of dual control for financial
+operations: no single agent can both initiate and execute a high-risk financial
+transaction.
 
 The two-party authorisation flow builds on the human oversight mechanism defined in
 ARSIA-Actions.md §3. The following steps describe the complete flow:
@@ -1806,8 +1810,13 @@ operation. The risk assessment SHOULD consider:
 - The risk level declared in the ActionDescriptor for `arsiaprotocol.assets/transfer-request`.
 - Any operator-defined risk policies (amount thresholds, counterparty risk, etc.).
 
-If the assessed risk level is ≥ 7, the receiving agent determines that human oversight
-is required.
+If the assessed risk level is ≥ 7, the assessment contributes a requirement for
+`"required_before_execution"`. The processor records the assessment as the object
+`{ "action_id", "assessed_risk_level", "threshold": 7 }`, identified as
+`risk-assessment:<action_id>` with the SHA-256 of its RFC 8785 form, and retains it
+per ARSIA-Core.md §4.3.10.2. The requirement is communicated to the initiator by the
+`pending_approval` (`payload.obligation_resolution`), before any effect of the
+transfer.
 
 #### Step 3: Pending Approval
 
@@ -1827,8 +1836,10 @@ The receiving agent responds with a `pending_approval` message (ARSIA-Actions.md
       "approval_deadline": "<RFC 3339 timestamp — latest time approval will be accepted>",
       "approver_capability": "arsiaprotocol.oversight.approve",
       "context": "Transfer EUR 1500.00 from agent:acme.billing to agent:contoso.treasury via agent:europa.payments.sepa. Purpose: MiFID II suitability assessment fee. Amount exceeds threshold for automatic execution.",
-      "risk_level": 8
-    }
+      "risk_level": 8,
+      "request_payload_hash": "<SHA-256 of the AssetTransferRequest payload>"
+    },
+    "obligation_resolution": { "<effective obligation resolution, with the risk-assessment source>": "…" }
   }
 }
 ```
@@ -1856,7 +1867,8 @@ capabilities sends an `approval_decision` message (ARSIA-Actions.md §3.3):
       "decision": "approved",
       "approver_id": "agent:acme.senior-compliance",
       "reason": "Transfer approved — within MiFID II client suitability parameters",
-      "conditions": null
+      "conditions": null,
+      "request_payload_hash": "<request_payload_hash of the pending_approval>"
     }
   }
 }
@@ -1879,18 +1891,19 @@ Only after receiving an `approval_decision` with `decision: "approved"` does the
 transfer processor forward the transfer to the payment provider for execution. The
 transfer proceeds through the normal receipt flow (§3.2).
 
-If the `approval_decision` has `decision: "denied"`, the transfer processor responds
-with an AssetTransferReceipt with `status: "failed"` and `failure_reason: "Transfer
-denied by human oversight — {reason}"`. An `approval_decision` whose `decision`
+If the `approval_decision` has `decision: "denied"`, the transfer processor MUST NOT
+execute the transfer and responds to the initiator with the `error` of
+ARSIA-Actions.md §3.4 Path 2 (`forbidden`, `oversight_decision: "denied"`). An `approval_decision` whose `decision`
 value is not `"approved"` or `"denied"`, whose `correlation_id` does not match the
 outstanding `pending_approval`, or whose token lacks the required capabilities MUST
 be rejected with `invalid_request`/`forbidden` per ARSIA-Actions.md §3.4 and MUST
 NOT execute the transfer.
 
 If no `approval_decision` is received before the `pending_approval`'s `expires_at`
-deadline, the transfer processor responds with an AssetTransferReceipt with
-`status: "failed"` and `failure_reason: "Approval timeout — no approval_decision
-received within deadline"`.
+deadline, the processor responds with the `error` of ARSIA-Actions.md §3.4 Path 3
+(`forbidden`, `oversight_decision: "expired"`). No AssetTransferReceipt is issued for a
+transfer that never executed; the MiFID audit record (§6.1.1) records
+`human_oversight_status` `"denied"` or `"expired"`.
 
 #### Two-Party Authorisation and PSD2 (qualified)
 
@@ -2618,9 +2631,12 @@ Agent A sends an AssetTransferRequest to Agent B with:
 6. `payload.args.context` contains a human-readable description of the transfer.
 7. No transfer is executed — the payment provider is NOT called.
 8. `expires_at` is present and is a valid RFC 3339 timestamp in the future.
-9. After `expires_at` passes with no `approval_decision`: the processor sends an
-   AssetTransferReceipt with `status: "failed"` and records
-   `human_oversight_status: "expired"` in the MiFID audit record (no execution).
+9. After `expires_at` passes with no `approval_decision`: the processor responds with
+   an `error` (`forbidden`, `details.oversight_decision: "expired"`,
+   ARSIA-Actions.md §3.4 Path 3), records `human_oversight_status: "expired"` in the
+   MiFID audit record and issues no AssetTransferReceipt (no execution).
+10. `payload.obligation_resolution` of the `pending_approval` records the
+    `action-descriptor` and `risk-assessment` sources.
 
 ### Test ASSETS-07: MiFID II Audit Record Retention
 

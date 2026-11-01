@@ -77,8 +77,9 @@ See LICENSE-SPEC.md for full terms.
    4. [Execution After Approval](#34-execution-after-approval)
    5. [Audit Trail for Oversight](#35-audit-trail-for-oversight)
    6. [Multiple Approval Levels (OPTIONAL)](#36-multiple-approval-levels-optional)
-   7. [Execution Without Oversight](#37-execution-without-oversight)
+   7. [Execution Without Prior Approval](#37-execution-without-prior-approval)
    8. [Implementation Guidance: Approval Rate Management](#38-implementation-guidance-approval-rate-management)
+   9. [Post-Execution Review](#39-post-execution-review)
 4. [Action Execution Semantics](#4-action-execution-semantics)
    1. [Execution Lifecycle States](#41-execution-lifecycle-states)
    2. [Rollback (Reversible Actions)](#42-rollback-reversible-actions)
@@ -377,9 +378,10 @@ capabilities use unreserved names (e.g. `code.review`, `com.example.notes.read`)
 
 #### `arsiaprotocol.oversight.approve`
 
-Grants authority to issue `approval_decision` messages (§3.3). This is the most
-security-sensitive capability in the ARSIA Protocol because it controls whether
-high-risk actions proceed to execution.
+Grants authority to issue `approval_decision` messages (§3.3) and post-execution
+review decisions (§3.9.3). This is the most security-sensitive capability in the ARSIA
+Protocol because it controls whether high-risk actions proceed to execution and
+records the human review of executed actions.
 
 **Constraints:**
 
@@ -830,11 +832,25 @@ semantics.
 
 - **Type:** boolean
 - **REQUIRED.**
-- **Constraints:** When `true`, the action MUST go through the `pending_approval` flow
-  defined in §3 before execution. The agent MUST NOT execute the action until a
-  corresponding `approval_decision` message with `decision: "approved"` is received
-  from an identity with the `arsiaprotocol.oversight.approve` capability. When `false`, the
-  action MAY be executed immediately upon successful authorization and validation.
+- **Constraints:** When `true`, the ActionDescriptor demands the oversight mode
+  `"required_before_execution"` for every invocation of the action: it is an
+  `executor-policy` requirement source (ARSIA-Core.md §4.3.10.2), and the action
+  follows the `pending_approval` flow of §3 before execution. When `false`, the
+  descriptor demands nothing. It is not a dispensation: the action still requires
+  prior approval when another source of the effective oversight set demands it
+  (§3.7).
+
+#### `post_execution_review_period` — Post-Execution Review Period
+
+- **Type:** string
+- **OPTIONAL.**
+- **Format:** ISO 8601 calendar duration per ARSIA-Core.md §4.3.6.4.
+- **Constraints:** The period within which a post-execution review required by
+  `"required_post_execution"` must be decided, counted from the execution instant with
+  the calendar arithmetic of ARSIA-Core.md §4.3.6.4.1 (§3.9.2). It is the executing
+  agent's announced review policy for the action. When absent, the action cannot be
+  executed under `"required_post_execution"` (§3.9.1). It does not apply to
+  `"required_within_24h"`, whose deadline is fixed.
 
 #### `audit_required` — Audit Requirement Flag
 
@@ -1093,6 +1109,11 @@ authentication. If the agent operator wishes to restrict visibility of the actio
 registry, the endpoint MAY require authentication, in which case a `401 Unauthorized`
 response MUST be returned for unauthenticated requests.
 
+**Identification.** A descriptor returned by this endpoint is identified by its
+`action_id` and the SHA-256 of its RFC 8785 canonical form. This identification is
+recorded when the descriptor acts as a requirement source (ARSIA-Core.md §4.3.10.2),
+and each published revision is retained per that section.
+
 ### 2.4 Action Versioning
 
 Actions are versioned through the combination of the `payload.type` field (ARSIA-Core.md
@@ -1205,9 +1226,15 @@ through conformance testing (§6) and audit trail analysis.
 
 ### 3.2 The `pending_approval` Message
 
-When an agent receives a `request` message for an action whose ActionDescriptor has
-`human_oversight_required: true`, the agent MUST follow the procedure defined in this
-section. Deviation from this procedure is a conformance violation.
+When an agent receives a `request` message for an action whose effective oversight
+set (ARSIA-Core.md §4.3.10.5, with the `executor-policy` sources of §4.3.10.2)
+includes `"required_before_execution"`, the agent MUST follow the procedure defined
+in this section. Deviation from this procedure is a conformance violation. The
+sources that can demand prior approval are the message's declared or profile-filled
+mode, the ActionDescriptor (§2.1), the gateway CapabilityPolicy carried by the access
+token (ARSIA-Core.md §6.1) and the executing agent's risk assessment
+(ARSIA-Assets.md §5.2). A requirement from a dynamic source is communicated by the
+`pending_approval` itself, before any effect of the action.
 
 #### Step 1: Do not execute the action.
 
@@ -1249,9 +1276,11 @@ The `payload` object MUST have the following structure:
     "approval_deadline": "<RFC 3339 timestamp — latest time approval will be accepted>",
     "approver_capability": "arsiaprotocol.oversight.approve",
     "context": "<human-readable description of what will happen if approved>",
-    "risk_level": <integer — the action's risk_level from its ActionDescriptor>
+    "risk_level": <integer — the action's risk_level from its ActionDescriptor>,
+    "request_payload_hash": "<SHA-256 of the original request's payload>"
   },
-  "explanation": <object or null — preliminary explanation if explainability_required (§5.2)>
+  "explanation": <object or null — preliminary explanation if explainability_required (§5.2)>,
+  "obligation_resolution": { <effective obligation resolution — ARSIA-Core.md §4.4.8> }
 }
 ```
 
@@ -1289,6 +1318,23 @@ the relevant capacities and limitations of the AI system.
 ActionDescriptor. This allows the approver and the oversight system to apply
 risk-appropriate handling (e.g., different UI treatments for risk 7 vs. risk 10
 actions).
+
+**`request_payload_hash`** (string, REQUIRED): The SHA-256 (lowercase hex) of the
+original request's payload, computed as `payload_hash` in ARSIA-State.md §7.1 (RFC 8785
+form, or the JWE string when encrypted). It binds the approval to the parameters
+presented to the approver: an `approval_decision` applies only to the request whose
+payload has this hash (§3.4).
+
+**Closed field set.** `payload.args` contains exactly the members defined in this
+step. A receiver MUST reject a `pending_approval` with any other member in
+`payload.args` with error code `invalid_request`.
+
+**Field definition for `payload.obligation_resolution`:**
+
+**`obligation_resolution`** (object, REQUIRED): The effective obligation resolution of
+the held request (ARSIA-Core.md §4.4.8). Its oversight axis records the
+prior-approval requirement and every source that demanded it, so the requester learns
+the effective requirement and its origin before any effect of the action.
 
 **Field definition for `payload.explanation`:**
 
@@ -1365,7 +1411,8 @@ The `payload` object MUST have the following structure:
     "decision": "approved",
     "approver_id": "agent:acme.oversight-dashboard",
     "reason": null,
-    "conditions": null
+    "conditions": null,
+    "request_payload_hash": "<request_payload_hash of the pending_approval>"
   }
 }
 ```
@@ -1394,6 +1441,10 @@ The executing agent MUST honour all conditions. Examples:
 - `"amount reduced to 1000 EUR"` — the approver has constrained a financial parameter.
 - `"valid for single execution only"` — the approval does not carry over to retries.
 - `"notify compliance team after execution"` — a post-execution requirement.
+
+**`request_payload_hash`** (string, REQUIRED): The `request_payload_hash` of the
+`pending_approval` being decided, as presented to the approver. It binds the decision
+to the action, parameters and context presented.
 
 Conditions are free-text strings intended for the executing agent's operator to
 interpret and implement. The ARSIA Protocol does not define a structured condition
@@ -1459,15 +1510,20 @@ matched `pending_approval` (ARSIA-Core.md §4.2.4); on mismatch it MUST reject w
 error code `invalid_request` and MUST NOT execute the action. Duplicate and late
 decisions are handled per the correlation handling rules of ARSIA-Core.md §4.2.1: a
 decision for a `pending_approval` that was already resolved (approved, denied, or
-expired) MUST NOT change the recorded outcome.
+expired) MUST NOT change the recorded outcome. The executing agent MUST verify that
+the decision's `request_payload_hash` equals the `request_payload_hash` of the matched
+`pending_approval`; on mismatch it MUST reject the `approval_decision` with error code
+`invalid_request` and MUST NOT execute the action.
 
 **Step 4: Execute the action.**
 
-If all verification steps pass, the executing agent MUST execute the action. The action
-is executed with the parameters from the original request message (not from the
-`approval_decision` message). If the `approval_decision` includes `conditions`, the
-executing agent MUST apply those conditions to the execution (e.g., reducing an amount,
-restricting scope).
+If all verification steps pass, the executing agent MUST execute the action with the
+parameters of the original request — those whose hash the approval binds — applying
+the decision's `conditions` (e.g., reducing an amount, restricting scope). Conditions
+only restrict the approved execution. A change of the action or of its parameters
+other than one a condition imposes is a material change: the approval does not cover
+it, the agent MUST NOT execute the changed action under it, and a new
+`pending_approval` is required.
 
 **Step 5: Respond to the original requester.**
 
@@ -1476,13 +1532,21 @@ a response to the ORIGINAL requester — that is, the agent identified in the `f
 of the original request message. The response is NOT sent to the approver (unless the
 approver and the requester happen to be the same agent). The response is a standard
 ARSIA response or error message (ARSIA-Core.md §4.1.6) with `correlation_id` set to the
-`id` of the original request message.
+`id` of the original request message. The response or error carries
+`payload.obligation_resolution` (ARSIA-Core.md §4.4.8); in the asynchronous pattern
+the terminal result of §4.3 carries it.
 
 **Step 6: Record in audit trail.**
 
 The executing agent MUST log all messages in the audit trail: the original request, the
 `pending_approval`, the `approval_decision`, and the final response or error. See §3.5
 for the detailed audit requirements.
+
+**Step 7: Open the post-execution review.**
+
+If the effective oversight set also includes `"required_within_24h"` or
+`"required_post_execution"`, the executing agent opens the review of §3.9 when
+execution ends.
 
 #### Path 2: Decision is `"denied"`
 
@@ -1703,6 +1767,9 @@ what happened, or backward from the response to verify that the oversight flow w
 followed. The `payload_hash` fields in each record enable integrity verification: any
 modification to a message after it was audited will produce a different hash.
 
+A post-execution review adds the records of §3.9.5; they are not part of the oversight
+cycle counted here.
+
 ### 3.6 Multiple Approval Levels (OPTIONAL)
 
 For actions with `risk_level` of 10, implementations MAY require multiple independent
@@ -1740,8 +1807,10 @@ from agents with different `from` values.
    Record 1, Record 2, one Record 3 for each of the N `approval_decision` messages
    received (including any denial), and Record 4.
 
-   *Editor's note:* the record count for a flow that ends by deadline expiry (step 4)
-   is not yet specified.
+   For a flow that ends by deadline expiry (step 4), the total is N + 4: Record 1,
+   Record 2, one Record 3 for each of the N `approval_decision` messages received
+   before the deadline, one `approval_expired` record, and Record 4. With N = 0 this is
+   the four-record expiry cycle of §3.5.
 
 **Ordering.** Approvals may arrive in any order. The executing agent MUST track the set
 of approvers who have approved and MUST NOT accept duplicate approvals from the same
@@ -1754,35 +1823,45 @@ modifications to safety-critical configurations. Most implementations SHOULD sta
 `required_approvals: 1` and escalate to multiple approvals only when operational
 experience or regulatory guidance demands it.
 
-### 3.7 Execution Without Oversight
+### 3.7 Execution Without Prior Approval
 
-When an agent receives a `request` message for an action whose ActionDescriptor has
-`human_oversight_required: false`, the oversight flow defined in §3.2–§3.6 does NOT
-apply. The agent MUST proceed directly to execution without sending a `pending_approval`
-message.
+When the effective oversight set of a request (ARSIA-Core.md §4.3.10.5, with the
+`executor-policy` sources of §4.3.10.2) does not include `"required_before_execution"`,
+the flow of §3.2–§3.6 does NOT apply and the agent proceeds to execution without
+sending a `pending_approval` message.
 
 **Normative procedure:**
 
-1. The receiving agent validates the message envelope and verifies authorization per
-   ARSIA-Core.md §6.4.
+1. The receiving agent validates the envelope, verifies authorization per
+   ARSIA-Core.md §6.4 and resolves the effective obligations per ARSIA-Core.md
+   §4.3.10, including its `executor-policy` sources, before any effect of the action.
 
-2. If validation and authorization succeed, the agent transitions directly from the
-   REQUESTED state to the EXECUTING state (§4.1). No `pending_approval` message is
-   sent. No `approval_decision` is expected.
+2. If validation, authorization and resolution succeed, the agent transitions from
+   REQUESTED to EXECUTING (§4.1). No `pending_approval` message is sent, and no
+   `approval_decision` is expected.
 
-3. The agent executes the action and responds to the requester with a `response` or
-   `error` message, as appropriate.
+3. The agent executes the action and reports the outcome with a `response` or `error`
+   that carries `payload.obligation_resolution` (ARSIA-Core.md §4.4.8), or with the
+   terminal result of §4.3 in the asynchronous pattern.
 
-4. If `audit_required` is `true` for the action, a minimum of two audit records MUST be
-   generated: one for the request (`event_type: "request"`) and one for the response or
-   error (`event_type: "response"` or `"error"`).
+4. If the effective audit obligation is `true` (ARSIA-Core.md §4.3.10.5), a minimum of
+   two audit records MUST be generated: one for the request (`event_type: "request"`)
+   and one for the terminal response or error (`event_type: "response"` or
+   `"error"`).
 
-**Prohibition on unnecessary oversight.** An agent MUST NOT send a `pending_approval`
-message for an action whose ActionDescriptor has `human_oversight_required: false`. Doing
-so would impose an unnecessary delay on the requester and would misrepresent the action's
-compliance requirements. If an agent operator wishes to add human oversight to a
-previously uncontrolled action, they MUST update the ActionDescriptor to set
-`human_oversight_required: true` and re-register the action in the action registry.
+5. If the effective oversight set includes `"required_within_24h"` or
+   `"required_post_execution"`, the agent opens the review of §3.9 when execution
+   ends.
+
+**No source is a veto.** An ActionDescriptor with `human_oversight_required: false`
+demands nothing. It does not prohibit prior approval demanded by another source, and
+no source removes a requirement contributed by another (ARSIA-Core.md §4.3.10.5).
+
+**Prohibition on unnecessary prior approval.** An agent MUST NOT send a
+`pending_approval` message for a request whose effective oversight set does not
+include `"required_before_execution"`. An operator that requires prior approval for an
+action does so through a source of that set — for example by setting
+`human_oversight_required: true` and publishing the revised ActionDescriptor (§2.3).
 
 ### 3.8 Implementation Guidance: Approval Rate Management
 
@@ -1820,6 +1899,280 @@ deployment-specific risk threshold) to human reviewers. The specific thresholds,
 grouping algorithms, and routing policies are deployment decisions and are not
 prescribed by this specification.
 
+### 3.9 Post-Execution Review
+
+A post-execution review is the human review of an action that executed without prior
+approval of its result, required by the modes `"required_within_24h"` and
+`"required_post_execution"` (ARSIA-Core.md §4.3.6.5). It is distinct from prior
+approval: `pending_approval` keeps meaning that execution is blocked, while a review
+concerns an execution that has already occurred. A review never blocks, reopens or
+rewrites the execution: the execution lifecycle (§4.1) and the review states
+(§3.9.4) are separate. A negative review decision does not make the action not
+executed; it starts remediation (§3.9.4). Review deadlines are ARSIA controls:
+regulatory notification periods — for example DORA major-incident reporting under
+Delegated Regulation (EU) 2025/301 Art. 5 — run independently and never wait for this
+review.
+
+#### 3.9.1 Opening Conditions and Configuration
+
+When the effective oversight set of a request includes `"required_within_24h"` or
+`"required_post_execution"`, the executing agent MUST, during resolution and before
+any effect of the action, establish its review configuration:
+
+- a review endpoint, to which review notices are delivered;
+- an escalation destination (§3.9.4);
+- for `"required_post_execution"`, the `post_execution_review_period` of the action's
+  ActionDescriptor (§2.1).
+
+If an element is missing, the oversight axis has the conflict defined in
+ARSIA-Core.md §4.3.10.5 (Review configuration), and the agent MUST reject the request
+with error code `invalid_request` and diagnostic `obligation_conflict`
+(ARSIA-Core.md §4.3.10.6). The action is not executed, and the rejection is audited
+(`rejection_cause: "compliance"`).
+
+The review is opened when execution ends: when the action reaches COMPLETED, or FAILED
+after having entered EXECUTING (§4.1). An action that never entered EXECUTING has no
+review. When the effective set also includes `"required_before_execution"`, the review
+follows the approved execution (§3.4, Step 7).
+
+#### 3.9.2 Execution Instant and Review Deadlines
+
+The **terminal result** of an execution is the signed `response` or `error` envelope
+that reports its outcome, materialized by the executing agent when the action reaches
+COMPLETED or FAILED. In the synchronous pattern it is the message sent to the
+requester. In the asynchronous pattern (§4.3) it is the envelope returned by
+`result_url`, for completion and failure alike; the initial acknowledgment (`status:
+"accepted"`) is not a terminal result and never opens a review. The **execution
+instant** is the `ts` of the terminal result, set when the action reaches its terminal
+state. Delivery delays, retransmission of the same envelope, polling and later
+retrieval change neither the terminal result nor the execution instant.
+
+- For `"required_within_24h"`, the deadline is the execution instant plus 24 hours
+  (86 400 seconds); no source extends it.
+- For `"required_post_execution"`, the deadline is the execution instant plus
+  `post_execution_review_period`, with the calendar arithmetic of ARSIA-Core.md
+  §4.3.6.4.1.
+
+When both modes apply, the review carries one obligation per mode, each with its own
+deadline, and a single review decision satisfies every open obligation of the review.
+The review's `review_deadline` is the earliest obligation deadline.
+
+A review deadline is unrelated to the `expires_at` of any message: `expires_at` bounds
+the processing of a message, while a review deadline determines when an obligation is
+overdue (§3.9.4).
+
+#### 3.9.3 Messages
+
+The three messages below are `event` messages (ARSIA-Core.md §4.1.6). They are not
+operations, so the high-risk requirement set does not apply to them (ARSIA-Core.md
+§4.3.10.3). Each MUST be signed by its sender (ARSIA-Core.md §5.1), and its receiver
+MUST verify that signature (ARSIA-Core.md §5.2). Each carries `correlation_id` and
+`root_request_id` and is audited (§3.9.5). The requirements of §3.3–§3.4 for
+`approval_decision` apply to them only where this section states them.
+
+**Review notice.** When the review is opened, the executing agent MUST send an `event`
+with payload type `arsiaprotocol.oversight/review-pending` to its review endpoint, and
+MAY send it to the original requester. Its `correlation_id` is the `id` of the
+terminal result and its `root_request_id` the `id` of the original request.
+
+```json
+{
+  "type": "arsiaprotocol.oversight/review-pending",
+  "data": {
+    "action_id": "com.example.moderation/remove-content",
+    "original_request_id": "<id of the original request>",
+    "execution_message_id": "<id of the terminal result>",
+    "executed_at": "<execution instant>",
+    "outcome": "success",
+    "result_hash": "<SHA-256 of the terminal result's payload>",
+    "obligations": [
+      { "mode": "required_within_24h", "deadline": "<executed_at + 24 h>", "period_source": null }
+    ],
+    "review_deadline": "<earliest obligation deadline>",
+    "reviewer_capability": "arsiaprotocol.oversight.approve",
+    "context": "<plain-language description of what was executed and its result>",
+    "risk_level": 6
+  }
+}
+```
+
+`payload.data` contains exactly these members:
+
+- `action_id` (string, REQUIRED);
+- `original_request_id` (UUID v4, REQUIRED): equal to `root_request_id`;
+- `execution_message_id` (UUID v4, REQUIRED): the terminal result's `id`, equal to
+  `correlation_id`;
+- `executed_at` (RFC 3339, REQUIRED): the execution instant;
+- `outcome` (REQUIRED): `"success"` or `"error"`;
+- `result_hash` (string, REQUIRED): the SHA-256 of the terminal result's payload,
+  computed as `payload_hash` in ARSIA-State.md §7.1; it identifies the reviewed
+  result;
+- `obligations` (array, REQUIRED, one entry per post-execution mode): each with `mode`,
+  `deadline` and `period_source` — the ActionDescriptor source identification
+  (ARSIA-Core.md §4.3.10.2) for `"required_post_execution"`, `null` for
+  `"required_within_24h"`;
+- `review_deadline` (RFC 3339, REQUIRED);
+- `reviewer_capability` (string, REQUIRED): `"arsiaprotocol.oversight.approve"`;
+- `context` (string, REQUIRED): a plain-language description of what was executed and
+  its result, at most 1024 characters;
+- `risk_level` (integer, REQUIRED): from the ActionDescriptor.
+
+**Review decision.** An agent holding `arsiaprotocol.oversight.approve` decides a
+review by sending to the executing agent an `event` with payload type
+`arsiaprotocol.oversight/review-decision`. Its `correlation_id` is the review notice's
+`id`, its `root_request_id` the original request's `id`, its `capabilities`
+`["arsiaprotocol.oversight.approve"]`, and it is signed with the reviewer's key.
+
+```json
+{
+  "type": "arsiaprotocol.oversight/review-decision",
+  "data": {
+    "decision": "confirmed",
+    "reviewer_id": "agent:acme.oversight-dashboard",
+    "execution_message_id": "<as in the review notice>",
+    "result_hash": "<as in the review notice>",
+    "reason": null
+  }
+}
+```
+
+`payload.data` contains exactly: `decision` — `"confirmed"` (reviewed, no objection)
+or `"objected"` (the reviewer objects to the executed action or its result);
+`reviewer_id` — equal to `from`; `execution_message_id` and `result_hash` — equal to
+the notice's; and `reason` — string or null, at most 512 characters, RECOMMENDED when
+`"objected"`.
+
+**Verification of a review decision.** Before recording a review decision, the
+executing agent MUST verify, in this order:
+
+1. its signature (ARSIA-Core.md §5.2) — on failure, `unauthorized`;
+2. the token presented with it (ARSIA-Core.md §6.4 step 3, §6.5) — an invalid or
+   expired token, or an untrusted issuer, gives `unauthorized`;
+3. the reviewer's authority — `arsiaprotocol.oversight.approve` in the token's scope
+   and in `capabilities`; otherwise `forbidden`;
+4. correlation and binding — `correlation_id` matches a review notice the agent sent
+   and still tracks; `root_request_id`, `execution_message_id` and `result_hash` equal
+   the notice's; `reviewer_id` equals `from`; otherwise `invalid_request`.
+
+A decision that fails verification is not recorded as a decision: the agent MUST log
+it and SHOULD reply with an `error` carrying the code stated. The first verified
+decision decides the review. A later decision for the same review MUST NOT change the
+recorded outcome; the agent MUST log it and SHOULD reply `invalid_request`
+(ARSIA-Core.md §4.2.1, rule 2).
+
+**Overdue notice.** For each obligation that becomes overdue, the executing agent MUST
+send to its escalation destination an `event` with payload type
+`arsiaprotocol.oversight/review-overdue`. Its `correlation_id` is the review notice's
+`id` and its `root_request_id` the original request's `id`; `payload.data` contains
+exactly `action_id`, `original_request_id`, `execution_message_id`, `mode` and
+`deadline` of the overdue obligation.
+
+#### 3.9.4 Review States and Timing
+
+A review is in one of four states:
+
+- `pending` — opened, no verified decision, no obligation deadline reached;
+- `overdue` — at least one obligation deadline reached without a verified decision;
+- `completed` — a verified decision was received before every obligation deadline;
+- `completed_late` — a verified decision was received at or after an obligation
+  deadline.
+
+`completed` and `completed_late` are terminal; `overdue` is not (ARSIA-Core.md
+§4.2.1).
+
+**Timing.** An obligation is overdue from its deadline inclusive: a decision received
+at an instant equal to or later than the deadline is late for that obligation. The
+receipt instant is the instant the executing agent receives the decision, on its own
+clock; no clock-skew tolerance applies, since both instants are the agent's own.
+Lateness and overdue status depend only on the deadlines and the receipt instant,
+never on when a timer runs. When the agent processes a decision received after one or
+more obligation deadlines for which it has not yet recorded the overdue fact, it MUST
+first record those overdue facts and send their overdue notices, and then record the
+decision as late.
+
+**Overdue fact.** When an obligation's deadline is reached without a verified decision,
+the executing agent MUST append a `review_overdue` record for that obligation. The
+record states the immutable fact that the obligation is overdue; it does not wait for,
+or depend on, the escalation.
+
+**Escalation.** For each overdue obligation the agent MUST send the overdue notice to
+its escalation destination. The delivery is complete when the destination accepts the
+message (HTTP 2xx, or the transport's acceptance under ARSIA-Core.md §8).
+ARSIA-Core.md §11.3 applies to this delivery as it applies to a request:
+`internal_error`, `service_unavailable`, a timeout or a transport failure are retried
+with the backoff of "Server Errors"; `rate_limited` is retried under "Rate-Limited
+Errors" — no retry before the `Retry-After` interval (or `retry_after_seconds`, or 60
+seconds when neither is given) has elapsed, even when that is later than the next
+backoff interval. At most 3 retries are made (4 attempts in all), whichever rule
+applies to each retry. Attempts end on acceptance, on a non-retryable error, or when
+the retries are exhausted. The agent then appends a `review_escalation` record,
+correlated with the `review_overdue` record, stating the result (`"delivered"` or
+`"failed"`) and the number of attempts; a `"failed"` result also produces a
+`compliance_warning` record. No record is ever modified to reflect a later result
+(ARSIA-State.md §7.2). Escalation — attempted, delivered or failed — never completes a
+review.
+
+**Decision outcome.** A verified decision received while no obligation deadline has
+been reached completes the review as `completed`; received later, it completes it as
+`completed_late`, and every `review_overdue` and `review_escalation` record is kept. On
+`"objected"`, the executing agent MUST start the operator's remediation procedure for
+the action; when the action is reversible, remediation MAY use rollback (§4.2) under
+that section's own authorization. An objection never changes the execution's terminal
+state or its records. Operational policy MAY impose further measures; the protocol
+defines none.
+
+#### 3.9.5 Audit Records
+
+A review adds to the executing agent's audit trail: one `review_pending` record; per
+overdue obligation, one `review_overdue` and one `review_escalation` record; one
+`review_decision` record for the verified decision; and a `compliance_warning` per
+failed escalation. Each carries the base fields of ARSIA-State.md §7.1 and the fields
+below.
+
+**`review_pending`:**
+
+| Field                  | Value                                   |
+|------------------------|-----------------------------------------|
+| `message_id`           | The review notice's `id`                |
+| `correlation_id`       | The `execution_message_id`              |
+| `root_request_id`      | The original request's `id`             |
+| `execution_message_id` | As in the notice                        |
+| `result_hash`          | As in the notice                        |
+| `review_deadline`      | As in the notice                        |
+
+**`review_overdue`:**
+
+| Field                  | Value                                   |
+|------------------------|-----------------------------------------|
+| `message_id`           | The overdue notice's `id`               |
+| `correlation_id`       | The review notice's `id`                |
+| `root_request_id`      | The original request's `id`             |
+| `review_mode`          | The overdue obligation's mode           |
+| `review_deadline`      | Its deadline                            |
+
+**`review_escalation`:**
+
+| Field                  | Value                                   |
+|------------------------|-----------------------------------------|
+| `message_id`           | The overdue notice's `id`               |
+| `correlation_id`       | The review notice's `id`                |
+| `root_request_id`      | The original request's `id`             |
+| `review_mode`          | The overdue obligation's mode           |
+| `escalation_result`    | `"delivered"` or `"failed"`             |
+| `escalation_attempts`  | Integer ≥ 1                             |
+
+**`review_decision`:**
+
+| Field                  | Value                                   |
+|------------------------|-----------------------------------------|
+| `message_id`           | The decision's `id`                     |
+| `correlation_id`       | The review notice's `id`                |
+| `root_request_id`      | The original request's `id`             |
+| `review_outcome`       | `"confirmed"` or `"objected"`           |
+| `reviewer_id`          | As in the decision                      |
+| `late`                 | `true` exactly when the decision completed the review as `completed_late` |
+| `reason`               | As in the decision, or null             |
+
 ---
 
 ## 4. Action Execution Semantics
@@ -1842,13 +2195,15 @@ The following states are defined:
 (ARSIA-Core.md §4.1.6) with a `payload.type` matching a registered ActionDescriptor.
 
 **Processing:** The executing agent validates the message envelope, verifies
-authorization (ARSIA-Core.md §6.4), and determines whether the action requires human
-oversight.
+authorization (ARSIA-Core.md §6.4) and resolves the effective obligations
+(ARSIA-Core.md §4.3.10), including the `executor-policy` sources.
 
 **Transitions:**
-- If the ActionDescriptor has `human_oversight_required: true` → **PENDING_APPROVAL**
-- If the ActionDescriptor has `human_oversight_required: false` → **EXECUTING**
-- If validation or authorization fails → **FAILED**
+- If validation, authorization or resolution fails → **FAILED**
+- If validation, authorization and resolution succeed and the effective oversight set
+  includes `"required_before_execution"` → **PENDING_APPROVAL**
+- If validation, authorization and resolution succeed and the effective oversight set
+  does not include `"required_before_execution"` → **EXECUTING**
 
 #### PENDING_APPROVAL
 
@@ -1941,8 +2296,9 @@ audit record MUST be generated.
     +--> COMPLETED / FAILED
 ```
 
-The PENDING_APPROVAL state is only entered when `human_oversight_required: true`. When
-oversight is not required, the lifecycle proceeds directly from REQUESTED to EXECUTING.
+The PENDING_APPROVAL state is entered only when the effective oversight set includes
+`"required_before_execution"`. A post-execution review has its own states (§3.9.4)
+and never changes the states of this lifecycle.
 
 ### 4.2 Rollback (Reversible Actions)
 
@@ -2095,7 +2451,18 @@ pattern:
    ```
 
    The `result_url` returns a standard ARSIA response envelope containing the action
-   result.
+   result. That envelope is the terminal result (§3.9.2): the executing agent
+   materializes and signs it when the action reaches COMPLETED, with `ts` equal to
+   `completed_at`, and returns it unchanged on every retrieval. It carries
+   `payload.obligation_resolution` (ARSIA-Core.md §4.4.8) and no `expires_at`.
+
+   A retrieved terminal result is a persisted, authenticated result, not a newly
+   emitted message. The retriever MUST verify its signature (ARSIA-Core.md §5.2) and
+   its binding to the execution — `correlation_id` and `root_request_id` equal to the
+   original request's `id` — and the retrieval remains subject to the current
+   authorization of the retriever. The retriever MUST NOT reject the result only
+   because its `ts` lies outside the clock-skew tolerance of ARSIA-Core.md §8.3. The
+   `ts` keeps recording the execution instant and is never renewed.
 
 4. **Failure.** When `status` is `"failed"`, the response includes error details:
 
@@ -2106,9 +2473,17 @@ pattern:
      "error": {
        "code": "internal_error",
        "description": "Risk model computation failed"
-     }
+     },
+     "result_url": "https://agent.example.com/results/{execution-id}"
    }
    ```
+
+   When `status` is `"failed"` for an action that entered EXECUTING, the status object
+   also includes `result_url`, which returns the terminal result: a signed `error`
+   envelope that the executing agent materializes when the action reaches FAILED,
+   with `ts` equal to `failed_at`, carrying the same `error`,
+   `payload.obligation_resolution` and no `expires_at`. It is returned unchanged on
+   every retrieval and is processed as a retrieved terminal result (item 3).
 
 ### 4.4 Sandboxing Requirements
 
@@ -2398,7 +2773,7 @@ tests at the applicable conformance level.
 | **description**   | Verify that an action with `human_oversight_required: true` triggers the pending_approval flow instead of immediate execution |
 | **preconditions** | Agent B has action `eu.mifid.risk/assess` registered with `risk_level: 9` and `human_oversight_required: true`. Agent A has a valid access token with the required capabilities. |
 | **action**        | Agent A sends a `request` message to Agent B for this action. |
-| **expected**      | Agent B responds with `intent: "pending_approval"`. The response MUST NOT contain the action result. The `payload.type` MUST be `"arsiaprotocol.oversight/pending"`. The `payload.args` MUST contain: `action_id` matching the action, `original_request_id` matching the request's `id`, `approval_deadline` in the future, `approver_capability: "arsiaprotocol.oversight.approve"`, `context` (non-empty string), and `risk_level: 9`. The `correlation_id` MUST equal the original request's `id`. The `expires_at` envelope field MUST equal the `approval_deadline`. |
+| **expected**      | Agent B responds with `intent: "pending_approval"`. The response MUST NOT contain the action result. The `payload.type` MUST be `"arsiaprotocol.oversight/pending"`. The `payload.args` MUST contain: `action_id` matching the action, `original_request_id` matching the request's `id`, `approval_deadline` in the future, `approver_capability: "arsiaprotocol.oversight.approve"`, `context` (non-empty string), `risk_level: 9`, and `request_payload_hash` equal to the SHA-256 of the request's payload. The `payload.obligation_resolution` MUST record, on the oversight axis, the `executor-policy` source `action-descriptor:eu.mifid.risk/assess`. The `correlation_id` MUST equal the original request's `id`. The `expires_at` envelope field MUST equal the `approval_deadline`. |
 
 ### ACTIONS-05: Approval granted leads to action execution
 
@@ -2407,7 +2782,7 @@ tests at the applicable conformance level.
 | **test_id**       | `ACTIONS-05`                                              |
 | **description**   | Verify that an approved action executes and produces a response to the original requester |
 | **preconditions** | Agent B has sent a `pending_approval` message (id: P) for a request from Agent A (id: R). Agent C has the `arsiaprotocol.oversight.approve` capability. The `approval_deadline` has not passed. |
-| **action**        | Agent C sends an `approval_decision` message to Agent B with `correlation_id: P`, `decision: "approved"`, and `capabilities: ["arsiaprotocol.oversight.approve"]`. |
+| **action**        | Agent C sends an `approval_decision` message to Agent B with `correlation_id: P`, `decision: "approved"`, `request_payload_hash` equal to that of P, and `capabilities: ["arsiaprotocol.oversight.approve"]`. |
 | **expected**      | Agent B executes the action. Agent A (the original requester, NOT Agent C) receives a `response` message with `correlation_id: R` containing the action result. Agent B's audit trail contains 4 records: request, pending_approval, approval_decision, and response. |
 
 ### ACTIONS-06: Approval denied blocks action execution
@@ -2479,6 +2854,76 @@ tests at the applicable conformance level.
 | **preconditions** | Agent B accepts action `com.example.notes/manage` with `required_capabilities: ["notes.read"]` and `optional_capabilities: ["notes.write", "notes.delete"]`. Agent A has a token with scope `"notes.read notes.write notes.delete"`. Agent B's policy restricts `notes.delete` for Agent A's trust level. |
 | **action**        | Agent A sends a `request` message with `capabilities: ["notes.read", "notes.write", "notes.delete"]`. |
 | **expected**      | Agent B accepts the request (all required capabilities are present). Agent B's response includes `payload.result.effective_capabilities: ["notes.read", "notes.write"]`. The `notes.delete` capability has been removed. Agent A observes the downgrade and does not attempt delete operations. |
+
+### ACTIONS-13: Prior approval demanded by a source other than the descriptor
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-13`                                              |
+| **description**   | Verify that a descriptor with `human_oversight_required: false` does not veto prior approval demanded by another source |
+| **preconditions** | Agent B has action `test.unit/run` registered with `human_oversight_required: false`. Agent A's access token lists `test.unit` in its `arsia_oversight` claim (ARSIA-Core.md §6.1). |
+| **action**        | Agent A sends a `request` with `capabilities: ["test.unit"]`. |
+| **expected**      | Agent B responds with `pending_approval` and does not execute. Its `payload.obligation_resolution` records, on the oversight axis, a requirement for `"required_before_execution"` with the `executor-policy` source `capability-policy:<issuer>/<version>` and the claim's `policy.sha256`. Reference logic: harness R15. |
+
+### ACTIONS-14: Within-24h post-execution review opened and completed
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-14`                                              |
+| **description**   | Verify that a `required_within_24h` action executes, opens a review and records the decision |
+| **preconditions** | Agent B has a configured review endpoint and escalation destination. Agent A's request has `human_oversight: "required_within_24h"`; no source demands prior approval. Agent C holds `arsiaprotocol.oversight.approve`. |
+| **action**        | Agent A sends the request; Agent B executes it; Agent C sends a `review-decision` with `decision: "confirmed"` before the deadline. |
+| **expected**      | The response carries `payload.obligation_resolution`. Agent B sends a `review-pending` event to its review endpoint with `review_deadline` equal to the execution instant + 24 hours. The decision is recorded as a `review_decision` record with `late: false`; the review is `completed`. The execution's records are unchanged. Reference logic: harness R15. |
+
+### ACTIONS-15: Overdue review, escalation and late decision
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-15`                                              |
+| **description**   | Verify the overdue consequence and the handling of a late decision |
+| **preconditions** | As ACTIONS-14, with no decision before the deadline. In variant (b), the escalation destination answers every attempt with `service_unavailable`. |
+| **action**        | The deadline passes; then Agent C sends a confirmed `review-decision`. |
+| **expected**      | (a) A `review_overdue` record is appended at the deadline, then a `review_escalation` record with `escalation_result: "delivered"`; the late decision gives `completed_late` (`late: true`) and both records are kept. (b) After 4 attempts, a `review_escalation` record with `escalation_result: "failed"` and a `compliance_warning` record are appended; the review stays `overdue` until a decision arrives. Reference logic: harness R15. |
+
+### ACTIONS-16: Post-execution mode without review configuration
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-16`                                              |
+| **description**   | Verify that a post-execution mode without its review period is rejected before any effect, preserving declared versus filled provenance |
+| **preconditions** | Agent B's ActionDescriptor has no `post_execution_review_period`. (a) The request declares `profile: "PAC-AGRICULTURE"` and omits `human_oversight`. (b) The request declares `human_oversight: "required_post_execution"`. |
+| **action**        | Agent A sends each request. |
+| **expected**      | Both are rejected with `invalid_request` and `details` `obligation_conflict: true`, `axis: "oversight"`, `required: {"mode": "required_post_execution", "missing": "post_execution_review_period"}`; nothing is executed and each rejection is audited. In (a) the conflict has `declared: null`, the axis `declared` is `{"present": false}` and `fill` has source `profile-default`; in (b) `declared` is `"required_post_execution"` and `fill` has source `message`. In both, `sources` is empty. Reference logic: harness R15. |
+
+### ACTIONS-17: Approval bound to the request payload
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-17`                                              |
+| **description**   | Verify that an approval for another payload does not authorize execution |
+| **preconditions** | Agent B has sent a `pending_approval` (id: P) with `request_payload_hash` H. |
+| **action**        | Agent C sends an `approval_decision` with `correlation_id: P`, `decision: "approved"` and a `request_payload_hash` different from H. |
+| **expected**      | Agent B rejects the decision with `invalid_request` and does not execute the action. Reference logic: harness R15. |
+
+### ACTIONS-18: Multi-approval flow ending by expiry
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-18`                                              |
+| **description**   | Verify the record count of a multi-approval flow that ends by deadline expiry |
+| **preconditions** | The ActionDescriptor has `required_approvals: 2`. One approval is received; the second is not. |
+| **action**        | The `approval_deadline` elapses. |
+| **expected**      | The action is not executed and the requester receives the Path 3 error. The audit trail holds 5 records: Record 1, Record 2, one Record 3, one `approval_expired` record and Record 4 (§3.6). Reference logic: harness R15. |
+
+### ACTIONS-19: Asynchronous terminal result
+
+| Field             | Value                                                     |
+|-------------------|-----------------------------------------------------------|
+| **test_id**       | `ACTIONS-19`                                              |
+| **description**   | Verify that a review in the asynchronous pattern is anchored to the terminal result, not to the acknowledgment or to its retrieval |
+| **preconditions** | A `required_within_24h` action uses the asynchronous pattern of §4.3. (a) It completes; (b) it fails after entering EXECUTING. |
+| **action**        | The requester retrieves `result_url` three days after completion or failure. |
+| **expected**      | The acknowledgment opens no review. The review is opened from the terminal result materialized at `completed_at` (a) or `failed_at` (b), whose `ts` is that instant; the retrieval returns the same envelope, the retriever accepts it after verifying signature and binding although its `ts` is outside the clock-skew tolerance, and the `review_deadline` is unchanged. Reference logic: harness R15. |
 
 ---
 

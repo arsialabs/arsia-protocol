@@ -52,13 +52,17 @@
         "asset_transfer",
         "broker_relay",
         "compliance_warning",
-        "ict_incident",
         "error",
         "event",
+        "ict_incident",
         "key_rotation",
         "pending_approval",
         "request",
         "response",
+        "review_decision",
+        "review_escalation",
+        "review_overdue",
+        "review_pending",
         "rollback",
         "state_delete",
         "state_grant",
@@ -675,6 +679,75 @@
     },
     "obligation_resolution": {
       "$ref": "#/$defs/obligation-resolution"
+    },
+    "execution_message_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
+        },
+        {
+          "description": "The id of the terminal result reviewed — Actions §3.9.2, §3.9.5"
+        }
+      ]
+    },
+    "result_hash": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
+        },
+        {
+          "description": "SHA-256 of the terminal result's payload, computed as payload_hash — Actions §3.9.3"
+        }
+      ]
+    },
+    "review_deadline": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        {
+          "description": "Review deadline (review_pending: earliest obligation deadline; review_overdue: the overdue obligation's deadline) — Actions §3.9.2"
+        }
+      ]
+    },
+    "review_mode": {
+      "enum": [
+        "required_within_24h",
+        "required_post_execution"
+      ],
+      "description": "The post-execution mode of the obligation concerned — Actions §3.9.5"
+    },
+    "escalation_result": {
+      "enum": [
+        "delivered",
+        "failed"
+      ],
+      "description": "Result of escalating an overdue obligation — Actions §3.9.4"
+    },
+    "escalation_attempts": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "description": "Delivery attempts made for the overdue notice (at most 3 retries) — Actions §3.9.4"
+    },
+    "review_outcome": {
+      "enum": [
+        "confirmed",
+        "objected"
+      ],
+      "description": "The review decision — Actions §3.9.3"
+    },
+    "reviewer_id": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/agent-id"
+        }
+      ],
+      "description": "The reviewer's agent-id — Actions §3.9.5"
+    },
+    "late": {
+      "type": "boolean",
+      "description": "true exactly when the decision completed the review as completed_late — Actions §3.9.4"
     }
   },
   "dependentRequired": {
@@ -1140,6 +1213,89 @@
       "then": {
         "required": [
           "rejection_cause"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "review_pending"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "execution_message_id",
+          "result_hash",
+          "review_deadline"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "review_overdue"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "review_mode",
+          "review_deadline"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "review_escalation"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "review_mode",
+          "escalation_result",
+          "escalation_attempts"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "review_decision"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "review_outcome",
+          "reviewer_id",
+          "late"
         ]
       }
     }

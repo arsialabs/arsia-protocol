@@ -309,7 +309,7 @@
 | STATE-§7.1-01 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord fields are REQUIRED unless explicitly marked OPTIONAL | arsia-audit-record | — |
 | STATE-§7.1-02 | 7.1 | OPTIONAL | sdk | structural | Some ArsiaAuditRecord fields are marked OPTIONAL per individual field definitions | arsia-audit-record | — |
 | STATE-§7.1-03 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.record_id field is REQUIRED (string, UUID v4) | arsia-audit-record | — |
-| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 18 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102 |
+| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 22 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102, ITV-632, ITV-633, ITV-634, ITV-636 |
 | STATE-§7.1-05 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.from_agent field is REQUIRED (string, agent-id of sender) | arsia-audit-record | — |
 | STATE-§7.1-06 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.message_id field is REQUIRED (links audit record to originating message) | arsia-audit-record | — |
 | STATE-§7.1-07 | 7.1 | OPTIONAL | sdk | structural | ArsiaAuditRecord.human_oversight_status field is OPTIONAL (enum: not_required, pending, approved, denied, expired) | arsia-audit-record | ITV-16, ITV-17, ITV-89, STV-07 |
@@ -332,6 +332,7 @@
 | STATE-§7.1-24 | 7.1 | REQUIRED | sdk | structural | obligation_resolution is REQUIRED on covered records (intent request; event_type request, state_set, state_delete, state_purge, state_grant, state_revoke, asset_transfer, rollback) and on compliance rejection records | arsia-audit-record | ITV-601, ITV-600, INV-54, INV-56 |
 | STATE-§7.1-25 | 7.1 | MUST | sdk | structural | A record with rejection_cause compliance MUST have event_type error, a rejected obligation_resolution with non-empty conflicts, and correlation_id set to the rejected message's id | arsia-audit-record | ITV-600, INV-57, INV-58, INV-59, INV-60 |
 | STATE-§7.1-26 | 7.1 | MUST | sdk | behavioural_negative | Every rejection produced by compliance validation MUST produce a rejection_cause compliance record, whatever audit_required the rejected message declares | arsia-audit-record | ITV-603, ITV-622, INV-62 |
+| STATE-§7.1-27 | 7.1 | MUST | sdk | structural | review_pending, review_overdue, review_escalation and review_decision records MUST carry their extension fields (State §7.1 table) | arsia-audit-record | ITV-632, ITV-633, ITV-634, ITV-635, ITV-636, ITV-637, INV-72, INV-73, INV-74, INV-75 |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 |
 | STATE-§7.2-02 | 7.2 | MUST_NOT | deployment | behavioural_negative | Once an ArsiaAuditRecord is written, it MUST NOT be modified. | — | — |
 | STATE-§7.2-03 | 7.2 | MUST | sdk | procedural | New audit records MUST be created for status changes; existing records MUST NOT be updated | — | STV-07 |

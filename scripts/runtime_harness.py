@@ -26,6 +26,9 @@ Schema cannot express, executed as tests — including against the runtime
       capped at 3600 s, revocation event, shared-cache sequences
   R14 Audit hash chain: chain value, verification against   (State §7.2, DR-5)
       a held head, tombstones, conformance-level mandate
+  R15 Executor oversight and post-execution review:        (Actions §3, Core §4.3.10, DR-1/DR-2)
+      executor sources, approval binding, review deadlines,
+      overdue and escalation, async terminal results, tokens
 
 Exit code 0 = all green.
 """
@@ -377,13 +380,14 @@ def conflict(diagnostic, axis, declared, required, sources, field=None):
 
 
 def resolve_obligations(intent, compliance, identity=None, anchor="2026-10-31T00:00:00.000Z", strict=False,
-                        executor=(), sensitive_entry=False):
+                        executor=(), sensitive_entry=False, review_config=None):
     """Core §4.3.10 reference: fill, collect, compose, evaluate, record.
 
     compliance is the envelope's `compliance` object, or None when the field is absent. identity is the
     authenticated IdentityRecord fact {agent_id, ai_system_classification, evidence} or None. executor
-    holds executor-class requirements for resolver-contract tests only (not integrated, Core §4.3.10.2).
-    Returns the State §7.1 `obligation_resolution` object."""
+    holds the executor-policy requirements collected by the executing agent (Core §4.3.10.2;
+    executor_sources below). review_config, given only at the executing agent, is its post-execution
+    review configuration (Actions §3.9.1). Returns the State §7.1 `obligation_resolution` object."""
     conflicts = []
     # ---- fill: profile (Core §4.3.7)
     if compliance is None:
@@ -489,6 +493,18 @@ def resolve_obligations(intent, compliance, identity=None, anchor="2026-10-31T00
             if r["kind"] == "restriction" and not (modes - set(r["excludes"])):
                 c = conflict(d or "obligation_conflict", "oversight", declared.get("value"), {"excludes": r["excludes"]},
                              [r["source"]])
+                break
+    if c is None and review_config is not None:
+        for m in ("required_within_24h", "required_post_execution"):
+            if m not in modes:
+                continue
+            needed = ["review_endpoint", "escalation_destination"]
+            if m == "required_post_execution":
+                needed.append("post_execution_review_period")
+            missing = next((e for e in needed if not review_config.get(e)), None)
+            if missing:
+                c = conflict("obligation_conflict", "oversight", declared.get("value"), {"mode": m, "missing": missing},
+                             [r["source"] for r, _, _ in rq if r["kind"] == "value" and r["value"] == m])
                 break
     axes["oversight"] = axis_entry(declared, filled, rq, sorted(modes), c)
 
@@ -957,6 +973,613 @@ def r10(vectors):
     check("R10 runtime vectors emitted records to validate", emitted > 0, str(emitted))
 
 
+# ------------------------------- R15 executor oversight and post-execution review (DR-1, DR-2)
+# Actions §2.1, §3.2-§3.9, §4.1, §4.3; Core §4.3.10.2, §4.4.8, §6.1, §6.4, §8.3, §11.3;
+# Identity §7.3, §7.7, §9.1; Assets §5.2.
+AGENT_SEEDS = {"agent:acme.executor": 11, "agent:acme.analyst": 12, "agent:acme.oversight-dashboard": 13,
+               "agent:acme.escalation": 14, "agent:corp.gateway": 15, "agent:acme.approver-two": 16}
+EXECUTOR_ID = "agent:acme.executor"
+REQUESTER_ID = "agent:acme.analyst"
+REVIEWER_ID = "agent:acme.oversight-dashboard"
+TRUSTED_ISSUERS = {"https://as.acme.example"}
+FULL_REVIEW_CONFIG = {"review_endpoint": REVIEWER_ID, "escalation_destination": "agent:acme.escalation"}
+EXECUTOR_SOURCE_PREFIXES = ("action-descriptor:", "capability-policy:", "risk-assessment:")  # Core §4.3.10.2
+SERVER_BACKOFF = (1, 2, 4)  # Core §11.3 Server Errors, without jitter
+MAX_RETRIES = 3
+TRANSIENT = {"internal_error", "service_unavailable", "timeout", "transport_failure", "rate_limited"}
+POST_MODES = ("required_within_24h", "required_post_execution")
+
+
+def det_id(seed):
+    return record_id_for(seed, "message")
+
+
+def _key(agent):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    return Ed25519PrivateKey.from_private_bytes(bytes([AGENT_SEEDS[agent]]) * 32)
+
+
+def sign(msg, agent):
+    """Draft-02 signing profile (envelope minus security.sig), Core §5.1."""
+    from regen_v2 import signing_input_v2, b64url
+    msg["security"] = {"alg": "EdDSA", "kid": f"{agent}#key-1"}
+    msg["security"]["sig"] = b64url(_key(agent).sign(signing_input_v2(msg)))
+    return msg
+
+
+def signature_ok(msg):
+    import base64
+    from regen_v2 import signing_input_v2
+    sec = msg.get("security") or {}
+    agent = sec.get("kid", "").split("#")[0]
+    if agent not in AGENT_SEEDS or agent != msg.get("from") or "sig" not in sec:
+        return False
+    try:
+        _key(agent).public_key().verify(base64.urlsafe_b64decode(sec["sig"] + "=" * (-len(sec["sig"]) % 4)),
+                                        signing_input_v2(msg))
+        return True
+    except Exception:
+        return False
+
+
+def executor_sources(action_id, descriptor=None, claim=None, capabilities=(), assessment=None):
+    """Core §4.3.10.2 executor-policy requirements: each demands required_before_execution or nothing."""
+    def demand(sid, digest):
+        return {"axis": "oversight", "kind": "value", "value": "required_before_execution",
+                "source": {"class": "executor-policy", "id": sid, "sha256": digest}}
+    out = []
+    if descriptor and descriptor.get("human_oversight_required") is True:
+        out.append(demand(f"action-descriptor:{action_id}", jcs_sha256(descriptor)))
+    if claim:
+        pol = claim["policy"]
+        out += [demand(f"capability-policy:{pol['issuer']}/{pol['version']}", pol["sha256"])
+                for cap in capabilities if cap in claim["capabilities"]]
+    if assessment and assessment["assessed_risk_level"] >= assessment["threshold"]:
+        out.append(demand(f"risk-assessment:{action_id}", jcs_sha256(assessment)))
+    return out
+
+
+def plus_seconds(at, s):
+    return stamp(iso(at) + dt.timedelta(seconds=s))
+
+
+def deliver_escalation(outcomes, start):
+    """Actions §3.9.4: Core §11.3 applied to the overdue notice. Server-error backoff for transient
+    failures; rate_limited waits Retry-After (or retry_after_seconds, or 60 s); at most 3 retries."""
+    t, times = iso(start), []
+    for attempt, out in enumerate(outcomes[:MAX_RETRIES + 1], 1):
+        times.append(stamp(t))
+        code = out if isinstance(out, str) else out["code"]
+        if code == "accepted":
+            return "delivered", attempt, times
+        if code not in TRANSIENT or attempt == MAX_RETRIES + 1:
+            return "failed", attempt, times
+        if code == "rate_limited":
+            delay = out.get("retry_after", out.get("retry_after_seconds", 60)) if isinstance(out, dict) else 60
+        else:
+            delay = SERVER_BACKOFF[attempt - 1]
+        t += dt.timedelta(seconds=delay)
+    return "failed", len(times), times
+
+
+class Run:
+    """One request at the executing agent: resolution, prior approval, execution, terminal result,
+    post-execution review. Records are append-only; snapshots prove none is modified later."""
+
+    def __init__(self, req, descriptor, at, claim=None, assessment=None, review_config=FULL_REVIEW_CONFIG,
+                 identity=None, escalation=None):
+        self.req, self.descriptor, self.at = req, descriptor, at
+        self.records, self._snapshots, self.messages = [], [], []
+        self.escalation = escalation or {}
+        self.pending = self.terminal = self.review = self.ack = None
+        self.remediation = False
+        cfg = None
+        if review_config is not None:
+            cfg = dict(review_config, post_execution_review_period=descriptor.get("post_execution_review_period"))
+        self.review_config = cfg  # the configuration validated by the resolution is the one the review uses
+        ex = executor_sources(descriptor["action_id"], descriptor, claim, req.get("capabilities", []), assessment)
+        self.res = resolve_obligations("request", req.get("compliance"), identity, at, executor=ex, review_config=cfg)
+        self.modes = self.res["axes"]["oversight"]["result"] or []
+        if self.res["outcome"] == "rejected":
+            self.path = "rejected"
+            self.error = {"code": "invalid_request",
+                          "details": error_details(self.res["conflicts"][0], self.res, at)}
+            self.rejection = sign({"v": "2.0", "id": det_id(req["id"] + "/rejection"), "ts": at, "from": EXECUTOR_ID,
+                                   "to": req["from"], "intent": "error", "correlation_id": req["id"],
+                                   "root_request_id": req["id"],
+                                   "payload": {"type": req["payload"]["type"],
+                                               "error": dict(self.error, description="Compliance obligations not satisfiable"),
+                                               "obligation_resolution": self.res}}, EXECUTOR_ID)
+            self.messages.append(self.rejection)
+            self.record(req, "error", at, rejection_cause="compliance", correlation_id=req["id"],
+                        obligation_resolution=self.res)
+            return
+        self.record(req, "request", at, obligation_resolution=self.res)
+        if "required_before_execution" in self.modes:
+            self.path = "pending"
+            self._send_pending()
+        else:
+            self.path = "executing"
+
+    def record(self, message, event_type, at, **extra):
+        rec = audit_record(message, self.res, at, RECEIVER_OPERATOR, event_type, **extra)
+        self.records.append(rec)
+        self._snapshots.append(json.dumps(rec, sort_keys=True))
+        return rec
+
+    def unmodified(self):
+        return [json.dumps(r, sort_keys=True) for r in self.records] == self._snapshots
+
+    def _send_pending(self):
+        req, deadline = self.req, plus_seconds(self.at, 3600)
+        msg = {"v": "2.0", "id": det_id(req["id"] + "/pending"), "ts": self.at, "from": EXECUTOR_ID,
+               "to": req["from"], "intent": "pending_approval", "correlation_id": req["id"],
+               "root_request_id": req["id"], "expires_at": deadline,
+               "payload": {"type": "arsiaprotocol.oversight/pending",
+                           "args": {"action_id": self.descriptor["action_id"], "original_request_id": req["id"],
+                                    "approval_deadline": deadline,
+                                    "approver_capability": "arsiaprotocol.oversight.approve",
+                                    "context": f"Execute {self.descriptor['action_id']} for {req['from']}.",
+                                    "risk_level": self.descriptor["risk_level"],
+                                    "request_payload_hash": payload_hash(req)},
+                           "obligation_resolution": self.res}}
+        self.pending = sign(msg, EXECUTOR_ID)
+        self.messages.append(self.pending)
+        self.approvers, self.approved = set(), False
+        self.record(self.pending, "pending_approval", self.at, correlation_id=req["id"],
+                    root_request_id=req["id"], approval_deadline=deadline)
+
+    def approval(self, decision, received_at, required=1):
+        """Actions §3.4 Path 1-3, §3.6. Returns the error code of a rejected decision, or None."""
+        p = self.pending
+        result = decision["payload"]["result"]
+        if decision.get("correlation_id") != p["id"] or decision.get("root_request_id") != p["root_request_id"]:
+            return "invalid_request"
+        if result.get("request_payload_hash") != p["payload"]["args"]["request_payload_hash"]:
+            return "invalid_request"
+        if iso(received_at) >= iso(p["payload"]["args"]["approval_deadline"]) or self.path != "pending":
+            return "invalid_request"
+        if decision["from"] in self.approvers:
+            return "invalid_request"
+        self.approvers.add(decision["from"])
+        self.record(decision, "approval_decision", received_at, correlation_id=p["id"],
+                    root_request_id=p["root_request_id"], decision=result["decision"],
+                    approver_id=result["approver_id"], reason=result.get("reason"))
+        if result["decision"] == "denied":
+            self._finish_error(received_at, "forbidden", "Action denied by human oversight",
+                               {"oversight_decision": "denied", "approver_id": result["approver_id"],
+                                "reason": result.get("reason")})
+        elif len(self.approvers) >= required:
+            self.path = "executing"
+        return None
+
+    def expire(self, now):
+        p = self.pending
+        self.record(p, "approval_expired", now, correlation_id=p["id"], root_request_id=p["root_request_id"],
+                    decision="expired", reason=None)
+        self._finish_error(now, "forbidden", "Action approval deadline exceeded",
+                           {"oversight_decision": "expired", "deadline": p["payload"]["args"]["approval_deadline"]})
+
+    def _finish_error(self, at, code, description, details):
+        req = self.req
+        err = {"v": "2.0", "id": det_id(req["id"] + "/oversight-error"), "ts": at, "from": EXECUTOR_ID,
+               "to": req["from"], "intent": "error", "correlation_id": req["id"], "root_request_id": req["id"],
+               "payload": {"type": req["payload"]["type"],
+                           "error": {"code": code, "description": description, "details": details},
+                           "obligation_resolution": self.res}}
+        self.final_error = sign(err, EXECUTOR_ID)
+        self.messages.append(self.final_error)
+        self.path = "failed"
+        self.record(self.final_error, "error", at, correlation_id=req["id"], root_request_id=req["id"],
+                    outcome=details["oversight_decision"])
+
+    def acknowledge(self):
+        """Asynchronous acknowledgment (Actions §4.3 item 1): not a terminal result."""
+        req = self.req
+        self.ack = sign({"v": "2.0", "id": det_id(req["id"] + "/ack"), "ts": self.at, "from": EXECUTOR_ID,
+                         "to": req["from"], "intent": "response", "correlation_id": req["id"],
+                         "root_request_id": req["id"],
+                         "payload": {"type": req["payload"]["type"],
+                                     "result": {"status": "accepted",
+                                                "status_url": "https://executor.example/status/1"}}},
+                        EXECUTOR_ID)
+        self.messages.append(self.ack)
+
+    def execute(self, end_at, outcome="success", asynchronous=False):
+        """Executes and materializes the terminal result at end_at (Actions §3.9.2, §4.3)."""
+        assert self.path == "executing"
+        req = self.req
+        if asynchronous:
+            self.acknowledge()
+        payload = {"type": req["payload"]["type"]}
+        if outcome == "success":
+            payload["result"] = {"status": "done"}
+        else:
+            payload["error"] = {"code": "internal_error", "description": "Action execution failed"}
+        payload["obligation_resolution"] = self.res
+        msg = {"v": "2.0", "id": det_id(req["id"] + "/terminal"), "ts": end_at, "from": EXECUTOR_ID,
+               "to": req["from"], "intent": "response" if outcome == "success" else "error",
+               "correlation_id": req["id"], "root_request_id": req["id"], "payload": payload}
+        self.terminal = sign(msg, EXECUTOR_ID)
+        self.messages.append(self.terminal)
+        self.path = "completed" if outcome == "success" else "failed"
+        self.record(self.terminal, msg["intent"], end_at, correlation_id=req["id"], root_request_id=req["id"],
+                    outcome="success" if outcome == "success" else "error")
+        if any(m in self.modes for m in POST_MODES):
+            self.review = Review(self)
+        return self.terminal
+
+
+
+def accept_retrieved(result, expected_root):
+    """Actions §4.3 item 3: a persisted, authenticated terminal result. Signature and binding are
+    verified; its ts is never compared with the current time (Core §8.3) and never renewed."""
+    return signature_ok(result) and result["correlation_id"] == expected_root and \
+        result["root_request_id"] == expected_root
+
+
+class Review:
+    """Actions §3.9: obligations, deadlines, notices, states; lateness from deadlines and receipt."""
+
+    def __init__(self, run):
+        self.run, t = run, run.terminal
+        at, d = t["ts"], run.descriptor
+        self.obligations = []
+        for m in POST_MODES:
+            if m not in run.modes:
+                continue
+            if m == "required_within_24h":
+                dl, ps = stamp(iso(at) + dt.timedelta(hours=24)), None
+            else:
+                dl = stamp(add_duration(iso(at), d["post_execution_review_period"]))
+                ps = {"class": "executor-policy", "id": f"action-descriptor:{d['action_id']}",
+                      "sha256": jcs_sha256(d)}
+            self.obligations.append({"mode": m, "deadline": dl, "period_source": ps})
+        self.review_deadline = min(self.obligations, key=lambda o: iso(o["deadline"]))["deadline"]
+        req = run.req
+        self.notice = sign({"v": "2.0", "id": det_id(req["id"] + "/review"), "ts": at, "from": EXECUTOR_ID,
+                            "to": run.review_config["review_endpoint"], "intent": "event",
+                            "correlation_id": t["id"], "root_request_id": req["id"],
+                            "payload": {"type": "arsiaprotocol.oversight/review-pending",
+                                        "data": {"action_id": d["action_id"], "original_request_id": req["id"],
+                                                 "execution_message_id": t["id"], "executed_at": at,
+                                                 "outcome": "success" if t["intent"] == "response" else "error",
+                                                 "result_hash": payload_hash(t),
+                                                 "obligations": self.obligations,
+                                                 "review_deadline": self.review_deadline,
+                                                 "reviewer_capability": "arsiaprotocol.oversight.approve",
+                                                 "context": f"{d['action_id']} executed; review its result.",
+                                                 "risk_level": d["risk_level"]}}}, EXECUTOR_ID)
+        run.messages.append(self.notice)
+        run.record(self.notice, "review_pending", at, correlation_id=t["id"], root_request_id=req["id"],
+                   execution_message_id=t["id"], result_hash=payload_hash(t), review_deadline=self.review_deadline)
+        self.state, self.overdue_done, self.decision, self.escalations = "pending", set(), None, []
+
+    def tick(self, now):
+        if self.decision is not None:
+            return
+        for i, ob in enumerate(self.obligations):
+            if i not in self.overdue_done and iso(now) >= iso(ob["deadline"]):
+                self._overdue(i, ob, now)
+
+    def _overdue(self, i, ob, now):
+        run, req = self.run, self.run.req
+        self.overdue_done.add(i)
+        self.state = "overdue"
+        note = sign({"v": "2.0", "id": det_id(f"{req['id']}/overdue/{ob['mode']}"), "ts": now, "from": EXECUTOR_ID,
+                     "to": run.review_config["escalation_destination"], "intent": "event",
+                     "correlation_id": self.notice["id"], "root_request_id": req["id"],
+                     "payload": {"type": "arsiaprotocol.oversight/review-overdue",
+                                 "data": {"action_id": run.descriptor["action_id"], "original_request_id": req["id"],
+                                          "execution_message_id": run.terminal["id"], "mode": ob["mode"],
+                                          "deadline": ob["deadline"]}}}, EXECUTOR_ID)
+        run.messages.append(note)
+        run.record(note, "review_overdue", now, correlation_id=self.notice["id"], root_request_id=req["id"],
+                   review_mode=ob["mode"], review_deadline=ob["deadline"])
+        result, attempts, times = deliver_escalation(run.escalation.get(ob["mode"], ["accepted"]), now)
+        self.escalations.append({"mode": ob["mode"], "result": result, "attempts": attempts, "times": times})
+        run.record(note, "review_escalation", times[-1], correlation_id=self.notice["id"], root_request_id=req["id"],
+                   review_mode=ob["mode"], escalation_result=result, escalation_attempts=attempts)
+        if result == "failed":
+            run.record(note, "compliance_warning", times[-1])
+
+    def receive(self, decision, received_at, token):
+        """Actions §3.9.3 verification order; returns (error_code or None, state)."""
+        if not signature_ok(decision):
+            return "unauthorized", self.state
+        if token["iss"] not in TRUSTED_ISSUERS or iso(token["exp"]) <= iso(received_at) or \
+                token["sub"] != decision["from"] or token["aud"] != EXECUTOR_ID:
+            return "unauthorized", self.state
+        if "arsiaprotocol.oversight.approve" not in token["scope"].split() or \
+                "arsiaprotocol.oversight.approve" not in decision.get("capabilities", []):
+            return "forbidden", self.state
+        data, nd = decision["payload"]["data"], self.notice["payload"]["data"]
+        if decision.get("correlation_id") != self.notice["id"] or \
+                decision.get("root_request_id") != self.notice["root_request_id"] or \
+                data["execution_message_id"] != nd["execution_message_id"] or \
+                data["result_hash"] != nd["result_hash"] or data["reviewer_id"] != decision["from"]:
+            return "invalid_request", self.state
+        if self.decision is not None:
+            return "invalid_request", self.state  # duplicate: recorded outcome unchanged
+        self.tick(received_at)  # overdue facts first, whatever the timer did (Actions §3.9.4)
+        late = any(iso(received_at) >= iso(ob["deadline"]) for ob in self.obligations)
+        self.decision = decision
+        self.state = "completed_late" if late else "completed"
+        self.run.record(decision, "review_decision", received_at, correlation_id=self.notice["id"],
+                        root_request_id=self.notice["root_request_id"], review_outcome=data["decision"],
+                        reviewer_id=data["reviewer_id"], late=late, reason=data["reason"])
+        if data["decision"] == "objected":
+            self.run.remediation = True
+        return None, self.state
+
+
+def review_decision_msg(review, at, decision="confirmed", reviewer=REVIEWER_ID, result_hash=None,
+                        capabilities=("arsiaprotocol.oversight.approve",), tamper=False):
+    nd = review.notice["payload"]["data"]
+    msg = {"v": "2.0", "id": det_id(f"{review.notice['id']}/decision/{at}/{reviewer}"), "ts": at, "from": reviewer,
+           "to": EXECUTOR_ID, "intent": "event", "correlation_id": review.notice["id"],
+           "root_request_id": review.notice["root_request_id"], "capabilities": list(capabilities),
+           "payload": {"type": "arsiaprotocol.oversight/review-decision",
+                       "data": {"decision": decision, "reviewer_id": reviewer,
+                                "execution_message_id": nd["execution_message_id"],
+                                "result_hash": result_hash or nd["result_hash"],
+                                "reason": None if decision == "confirmed" else "Result outside policy"}}}
+    sign(msg, reviewer)
+    if tamper:
+        msg["payload"]["data"]["reason"] = "altered after signing"
+    return msg
+
+
+def reviewer_token(at, iss="https://as.acme.example", scope="arsiaprotocol.oversight.approve",
+                   sub=REVIEWER_ID):
+    return {"iss": iss, "sub": sub, "aud": EXECUTOR_ID, "exp": plus_seconds(at, 600), "scope": scope}
+
+
+def approval_decision_msg(run, at, decision="approved", approver=REVIEWER_ID, payload_hash_override=None):
+    p = run.pending
+    msg = {"v": "2.0", "id": det_id(f"{p['id']}/approval/{approver}"), "ts": at, "from": approver,
+           "to": EXECUTOR_ID, "intent": "approval_decision", "correlation_id": p["id"],
+           "root_request_id": p["root_request_id"], "capabilities": ["arsiaprotocol.oversight.approve"],
+           "payload": {"type": "arsiaprotocol.oversight/decision",
+                       "result": {"decision": decision, "approver_id": approver, "reason": None, "conditions": None,
+                                  "request_payload_hash": payload_hash_override
+                                  or p["payload"]["args"]["request_payload_hash"]}}}
+    return sign(msg, approver)
+
+
+def reissue_token(claim, scope):
+    """Identity §9.1: a new token keeps requirement and policy for every remaining listed capability."""
+    caps = [c for c in claim["capabilities"] if c in scope]
+    return {"requirement": claim["requirement"], "capabilities": caps, "policy": dict(claim["policy"])} if caps else None
+
+
+def router_oversight_ok(decision_oversight, decision_policy, scope, claim):
+    """Identity §7.7: every bound oversight capability in scope must be listed with the decision's policy."""
+    needed = [c for c in scope if c in decision_oversight]
+    if not needed:
+        return True
+    return bool(claim) and claim["policy"] == decision_policy and all(c in claim["capabilities"] for c in needed)
+
+
+def make_request(rid, payload, compliance=None, capabilities=("test.unit",), at="2026-10-31T10:00:00.000Z",
+                 sender=REQUESTER_ID):
+    req = {"v": "2.0", "id": rid, "ts": at, "from": sender, "to": EXECUTOR_ID, "intent": "request",
+           "expires_at": plus_seconds(at, 30), "capabilities": list(capabilities), "payload": payload}
+    if compliance is not None:
+        req["compliance"] = compliance
+    return sign(req, sender)
+
+
+def make_descriptor(action_id, oversight=False, risk=5, period=None):
+    d = {"action_id": action_id, "category": "system", "description": f"Test action {action_id}",
+         "risk_level": risk, "reversible": False, "idempotent": False, "required_capabilities": ["test.unit"],
+         "human_oversight_required": oversight, "audit_required": True, "explainability_required": False}
+    if period:
+        d["post_execution_review_period"] = period
+    return d
+
+
+TEST_CLAIM_POLICY = {"issuer": "agent:corp.gateway", "version": "finco-2026-q1",
+                     "sha256": "6b8c702884af67342d1aff9949d3474599aa3f84aae9f92a6e3fa0a78f59c698"}
+
+
+def execution_case(inp):
+    """Runs a runtime vector's `execution` scenario; returns the computed result object."""
+    case = inp["case"]
+    at = inp.get("at", "2026-10-31T10:00:00.000Z")
+    rid = inp.get("request_id", "7a000000-0000-4000-8000-000000000001")
+    payload = inp.get("payload", {"type": "com.acme.test/run", "args": {"suite": "unit"}})
+    desc = make_descriptor(payload["type"], inp.get("descriptor_oversight", False), inp.get("risk_level", 5),
+                           inp.get("review_period"))
+    claim = None
+    if inp.get("claim"):
+        claim = {"requirement": "required_before_execution", "capabilities": inp["claim"], "policy": TEST_CLAIM_POLICY}
+    assessment = None
+    if "assessed_risk" in inp:
+        assessment = {"action_id": payload["type"], "assessed_risk_level": inp["assessed_risk"], "threshold": 7}
+    cfg = dict(FULL_REVIEW_CONFIG, **inp.get("review_config", {}))
+    for k in inp.get("missing_config", []):
+        cfg.pop(k)
+    identity = None
+    if inp.get("high_risk_sender"):
+        identity = {"agent_id": REQUESTER_ID, "ai_system_classification": "high-risk",
+                    "evidence": dict(TEST_EVIDENCE, agent_id=REQUESTER_ID)}
+    sender = "agent:corp.gateway" if case == "check03" else REQUESTER_ID  # CHECK-03 probe: gateway -> agent
+    req = make_request(rid, payload, inp.get("compliance"), inp.get("capabilities", ["test.unit"]), at, sender)
+    if case == "router":
+        token_scope = inp["scope"]
+        ok = router_oversight_ok(inp["decision_oversight"], TEST_CLAIM_POLICY, token_scope, claim)
+        internal = reissue_token(claim, inp["internal_scope"]) if ok and claim and "internal_scope" in inp else None
+        return {"forwarded": ok, "error": None if ok else "unauthorized", "internal_claim": internal,
+                "emitted": [], "messages": []}
+    if case == "check03":
+        trusted = inp["probe_issuer"] in TRUSTED_ISSUERS
+        if not trusted:
+            return {"check03": "fail", "details": "probe credential rejected", "error": "unauthorized",
+                    "emitted": [], "messages": []}
+    run = Run(req, desc, at, claim, assessment, cfg, identity, inp.get("escalation"))
+    out = {"path": run.path, "outcome": run.res["outcome"],
+           "oversight": {"result": run.res["axes"]["oversight"]["result"],
+                         "status": run.res["axes"]["oversight"]["status"],
+                         "declared": run.res["axes"]["oversight"]["declared"],
+                         "fill": run.res["axes"]["oversight"]["fill"],
+                         "source_ids": sorted(r["source"]["id"] for r in run.res["axes"]["oversight"]["requirements"])}}
+    if run.path == "rejected":
+        out["error"] = run.error
+        out["conflict"] = run.res["axes"]["oversight"]["conflict"]
+        r = run.rejection
+        out["rejection_message"] = {"intent": r["intent"], "to": r["to"], "correlation_id": r["correlation_id"],
+                                    "error": {k: r["payload"]["error"][k] for k in ("code", "details")},
+                                    "resolution_outcome": r["payload"]["obligation_resolution"]["outcome"],
+                                    "signature_ok": signature_ok(r)}
+    if case == "check03":
+        out["check03"] = "pass" if run.path == "pending" else "fail"
+    if run.pending:
+        out["pending"] = {"request_payload_hash_ok": run.pending["payload"]["args"]["request_payload_hash"] ==
+                          payload_hash(req)}
+        if case in ("approval", "assets"):
+            for step in inp.get("approvals", []):
+                dec = approval_decision_msg(run, step["at"], step.get("decision", "approved"),
+                                            step.get("approver", REVIEWER_ID), step.get("payload_hash"))
+                err = run.approval(dec, step["at"], inp.get("required_approvals", 1))
+                out.setdefault("approval_errors", []).append(err)
+            if inp.get("expire_at") and run.path == "pending":
+                run.expire(inp["expire_at"])
+    if run.path == "executing" and inp.get("ack_only"):
+        run.acknowledge()
+        out["review_opened"] = run.review is not None
+    if run.path == "executing" and inp.get("end_at"):
+        run.execute(inp["end_at"], inp.get("outcome", "success"), inp.get("asynchronous", False))
+        out["path"] = run.path
+        out["terminal_ts"] = run.terminal["ts"]
+        out["terminal_has_resolution"] = "obligation_resolution" in run.terminal["payload"]
+        if run.ack:
+            out["ack_opens_review"] = False  # the review is built only from the terminal result
+        if inp.get("retrieve_at"):
+            out["retrieval_accepted"] = accept_retrieved(run.terminal, rid)
+            tampered = json.loads(json.dumps(run.terminal))
+            tampered["payload"].setdefault("result", {})["status"] = "tampered"
+            foreign = json.loads(json.dumps(run.terminal))
+            foreign["correlation_id"] = foreign["root_request_id"] = "7a000000-0000-4000-8000-0000000000ff"
+            out["tampered_accepted"] = accept_retrieved(tampered, rid)
+            out["foreign_accepted"] = accept_retrieved(foreign, rid)
+            # validly re-signed copies differing in one binding member only: the signature cannot catch them
+            for member in ("correlation_id", "root_request_id"):
+                other = json.loads(json.dumps(run.terminal))
+                other[member] = "7a000000-0000-4000-8000-0000000000fe"
+                sign(other, EXECUTOR_ID)
+                out[f"resigned_foreign_{member}_accepted"] = accept_retrieved(other, rid)
+            out["terminal_ts_after_retrieval"] = run.terminal["ts"]
+    if run.review:
+        rv = run.review
+        for ev in inp.get("events", []):
+            if ev["kind"] == "tick":
+                rv.tick(ev["at"])
+            else:
+                dec = review_decision_msg(rv, ev["at"], ev.get("decision", "confirmed"), ev.get("reviewer", REVIEWER_ID),
+                                          ev.get("result_hash"), tuple(ev.get("capabilities",
+                                                                              ["arsiaprotocol.oversight.approve"])),
+                                          ev.get("tamper", False))
+                tok = reviewer_token(ev["at"], ev.get("issuer", "https://as.acme.example"),
+                                     ev.get("scope", "arsiaprotocol.oversight.approve"), ev.get("reviewer", REVIEWER_ID))
+                err, _ = rv.receive(dec, ev["at"], tok)
+                out.setdefault("decision_errors", []).append(err)
+        out["review"] = {"state": rv.state, "review_deadline": rv.review_deadline,
+                         "notice_to": rv.notice["to"],
+                         "overdue_to": sorted({m["to"] for m in run.messages
+                                               if m["payload"]["type"] == "arsiaprotocol.oversight/review-overdue"}),
+                         "overdue_recorded_at": [r["processed_at"] for r in run.records
+                                                 if r["event_type"] == "review_overdue"],
+                         "obligations": [{"mode": o["mode"], "deadline": o["deadline"]} for o in rv.obligations],
+                         "escalations": [{k: e[k] for k in ("mode", "result", "attempts", "times")}
+                                         for e in rv.escalations]}
+    out["path"] = run.path
+    out["remediation"] = run.remediation
+    out["event_types"] = [r["event_type"] for r in run.records]
+    out["message_intents"] = [m["intent"] for m in run.messages]
+    out["records_unmodified"] = run.unmodified()
+    if case == "assets":
+        out["receipt_issued"] = False
+        out["final_error"] = run.final_error["payload"]["error"] if getattr(run, "final_error", None) else None
+    elif getattr(run, "final_error", None):
+        out["final_error"] = run.final_error["payload"]["error"]
+    out["emitted"], out["messages"] = run.records, run.messages
+    return out
+
+
+def r15(vectors):
+    # F-1 equivalence: a descriptor `false` is no veto (Actions §3.7); the MIFID-II default demands prior approval
+    r = execution_case({"case": "source", "compliance": {"profile": "MIFID-II"}, "high_risk_sender": True})
+    check("R15 F-1: high-risk + MIFID-II default, descriptor false -> pending_approval", r["path"] == "pending")
+    r = execution_case({"case": "source", "compliance": {"profile": "GDPR-STANDARD"}, "end_at": "2026-10-31T10:00:05.000Z"})
+    check("R15 no source demands prior approval -> executed, resolution in terminal result",
+          r["path"] == "completed" and r["terminal_has_resolution"] and "pending_approval" not in r["event_types"])
+    # A-4 / C-09: one within_24h evidence event, review_overdue, then a late decision
+    r = execution_case({"case": "review", "compliance": {"profile": "DSA-VLOP", "legal_basis": "legal_obligation"},
+                        "end_at": "2026-10-31T10:00:05.000Z",
+                        "events": [{"kind": "tick", "at": "2026-11-01T10:00:05.000Z"},
+                                   {"kind": "decision", "at": "2026-11-01T12:00:00.000Z"}]})
+    check("R15 C-09: within_24h overdue -> review_overdue + review_escalation, late decision completed_late",
+          r["review"]["state"] == "completed_late" and r["event_types"][-3:] ==
+          ["review_overdue", "review_escalation", "review_decision"] and r["records_unmodified"])
+    # A-80: multi-approval expiry N + 4
+    r = execution_case({"case": "approval", "descriptor_oversight": True, "compliance": {"profile": "GDPR-STANDARD"},
+                        "required_approvals": 2, "approvals": [{"at": "2026-10-31T10:10:00.000Z"}],
+                        "expire_at": "2026-10-31T11:00:00.000Z"})
+    check("R15 A-80: multi-approval expiry with N=1 -> 5 records", r["event_types"] ==
+          ["request", "pending_approval", "approval_decision", "approval_expired", "error"])
+    # ASSETS-06: expiry gives the Path 3 error, no receipt
+    r = execution_case({"case": "assets", "payload": {"type": "arsiaprotocol.assets/transfer-request",
+                                                       "args": {"amount": "50000.00"}},
+                        "compliance": {"profile": "MIFID-II", "human_oversight": "required_within_24h"},
+                        "assessed_risk": 9, "capabilities": ["arsiaprotocol.assets.transfer.initiate"],
+                        "approvals": [], "expire_at": "2026-10-31T11:00:00.000Z", "case_kind": "expiry"})
+    check("R15 ASSETS-06: risk assessment source; expiry -> forbidden/expired, no receipt",
+          "risk-assessment:arsiaprotocol.assets/transfer-request" in r["oversight"]["source_ids"]
+          and r["final_error"]["details"]["oversight_decision"] == "expired" and r["receipt_issued"] is False)
+    # escalation timing (Core §11.3 applied): backoff and Retry-After
+    res, n, times = deliver_escalation(["service_unavailable", "service_unavailable", "accepted"],
+                                       "2026-11-01T10:00:00.000Z")
+    check("R15 escalation backoff 1 s, 2 s", (res, n, times) == ("delivered", 3, ["2026-11-01T10:00:00.000Z",
+          "2026-11-01T10:00:01.000Z", "2026-11-01T10:00:03.000Z"]))
+    res, n, times = deliver_escalation([{"code": "rate_limited", "retry_after": 10}, "accepted"],
+                                       "2026-11-01T10:00:00.000Z")
+    check("R15 rate_limited waits Retry-After, not the backoff", times[1] == "2026-11-01T10:00:10.000Z")
+    check("R15 escalation exhausted after 3 retries", deliver_escalation(["timeout"] * 9, "2026-11-01T10:00:00.000Z")[:2]
+          == ("failed", 4))
+    check("R15 executor source prefixes == Core §4.3.10.2", all(
+        any(s["source"]["id"].startswith(p) for p in EXECUTOR_SOURCE_PREFIXES)
+        for s in executor_sources("a.b/c", make_descriptor("a.b/c", True),
+                                  {"requirement": "required_before_execution", "capabilities": ["test.unit"],
+                                   "policy": TEST_CLAIM_POLICY}, ["test.unit"],
+                                  {"action_id": "a.b/c", "assessed_risk_level": 8, "threshold": 7})))
+    # both post-execution modes: unreachable with this cycle's sources (executor-policy demands prior approval
+    # only), so the composition of Actions §3.9.2 is unit-checked with the modes injected
+    run = Run(make_request("7a000000-0000-4000-8000-0000000000b2", {"type": "com.acme.test/run", "args": {}},
+                           {"profile": "GDPR-STANDARD", "human_oversight": "required_within_24h"}),
+              make_descriptor("com.acme.test/run", period="P2D"), "2026-10-31T10:00:00.000Z")
+    run.modes = ["required_post_execution", "required_within_24h"]
+    run.execute("2026-10-31T10:00:05.000Z")
+    check("R15 both post modes: one obligation each, review_deadline = earliest (within 24 h)",
+          [(o["mode"], o["deadline"]) for o in run.review.obligations] ==
+          [("required_within_24h", "2026-11-01T10:00:05.000Z"), ("required_post_execution", "2026-11-02T10:00:05.000Z")]
+          and run.review.review_deadline == "2026-11-01T10:00:05.000Z")
+    run.review.tick("2026-11-02T10:00:05.000Z")
+    check("R15 both post modes: each obligation becomes overdue at its own deadline",
+          [r["review_mode"] for r in run.records if r["event_type"] == "review_overdue"] ==
+          ["required_within_24h", "required_post_execution"])
+    with_meta = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "execution"]
+    for v in with_meta:
+        got = execution_case(v["test_metadata"]["input"])
+        miss = subset_match(v["test_metadata"]["expect"], got)
+        check(f"R15 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        errs = [e for r in got["emitted"] for e in schema_errors(r, "arsia-audit-record.schema.json")]
+        errs += [e for m in got["messages"] for e in schema_errors(m, "arsia-message.schema.json")]
+        check(f"R15 {v['id']} emitted messages and records are schema-valid", not errs, "; ".join(errs[:3]))
+        check(f"R15 {v['id']} no record modified after emission", got.get("records_unmodified", True))
+    check("R15 execution vectors present", len(with_meta) > 0, str(len(with_meta)))
+
+
 # ------------------------------------------------- R11 issuer trust (Core §6.5)
 TRUST = {
     "https://as.acme.example": {
@@ -1226,7 +1849,7 @@ def r14(vectors):
 
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
-    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors)
+    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

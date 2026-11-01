@@ -210,11 +210,11 @@
 | ASSETS-§5.1.7-04 | 5.1.7 | RECOMMENDED | deployment | informational | Recommended maximum lifetime for audit.read access tokens is 300 seconds | — | — |
 | ASSETS-§5.1.7-05 | 5.1.7 | MUST | deployment | behavioural_positive | Receiving agent MUST enforce record-level access controls for audit.read | — | — |
 | ASSETS-§5.1.7-06 | 5.1.7 | MAY | sdk_enabled | informational | audit.read access MAY be restricted by date range, payment_reference, or compliance profile | — | — |
-| ASSETS-§5.2-01 | 5.2 | MUST | sdk | behavioural_positive | Financial operations with risk_level ≥ 7 MUST require human oversight before execution | — | ITV-400 |
 | ASSETS-§5.2-02 | 5.2 | SHOULD | sdk_enabled | procedural | Risk assessment SHOULD consider amount, asset_type, compliance profile, and operator policies | — | — |
 | ASSETS-§5.2-03 | 5.2 | MUST | sdk | behavioural_positive | pending_approval payload.args uses the canonical Actions §3.2 field set; context MUST carry a human-readable description of the transfer | arsia-message | ITV-400, ITV-401 |
 | ASSETS-§5.2-04 | 5.2 | MUST | sdk | behavioural_positive | approval_decision message MUST be signed by the approver's Ed25519 key | arsia-message | ITV-402 |
 | ASSETS-§5.2-05 | 5.2 | MAY | sdk_enabled | informational | Implementations MAY add biometric verification as a third authentication factor | — | — |
+| ASSETS-§5.2-06 | 5.2 | MUST_NOT | sdk | behavioural_negative | Processor MUST NOT execute a denied transfer; it answers the Actions §3.4 Path 2 error on denial and the Path 3 error on expiry, with no AssetTransferReceipt | — | ITV-672, ITV-673 |
 | ASSETS-§6.1-01 | 6.1 | MUST | sdk | behavioural_positive | Qualifying AssetTransferRequests MUST generate a MiFID II audit record | — | ITV-39, ITV-122 |
 | ASSETS-§6.1-02 | 6.1 | REQUIRED | sdk | structural | All MiFID II audit record fields are required unless explicitly marked OPTIONAL | arsia-mifid-audit-record | ITV-39, ITV-122, ITV-144, ITV-145 |
 | ASSETS-§6.1-03 | 6.1 | OPTIONAL | sdk | structural | Only fields marked OPTIONAL may be omitted from MiFID II audit records | arsia-mifid-audit-record | ITV-122 |

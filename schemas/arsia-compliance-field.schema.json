@@ -41,7 +41,7 @@
         "required_within_24h",
         "required_post_execution"
       ],
-      "description": "Human oversight mode. not_required: no oversight needed. required_before_execution: action MUST NOT execute until a human approves. required_within_24h: action MAY execute but human MUST review within 24 hours. required_post_execution: action executes immediately, results audited for human review."
+      "description": "Human oversight mode (Core §4.3.6.5). not_required: requests no oversight; a value, not a dispensation. required_before_execution: the action MUST NOT execute until a human approves (Actions §3.2-§3.6). required_within_24h: may execute without prior approval; a post-execution review is opened with a deadline 24 hours after the execution instant (Actions §3.9). required_post_execution: may execute without prior approval; a post-execution review is opened with the deadline of the executor's announced post_execution_review_period, or the request is rejected (Actions §3.9.1)."
     },
     "explainability_required": {
       "type": "boolean",

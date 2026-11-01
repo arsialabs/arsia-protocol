@@ -180,7 +180,7 @@
 | IDENT-§7.3-05 | 7.3 | MUST | sdk | structural | CHECK-01: response id field MUST be a valid UUID | arsia-message | — |
 | IDENT-§7.3-06 | 7.3 | MUST | sdk | structural | CHECK-01: response MUST include v, ts, from, and to fields | arsia-message | — |
 | IDENT-§7.3-07 | 7.3 | MUST | deployment | behavioural_positive | CHECK-01: response from field MUST match the external agent's agent_id | — | ITV-477 |
-| IDENT-§7.3-08 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: external agent MUST respond with pending_approval for oversight-required capabilities | — | ITV-478 |
+| IDENT-§7.3-08 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: with a probe token (sub gateway, aud external agent, arsia_oversight listing the capability, issuer trusted by the agent), the external agent MUST respond with pending_approval for oversight-required capabilities | — | ITV-478, ITV-670, ITV-671 |
 | IDENT-§7.3-09 | 7.3 | MUST | sdk | structural | CHECK-03: pending_approval message MUST have intent set to pending_approval | arsia-message | — |
 | IDENT-§7.3-10 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval correlation_id MUST match the request's id | — | ITV-479 |
 | IDENT-§7.3-11 | 7.3 | SHOULD | sdk | structural | CHECK-03: pending_approval payload.type SHOULD be arsiaprotocol.oversight/pending | arsia-message | ITV-480 |
@@ -194,9 +194,9 @@
 | IDENT-§7.3-19 | 7.3 | MUST | sdk | behavioural_negative | CHECK-04: the gateway MUST retrieve each chain present by chain_id and verify it per ARSIA-State.md §7.2 (internal consistency) | arsia-audit-record, arsia-audit-chain-tombstone | harness R14 (b)-(h) |
 | IDENT-§7.3-20 | 7.3 | SHOULD | sdk_enabled | behavioural_positive | When the audit endpoint is served at Core Conformance level, its records SHOULD carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | — |
 | IDENT-§7.3-21 | 7.3 | MUST | sdk | behavioural_positive | At Compliance and Full levels, served audit records MUST carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596 |
+| IDENT-§7.3-22 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval request_payload_hash MUST be the hash of the request's payload, and obligation_resolution MUST record the capability-policy source of the probe token's claim | arsia-message | ITV-478, ITV-670 |
 | IDENT-§7.4-01 | 7.4 | MAY | sdk | informational | Allowed-status capabilities MAY be invoked without additional oversight | arsia-capability-policy | — |
-| IDENT-§7.4-02 | 7.4 | MAY | sdk | behavioural_positive | Oversight-required capabilities MAY be invoked but MUST trigger pending_approval first | arsia-capability-policy | — |
-| IDENT-§7.4-03 | 7.4 | MUST | sdk | behavioural_positive | Each oversight-required invocation MUST trigger a pending_approval flow before execution | arsia-capability-policy | — |
+| IDENT-§7.4-02 | 7.4 | MAY | sdk | behavioural_positive | Oversight-required capabilities MAY be invoked; each invocation is subject to prior approval carried by the token's arsia_oversight claim | arsia-capability-policy | ITV-642 |
 | IDENT-§7.4-04 | 7.4 | MUST_NOT | sdk | behavioural_negative | Prohibited-status capabilities MUST NOT be invoked by the agent | arsia-capability-policy | — |
 | IDENT-§7.4-05 | 7.4 | MUST | sdk | behavioural_negative | Infrastructure router MUST reject prohibited-capability requests with error forbidden | arsia-capability-policy | — |
 | IDENT-§7.4-06 | 7.4 | MUST | sdk | procedural | Gateway MUST partition effective capabilities into freely_allowed and oversight_required lists | arsia-onboarding-decision | — |
@@ -216,6 +216,7 @@
 | IDENT-§7.6-10 | 7.6 | MUST | sdk | procedural | Gateway MUST record the onboarding decision as an ArsiaAuditRecord with event_type approval_decision | arsia-audit-record | — |
 | IDENT-§7.6-11 | 7.6 | MUST | sdk | structural | An approved decision MUST carry authenticated_context: the context prepared in Phase 1 Step 7 and verified by CHECK-05, unchanged, with context_sha256 computed by the Step 7 formula | arsia-onboarding-decision | ITV-03, ITV-130, ITV-589, INV-61 |
 | IDENT-§7.6-12 | 7.6 | MUST | sdk | procedural | Gateway MUST record the association of the issued token (jti), the decision id and the context_id | — | ITV-610, ITV-615, ITV-616 |
+| IDENT-§7.6-13 | 7.6 | MUST | sdk | structural | An approved decision MUST carry policy_version and policy_sha256 identifying the CapabilityPolicy applied in Phase 3 | arsia-onboarding-decision | ITV-130, ITV-589, INV-78 |
 | IDENT-§7.7-01 | 7.7 | MUST | sdk | behavioural_positive | External agent MUST present the onboarding token as a Bearer token in the Authorization header | arsia-jwt-claims | — |
 | IDENT-§7.7-02 | 7.7 | MUST | sdk_enabled | procedural | Infrastructure router MUST verify the token on every request via the gateway's verify-token endpoint | — | — |
 | IDENT-§7.7-03 | 7.7 | MUST | deployment | structural | Token verification request body MUST contain the token to be verified | arsia-jwt-claims | ITV-483, ITV-484 |
@@ -224,8 +225,6 @@
 | IDENT-§7.7-06 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden when message requests out-of-scope capabilities | — | ITV-486 |
 | IDENT-§7.7-06a | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that the invoked action's risk_level does not exceed the capability's max_risk_level constraint | arsia-capability-policy | — |
 | IDENT-§7.7-06b | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden and details.risk_level_exceeded when action risk_level exceeds max_risk_level | — | — |
-| IDENT-§7.7-07 | 7.7 | SHOULD | sdk_enabled | behavioural_positive | Router SHOULD signal to the internal agent when oversight is required for a capability | — | — |
-| IDENT-§7.7-08 | 7.7 | MUST | deployment | behavioural_positive | Receiving internal agent MUST respond with pending_approval before executing oversight-required actions | — | — |
 | IDENT-§7.7-09 | 7.7 | SHOULD | sdk_enabled | interoperability | External agents SHOULD use DPoP when presenting tokens to the infrastructure router | arsia-dpop-proof | — |
 | IDENT-§7.7-10 | 7.7 | SHOULD | sdk_enabled | behavioural_positive | Router SHOULD verify DPoP proofs when presented by external agents | — | — |
 | IDENT-§7.7-11 | 7.7 | MAY | sdk | informational | External agent MAY re-initiate onboarding to obtain a new token before expiry | — | — |
@@ -236,6 +235,8 @@
 | IDENT-§7.7-16 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | With a missing, invalid, unusable, foreign-agent or foreign-admission context the router MUST NOT forward the request and MUST reject it with unauthorized | — | ITV-613, ITV-614, ITV-615, ITV-616, ITV-626, ITV-627 |
 | IDENT-§7.7-17 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | Router MUST NOT treat an agent without a usable context as having a lower classification | — | ITV-613 |
 | IDENT-§7.7-18 | 7.7 | MUST | sdk | behavioural_positive | Every renewal, lightweight or full, MUST bind a valid context (IdentityRecord re-verified as in Phase 1, new context, bound to the new token) | — | — |
+| IDENT-§7.7-19 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with unauthorized a token whose scope includes a bound oversight_required capability unless arsia_oversight lists it with the decision's policy identification | — | ITV-669 |
+| IDENT-§7.7-20 | 7.7 | MUST | sdk | behavioural_positive | An internal token issued by the router MUST carry the arsia_oversight requirement and policy identification for every remaining listed capability | arsia-jwt-claims | ITV-668 |
 | IDENT-§8.1-01 | 8.1 | MUST | sdk | structural | CapabilityPolicy MUST include policy_version, token_lifetime_seconds, and capabilities fields | arsia-capability-policy | ITV-10 |
 | IDENT-§8.1-02 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy policy_version field (string) is REQUIRED | arsia-capability-policy | — |
 | IDENT-§8.1-03 | 8.1 | SHOULD | sdk_enabled | informational | policy_version SHOULD use a semantically meaningful version string | — | — |
@@ -244,6 +245,7 @@
 | IDENT-§8.1-06 | 8.1 | RECOMMENDED | sdk_enabled | informational | token_lifetime_seconds RECOMMENDED maximum is 86400 seconds (24 hours) | — | ITV-65 |
 | IDENT-§8.1-07 | 8.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued with lifetime exceeding token_lifetime_seconds | arsia-capability-policy | — |
 | IDENT-§8.1-08 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy capabilities field (array of CapabilityRule) is REQUIRED | arsia-capability-policy | — |
+| IDENT-§8.1-09 | 8.1 | MUST_NOT | operational_policy | behavioural_negative | A gateway MUST NOT apply two different policies under the same policy_version | — | — |
 | IDENT-§8.2-01 | 8.2 | REQUIRED | sdk | structural | CapabilityRule capability field (string) is REQUIRED | arsia-capability-policy | — |
 | IDENT-§8.2-02 | 8.2 | MUST | sdk | structural | CapabilityRule MUST specify an exact capability string, no wildcards | arsia-capability-policy | ITV-11 |
 | IDENT-§8.2-03 | 8.2 | REQUIRED | sdk | structural | CapabilityRule status field (string: allowed, oversight_required, or prohibited) is REQUIRED | arsia-capability-policy | — |
@@ -259,6 +261,8 @@
 | IDENT-§9.1-05 | 9.1 | MUST | sdk | behavioural_positive | Token sub claim MUST be the external agent's agent-id | arsia-jwt-claims | — |
 | IDENT-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Token iss claim MUST be the gateway's agent-id | arsia-jwt-claims | — |
 | IDENT-§9.1-07 | 9.1 | SHOULD | sdk | behavioural_positive | Token aud claim SHOULD be the infrastructure router's agent-id (a single agent-id; wildcard audiences are not defined by the protocol — §9.1, Core §6.4) | arsia-jwt-claims | — |
+| IDENT-§9.1-08 | 9.1 | MUST | sdk | behavioural_positive | A token whose scope includes an oversight_required capability MUST carry arsia_oversight listing every such capability with requirement required_before_execution and the policy identification | arsia-jwt-claims | ITV-639 |
+| IDENT-§9.1-09 | 9.1 | MUST | sdk | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 |
 | IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — |
 | IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — |
 | IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof before accepting the request | — | — |

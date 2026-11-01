@@ -228,8 +228,9 @@ def resolution_vector_mismatches(vectors, rh):
     out = []
     for v in vectors:
         meta = v.get("test_metadata", {})
-        if meta.get("scenario") in ("resolution", "router"):
-            miss = rh.subset_match(meta["expect"], rh.scenario_result(meta))
+        if meta.get("scenario") in ("resolution", "router", "execution"):
+            got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else rh.scenario_result(meta)
+            miss = rh.subset_match(meta["expect"], got)
             if miss:
                 out.append(f"{v['id']}: {', '.join(miss)}")
     return out
@@ -415,6 +416,147 @@ def eu_list_problems(routing, rh):
         out.append("member list or revision differs from the reference resolver")
     if not digest or digest.group(1) != rh.jcs_sha256(codes):
         out.append("declared digest does not recompute")
+    return out
+
+
+# ------------------------------- DR-1/DR-2: executor oversight sources and post-execution review
+def _envelope(v):
+    return v.get("message") or v.get("data")
+
+
+ACTION_ID_EXEMPT = {"CTV-08", "ITV-86"}  # pre-existing non-conformant action_id; vector cycle (ledger notes)
+
+
+def migrated_oversight_problems(vectors, schemas, reg, rh):
+    """Migrated pending_approval / approval_decision vectors recompute from test_metadata.reference_request;
+    a valid pending's reference request is accepted with prior approval in its effective set."""
+    from jsonschema import Draft202012Validator
+    by_id = {v["id"]: v for v in vectors}
+    desc_v = Draft202012Validator(schemas["arsia-action-descriptor.schema.json"], registry=reg)
+    out = []
+    for v in vectors:
+        m = _envelope(v)
+        if not isinstance(m, dict) or m.get("intent") not in ("pending_approval", "approval_decision") \
+                or "event_type" in m:
+            continue
+        ref = v.get("test_metadata", {}).get("reference_request")
+        if ref is None:
+            out.append(f"{v['id']}: no reference_request")
+            continue
+        if m["intent"] == "approval_decision":
+            if "pending_vector" in ref:
+                want = _envelope(by_id[ref["pending_vector"]])["payload"]["args"]["request_payload_hash"]
+            else:
+                want = rh.payload_hash({"payload": ref["payload"]})
+            got = m["payload"]["result"].get("request_payload_hash")
+            if got != want and not (got is None and v.get("valid") is False):
+                out.append(f"{v['id']}: request_payload_hash != reference")
+            continue
+        if "vector" in ref:
+            req = by_id[ref["vector"]]["message"]
+            if (req["id"], req["payload"], req.get("compliance")) != (ref["id"], ref["payload"], ref.get("compliance")):
+                out.append(f"{v['id']}: reference_request differs from {ref['vector']}")
+        ex = ref["executor"]
+        errs = [e.message for e in desc_v.iter_errors(ex["descriptor"])]
+        if v["id"] in ACTION_ID_EXEMPT:  # the pending's own action_id is not a valid action_id (notes)
+            errs = [e for e in errs if ex["descriptor"]["action_id"] not in e]
+        if errs:
+            out.append(f"{v['id']}: reference descriptor schema-invalid: {errs[0][:60]}")
+        srcs = rh.executor_sources(ex["descriptor"]["action_id"], ex["descriptor"], ex.get("claim"),
+                                   ref["capabilities"], ex.get("assessment"))
+        res = rh.resolve_obligations("request", ref.get("compliance"), None, ref["ts"], executor=srcs,
+                                     review_config=dict(rh.FULL_REVIEW_CONFIG, post_execution_review_period=None))
+        args = m["payload"]["args"]
+        valid = v.get("valid", v.get("expected") == "valid")
+        absent_ok = lambda x: x is None and valid is False  # the deliberate cause of a negative vector
+        if args.get("request_payload_hash") != rh.payload_hash({"payload": ref["payload"]}) and \
+                not absent_ok(args.get("request_payload_hash")):
+            out.append(f"{v['id']}: request_payload_hash != SHA-256 of the reference payload")
+        if m["payload"].get("obligation_resolution") != res and not absent_ok(m["payload"].get("obligation_resolution")):
+            out.append(f"{v['id']}: obligation_resolution != reference resolver")
+        if valid is True and (res["outcome"] != "accepted"
+                              or "required_before_execution" not in (res["axes"]["oversight"]["result"] or [])):
+            out.append(f"{v['id']}: valid pending whose reference request is not accepted with prior approval")
+    return out
+
+
+def onboarding_policy_problems(vectors, schemas, reg, rh):
+    """Identity §7.6/§8.1/§8.3: policy_sha256 recomputes from the reference policy, whose evaluation
+    over the effective capabilities reproduces freely_allowed and oversight_required."""
+    from jsonschema import Draft202012Validator
+    pol_v = Draft202012Validator(schemas["arsia-capability-policy.schema.json"], registry=reg)
+    out = []
+    for v in vectors:
+        d = v.get("data") if v.get("schema_ref") == "arsia-onboarding-decision.schema.json" else None
+        payload = v["message"].get("payload") if isinstance(v.get("message"), dict) else None
+        if d is None and isinstance(payload, dict) and payload.get("type") == "arsiaprotocol.onboarding/decision":
+            d = payload
+        if not d or d.get("args", {}).get("decision") != "approved":
+            continue
+        args, pol = d["args"], v.get("test_metadata", {}).get("reference_policy")
+        if pol is None:
+            out.append(f"{v['id']}: no reference_policy")
+            continue
+        if list(pol_v.iter_errors(pol)):
+            out.append(f"{v['id']}: reference policy schema-invalid")
+        if pol["policy_version"] != args.get("policy_version"):
+            out.append(f"{v['id']}: policy_version differs from the reference policy")
+        if "policy_sha256" in args and args["policy_sha256"] != rh.jcs_sha256(pol):
+            out.append(f"{v['id']}: policy_sha256 does not recompute")
+        status = {r["capability"]: r["status"] for r in pol["capabilities"]}
+        caps = args["effective_capabilities"]
+        if [c for c in caps if status.get(c) == "allowed"] != args["freely_allowed"] or \
+                [c for c in caps if status.get(c) == "oversight_required"] != args["oversight_required"]:
+            out.append(f"{v['id']}: lists differ from the §8.3 evaluation of the reference policy")
+    return out
+
+
+def closed_member_problems(actions, core, schemas):
+    """Prose member lists == closed schema definitions (A-78; Actions §3.9.3; Core §6.1)."""
+    msg, out = schemas["arsia-message.schema.json"], []
+    s32 = actions[actions.index("#### Step 2: Construct the `pending_approval` message."):]
+    block = s32.split("```json")[1].split("```")[0]
+    args = re.findall(r'^\s+"([a-z_]+)":', block[block.index('"args"'):block.index("\n  }")], re.M)
+    pa = msg["$defs"]["pending-approval-args"]
+    if set(args) != set(pa["properties"]) or pa.get("additionalProperties") is not False:
+        out.append(f"Actions §3.2 args {sorted(args)} != schema {sorted(pa['properties'])} (closed: "
+                   f"{pa.get('additionalProperties') is False})")
+    s393 = actions[actions.index("#### 3.9.3 Messages"):actions.index("#### 3.9.4")]
+    blocks = [json.loads(re.sub(r"\"<[^\"]*>\"", "\"x\"", b.split("```")[0])) for b in s393.split("```json")[1:]]
+    for b, name in zip(blocks, ("review-pending-data", "review-decision-data")):
+        d = msg["$defs"][name]
+        if set(b["data"]) != set(d["properties"]) or set(d["required"]) != set(d["properties"]) or \
+                d.get("additionalProperties") is not False:
+            out.append(f"Actions §3.9.3 {name} members != closed schema")
+    m = re.search(r"\*\*Overdue notice\.\*\*.*?contains\s+exactly (.*?) of the overdue", s393, re.S)
+    od = msg["$defs"]["review-overdue-data"]
+    if not m or set(re.findall(r"`([a-z_]+)`", m.group(1))) != set(od["properties"]) or \
+            od.get("additionalProperties") is not False:
+        out.append("Actions §3.9.3 overdue notice members != closed schema")
+    para = core[core.index("**`arsia_oversight`.**"):].split("\n\n")[0]
+    jwt = schemas["arsia-jwt-claims.schema.json"]["properties"]["arsia_oversight"]
+    if set(re.findall(r"`([a-z_]+)` —", para)) != set(jwt["properties"]) or \
+            set(re.findall(r"`([a-z0-9_]+)` \(", para)) != set(jwt["properties"]["policy"]["properties"]):
+        out.append("Core §6.1 arsia_oversight members != JWT schema")
+    return out
+
+
+def executor_prefix_problems(core, rh):
+    row = next(l for l in core.splitlines() if l.startswith("| `executor-policy` |"))
+    prefixes = tuple(sorted(set(re.findall(r"`([a-z-]+:)<", row))))
+    return [] if prefixes == tuple(sorted(rh.EXECUTOR_SOURCE_PREFIXES)) else \
+        [f"Core §4.3.10.2 {prefixes} != harness {rh.EXECUTOR_SOURCE_PREFIXES}"]
+
+
+def replaced_rule_echoes():
+    """A-3/A-4 and DR-1 anti-regression: wording of the replaced rules is gone."""
+    out = []
+    for f in sorted(glob.glob("spec/*.md") + glob.glob("schemas/*.json")):
+        text = open(f, encoding="utf-8").read()
+        for needle in ("oversight_timeout", "SHOULD annotate the message", "Transfer\ndenied by human oversight",
+                       "Prohibition on unnecessary oversight", "human MUST review within 24 hours"):
+            if needle in text:
+                out.append(f"{f}: {needle!r}")
     return out
 
 
@@ -852,6 +994,21 @@ def main() -> int:
           sorted(classified) == sorted(skipped) and total and int(total.group(1)) == len(skipped),
           f"missing {sorted(set(skipped) - set(classified))[:4]} extra {sorted(set(classified) - set(skipped))[:4]}"
           f" total {total.group(1) if total else None} vs {len(skipped)}")
+
+    # DR-1/DR-2: executor oversight sources and post-execution review
+    probs = migrated_oversight_problems(vectors, schemas, reg, rh)
+    check("pending/decision vectors recompute from their reference request (DR-1)", not probs, "; ".join(probs[:4]))
+    probs = onboarding_policy_problems(vectors, schemas, reg, rh)
+    check("onboarding policy_sha256 and lists == reference policy (Identity §8.1, §8.3)", not probs,
+          "; ".join(probs[:4]))
+    probs = closed_member_problems(actions, core, schemas)
+    check("closed member lists: Actions §3.2 args, §3.9.3 review payloads, Core §6.1 claim == schemas", not probs,
+          "; ".join(probs[:4]))
+    probs = executor_prefix_problems(core, rh)
+    check("Core §4.3.10.2 executor-policy source ids == harness", not probs, "; ".join(probs))
+    probs = replaced_rule_echoes()
+    check("replaced oversight rules absent (oversight_timeout, router annotation, descriptor veto)", not probs,
+          "; ".join(probs[:4]))
 
     print()
     print(f"{'ALL CHECKS PASSED' if not FAIL else f'{len(FAIL)} FAILURES: ' + ', '.join(FAIL)}")
