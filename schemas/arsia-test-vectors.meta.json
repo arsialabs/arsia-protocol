@@ -74,10 +74,20 @@
             "private_key_hex",
             "public_key_hex",
             "canonical_bytes_hex",
-            "signature_base64url"
+            "signature_base64url",
+            "expect_signature"
           ],
           "additionalProperties": false,
           "properties": {
+            "expect_signature": {
+              "type": "string",
+              "enum": [
+                "valid",
+                "invalid",
+                "absent"
+              ],
+              "description": "Expected outcome of signature verification, independent of valid/expected/expected_error. valid: security.sig is present and MUST verify (Core §5.2 Step 5). invalid: security.sig is present and MUST fail (signature negative). absent: the message deliberately carries no security object; only canonical_bytes_hex is checked, which is not signature verification."
+            },
             "private_key_hex": {
               "type": "string"
             },
@@ -121,6 +131,52 @@
         "test_metadata": {
           "type": "object",
           "description": "Auxiliary context for runtime-only test vectors (e.g., token_scope, authorization context). Not used by schema validation."
+        },
+        "posture": {
+          "type": "object",
+          "description": "Declared posture of a vector whose expected outcome rests on an option the protocol permits but does not require (DR-0.3): a MAY, or an optional configuration. The expectation holds for an implementation that takes the option stated in assumes.",
+          "required": [
+            "spec",
+            "section",
+            "basis",
+            "text",
+            "assumes"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "spec": {
+              "type": "string",
+              "enum": [
+                "ARSIA-Core.md",
+                "ARSIA-Actions.md",
+                "ARSIA-Routing.md",
+                "ARSIA-State.md",
+                "ARSIA-Identity.md",
+                "ARSIA-Assets.md"
+              ]
+            },
+            "section": {
+              "type": "string",
+              "pattern": "^§\\d+(\\.\\d+)*$"
+            },
+            "basis": {
+              "type": "string",
+              "enum": [
+                "MAY",
+                "configuration"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Verbatim phrase of the cited section that grants the option."
+            },
+            "assumes": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The option the vector's expectation takes."
+            }
+          }
         }
       },
       "dependentRequired": {

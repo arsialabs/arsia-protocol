@@ -117,6 +117,56 @@ def resolve_schema(schema_ref: str, registry: Registry) -> dict:
     return schema
 
 
+MESSAGE_SCHEMA = "arsia-message.schema.json"
+_VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)$")  # Core §4.1.1 pattern
+
+
+def version_procedure(message: object) -> str:
+    """Core §4.1.1 version handling model, selected by the message's own `v`:
+    "exact" — the published schema validates exactly the 2.0 minor (rule 1); also used
+    when `v` is absent or malformed, so the exact schema reports the defect;
+    "major-2-compat" — a newer 2.x minor: validate the known fields and accept unknown
+    top-level and payload fields (rules 2-3);
+    "version-rejected" — another major: rejected with not_implemented (rule 6)."""
+    v = message.get("v") if isinstance(message, dict) else None
+    m = _VERSION_RE.match(v) if isinstance(v, str) else None
+    if m is None or v == "2.0":
+        return "exact"
+    return "major-2-compat" if m.group(1) == "2" else "version-rejected"
+
+
+def major2_compat_schema(exact: dict) -> dict:
+    """The 2.0 message schema relaxed only as Core §4.1.1 rule 3 allows: any 2.x `v`, unknown
+    top-level fields and unknown fields on the two object payload branches. The exclusivity
+    the exact schema derives from additionalProperties:false is restated as discrimination:
+    the generic branch excludes `error`, the error branch excludes args/result/data (§4.4.7).
+    Required fields, conditionals, formats and the closed `error` object are unchanged."""
+    schema = copy.deepcopy(exact)
+    schema["$id"] = exact["$id"].replace("arsia-message.schema.json", "arsia-message.major-2-compat.schema.json")
+    schema["properties"]["v"] = {"type": "string", "pattern": "^2\\.(0|[1-9]\\d*)$"}
+    schema["additionalProperties"] = True
+    generic, error_branch = schema["properties"]["payload"]["oneOf"][:2]
+    assert "error" in error_branch["required"] and "error" not in generic["properties"]
+    generic["additionalProperties"] = True
+    generic["not"]["anyOf"].append({"required": ["error"]})
+    error_branch["additionalProperties"] = True
+    error_branch["not"] = {"anyOf": [{"required": ["args"]}, {"required": ["result"]}, {"required": ["data"]}]}
+    return schema
+
+
+def message_errors(payload: object, schema: dict, registry: Registry) -> tuple[str, list]:
+    """Validates a message under the procedure its `v` selects; returns (procedure, errors)."""
+    procedure = version_procedure(payload)
+    if procedure == "version-rejected":
+        major = payload["v"].split(".")[0]
+        err = ValidationError(f"major version {major} not supported (Core §4.1.1 rule 6): not_implemented",
+                              validator="version", path=["v"])
+        return procedure, [err]
+    if procedure == "major-2-compat":
+        schema = major2_compat_schema(schema)
+    return procedure, list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
+
+
 def determine_expected(vector: dict) -> bool:
     if "valid" in vector and isinstance(vector["valid"], bool):
         return vector["valid"]
@@ -233,8 +283,9 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
     vectors = data["vectors"]
     checked = 0
     failed = 0
+    verified_count = 0
     negatives_asserted = 0
-    not_applicable = 0
+    absent_count = 0
     failures: list[str] = []
 
     for vector in vectors:
@@ -248,11 +299,15 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
 
         checked += 1
         msg = vector.get("message", {})
-        expected_valid = determine_expected(vector)
-        # Signature negative: expected-invalid with expected_error "unauthorized", the
-        # code Core §5.2 Step 6 mandates for failed verification. Its signature MUST fail;
-        # every other vector's signature MUST verify (its invalidity, if any, lies elsewhere).
-        signature_negative = (not expected_valid) and vector.get("expected_error") == "unauthorized"
+        # The expected signature outcome is declared, never inferred from valid/expected or
+        # expected_error: a vector rejected for authorization or compliance still carries a
+        # signature that MUST verify (A-34).
+        expectation = crypto.get("expect_signature")
+        if expectation not in ("valid", "invalid", "absent"):
+            failed += 1
+            failures.append(f"  FAIL {vid}: crypto.expect_signature missing or unknown: {expectation!r}")
+            continue
+        signature_negative = expectation == "invalid"
 
         # CHECK 1 — canonical bytes (Draft-02 signing profile, Core §5.1:
         # security PRESENT, only the sig property removed)
@@ -271,15 +326,20 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             )
             continue
 
-        # CHECK 2 — signature verification (Core §5.2). A message without a security
-        # object carries no envelope signature to verify (Step 1 needs security.sig):
-        # only the canonical bytes are checked for it.
-        if not isinstance(msg.get("security"), dict):
-            if signature_negative:
+        # CHECK 2 — signature verification (Core §5.2). "absent" declares a message with no
+        # security object: there is no envelope signature to verify (Step 1 needs
+        # security.sig), only the canonical bytes above, and it is not counted as verified.
+        has_security = isinstance(msg.get("security"), dict)
+        if expectation == "absent":
+            if has_security:
                 failed += 1
-                failures.append(f"  FAIL {vid}: signature negative without a security object")
+                failures.append(f"  FAIL {vid}: expect_signature 'absent' but the message has a security object")
             else:
-                not_applicable += 1
+                absent_count += 1
+            continue
+        if not has_security:
+            failed += 1
+            failures.append(f"  FAIL {vid}: expect_signature {expectation!r} without a security object")
             continue
         alg = msg["security"].get("alg")
         pub_bytes = bytes.fromhex(crypto["public_key_hex"])
@@ -320,14 +380,15 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
                     f"    crypto.signature:     {crypto['signature_base64url'][:40]}..."
                 )
                 continue
+        verified_count += 1
 
     passed = checked - failed
     if failures:
         for f_msg in failures:
             print(f_msg, file=sys.stderr)
     print(f"Crypto: {checked} vectors checked, {passed} passed, {failed} failed "
-          f"({negatives_asserted} signature negatives asserted, "
-          f"{not_applicable} without security object: canonical bytes only)")
+          f"({verified_count} signatures verified, {negatives_asserted} signature negatives asserted, "
+          f"{absent_count} without signature: canonical bytes only)")
     return 1 if failed else 0
 
 
@@ -360,7 +421,10 @@ def run_validation(args: argparse.Namespace) -> int:
             if args.schema and args.schema not in schema_ref:
                 continue
             schema = resolve_schema(schema_ref, registry)
-            errors = list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
+            if schema_ref == MESSAGE_SCHEMA:
+                procedure, errors = message_errors(payload, schema, registry)
+            else:
+                procedure, errors = "exact", list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
             results.append({
                 "id": vid,
                 "schema": schema_ref.split("#")[0],
@@ -372,6 +436,7 @@ def run_validation(args: argparse.Namespace) -> int:
                 "description": vector.get("description", ""),
                 "skipped": True,
                 "skip_reason": vector.get("skip_reason", "skip_schema flag set"),
+                "procedure": procedure,
             })
             continue
 
@@ -380,9 +445,10 @@ def run_validation(args: argparse.Namespace) -> int:
 
         expected_valid = determine_expected(vector)
         schema = resolve_schema(schema_ref, registry)
-        validator = Draft202012Validator(schema, registry=registry)
-
-        errors = list(validator.iter_errors(payload))
+        if schema_ref == MESSAGE_SCHEMA:
+            procedure, errors = message_errors(payload, schema, registry)
+        else:
+            procedure, errors = "exact", list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
         actual_valid = len(errors) == 0
 
         base_ref = schema_ref.split("#")[0] if "#" in schema_ref else schema_ref
@@ -406,6 +472,7 @@ def run_validation(args: argparse.Namespace) -> int:
             "description": vector.get("description", ""),
             "skipped": False,
             "error_path": error_path,
+            "procedure": procedure,
         })
 
     check = args.check_errors
@@ -437,6 +504,8 @@ def print_tap(results: list[dict], check_errors: bool = False) -> int:
             continue
 
         label = "valid" if r["expected_valid"] else "invalid"
+        if r.get("procedure", "exact") != "exact":
+            label += f", {r['procedure']}"
         desc = f"{r['id']} {r['schema']} ({label}"
         if not r["expected_valid"] and r["description"]:
             desc += f": {r['description']}"
@@ -469,8 +538,17 @@ def print_tap(results: list[dict], check_errors: bool = False) -> int:
     print(f"# Failed: {failed}/{total}")
     if check_errors:
         print(f"# Error-path mismatches: {mismatches}")
+    print(f"# Version procedure (Core §4.1.1): {procedure_counts(results)}")
 
     return 1 if failed or skip_failed or (check_errors and mismatches) else 0
+
+
+def procedure_counts(results: list[dict]) -> str:
+    counts: dict[str, int] = {}
+    for r in results:
+        if r["schema"] == MESSAGE_SCHEMA:
+            counts[r.get("procedure", "exact")] = counts.get(r.get("procedure", "exact"), 0) + 1
+    return ", ".join(f"{k} {counts[k]}" for k in sorted(counts))
 
 
 def print_summary(results: list[dict], check_errors: bool = False) -> int:
@@ -511,6 +589,7 @@ def print_summary(results: list[dict], check_errors: bool = False) -> int:
     print(f"{'TOTAL':<45} {totals['valid']:>5} {totals['invalid']:>7} {totals['pass'] + skip_passed:>5} {totals['fail'] + skip_failed:>5}")
     if check_errors:
         print(f"Error-path mismatches: {mismatches}")
+    print(f"Version procedure (Core §4.1.1): {procedure_counts(results)}")
 
     return 1 if totals["fail"] or skip_failed or (check_errors and mismatches) else 0
 
@@ -523,6 +602,8 @@ def print_junit(results: list[dict], check_errors: bool = False) -> int:
     skipped = 0
     for r in results:
         tc = ET.SubElement(testsuite, "testcase", name=r["id"], classname=r["format"])
+        if r.get("procedure", "exact") != "exact":
+            ET.SubElement(ET.SubElement(tc, "properties"), "property", name="procedure", value=r["procedure"])
         tc_failed = False
         if r.get("skipped"):
             if r["passed"]:

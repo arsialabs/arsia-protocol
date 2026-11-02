@@ -10,6 +10,7 @@ Exit code 0 = all green.
 import base64
 import glob
 import json
+import os
 import re
 import sys
 
@@ -228,8 +229,11 @@ def resolution_vector_mismatches(vectors, rh):
     out = []
     for v in vectors:
         meta = v.get("test_metadata", {})
-        if meta.get("scenario") in ("resolution", "router", "execution"):
-            got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else rh.scenario_result(meta)
+        if meta.get("scenario") in ("resolution", "router", "execution", "timing"):
+            if meta["scenario"] == "timing":
+                got = rh.timing(v["message"], meta["input"]["recipient_time"], v.get("posture"))
+            else:
+                got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else rh.scenario_result(meta)
             miss = rh.subset_match(meta["expect"], got)
             if miss:
                 out.append(f"{v['id']}: {', '.join(miss)}")
@@ -424,9 +428,6 @@ def _envelope(v):
     return v.get("message") or v.get("data")
 
 
-ACTION_ID_EXEMPT = {"CTV-08", "ITV-86"}  # pre-existing non-conformant action_id; vector cycle (ledger notes)
-
-
 def migrated_oversight_problems(vectors, schemas, reg, rh):
     """Migrated pending_approval / approval_decision vectors recompute from test_metadata.reference_request;
     a valid pending's reference request is accepted with prior approval in its effective set."""
@@ -458,8 +459,6 @@ def migrated_oversight_problems(vectors, schemas, reg, rh):
                 out.append(f"{v['id']}: reference_request differs from {ref['vector']}")
         ex = ref["executor"]
         errs = [e.message for e in desc_v.iter_errors(ex["descriptor"])]
-        if v["id"] in ACTION_ID_EXEMPT:  # the pending's own action_id is not a valid action_id (notes)
-            errs = [e for e in errs if ex["descriptor"]["action_id"] not in e]
         if errs:
             out.append(f"{v['id']}: reference descriptor schema-invalid: {errs[0][:60]}")
         srcs = rh.executor_sources(ex["descriptor"]["action_id"], ex["descriptor"], ex.get("claim"),
@@ -558,6 +557,228 @@ def replaced_rule_echoes():
             if needle in text:
                 out.append(f"{f}: {needle!r}")
     return out
+
+
+# ------------------------------------------- VC: runtime vectors and coverage claims
+def expect_signature_problems(vectors):
+    """A-34: every crypto block declares its signature expectation; `absent` exactly when the message
+    has no security object; the signature negatives are the declared ones, never inferred."""
+    out, negatives = [], []
+    for v in vectors:
+        c = v.get("crypto")
+        if not c:
+            continue
+        e = c.get("expect_signature")
+        has_sec = isinstance(_envelope(v).get("security"), dict)
+        if e not in ("valid", "invalid", "absent"):
+            out.append(f"{v['id']}: expect_signature {e!r}")
+        elif (e == "absent") == has_sec:
+            out.append(f"{v['id']}: expect_signature {e!r} but security object {'present' if has_sec else 'absent'}")
+        if e == "invalid":
+            negatives.append(v["id"])
+    if sorted(negatives) != ["INV-18", "INV-19"]:
+        out.append(f"signature negatives {sorted(negatives)} != ['INV-18', 'INV-19']")
+    return out
+
+
+def spec_section(text, section):
+    """The body of § `section` (e.g. "§8.3"): from its heading to the next heading of the same or a higher level."""
+    num = section.lstrip("§")
+    m = re.search(rf"^(#+) {re.escape(num)} .*$", text, re.M)
+    if not m:
+        return None
+    nxt = re.search(rf"^#{{1,{len(m.group(1))}}} ", text[m.end():], re.M)
+    return text[m.end(): m.end() + nxt.start() if nxt else len(text)]
+
+
+def posture_problems(vectors, rh):
+    """DR-0.3: a posture quotes, verbatim, the option its section grants; a timing vector rejected for its ts
+    outside the tolerance (a MAY, Core §8.3) declares that posture."""
+    out = []
+    norm = lambda s: re.sub(r"\s+", " ", s).strip()
+    for v in vectors:
+        pos = v.get("posture")
+        if pos:
+            body = spec_section(open(f"spec/{pos['spec']}", encoding="utf-8").read(), pos["section"])
+            if body is None or norm(pos["text"]) not in norm(body):
+                out.append(f"{v['id']}: posture text not in {pos['spec']} {pos['section']}")
+            if pos["basis"] == "MAY" and "MAY" not in pos["text"]:
+                out.append(f"{v['id']}: MAY posture text states no MAY")
+        meta = v.get("test_metadata", {})
+        if meta.get("scenario") == "timing" and "ts_outside_tolerance" in meta["expect"].get("causes", []) \
+                and (pos or {}).get("section") != "§8.3":
+            out.append(f"{v['id']}: rejected for its ts without the Core §8.3 posture")
+    return out
+
+
+LINK_EXCEPTIONS = {"INV-14": {"correlation_id"}, "ITV-479": {"correlation_id"}}  # the deliberate negative causes
+
+
+def link_relation_failures(v, by_id):
+    """The relations a pending_approval or approval_decision vector declares through its links (Actions §3.2,
+    §3.3): with its reference request, and with the pending it answers. Returns the failing relation names."""
+    m = _envelope(v)
+    ref = v.get("test_metadata", {}).get("reference_request", {})
+    fails = set()
+    if m["intent"] == "approval_decision":
+        result = (m.get("payload") or {}).get("result") or {}
+        if result.get("approver_id") != m.get("from"):
+            fails.add("approver_id")
+        if "pending_vector" in ref:
+            p = _envelope(by_id[ref["pending_vector"]])
+            for name, got, want in (("to", m.get("to"), p.get("from")), ("correlation_id", m.get("correlation_id"), p.get("id")),
+                                    ("root_request_id", m.get("root_request_id"), p.get("root_request_id")),
+                                    ("request_payload_hash", result.get("request_payload_hash"),
+                                     p["payload"]["args"].get("request_payload_hash"))):
+                if got != want:
+                    fails.add(name)
+        return fails
+    req = by_id[ref["vector"]]["message"] if "vector" in ref else ref
+    args = (m.get("payload") or {}).get("args") or {}
+    for name, got, want in (("to", m.get("to"), req.get("from")), ("from", m.get("from"), req.get("to")),
+                            ("correlation_id", m.get("correlation_id"), req.get("id")),
+                            ("root_request_id", m.get("root_request_id"), req.get("id")),
+                            ("original_request_id", args.get("original_request_id"), req.get("id"))):
+        if got != want:
+            fails.add(name)
+    return fails
+
+
+def link_relation_problems(vectors):
+    """V4: every declared pending/decision link holds; a deliberate negative fails exactly its stated relation."""
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for v in vectors:
+        m = _envelope(v)
+        if not isinstance(m, dict) or m.get("intent") not in ("pending_approval", "approval_decision") or "event_type" in m:
+            continue
+        if m["intent"] == "pending_approval" and "reference_request" not in v.get("test_metadata", {}):
+            out.append(f"{v['id']}: pending without reference_request")
+            continue
+        fails = link_relation_failures(v, by_id)
+        want = LINK_EXCEPTIONS.get(v["id"], set())
+        if fails != want:
+            out.append(f"{v['id']}: failing relations {sorted(fails)} != expected {sorted(want)}")
+    return out
+
+
+def valid_vector_resolution_problems(vectors, rh):
+    """A valid (non-runtime) message vector carrying compliance is accepted by the reference resolver."""
+    out = []
+    for v in vectors:
+        m = v.get("message")
+        if v.get("skip_schema") or v.get("valid") is not True or not isinstance(m, dict) \
+                or not isinstance(m.get("compliance"), dict):
+            continue
+        r = rh.resolve_obligations(m.get("intent"), m["compliance"], None, m["ts"])
+        if r["outcome"] != "accepted":
+            out.append(f"{v['id']}: {[c['diagnostic'] for c in r.get('conflicts', [])]}")
+    return out
+
+
+def policy_identity_problems(vectors):
+    """Identity §8.1: one gateway never applies two policies under one policy_version — (gateway, version) maps to a
+    single digest across onboarding decisions and arsia_oversight claims. Distinct gateways may share a version."""
+    seen, out = {}, []
+
+    def claims(o):
+        if isinstance(o, dict):
+            pol = o.get("policy")
+            if isinstance(pol, dict) and set(pol) == {"issuer", "version", "sha256"}:
+                yield pol
+            for x in o.values():
+                yield from claims(x)
+        elif isinstance(o, list):
+            for x in o:
+                yield from claims(x)
+
+    for v in vectors:
+        for pol in claims(v):
+            seen.setdefault((pol["issuer"], pol["version"]), set()).add(pol["sha256"])
+        m = v.get("message") if isinstance(v.get("message"), dict) else None
+        payload = (m or {}).get("payload") if m else v.get("data")
+        args = payload.get("args") if isinstance(payload, dict) else None
+        if not isinstance(args, dict) or not args.get("policy_sha256") or "policy_version" not in args:
+            continue
+        gateway = m["from"] if m else v.get("test_metadata", {}).get("gateway")
+        if not gateway:
+            out.append(f"{v['id']}: policy digest with no determinable gateway")
+            continue
+        seen.setdefault((gateway, args["policy_version"]), set()).add(args["policy_sha256"])
+    out += [f"{k}: {len(d)} digests" for k, d in seen.items() if len(d) > 1]
+    return out
+
+
+COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16"}
+
+
+def coverage_claim_problems(skip_doc, vectors):
+    """A-65: the coverage column states only what the repository executes. `executed: Rn` needs a scenario
+    that Rn consumes (or a lookup of the vector by ID in the harness); `equivalent`/`partial` quote a check
+    the harness runs and passes under that rule; category totals are computed; the introduction's
+    "0 failures" holds against the validator."""
+    import subprocess
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    harness = open("scripts/runtime_harness.py", encoding="utf-8").read()
+    run = subprocess.run([sys.executable, "scripts/runtime_harness.py"], capture_output=True, text=True).stdout
+    passing = {line[5:].split("  [")[0] for line in run.splitlines() if line.startswith("ok   ")}
+    by_id = {v["id"]: v for v in vectors}
+    out, cats = [], {}
+    for line in skip_doc.splitlines():
+        m = re.match(r"^\| ([A-Z]+-\d+) \| (.*) \|$", line)
+        if not m:
+            continue
+        vid, cols = m.group(1), [c.strip() for c in m.group(2).split(" | ")]
+        if len(cols) != 6 or vid not in by_id:
+            out.append(f"{vid}: malformed row or unknown vector")
+            continue
+        cats[cols[2]] = cats.get(cols[2], 0) + 1
+        cov = cols[5]
+        if cov.startswith("executed: "):
+            rule = cov[len("executed: "):]
+            sc = by_id[vid].get("test_metadata", {}).get("scenario")
+            if COVERAGE_RULE.get(sc) != rule and f'v["id"] == "{vid}"' not in harness:
+                out.append(f"{vid}: '{cov}' but no scenario consumed by {rule}")
+        elif cov.startswith(("equivalent: ", "partial: ")):
+            q = re.match(r"^(?:equivalent|partial): (R\d+) \"([^\"]+)\"", cov)
+            if not q or not q.group(2).startswith(q.group(1) + " ") or q.group(2) not in passing:
+                out.append(f"{vid}: '{cov[:60]}' quotes no passing check of that rule")
+            if cov.startswith("partial: ") and " — " not in cov:
+                out.append(f"{vid}: partial without what is not exercised")
+        elif not cov.startswith("none — "):
+            out.append(f"{vid}: coverage outside the vocabulary: {cov[:40]}")
+    stated = re.search(r"\*\*Category totals:\*\* (.*?) — total", skip_doc)
+    computed = ", ".join(f"{k}: {cats[k]}" for k in sorted(cats))
+    if not stated or stated.group(1) != computed:
+        out.append(f"category totals stated != computed ({computed})")
+    if "0 failures" in skip_doc:
+        reg = vv.build_registry()
+        for v in vectors:
+            if v.get("skip_schema"):
+                fmt, ref, payload = vv.classify_vector(v)
+                schema = vv.resolve_schema(ref, reg)
+                errs = vv.message_errors(payload, schema, reg)[1] if ref == vv.MESSAGE_SCHEMA else \
+                    list(Draft202012Validator(schema, registry=reg).iter_errors(payload))
+                if errs:
+                    out.append(f"'0 failures' stated but {v['id']} is structurally invalid")
+    return out
+
+
+def skip_structure_selftest(vectors):
+    """A-42 self-test: the validator still validates runtime-only vectors structurally. A synthetic skip vector
+    missing a required envelope field must make validate_vectors.py fail (a restored skip bypass goes dead)."""
+    import subprocess, tempfile
+    probe = json.loads(json.dumps(next(v for v in vectors if v["id"] == "ITV-536")))
+    probe["id"] = "ITV-0"
+    del probe["message"]["expires_at"]
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+        json.dump({"vectors": [probe]}, f)
+    r = subprocess.run([sys.executable, "scripts/validate_vectors.py", "--vectors", f.name, "--format", "summary"],
+                       capture_output=True, text=True)
+    os.unlink(f.name)
+    return r.returncode != 0 and re.search(r"runtime-only: structure-validated\)\s+0\s+1$", r.stdout, re.M) is not None
 
 
 def main() -> int:
@@ -995,6 +1216,11 @@ def main() -> int:
           f"missing {sorted(set(skipped) - set(classified))[:4]} extra {sorted(set(classified) - set(skipped))[:4]}"
           f" total {total.group(1) if total else None} vs {len(skipped)}")
 
+    check("validator self-test: a structurally invalid runtime-only vector fails (A-42)", skip_structure_selftest(vectors))
+    probs = coverage_claim_problems(skip_doc, vectors)
+    check("skip classification coverage column == harness evidence; totals computed (A-65)", not probs,
+          "; ".join(probs[:4]))
+
     # DR-1/DR-2: executor oversight sources and post-execution review
     probs = migrated_oversight_problems(vectors, schemas, reg, rh)
     check("pending/decision vectors recompute from their reference request (DR-1)", not probs, "; ".join(probs[:4]))
@@ -1009,6 +1235,22 @@ def main() -> int:
     probs = replaced_rule_echoes()
     check("replaced oversight rules absent (oversight_timeout, router annotation, descriptor veto)", not probs,
           "; ".join(probs[:4]))
+
+    # VC: runtime vectors and coverage claims
+    probs = expect_signature_problems(vectors)
+    check("crypto.expect_signature declared and coherent; signature negatives INV-18/19 (A-34)", not probs,
+          "; ".join(probs[:4]))
+    probs = posture_problems(vectors, rh)
+    check("vector postures quote their section verbatim; MAY-based ts rejections declare it (DR-0.3)", not probs,
+          "; ".join(probs[:4]))
+    probs = link_relation_problems(vectors)
+    check("pending/decision links: recipient, correlation, root, approver, hash; negatives fail only their cause",
+          not probs, "; ".join(probs[:4]))
+    probs = valid_vector_resolution_problems(vectors, rh)
+    check("valid message vectors with compliance are accepted by the reference resolver", not probs,
+          "; ".join(probs[:4]))
+    probs = policy_identity_problems(vectors)
+    check("(gateway, policy_version) -> one policy digest (Identity §8.1)", not probs, "; ".join(probs[:4]))
 
     print()
     print(f"{'ALL CHECKS PASSED' if not FAIL else f'{len(FAIL)} FAILURES: ' + ', '.join(FAIL)}")

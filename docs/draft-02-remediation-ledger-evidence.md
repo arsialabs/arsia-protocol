@@ -276,3 +276,110 @@ ITV-666). The six corresponding mutations are detected (33/33 in all).
 mismatches; crypto 85 → 89, all pass; check_consistency 110 → 115 checks, all pass;
 harness R1–R14 → R1–R15, 199 → 316 assertions, all pass; examples 78 blocks OK; links
 OK; RTM 1940 / 1147 → 1970 / 1173.
+
+## 16. VC closure evidence
+
+Each closure criterion was checked against the evidence below, at the VC commit
+(execution baseline `e5e06a5`). The cycle changes no normative text: only the vectors,
+the vector meta-schema (`crypto.expect_signature`, `posture`), the tooling
+(`validate_vectors.py`, `runtime_harness.py` R16, `check_consistency.py`) and the
+documents that describe them. Design record: DR-0 addendum (V1–V5).
+
+| Finding | Closure criterion (clause by clause) | Evidence | Met |
+|---|---|---|---|
+| A-18 | (1) profile-aware tolerance in each timestamp check; (2) ITV-545/546/547 executed | (1) C3b. (2) Harness R16 runs ITV-545 (MIFID-II, 60 s: ts 120 s off, rejected under the MAY posture), ITV-546 (EU-AI-ACT-HIGH-RISK, 120 s: 90 s off, on time) and ITV-547 (default 300 s: 120 s off, accepted) against the declared recipient clock; checks "R16 ITV-545/546/547 result matches its stated expectation" | yes |
+| A-34 | INV-18/19 asserted negatives with checker assertion (caveat: proxy) | `--check-crypto` asserts INV-18/19 from `expect_signature: "invalid"`; the proxy (expected-invalid + `unauthorized`) is removed — ITV-409/410 are `unauthorized` negatives whose signatures verify; guard "crypto.expect_signature declared and coherent"; mutations "A-34 proxy reintroduced", "INV-15 absent → valid", "canonical-only counted as verified" detected | yes |
+| A-39 | ITV-404/406/438/439 expectations aligned with Core §4.1.1 and executed | ITV-404 `v: "3.0"` → `not_implemented` (rule 6); ITV-406 `v: "2.1"` with `future_field` → valid (rule 3); ITV-438 `v: "2.0"` with `routing_hint` → invalid, single error `additionalProperties` at the root (rule 1); ITV-439 `v: "2.2"` → valid (rules 3-4). All four are ordinary vectors run by the validator's version procedure | yes |
+| A-42 | (validator) skip vectors validated structurally; (vectors) skip vectors structurally valid; ITV-545/546 aligned | Validator: a skip exempts only the runtime expectation; self-test "validator self-test: a structurally invalid runtime-only vector fails (A-42)" and the mutation "skip bypass restored" detected. Vectors: all 148 runtime-only vectors structurally valid (validator: 148 pass, 0 fail); ITV-545 declares the Core §8.3 MAY posture; ITV-546 left the skip set (single schema cause, Rule 2) and R16 attributes its compliance causes | yes |
+| A-65 | Skip-classification entries matched one-to-one to harness cases | `docs/draft-02-skip-classification.md`: one row per runtime vector (148), closed coverage vocabulary — `executed` 66 (R10 26, R15 35, R16 5), `equivalent` 11, `partial` 5, `none` 66; the 14 earlier "covered" claims re-checked (7 unsupported → `none`, INV-08/ITV-421/ITV-579/INV-23/INV-24 → `partial`, INV-25/ITV-417 → `equivalent`); guard "skip classification coverage column == harness evidence" (every `executed` row has a scenario its rule consumes, every quoted check passes in the harness, totals computed) | yes |
+| A-62 | Harness rule + ITV-545/546/547 executed with profile tolerances; clean "90 s under 120 s" case | R16 executes the three with profile tolerances. Pending: the clean case of a valid message 90 s off under a 120 s profile tolerance (ITV-546 is 90 s off but rejected for compliance causes) | no — stays open |
+
+**DR-0.4 classification of the 32** (D = defective data, E = outdated expectation,
+P = distinct validation procedure). "Signed" = a real Ed25519 signature with a
+`crypto` block expecting it to verify.
+
+| ID | Class | Cause | Treatment | Final expectation |
+|---|---|---|---|---|
+| ITV-405 | P | v 2.1 checked against the exact 2.0 schema | major-2 compatibility procedure; left the skip set | valid |
+| ITV-406 | E+P | v 1.1 (another major) expected valid | v 2.1, `future_field` kept; compatibility procedure; left the skip set | valid |
+| ITV-409 | D | request without `security` | signed (acme.billing); `test_metadata.token.sub` | invalid `unauthorized` |
+| ITV-410 | D | idem | signed; `test_metadata.token.aud` | invalid `unauthorized` |
+| ITV-411 | D | idem | signed; R16 (expired; ts outside, no posture, no cause) | invalid `invalid_request` |
+| ITV-412 | D | idem | signed; `test_metadata.token.scope` | invalid `forbidden` |
+| ITV-413 | D+E | idem; "recipient up to v1.0" no longer exercised `min_v` | signed; `min_v` 2.1; recipient range 2.0–2.0 | invalid `not_implemented` |
+| ITV-414, 418, 422, 424 | D | idem | signed (ITV-424 still does not materialize 1 MiB) | unchanged |
+| ITV-416 | D | idem | signed; posture `configuration` (strict mode) | invalid `invalid_request` |
+| ITV-438 | E | v 2.0 with an unknown field expected valid | explicit negative of rule 1; left the skip set | invalid |
+| ITV-439 | E+P | v 1.2 expected valid | v 2.2; compatibility procedure; left the skip set | valid |
+| ITV-477 | D | response without `security` | signed (acme.echo-client); `test_metadata.external_agent_id` | invalid `conformance_failed` |
+| ITV-536..541 | D | request without `expires_at`/`capabilities`; placeholder signature | fields; signed (acme.data-agent); ITV-539 `skip_reason` without max() | valid |
+| ITV-543, 544 | D | request without `expires_at`/`capabilities` | fields; `data` → `args`; re-signed | valid |
+| ITV-545 | D | request without `expires_at`/`capabilities`/`security` | fields; `args`; signed; posture MAY; R16 | invalid `invalid_request` |
+| ITV-546 | D+E | id not UUID v4; request fields; Rule 2 schema-expressible | id variant 8; fields; `args`; signed; left the skip set; R16 | invalid `invalid_request` |
+| ITV-547 | D | id not UUID v4; request fields; `data_residency: null` | id variant 9; fields; `args`; null residency omitted; re-signed; R16 | valid |
+| ITV-553, 554 | D | request without `capabilities`/`security` | `data.process`; signed (acme.data-processor) | valid |
+| ITV-555, INV-20, INV-22 | D | request without `security` | signed (acme.health-processor) | unchanged |
+| INV-25 | D | intent `inform` does not exist; `args` for a decision | conformant `approval_decision` with a reference request; signed (acme.oversight-panel) | invalid `forbidden` |
+
+Outside the 32: ITV-404 (A-39, above); ITV-408 and ITV-440 gain the MAY posture and
+run in R16; new INV-79 (2.1 without `from`), ITV-675 (2.1 error with unknown top-level
+and payload fields) and INV-80 (2.1 payload with `result` and `error`) test the
+compatibility procedure. Before any edit, the 218 positive message vectors valid at the
+baseline all passed the compatibility schema with `v: "2.1"`; after the repairs, 230.
+
+**Linked fixtures (V4).** CTV-08 goes from compliance-checker to risk-assessor (CTV-02's
+recipient to its sender); CTV-09/10 from risk-assessor (the approver) to
+compliance-checker, with `root_request_id` = CTV-02's id and `approver_id` =
+`agent:arsialabs.demo.risk-assessor`; all three re-signed. ITV-309→293, 310→303,
+312→304, 313→305 and 314→306: `to` and `root_request_id` of the pending (no
+signature to renew; ITV-312 keeps its single cause). Incidental pending relations:
+INV-14 root (re-signed), ITV-401 and INV-17 correlation and root (INV-17's canonical
+bytes recomputed), ITV-478..481 `to` = `agent:corp.gateway` (the probe claim's
+issuer), ITV-479 `correlation_id` re-expressed so that the negative it announces
+exists. The 20 reference requests without a corpus request gain an explicit `to`.
+The guard checks recipient, correlation, root, approver and hash on every declared
+link; INV-14 and ITV-479 fail only their stated `correlation_id` relation.
+
+**Local notes.** ACTV-01 retention P6M (re-signed); CTV-08 and ITV-86 conformant
+`action_id` (resolutions recomputed; `ACTION_ID_EXEMPT` removed); ITV-99 and INV-50
+payload type `com.example.notes/create/rollback`; ITV-130, ITV-38, INV-61 and INV-78
+`arsialabs-2026-q2b` with `test_metadata.gateway`; ITV-589 gateway as noted.
+
+**Signatures.** 25 vectors gain a real signature and a `crypto` block; re-signed:
+CTV-08/09/10, ACTV-01, ITV-543/544/547, INV-14; INV-17's canonical bytes recomputed.
+Six keypairs added (13 Ed25519, 1 ES256, 1 RS256): private key = SHA-256 of
+"arsia-test-vectors keypair " followed by the agent-id. The 89 existing blocks gained
+`expect_signature` with outcomes identical to the C0.5 checker (84 verified, 2
+negatives, 3 canonical-only). Crypto after: 114 checked, 109 verified, 2 negatives,
+3 canonical-only, 0 failures.
+
+**Error signatures.** Compared vector by vector (path, validator, message) under the
+exact schema: only the 29 repaired runtime-only vectors (the 32 less ITV-405/406/438/
+439, plus ITV-404) change, and the three new vectors are added; every other vector
+keeps its signature. Under the procedure the validator applies, ITV-404 fails only
+on `v` (`not_implemented`), ITV-438 only on the root `additionalProperties`, INV-79
+only on `from`, INV-80 only on `payload.oneOf`.
+
+**Guards (each mutation-tested, 33/33 detected).** New in `check_consistency.py`:
+`expect_signature` coherence; posture text verbatim in its section, and every
+MAY-based ts rejection carrying the posture; linked relations with per-relation
+negative exceptions; valid message vectors accepted by the reference resolver;
+(gateway, `policy_version`) → one digest; coverage claims; validator self-test; the
+scenario check extended to `timing`. Mutations: the A-34 proxy, `absent` → `valid`,
+canonical-only counted as verified; the schema root relaxed; the procedure always
+exact; another major accepted; compatibility dropping `required`, without branch
+discrimination, without the error-branch exclusion; a skip vector made invalid; the
+skip bypass restored; INV-14 root, ITV-401 correlation, INV-17 root, ITV-478
+recipient, ITV-479 correlation, CTV-08 direction, CTV-09 root, CTV-10 approver,
+ITV-309 recipient reverted; another relation of a negative broken; CTV-08's old
+`action_id`; ACTV-01 back to P180D; a decision without gateway; two digests under one
+(gateway, version); R16 tolerance always 300, posture ignored, ts never a cause, the
+clock counted for ITV-546; ITV-545's posture removed; a coverage row quoting a missing
+check, `executed` without a scenario; MAY → MUST in Core §8.3.
+
+**Battery (before → after).** Vectors 780 → 783: 453 → 457 valid, 173 → 178 invalid,
+154 → 148 runtime-only; structural failures 32 → 0; error paths 0 → 0 mismatches;
+crypto 89 → 114, all pass; check_consistency 115 → 122 checks, all pass; harness
+R1–R15 → R1–R16, 316 → 335 assertions, all pass; examples 78 blocks OK; links OK;
+RTM 1970 / 1173 unchanged (CORE-§7.4-02/-04 re-traced to ITV-406, STATE-§8.3-05
+re-worded to State §8.3 rule 2).

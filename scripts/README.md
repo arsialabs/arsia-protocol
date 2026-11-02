@@ -27,7 +27,20 @@ Validates every test vector in `test-vectors/arsia-test-vectors.json` against th
 python3 scripts/validate_vectors.py
 ```
 
-Expected output: pass/skip/fail counts. The CI workflow (`.github/workflows/validate-vectors.yml`) runs this on every push.
+Expected output: pass/skip/fail counts, with 0 failures. The CI workflow (`.github/workflows/validate-vectors.yml`) runs this on every push.
+
+- **Runtime-only vectors** (`skip_schema: true`): the skip exempts only the runtime
+  expectation. Each such vector is still validated structurally against its schema
+  and reported as failing when it is structurally invalid.
+- **Version handling** (Core §4.1.1): a message is validated under the procedure its
+  own `v` selects — the exact schema for `"2.0"` (or an absent or malformed `v`), the
+  major-2 compatibility schema for a newer 2.x minor, and rejection with
+  `not_implemented` for another major. The summary prints the count per procedure.
+- **`--check-crypto`**: each `crypto` block declares `expect_signature`. `valid`
+  signatures must verify, `invalid` ones (signature negatives) must fail, and
+  `absent` marks a message deliberately without `security`, for which only the
+  canonical bytes are checked. The output reports verified signatures, asserted
+  negatives and canonical-only blocks separately.
 
 ### Dependencies
 

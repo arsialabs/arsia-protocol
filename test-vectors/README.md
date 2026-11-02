@@ -2,17 +2,17 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-780 test vectors (453 schema-valid, 173 expected-invalid, 154 runtime-only skipped — validator classification) for
-validating ARSIA Protocol implementations. Vectors use real Ed25519,
-ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures — no
-placeholders.
+783 test vectors (457 schema-valid, 178 expected-invalid, 148 runtime-only — validator classification) for
+validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
+ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
+verification outcome (`crypto.expect_signature`).
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 780 test vectors |
-| [keypairs.json](keypairs.json) | 9 test keypairs: 7 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally) |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 783 test vectors |
+| [keypairs.json](keypairs.json) | 15 test keypairs: 13 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle is stated in the file) |
 
 ## Vector Formats
 
@@ -21,7 +21,7 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 310 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `message-only` | 313 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
 | `schema-ref` | 466 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 
@@ -29,15 +29,15 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 674 |
-| `INV-` | Invalid (all specs) | 78 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 675 |
+| `INV-` | Invalid (all specs) | 80 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-675** / **INV-79**
+Next available ID: **ITV-676** / **INV-81**
 
 ## Runtime-Only Vectors
 
@@ -46,20 +46,44 @@ is the RFC 8785 canonical form of the envelope with `security` present and only 
 `security.sig` property removed (Core §5.1). Vectors are regenerated with
 `scripts/regen_v2.py`; verify with `--check-crypto`.
 
-154 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+148 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
-checks) that cannot be validated by JSON Schema alone.
+checks) that cannot be validated by JSON Schema alone. A skip exempts only the
+runtime expectation: every runtime-only vector is still validated structurally
+against its schema. Each one is classified individually, with its category and the
+coverage this repository actually executes for it, in
+[docs/draft-02-skip-classification.md](../docs/draft-02-skip-classification.md).
 
-| Category | Count |
-|----------|-------|
-| Temporal / clock | 36 |
-| Token / credential context | 10 |
-| X.509 certificate validation | 7 |
-| Cross-field comparison | 6 |
-| Cross-object / cross-message | 5 |
-| Non-delegable capability matching | 3 |
-| Forward-compatibility | 3 |
-| Transport-specific | 3 |
+### Version handling (Core §4.1.1)
+
+`scripts/validate_vectors.py` validates a message under the procedure its own `v`
+selects:
+
+- `"2.0"` (or an absent or malformed `v`) — the exact published schema (rule 1);
+- a newer 2.x minor — the major-2 compatibility schema: derived from the 2.0 schema,
+  it accepts any 2.x `v` and unknown top-level and payload fields, keeps every known
+  field, conditional and format, and keeps the content fields mutually exclusive
+  (rules 2-3, §4.4.7);
+- another major — rejected with `not_implemented` (rule 6).
+
+### Scenarios executed by the harness
+
+A runtime vector may state, in `test_metadata`, a `scenario` with its `input` and
+hand-written `expect`; `scripts/runtime_harness.py` runs it and compares: `resolution`
+and `router` (R10), `execution` (R15) and `timing` (R16). A `timing` scenario gives
+the recipient's clock (`input.recipient_time`); R16 computes the clock-skew tolerance
+(the profile's `clock_skew_seconds`, else 300 s), the `ts` offset and expiry, and
+reports temporal causes apart from compliance causes.
+
+### Posture
+
+A vector whose expected outcome rests on an option the protocol permits but does not
+require — a MAY, or an optional configuration such as strict mode — declares the
+option it assumes in `posture`: the specification, section, `basis` (`MAY` or
+`configuration`), the verbatim `text` that grants the option, and what the
+expectation `assumes`. The expectation holds for an implementation that takes that
+option. An implementation that does not take it is not non-conformant for failing
+the vector; a conformance runner should report such a vector as not applicable.
 
 ## Field Reference
 
@@ -74,11 +98,12 @@ checks) that cannot be validated by JSON Schema alone.
 | `message` | object | format-dep | Full ARSIA message envelope (message-only, hybrid) |
 | `data` | object | format-dep | Data payload (schema-ref) |
 | `schema_ref` | string | format-dep | Schema file or JSON Pointer reference (schema-ref, hybrid) |
-| `crypto` | object | no | Key material and signature (Ed25519, ES256, or RS256) |
+| `crypto` | object | no | Key material, canonical bytes and signature (Ed25519, ES256, or RS256), with `expect_signature`: `valid` (the signature MUST verify), `invalid` (it MUST fail — a signature negative) or `absent` (the message deliberately has no `security` object; only the canonical bytes are checked). Independent of `valid`/`expected`/`expected_error` |
 | `req_ids` | array | no | Linked requirement IDs (`req:hex`) |
-| `skip_schema` | boolean | no | If `true`, skip schema validation |
+| `skip_schema` | boolean | no | If `true`, validate structure only; the runtime expectation is evaluated separately |
 | `skip_reason` | string | dep | Required when `skip_schema` is `true` |
-| `test_metadata` | object | no | Auxiliary context for runtime-only vectors (e.g., token scope, authorization context) |
+| `test_metadata` | object | no | Auxiliary context for runtime-only vectors (e.g., token scope, authorization context, reference requests, harness scenarios) |
+| `posture` | object | no | Option the expectation assumes (see Posture) |
 
 ## Validation
 
@@ -115,9 +140,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid'] or 'crypto' not in v:
+    c = v.get('crypto')
+    if not c or c['expect_signature'] != 'valid' or v['message']['security']['alg'] != 'EdDSA':
         continue
-    c = v['crypto']
     pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(c['public_key_hex']))
     sig = base64.urlsafe_b64decode(c['signature_base64url'] + '==')
     canonical = bytes.fromhex(c['canonical_bytes_hex'])
@@ -132,10 +157,10 @@ import json, rfc8785
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
-    if not v['valid']:
+    if 'crypto' not in v:
         continue
-    msg = dict(v['message'])
-    msg.pop('security', None)
+    msg = json.loads(json.dumps(v['message']))
+    msg.get('security', {}).pop('sig', None)  # Draft-02 profile: only security.sig is removed
     canonical = rfc8785.dumps(msg)
     expected = bytes.fromhex(v['crypto']['canonical_bytes_hex'])
     assert canonical == expected, f'{v["id"]}: MISMATCH'
@@ -146,7 +171,8 @@ for v in data['vectors']:
 
 Vector validation runs automatically via `.github/workflows/validate-vectors.yml`
 on push and PR to `main`. The workflow validates all vectors against their schemas
-(with meta-schema check) and uploads a JUnit XML report as a build artifact.
+(with meta-schema check), verifies error paths and signatures, runs the consistency
+checks and the runtime harness, and uploads a JUnit XML report as a build artifact.
 
 ---
 

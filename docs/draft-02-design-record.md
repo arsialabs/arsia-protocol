@@ -41,6 +41,41 @@ Apply to every record below.
    version compatibility and must not be forced through the strict 2.0
    schema).
 
+**Addendum — 2026-11-01 (owner decisions for the vector cycle, VC).**
+- **V1 — Signatures.** A runtime vector whose cause lies past signature verification
+  carries a real signature, so that it reaches its intended cause: the 24 requests and
+  responses among the 32 without one, and INV-25 once re-expressed, are signed with a
+  `crypto` block, using six new deterministic keypairs. Every `crypto` block declares
+  `expect_signature` (`valid`, `invalid`, `absent`), independent of `valid`,
+  `expected` and `expected_error`; it replaces the A-34 proxy. `absent` marks a message
+  deliberately without `security`, checked on canonical bytes only and never counted
+  as signature verification.
+- **V2 — Version handling.** The validator applies Core §4.1.1 by the message's own
+  `v`: the exact schema for 2.0, the major-2 compatibility schema for a newer 2.x
+  minor (unknown top-level and payload fields accepted, known fields kept, content
+  fields still exclusive), rejection with `not_implemented` for another major. It is a
+  validation procedure, not a skip bypass.
+- **V3 — ITV-438.** It keeps `v: "2.0"` and becomes the explicit negative of rule 1
+  (failing on `additionalProperties` at the root); ITV-406, at 2.1, carries the
+  acceptance of a newer minor with unknown fields.
+- **V4 — Linked fixtures.** The CTV-08..10 chain and the five ITV decision ↔ pending
+  pairs are corrected, together with the incidental pending ↔ reference request
+  relations; a guard checks every declared link, and a deliberate negative fails only
+  its stated relation. This is fixture consistency, not the approval-chain coverage of
+  A-57.
+- **V5 — Timing.** Harness rule R16 runs the six timing vectors against a declared
+  recipient clock, keeping temporal causes apart from compliance causes; ITV-546 passes
+  on time and is rejected for `missing_legal_basis` and `insufficient_retention`.
+- **DR-0.3 expression.** A vector whose expectation rests on a MAY or an optional
+  configuration carries `posture` (`spec`, `section`, `basis`, verbatim `text`,
+  `assumes`); the expectation holds for an implementation that takes the option.
+- **Contract corrections at review.** Branch discrimination in the compatibility
+  schema (the relaxed payload branches otherwise overlap on error payloads); the G3
+  inventory completed before execution (INV-14, ITV-401, INV-17, ITV-478..481, the
+  ITV-479 re-expression, explicit recipients); the policy-identity guard keyed by
+  (gateway, `policy_version`) as Identity §8.1 states; ITV-547's `data_residency: null`
+  omitted.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

@@ -377,7 +377,7 @@
 | STATE-§8.3-02 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit data_residency from envelope when payload.args does not set it | — | ITV-536 |
 | STATE-§8.3-03 | 8.3 | MUST | sdk | behavioural_positive | payload.args.data_residency MUST take precedence over compliance.data_residency | — | ITV-537 |
 | STATE-§8.3-04 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit retention from envelope when payload.args does not set it | — | ITV-538 |
-| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | Effective retention MUST be max(payload.args.retention, compliance.retention) | — | ITV-539 |
+| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | payload.args.retention takes precedence over compliance.retention; the applying value is resolved against the profile retention_minimum, and an explicit value below it MUST be rejected (Core §4.3.8 Rule 4) | — | ITV-539 |
 | STATE-§8.3-06 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be checked when pii_classification is 'personal' or 'sensitive' | — | ITV-540, ITV-555 |
 | STATE-§8.3-07 | 8.3 | MUST_NOT | sdk | behavioural_negative | legal_basis MUST NOT be stored on the StateEntry itself | arsia-state-entry | — |
 | STATE-§8.3-08 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be recorded in the audit event | arsia-audit-record | ITV-542 |

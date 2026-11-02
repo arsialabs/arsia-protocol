@@ -13,19 +13,28 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 
 - **Vectors vs MAY behaviour:** ITV-545 is expected-invalid on a MAY (Core
   §4.1.3). The posture is to be defined in the vector cycle (DR-0.3).
+  Resolved in VC: such vectors declare `posture` (verbatim granting text, guarded);
+  ITV-408, ITV-440 and ITV-545 (Core §8.3 MAY) and ITV-416 (strict mode).
 - **A-34 proxy:** exact for the current corpus (INV-18, INV-19). An explicit
   crypto field is the definitive fix (vector/meta-schema cycle). DR-5: the chain
   negativity of ITV-597..599 is likewise carried outside the vector format (the
   tampered-chain map in `check_consistency.py`) until that explicit field exists.
+  Resolved in VC for signatures: `crypto.expect_signature` (valid/invalid/absent)
+  replaces the proxy; the chain negativity of ITV-597..599 stays in the tampered-chain
+  map.
 - **ITV-546:** its coverage gap is mapped to A-62.
 - **A-35:** resolved in C3b — the checker and the generator refuse to run without
   rfc8785.
 - **CI:** `validate-vectors` has been red by design since C0.5, and stays red
   until the vector cycle. Since LM2, CLAUDE.md states this next to the validation
   command (32 runtime-only vectors fail by design).
+  Resolved in VC: the 32 are repaired, `validate_vectors.py` reports 0 failures, and the
+  CLAUDE.md caveat is removed.
 - **Out-of-date docs:** `docs/draft-02-skip-classification.md` and
   `scripts/README.md` are out of date on the ITV-545/546 reasons, skip
   semantics and crypto output (follow-up under A-65).
+  Resolved in VC: both documents rewritten (coverage vocabulary; skip, version and
+  crypto behaviour).
 - **Missing SPDX headers:** `docs/auditoria-spec-draft-01.md` and
   `docs/spec-audit-draft-01.md` lack the CC-BY-SA-4.0 header (follow-up; not
   fixed in C1).
@@ -94,6 +103,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   moved to their own files.
 - **ITV-99 `payload_type` (C3b):** `arsiaprotocol.actions/rollback` does not follow
   the Actions §4.2 `{action_id}/rollback` form (vector cycle).
+  Resolved in VC: ITV-99 and INV-50 use `com.example.notes/create/rollback`.
 - **Reversal records (C3b, A-75):** Assets §3.3.2 requires the reversal record to
   reference the original `audit_id` and `payment_reference`, but no schema
   discriminator identifies reversal records; adding one is a design choice.
@@ -158,10 +168,14 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `retention: "P180D"` under EU-AI-ACT-HIGH-RISK (floor P6M) and would be rejected by
   the resolver; CTV-02 and ITV-338, which had the same defect and belong to the DR-1/DR-2
   migration, were corrected by owner exception. Left for the vector cycle.
+  Resolved in VC: ACTV-01 declares P6M and is re-signed; a guard requires every valid
+  message vector with compliance to be accepted by the reference resolver.
 - **Non-conformant action_id in CTV-08 and ITV-86 (observed in DR-1/DR-2, not fixed):**
   their `pending_approval` args carry `ACT-2026-03-24-001` and `ACT-2026-04-27-001`,
   which are not valid `action_id` values; the migration guard exempts only that pattern
   error for their reference descriptors (`ACTION_ID_EXEMPT`). Left for the vector cycle.
+  Resolved in VC: CTV-08 uses `arsiaprotocol.compliance/check` (CTV-02's payload type)
+  and ITV-86 `com.acme.payments/transfer`; `ACTION_ID_EXEMPT` is removed.
 - **Shared policy_version with incompatible lists (observed in DR-1/DR-2, not fixed):**
   ITV-03 (gateway `agent:arsialabs.demo.compliance-checker`) and the payload-only
   decisions ITV-130, ITV-38 and INV-61 all name `arsialabs-2026-q2`, but
@@ -170,6 +184,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   §8.1 forbids one gateway applying two policies under one version, and the
   payload-only decisions name no gateway. The vector cycle should give them distinct
   versions.
+  Resolved in VC: the trio and INV-78 use `arsialabs-2026-q2b` with
+  `test_metadata.gateway` `agent:arsialabs.demo.gateway` (the `iss` of their tokens); the
+  guard is keyed by (gateway, `policy_version`), as Identity §8.1 states.
 - **Stale CORE-§4.4.7-01..04 (observed in DR-1/DR-2, not fixed):** the rows still trace
   the Draft-01 "warn and process" rule that Core §4.4.7 replaced with a hard rejection;
   they predate the cycle (A-64 domain).
@@ -196,5 +213,37 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Published counts after DR-1/DR-2:** 33 schemas (incl. meta), 780 vectors
   (453/173/154), RTM 1970 / 1173, 115 consistency checks, harness R1-R15; README.md,
   CLAUDE.md, docs/FAQ.md, docs/getting-started.md and test-vectors/README.md updated.
+
+- **Published counts after VC:** 33 schemas (incl. meta), 783 vectors (457/178/148),
+  15 keypairs, RTM 1970 / 1173 (unchanged), 122 consistency checks, harness R1-R16;
+  README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md, test-vectors/README.md
+  and scripts/README.md updated.
+- **ITV-589 gateway (VC):** the Identity §7.8 example names no gateway agent-id and
+  the vector's token carries no `iss`; `test_metadata.gateway` records
+  `agent:regulated-entity.gateway` as a fixture choice so the policy-identity guard
+  can key it.
+- **ITV-537 residency precedence (observed in VC, not fixed):** the vector follows
+  State §8.3 rule 1 (`payload.args.data_residency` takes precedence over the
+  envelope's), which may be in tension with the residency intersection of Core
+  §4.3.10.5 when the args value lies outside the envelope restriction (candidate
+  finding).
+- **Schema-expressible runtime rules (observed in VC, not fixed):** INV-20 (Rule 8
+  Art. 9(2) basis for sensitive entries) and INV-22 (State §2.1.11 exclusion) test
+  cross-field rules JSON Schema could express; they stay runtime-only.
+- **Expectation vs description (observed in VC, not fixed):** ITV-417 and ITV-579 carry
+  `expected: valid` while their descriptions state a runtime rejection.
+- **Placeholder signatures outside the 32 (observed in VC, not fixed):** INV-23,
+  INV-24, ITV-566, ITV-567 and ITV-568 are runtime vectors with the literal
+  placeholder signature; a runtime runner would stop at signature verification.
+- **Free-text expected_error (observed in VC, not fixed):** 16 runtime vectors state
+  free text or codes outside Core §11.2 (e.g. `certificate_invalid`,
+  `identity_verification_failed`) in `expected_error`.
+- **R10 scenario candidates (coverage program):** ITV-416, ITV-418, ITV-536, ITV-538,
+  ITV-541, ITV-553 and ITV-554 could become R10 scenarios; the resolver already
+  implements strict mode and `classification_escalation`.
+- **Actions §3.3 example (observed in VC, not fixed):** the decision example shows
+  `"reason": null` and `"conditions": null`, while the field definitions and
+  `approval-decision-result` type them as string and array; INV-25 omits
+  `conditions`.
 
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

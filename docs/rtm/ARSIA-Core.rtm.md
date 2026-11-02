@@ -283,9 +283,9 @@
 | CORE-§7.3-21 | 7.3 | REQUIRED | sdk | structural | P-256 JWK y field MUST be the base64url-encoded y-coordinate | arsia-jwk-entry | — |
 | CORE-§7.3-22 | 7.3 | REQUIRED | sdk | structural | P-256 signing JWK use field MUST be "sig" | arsia-jwk-entry | — |
 | CORE-§7.4-01 | 7.4 | MUST | sdk | behavioural_negative | Version negotiation failure MUST return not_implemented error with supported_versions in details | arsia-message | — |
-| CORE-§7.4-02 | 7.4 | MUST | sdk | behavioural_positive | Agents MUST accept messages with v within their supported range, ignoring unknown fields | — | ITV-438 |
+| CORE-§7.4-02 | 7.4 | MUST | sdk | behavioural_positive | Agents MUST accept messages with v within their supported range, ignoring unknown fields | — | ITV-406 |
 | CORE-§7.4-03 | 7.4 | MUST | sdk | interoperability | Unknown fields from a later minor version MUST be preserved when forwarding messages | — | ITV-439 |
-| CORE-§7.4-04 | 7.4 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored during processing | — | ITV-438, ITV-439 |
+| CORE-§7.4-04 | 7.4 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored during processing | — | ITV-406, ITV-439 |
 | CORE-§7.4-05 | 7.4 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT send messages with v higher than the recipient's server_max | — | — |
 | CORE-§7.4-06 | 7.4 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD query the recipient's discovery endpoint before first contact and cache it | — | — |
 | CORE-§8-01 | 8 | REQUIRED | deployment | interoperability | HTTP/2 transport binding is REQUIRED for all ARSIA implementations | — | — |

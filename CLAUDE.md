@@ -13,16 +13,15 @@ Current release: **Draft-02** (all six specs), wire version `2.0`. The protocol 
 ```bash
 pip install -r scripts/requirements.txt   # jsonschema, referencing, rfc8785, cryptography (Python >= 3.12)
 
-# Validate all 780 test vectors against schemas. Target: 0 failures. Until the vector
-# cycle, 32 runtime-only vectors fail by design (ledger notes, "CI" entry).
+# Validate all 783 test vectors against schemas. Target: 0 failures.
 python3 scripts/validate_vectors.py
 
 # Full verification battery — what CI runs (.github/workflows/validate-vectors.yml)
 python3 scripts/validate_vectors.py --check-meta --format summary
 python3 scripts/validate_vectors.py --check-errors --format summary
 python3 scripts/validate_vectors.py --check-crypto --format summary
-python3 scripts/check_consistency.py   # 115 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
-python3 scripts/runtime_harness.py     # R1-R15: deterministic spec algorithms (calendar arithmetic, floors, matching, precedence)
+python3 scripts/check_consistency.py   # 122 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
+python3 scripts/runtime_harness.py     # R1-R16: deterministic spec algorithms (calendar arithmetic, floors, matching, precedence)
 python3 scripts/extract_examples.py    # every ```json block in spec/ parses; envelope examples validate
 python3 scripts/check_links.py         # every §N.N reference resolves (specs + schema descriptions)
 
@@ -44,7 +43,7 @@ The repository is a set of artifacts that must stay mutually consistent. A norma
 
 1. **`spec/`** — six normative documents in a "5+1" architecture: `ARSIA-Core.md` (envelope, EdDSA signing, discovery, authorization, transport) plus five primitives that spell ARSIA: **A**ctions, **R**outing, **S**tate, **I**dentity, **A**ssets. Specs cross-reference each other by `ARSIA-X §N.N` — renumbering a section breaks references in other documents.
 2. **`schemas/`** — 33 JSON Schemas (Draft 2020-12), each mapped to a specific spec section (see `schemas/README.md` for the mapping). `arsia-common.schema.json` holds shared definitions; `arsia-test-vectors.meta.json` is the meta-schema for the vector file itself.
-3. **`test-vectors/arsia-test-vectors.json`** — 780 vectors in three discriminated formats: `message-only` (`message` + `valid`), `schema-ref` (`schema_ref` + `data` + `expected`), and `hybrid` (`schema_ref` + `message` + `expected`). 154 vectors have `skip_schema: true` for runtime-only constraints, individually classified in `docs/draft-02-skip-classification.md`. Signed vectors use the Draft-02 signing profile (envelope minus only `security.sig`); regenerate with `scripts/regen_v2.py`. `keypairs.json` holds the 9 test keypairs — committed intentionally, not secrets.
+3. **`test-vectors/arsia-test-vectors.json`** — 783 vectors in three discriminated formats: `message-only` (`message` + `valid`), `schema-ref` (`schema_ref` + `data` + `expected`), and `hybrid` (`schema_ref` + `message` + `expected`). 148 vectors have `skip_schema: true` for runtime-only constraints, individually classified (with the coverage actually executed) in `docs/draft-02-skip-classification.md`; a skip vector is still validated structurally. Messages are validated under the Core §4.1.1 procedure their own `v` selects. Each `crypto` block declares `expect_signature` (`valid`/`invalid`/`absent`); a vector whose expectation rests on a MAY or an optional configuration declares its `posture`. Signed vectors use the Draft-02 signing profile (envelope minus only `security.sig`); regenerate with `scripts/regen_v2.py`. `keypairs.json` holds the 15 test keypairs — committed intentionally, not secrets.
 4. **`profiles/arsia-compliance-profiles.json`** — the 7 compliance profiles (GDPR, EU AI Act ×2, MiFID II, PAC, DSA, DORA), defined normatively in ARSIA-State §6 and referenced by Core §4.3.6. Profile names, retention floors, and oversight modes must match between prose, this catalog, and schemas.
 5. **`docs/rtm/`** — six Requirements Traceability Matrices tracing every MUST/SHOULD/MAY to schema and test vector.
 

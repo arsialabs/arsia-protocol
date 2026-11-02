@@ -29,6 +29,9 @@ Schema cannot express, executed as tests — including against the runtime
   R15 Executor oversight and post-execution review:        (Actions §3, Core §4.3.10, DR-1/DR-2)
       executor sources, approval binding, review deadlines,
       overdue and escalation, async terminal results, tokens
+  R16 Message timing: clock-skew tolerance and expiry       (Core §4.1.3, §4.2.2, §8.3)
+      against a declared recipient clock; MAY posture;
+      temporal causes kept apart from compliance causes
 
 Exit code 0 = all green.
 """
@@ -1847,9 +1850,67 @@ def r14(vectors):
     expect_fail("R14 unsupported chain_format rejected", fmt, head, "unsupported chain_format")
 
 
+# ------------------------------------------- R16 message timing (Core §4.1.3, §4.2.2, §8.3)
+DEFAULT_SKEW = 300  # Core §8.3 default tolerance, seconds
+TS_POSTURE = ("ARSIA-Core.md", "§8.3", "MAY")  # the option to reject a ts outside the tolerance
+
+
+def skew_tolerance(message):
+    """Core §8.3: the declared profile's clock_skew_seconds when it defines one, else 300 s."""
+    name = (message.get("compliance") or {}).get("profile")
+    skew = PROFILES.get(name, {}).get("defaults", {}).get("clock_skew_seconds") if name else None
+    return (skew, f"profile:{name}") if skew is not None else (DEFAULT_SKEW, "default")
+
+
+def timing(message, recipient_time, posture=None):
+    """Temporal verdict at the recipient's clock, kept apart from the global one. `expired` (§4.2.2)
+    is a MUST and always a cause; a ts outside the tolerance (§4.1.3) is a cause only for a recipient
+    that takes the §8.3 MAY. Compliance diagnostics of the reference resolver join the global causes."""
+    tol, source = skew_tolerance(message)
+    now = iso(recipient_time)
+    offset = (iso(message["ts"]) - now).total_seconds()
+    expired = "expires_at" in message and now > iso(message["expires_at"]) + dt.timedelta(seconds=tol)
+    within = abs(offset) <= tol
+    takes_may = posture is not None and (posture["spec"], posture["section"], posture["basis"]) == TS_POSTURE
+    causes = (["expired"] if expired else []) + (["ts_outside_tolerance"] if not within and takes_may else [])
+    if isinstance(message.get("compliance"), dict):
+        res = resolve_obligations(message["intent"], message["compliance"], None, message["ts"])
+        causes += [c["diagnostic"] for c in res.get("conflicts", [])]
+    return {"tolerance_seconds": tol, "tolerance_source": source, "ts_offset_seconds": int(offset),
+            "ts_within_tolerance": within, "expired": expired,
+            "outcome": "rejected" if causes else "accepted", "causes": causes}
+
+
+def r16(vectors):
+    timed = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "timing"]
+    check("R16 timing vectors present (ITV-408/411/440/545/546/547)",
+          sorted(v["id"] for v in timed) == ["ITV-408", "ITV-411", "ITV-440", "ITV-545", "ITV-546", "ITV-547"])
+    for v in timed:
+        got = timing(v["message"], v["test_metadata"]["input"]["recipient_time"], v.get("posture"))
+        miss = subset_match(v["test_metadata"]["expect"], got)
+        check(f"R16 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        rejected = got["outcome"] == "rejected"
+        check(f"R16 {v['id']} outcome agrees with the vector's valid/expected_error",
+              rejected is (v["valid"] is False) and (not rejected or v["expected_error"] == "invalid_request"))
+        if v.get("posture"):
+            alt = timing(v["message"], v["test_metadata"]["input"]["recipient_time"], None)
+            check(f"R16 {v['id']} expectation rests on the MAY: accepted without the posture", alt["outcome"] == "accepted")
+    v546 = next(v for v in timed if v["id"] == "ITV-546")
+    got = timing(v546["message"], v546["test_metadata"]["input"]["recipient_time"], v546.get("posture"))
+    check("R16 ITV-546 on time (90 s within 120 s): the clock is no cause of its rejection",
+          got["ts_within_tolerance"] and "ts_outside_tolerance" not in got["causes"]
+          and got["causes"] == ["missing_legal_basis", "insufficient_retention"])
+    m = {"ts": "2026-05-01T11:58:00.000Z", "intent": "event", "compliance": {"profile": "MIFID-II"}}
+    check("R16 profile tolerance is used, not the default (MIFID-II 60 s)", timing(m, "2026-05-01T12:00:00.000Z")["tolerance_seconds"] == 60)
+    m = {"ts": "2026-05-01T12:00:00.000Z", "intent": "event", "expires_at": "2026-05-01T12:00:00.000Z"}
+    check("R16 expiry honours the tolerance: 300 s after expires_at is not expired",
+          not timing(m, "2026-05-01T12:05:00.000Z")["expired"] and timing(m, "2026-05-01T12:05:00.001Z")["expired"])
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
+    r16(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0
