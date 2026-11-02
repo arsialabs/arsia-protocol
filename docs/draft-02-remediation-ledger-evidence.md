@@ -383,3 +383,74 @@ crypto 89 → 114, all pass; check_consistency 115 → 122 checks, all pass; har
 R1–R15 → R1–R16, 316 → 335 assertions, all pass; examples 78 blocks OK; links OK;
 RTM 1970 / 1173 unchanged (CORE-§7.4-02/-04 re-traced to ITV-406, STATE-§8.3-05
 re-worded to State §8.3 rule 2).
+
+## 17. LM3 closure evidence
+
+Execution baseline `bbb8ef3`. The cycle changes no normative text and no tooling: only
+the ledger, its notes and this evidence. Mutations ran in a temporary
+`git archive bbb8ef3` extract with the working directory set to it; the repository was
+not touched. Unmutated baseline: `ALL RUNTIME RULES PASSED`.
+
+| Finding | Closure criterion (clause by clause) | Evidence (checks in `scripts/runtime_harness.py`, added in C0.5 `260ac73`) | Mutation reintroducing the defect → required failing checks | Met |
+|---|---|---|---|---|
+| F-2 | (1) shared-cache two-call test; (2) revoked kid; (3) reject/reject | `JwksCache.accept` (l.1657); "R13 revoked kid after ceiling, shared cache, call 1 rejected" / "call 2 rejected" (l.1696-1697); "R13 never-published kid, shared cache, call 1/2 rejected" (l.1688-1689) | `accept` records the looked-up kid even when absent → "R13 never-published kid, shared cache, call 2 rejected" and "R13 revoked kid after ceiling, shared cache, call 2 rejected" FAIL | yes |
+| A-36 | harness case `arsiaprotocolx.*` → True | `scope_satisfies` tests `(prefix + ".").startswith("arsiaprotocol.")` (l.142); "R3 non-reserved lookalike namespace wildcard (A-36)" (l.167) | trailing dot dropped (`prefix.startswith("arsiaprotocol")`) → that check FAILs | yes |
+| A-37 | (1) SEK; (2) length/digit limits; (3) non-currency scales | `amount_valid` with an injected catalog (l.194); (1) "R5 SEK accepted under the declared test catalog (A-37)" (l.236); (2) "R5 16-digit integer part accepted", "R5 17-digit integer part rejected", "R5 20-digit integer part rejected (A-37)" (l.240-242); (3) token 8/9, entitlement 2/3, service_unit 4/5 fraction digits (l.247-252) | (a) the fixed C0.5 seven-currency table instead of the catalog → SEK check FAILs; (b) integer-part limit 16 → 99 → 17- and 20-digit checks FAIL; (c) scale check replaced by `True` → token 9, entitlement 3 and service_unit 5 checks FAIL | yes |
+| A-38 | (1) max-age below the ceiling; (2) revocation-event invalidation | `JwksCache` caches the JWKS document, not a kid (l.1637); (1) "R13 max-age 60: accepted within / rejected after max-age / rejected again" (l.1703-1705), "R13 max-age 7200 capped: rejected after 3600 s" (l.1711); (2) "R13 revocation event: rejected at once, call 1/2" (l.1718-1719) | (a) `min(max_age, ceiling)` → ceiling → "R13 max-age 60: rejected after max-age" FAILs; (b) `revocation_event` emptied → "R13 revocation event: rejected at once, call 1" FAILs | yes |
+
+Mutations: 7/7 detected. F-2 and A-38 already cited "harness R13 (C0.5)"; what was
+pending for all four was the formal closure verification, not the evidence. A-33 stays
+IPC (repo alg/key-mismatch vector pending).
+
+**A-57 reproduction (reference harness).** A pending run built with the harness's own
+`make_request`, `make_descriptor` and `Run` (the ITV-662 setup: descriptor oversight,
+GDPR-STANDARD) receives one approval decision from `approval_decision_msg`, modified:
+
+| Decision | `signature_ok` | `Run.approval()` | Run path |
+|---|---|---|---|
+| (a) `reason` changed after signing | False | no error | `pending` → `executing` |
+| (b) `capabilities: []`, re-signed | True | no error | `pending` → `executing` |
+| (c) `result.approver_id` ≠ `from`, re-signed | True | no error | `pending` → `executing` |
+
+The gap is recorded under A-57 in the notes; A-57 stays open.
+
+**Inventories at `bbb8ef3`** (scripted; recorded as observations, not findings or
+closures):
+- Signatures outside crypto-block verification: 187 = schema 160 (120 valid / 40
+  invalid) + runtime-only 27 (9 / 18) = 55 fail with the identified key + 126 kid
+  outside the catalog + 5 other alg + 1 verifies (INV-39), resolving the full kid under
+  the Draft-02 profile. The most common placeholder value (base64url of
+  "test-signature-for-schema-vali…") occurs in 98 of them; the runtime-only ones among
+  those are exactly INV-23, INV-24, ITV-566, ITV-567, ITV-568.
+- INV-39 verifies under the Draft-02 profile and fails under the Draft-01 profile;
+  INV-38's kid is not in `keypairs.json`.
+- Named conformance tests (level 3-5 headings naming `<PREFIX>-NN`, optionally after
+  "Test", for the six spec prefixes): 74 at `fb5a875`, 83 at
+  `bbb8ef3` (Actions 12 → 19, Identity 20 → 22; Core 9, State 15, Assets 8, Routing 10
+  unchanged); onboarding checks CHECK-01..05 counted separately.
+- Runtime `expected_error` outside the Core §11.2 enum (14 codes, `certificate_invalid`
+  among them): 10 free-text values and 4 occurrences of two values
+  (`identity_verification_failed`, `conformance_failed`).
+
+**A-88 triage (owner decision 2026-11-02).** Source text of the decision:
+
+> State §2.1.5 define `created_at` como imutável após a criação. State §2.1.12 e
+> §3.1.2 qualificam a recriação após DELETE como criação de uma nova entrada, que
+> recebe um novo `created_at`. Essas disposições são compatíveis quando a imutabilidade
+> se aplica à vida de cada entrada. A-88 é tratado como questão interpretativa
+> associada à representação das gerações em A-79, sem contradição normativa
+> demonstrada.
+
+Anchors at `bbb8ef3`: State l.545-546 (§2.1.5, "first created … immutable
+thereafter"); l.739-745 (§2.1.12, "the recreated entry is a new entry and starts with
+version `1`"); l.1058-1061 (§3.1.2, "SET creates a new entry with `version: 1`,
+`created_at` set to the current time"). Precedent: A-24's disposition. Triage changes
+from `new (DR-5)` to `INT`; remediation state (open), closure criterion, dependency
+(A-79 cycle) and evidence are unchanged.
+
+**Counts before → after** (findings register, 95 rows): remediation IPC 7 → 3, closed
+71 → 75, open 17 unchanged; triage INT 6 → 7, new 24 → 23; class and disposition
+counts unchanged (A-88 was already among the 18 recorded dispositions). Coverage
+register unchanged (open 14, closed 4; "Revocation under cache ceiling" stays open
+through A-58). Tool counts unchanged: vectors 783, consistency checks 122, harness
+R1-R16, RTM 1970 / 1173.

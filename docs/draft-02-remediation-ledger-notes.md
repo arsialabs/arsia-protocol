@@ -235,9 +235,21 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Placeholder signatures outside the 32 (observed in VC, not fixed):** INV-23,
   INV-24, ITV-566, ITV-567 and ITV-568 are runtime vectors with the literal
   placeholder signature; a runtime runner would stop at signature verification.
+  Qualified in LM3: the five carry the most common placeholder value (base64url of
+  "test-signature-for-schema-vali…", 98 vectors in all, only these five runtime-only).
+  The inventory of signatures outside crypto-block verification (below) is a different
+  survey; it does not replace this count.
 - **Free-text expected_error (observed in VC, not fixed):** 16 runtime vectors state
   free text or codes outside Core §11.2 (e.g. `certificate_invalid`,
   `identity_verification_failed`) in `expected_error`.
+  Corrected in LM3: 14, not 16 — 10 free-text values and 4 occurrences of two values
+  outside the Core §11.2 enum; `certificate_invalid` is a Core §11.2 code (seven runtime
+  vectors use it) and was wrongly cited as an example. Classification: expectation
+  description only — INV-07, INV-09, INV-11, INV-12, ITV-526, INV-20, INV-22; a §11.2
+  code followed by a description — INV-23, INV-24, INV-25 (`forbidden — …`); onboarding
+  denial reasons (Identity §7.6 `denial_reason`), valid in their context — ITV-475,
+  ITV-476 (`identity_verification_failed`), ITV-477, ITV-479 (`conformance_failed`). Not
+  registered as normative defects.
 - **R10 scenario candidates (coverage program):** ITV-416, ITV-418, ITV-536, ITV-538,
   ITV-541, ITV-553 and ITV-554 could become R10 scenarios; the resolver already
   implements strict mode and `classification_escalation`.
@@ -246,4 +258,51 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `approval-decision-result` type them as string and array; INV-25 omits
   `conditions`.
 
+- **Signatures outside crypto-block verification (LM3):** 187 vectors carry
+  `security.sig` without a `crypto` block, so they are not included in the
+  cryptographic verification of `validate_vectors.py --check-crypto`. That alone does
+  not show the absence of all validation or of equivalent coverage, and they are not
+  "187 invalid signatures". By group: schema 160 (120 expected valid, 40 invalid);
+  runtime-only 27 (9 valid, 18 invalid). By cause, resolving the full kid against
+  `keypairs.json` under the Draft-02 profile: 55 EdDSA signatures fail with the
+  identified key; 126 carry a kid outside the catalog; 5 declare another alg
+  (ITV-548, ITV-549, ITV-550; runtime ITV-425, INV-37); 1 verifies (INV-39). Runtime
+  IDs: failing — INV-11, ITV-426, ITV-427, ITV-429, ITV-432..437, ITV-446, ITV-479,
+  ITV-526, ITV-566, ITV-567, ITV-568; kid outside the catalog — ITV-431, ITV-445,
+  INV-23, INV-24, ITV-570, ITV-571, ITV-572, INV-38. The coverage program separates
+  purely structural fixtures from runtime scenarios in which a non-verifying signature
+  would stop processing before the intended cause.
+- **Named conformance tests (LM3, A-53):** by the method that gave 74 at `fb5a875`,
+  `bbb8ef3` defines 83 (Actions 19, Core 9, State 15, Assets 8, Identity 22, Routing
+  10); the 5 onboarding checks CHECK-01..05 are counted separately. "Executed by no
+  script" understates what exists: harness checks name ACTIONS-10 (R7), ASSETS-06 and
+  C-09 (R15), and R15 executes the scenario vectors ITV-653/654, ITV-647/648, ITV-662
+  and ITV-663, which cite ACTIONS-15, -16, -17 and -18. Per-test classification
+  (integral, partial, equivalent, absent) belongs to the coverage program; a literal
+  reference to a test name does not count as coverage.
+- **INV-39 and INV-38 fixtures (LM3, A-54):** INV-39 verifies under the Draft-02
+  profile (only `security.sig` removed) and fails under the Draft-01 profile (the whole
+  `security` removed), which is the scenario its description announces; the negative
+  needs correcting as well as executing. A-54's criterion (crypto block executed and
+  asserted to fail) already forces that correction, so the criterion is unchanged.
+  INV-38's kid `#other-key` is not in the catalog; representing its announced scenario
+  needs its own key and context.
+- **Reference harness approval path (LM3, A-57):** `Run.approval()`
+  (`runtime_harness.py`, Actions §3.4) checks correlation, root,
+  `request_payload_hash`, the deadline and a duplicate approver. It accepts a decision
+  with an invalid signature, one without the `arsiaprotocol.oversight.approve`
+  capability, and one whose `result.approver_id` differs from `from`: in each case it
+  returns no error and the run moves from `pending` to `executing` (reproduced in LM3,
+  [§17][ev17]). The gap is in the reference harness; the fixture relation guards (G3)
+  do not replace validation of a received decision, and the result is not extended to
+  other repositories.
+- **A-88 scope (LM3):** triaged INT by owner decision (2026-11-02) and kept open. Its
+  closure is reconsidered in the review of the A-79 cycle, checking that the
+  generation model keeps an update of the same entry distinct from the creation of a
+  new entry after DELETE. A reasoned disposition can meet the closure criterion; a text
+  change is needed only if that review finds remaining ambiguity. A-88 does not
+  authorize changing the retention calculation or its anchor, altering schemas or
+  adding fields.
+
+[ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory
