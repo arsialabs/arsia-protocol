@@ -496,6 +496,29 @@
         }
       ]
     },
+    "within_retention": {
+      "type": "boolean",
+      "description": "Whether the PURGE removed values still within retention, as determined by the implementation from stored state (never from the request). Present in state_purge audit records. Per ARSIA-State.md §3.2.2."
+    },
+    "entry_retained_until": {
+      "anyOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The latest instant created_at + effective retention of the generations whose values the PURGE removed, or null when none has a retention period. Not the retention of this record (retained_until). Present in state_purge audit records; a timestamp, never null, when within_retention is true. Per ARSIA-State.md §3.2.2."
+    },
+    "retention_override": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/retention-override"
+        }
+      ],
+      "description": "The retention_override of the PURGE request, when it carried one; REQUIRED when within_retention is true. It does not affect the retention of this record. Per ARSIA-State.md §3.2.2."
+    },
     "grant_id": {
       "allOf": [
         {
@@ -1049,8 +1072,36 @@
           "initiator_agent_id",
           "generation",
           "purged_at",
-          "pii_classification"
+          "pii_classification",
+          "within_retention",
+          "entry_retained_until"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "state_purge"
+          },
+          "within_retention": {
+            "const": true
+          }
+        },
+        "required": [
+          "event_type",
+          "within_retention"
+        ]
+      },
+      "then": {
+        "required": [
+          "retention_override"
+        ],
+        "properties": {
+          "entry_retained_until": {
+            "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+          }
+        }
       }
     },
     {

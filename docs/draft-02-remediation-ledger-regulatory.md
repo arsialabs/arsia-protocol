@@ -17,6 +17,8 @@ those of any other register.
   non-EUR-Lex texts named.
 - **O items:** verified by the orchestrator on EUR-Lex web pages, not on files
   in the sources folder.
+- **X items:** verified in the retention-axis cycle (2026-11-03) on the EUR-Lex
+  consolidations in the sources folder (`consolidated/`).
 
 | Parent | Item | Act and provision | Verdict | Source used | Source version (consulted 2026-09-28) | State |
 |---|---|---|---|---|---|---|
@@ -53,14 +55,18 @@ those of any other register.
 | A-51 | T-8 | BCP 14: MAY used as a prohibition | DEFECT | BCP 14 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-52 | T-9 | EDPB Guidelines 05/2021 v2.0 dated Feb 2022; the correct date is 14 Feb 2023 | DEFECT | EDPB (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-44 | O-1 | Del. Reg. (EU) 2017/565 labelled "RTS 22"; RTS 22 is 2017/590 | DEFECT | EUR-Lex web page (orchestrator) | `02017R0565-20220802; 32017R0590 original` | closed (C2); currency confirmed 2026-09-28 |
+| A-70 | X-1 | MiFIR, Reg. (EU) No 600/2014, Art. 25(1): investment firms keep "for five years, the relevant data relating to all orders and all transactions in financial instruments"; basis of the MIFID-II floor for the records it covers | CORRECT | EUR-Lex `consolidated/02014R0600-20251123.pdf` | `02014R0600-20251123` | closed (retention-axis cycle) |
+| A-90 | X-2 | MiFID II Art. 72 cited for retention precedence over erasure (State §7.1); Art. 72 is "Exercise of supervisory powers and powers to impose sanctions" | DEFECT | EUR-Lex `consolidated/02014L0065-20260606.pdf` | `02014L0065-20260606` | closed (retention-axis cycle) |
+| A-70, A-44 | X-3 | Del. Reg. (EU) 2017/565 Art. 72 presented as implementing MiFID II Art. 16(7) and as a source of the five-year period; its heading is "Retention of records (Article 16(6) of Directive 2014/65/EU)" and it sets no period | DEFECT | EUR-Lex `consolidated/02017R0565-20220802.pdf` | `02017R0565-20220802` | closed (retention-axis cycle) |
 | A-48 | O-2 | eIDAS 2.0 described as a "Proposal … anticipated"; it is Reg. (EU) 2024/1183, in force | DEFECT | EUR-Lex web page (orchestrator) | `32024R1183 original; manifest status "In force"` | closed (C2); currency confirmed 2026-09-28 |
 
-**Totals (this register only, 34 rows).**
-- Defects: 28 (19 V + 7 T + 2 O).
-- Correct: 6 (4 V + 2 T).
+**Totals (this register only, 37 rows).**
+- Defects: 30 (19 V + 7 T + 2 O + 2 X).
+- Correct: 7 (4 V + 2 T + 1 X).
 - Unverified: 0.
-- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass).
-- Currency totals (26 items): CONFIRMADO 24 / REABERTO 2 / PENDENTE 0; A-70 apart: evidence complete, finding open.
+- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass); closed 3 (X-1..X-3, retention-axis cycle).
+- X items (retention-axis cycle, 3): closed 3; not part of the 2026-09-28 currency pass.
+- Currency totals (26 items): CONFIRMADO 24 / REABERTO 2 / PENDENTE 0; A-70 apart: evidence complete, finding closed in the retention-axis cycle ([§19][ev19]).
 
 ## 8. Open notes (regulatory)
 
@@ -153,7 +159,7 @@ verbatim from the source named; `…` marks an omission.
 | T-8 | Core l.585-586; State l.168-169, l.221-224, l.345-346, l.1608-1609; Assets l.1497-1498; RTM CORE-§3.3-08, STATE-§1.1-05, STATE-§1.2-02, STATE-§1.4-03, STATE-§3.3.2-04 moved MAY → MUST_NOT | RFC 2119 §2: MUST NOT "mean that the definition is an absolute prohibition of the specification"; §5: MAY "mean that an item is truly optional" | rfc-editor.org RFC 2119, RFC 8174 | closed |
 | T-9 | Routing l.2389: "Version 2.0, adopted 14 February 2023" | EDPB Guidelines 05/2021 v2 PDF: "Version 2.0 14 02 2023 Adoption of the Guidelines after public consultation" | edpb.europa.eu (PDF) | closed |
 | V-19 | State l.2469-2475 (§6.4); profiles catalog PAC-AGRICULTURE references: Arts. 8 and 9 | Reg. (EU) 2021/2116 Art. 8(1)(a): "the issuing, reviewing and withdrawing of accreditation of paying agencies"; Art. 9(2): "sufficient guarantees that payments are legal, regular and properly accounted for" | EUR-Lex `32021R2116.pdf` | closed |
-| A-70 (verification) | State l.2395-2400: the fabricated Art. 72 quotation replaced by what Art. 72 provides. The floor and its echoes are unchanged (A-70). | Searched (whitespace-insensitive, local PDFs): Del. Reg. (EU) 2017/565 Arts. 72-76 and Annexes I and IV; Dir. 2014/65/EU Art. 16(6)-(7). Art. 72 sets no period. The only five-year periods found are Art. 76(8) (a copy of recordings "available on request for a period of five years") and Art. 16(7) (communications records "kept for a period of five years"). Other acts (e.g. Reg. (EU) No 600/2014) were not consulted, since they are not among the supplied sources. | EUR-Lex `32017R0565.pdf`, `32014L0065.pdf` | open (A-70) |
+| A-70 (verification) | State l.2395-2400: the fabricated Art. 72 quotation replaced by what Art. 72 provides. The floor and its echoes are unchanged (A-70). | Searched (whitespace-insensitive, local PDFs): Del. Reg. (EU) 2017/565 Arts. 72-76 and Annexes I and IV; Dir. 2014/65/EU Art. 16(6)-(7). Art. 72 sets no period. The only five-year periods found are Art. 76(8) (a copy of recordings "available on request for a period of five years") and Art. 16(7) (communications records "kept for a period of five years"). Other acts (e.g. Reg. (EU) No 600/2014) were not consulted, since they are not among the supplied sources. | EUR-Lex `32017R0565.pdf`, `32014L0065.pdf` | closed (A-70, retention-axis cycle; MiFIR Art. 25(1) verified as X-1; [§19][ev19]) |
 
 ## 11. C2.1 closure evidence
 
@@ -178,3 +184,5 @@ References: the Actions and State EU AI Act entries gain Art. 113, and both gain
 Regulation (EU) 2026/1744 entry; State also gains a Regulation (EU) 2025/2649 entry.
 RTM: no row references the edited sentences, so no rows were re-traced and the counts
 stay at 1903 / 1114.
+
+[ev19]: draft-02-remediation-ledger-evidence.md#19-retention-axis-cycle-closure-evidence

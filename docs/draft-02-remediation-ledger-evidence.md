@@ -516,3 +516,102 @@ cases; the repository was not touched and no early commit was made.
   pending 61 → 60.
 - Coverage register 18 → 20 rows: open 14, closed 4 → 6.
 - Named conformance tests 83 → 85 (STATE-16, STATE-17).
+
+## 19. Retention-axis cycle closure evidence
+
+Execution baseline `d5246ff`. Owner decisions R1–R4 are in the design record (DR-4
+addendum, retention-axis cycle). Line references are to the files after the cycle.
+Official texts are the EUR-Lex consolidations in the sources folder (`consolidated/`),
+consulted 2026-11-03. Mutations ran on a scratch copy: `git archive d5246ff` with the
+full candidate diff applied, the unmutated copy first passing the whole battery, and the
+candidate restored between cases; the repository was not touched and no early commit
+was made.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-7 | Aligned PURGE/retention quotes (Core §13.1 #9, State §3.2.2/§5.3.2) | Core §13.1 #9 (l.3872): a PURGE within retention is rejected without a `retention_override`; mitigation and its limit (attributable, not lawful). State §3.2.2 (l.1520) "Retention override" items 1–7: evaluation from stored state over every generation whose values are removed, live entry or not; `entry_retained_until` the latest instant; rejection with the §8.4 details (l.3813); record fields; determination retrievable; override not verified; record retention untouched; idempotency unchanged. Args table (l.1446). §1.2, §2.1.8, §4.1.1 (l.1793), §4.1.2 exception rows (l.1854–1899), §5.3.1 Step 4 (l.2187), §5.3.2 (l.2199), §8.2.1 and Actions §1.4 (l.489) aligned; docs/FAQ.md non-delegable and elevated-capability answers aligned (no "bypassing retention safeguards", no universal MiFID II five-year requirement). Schemas: common `retention-override`; `purge-args`; audit-record `within_retention`, `entry_retained_until`, `retention_override` (REQUIRED, and `entry_retained_until` non-null, when `within_retention` is true); message `error-details-retention-override`. R18 (b)–(j), where (i) validates the completed `state_purge` records (with `pii_classification` and `obligation_resolution`) against arsia-audit-record before comparing their retention fields; ITV-682..687, INV-92..100 | (a)–(e), (g)–(i), (k), (l), (n) | yes |
+| A-70 | MIFID-II floor re-grounded with scope, anchor and day-count justified, or the floor and its attributions corrected; all echoes aligned | Catalog: `retention_basis` `"profile_floor"`, `retention_reference` `"MIFIR:25(1); MIFID-II:16(7)"`, references gain MiFIR Art. 25(1) and MiFID II Art. 16(6), Art. 72 relabelled (medium and form). State §6.3 (l.2567): MiFIR Art. 25(1), MiFID II Art. 16(7) and the ARSIA extension and anchor stated apart; value P1827D a profile policy, 0–2 days above P5Y; 2017/565 Art. 72 not a source of the period. Echoes: Core §1.1 (l.187), §4.3.8 Rule 4 (l.1362), [MiFIR] reference (l.4221); Actions references (l.3007); Assets §1.1.6 (l.189), §6.1.2 (l.2009), §6.1.4 (l.2057), ASSETS-07 (l.2681), §8.2 (l.2800); Identity §9.3 (l.1962); Routing §7.4.2 (l.2232); State §4.1.1, §4.1.2, §5.3.2, §7.3 (l.3560), §12.2 (l.4251); `arsia-mifid-audit-record.schema.json` description; README, profiles/README, FAQ. R18 (a) | (f), (j) | yes |
+| A-90 | Retention-precedence citation verified against the official text | MiFID II Art. 72 heading "Exercise of supervisory powers and powers to impose sanctions" (X-2). State §7.1 `operator_id` note (l.3283): MiFIR Art. 25(1) as the example, erasure assessed under Art. 17(3)(b) per §5.3.2, the protocol does not determine that retention prevails | — (prose) | yes |
+| A-44 | Corrected MiFID II / 2017/565 citations (remaining gap: retention attributions, tracked as A-70) | The five-year attributions name MiFIR Art. 25(1) and MiFID II Art. 16(7) for the records they cover; general record-keeping is Art. 16(6); 2017/565 Art. 72 is medium and form with no period (X-3); same echo list as A-70 | — (prose) | yes |
+
+**Official excerpts (verbatim; `…` marks an omission).**
+- MiFIR (Reg. (EU) No 600/2014, consolidation 2025-11-23) Art. 25(1): "Investment firms
+  shall keep at the disposal of the competent authority, for five years, the relevant
+  data relating to all orders and all transactions in financial instruments which they
+  have carried out, whether on own account or on behalf of a client. In the case of
+  transactions carried out on behalf of clients, the records shall contain all the
+  information and details of the identity of the client …"
+- MiFID II (Dir. 2014/65/EU, consolidation 2026-06-06) Art. 16(6): "An investment firm
+  shall arrange for records to be kept of all services, activities and transactions
+  undertaken by it …". Art. 16(7): "The records kept in accordance with this paragraph
+  shall be provided to the client involved upon request and shall be kept for a period
+  of five years and, where requested by the competent authority, for a period of up to
+  seven years." Art. 72 heading: "Exercise of supervisory powers and powers to impose
+  sanctions".
+- Del. Reg. (EU) 2017/565 (consolidation 2022-08-02) Art. 72 heading: "Retention of
+  records (Article 16(6) of Directive 2014/65/EU)"; Art. 76(11): "The period of time for
+  the retention of a record shall begin on the date when the record is created."
+- GDPR (Reg. (EU) 2016/679) recital 26: "Personal data which have undergone
+  pseudonymisation, which could be attributed to a natural person by the use of
+  additional information should be considered to be information on an identifiable
+  natural person." Art. 17(3)(b): "for compliance with a legal obligation which requires
+  processing by Union or Member State law to which the controller is subject …"
+
+**P1827D against P5Y (R18 (a)).** Over the 146,097 anchors 2000-01-01..2399-12-31,
+`add_duration(a, "P1827D") − add_duration(a, "P5Y")` is 0 days for 34,310 anchors,
+1 day for 108,499 and 2 days for 3,288; never negative. Example: 2097-03-01 + P5Y =
+2102-03-01, + P1827D = 2102-03-03 (2100 is not a leap year). The owner's independent run
+gave the same distribution.
+
+**Mutations.** 14/14 detected:
+
+```
+(a) evaluation considers only the live generation: DETECTED (R18 (d), (e))
+(b) entry_retained_until is the minimum: DETECTED (R18 (e))
+(c) PURGE within retention proceeds without override: DETECTED (R18 (b))
+(d) evaluation counts generations already erased: DETECTED (R18 (j))
+(e) remove_generation leaves the generation's values: DETECTED (R18 (h))
+(f) P1827D becomes P1826D in the margin check: DETECTED (R18 (a))
+(g) within_retention -> retention_override conditional removed: DETECTED (INV-92)
+(h) purge-args without additionalProperties: DETECTED (INV-99)
+(i) retention details without additionalProperties: DETECTED (INV-98)
+(j) old MIFID-II digest back in one vector (ITV-96): DETECTED (digest guard)
+(k) within_retention true accepts entry_retained_until null: DETECTED (INV-100)
+(l) override alters the record's retention: DETECTED (R18 (i))
+(n) completed state_purge record without obligation_resolution: DETECTED (R18 (i) schema validation)
+(m) R17 selects every state vector again: DETECTED (R17 presence)
+```
+
+**Vector migration (structural, by ID).**
+- `state_purge` records gain `within_retention: false` and `entry_retained_until: null`:
+  ITV-103, 233, 237, 270, 680 (R17 scenario, from the reference store), ITV-529 and
+  INV-85 (each still invalid by its own single cause).
+- MIFID-II `profile-floor` digest (two occurrences each, no `crypto` block): ITV-88, 89,
+  90, 91, 92, 95, 96, 525, 586, INV-47. ITV-95 `hash_chain` recomputed with
+  `chain_value` (position 1); no vector chains from it. ITV-92 and INV-47 keep their
+  single cause.
+- New: ITV-682..687, INV-92..100 (15). Scenario vectors ITV-683..687 run in R18;
+  ITV-685, INV-97 and INV-98 are signed for real. Each new or migrated schema negative
+  has exactly one schema error; INV-97 and INV-98 have one leaf error under
+  `payload.error.details`.
+- The only `state_purge` records without the two fields are INV-93 and INV-94.
+
+**Sweeps.** No occurrence of "16(7)" attributes a general period, and no occurrence of
+"Art. 72" presents a source of a period (spec, profiles, schemas, README, FAQ, RTMs). No
+"regulatory minimum" or "required by the applicable regulation" describes a profile
+floor. No vector carries the old MIFID-II digest. The remaining "(5 years)" label is
+DORA's (A-96).
+
+**Counts before → after.**
+- Vectors 800 → 815 (validator 463 / 189 / 148 → 469 / 198 / 148; formats message-only
+  320 → 323, schema-ref 476 → 488, hybrid 4); crypto-checked 121 → 124; 0 failures in
+  all four modes.
+- RTM 1981 / 1182 → 1986 / 1189 (7 rows added, 2 retired, 9 rewritten: 8 State, 1 Core); State
+  coverage summary recomputed (432 rows).
+- Consistency checks 124 → 124; harness R1-R17 → R1-R18; example blocks 79 → 80.
+- Findings register 98 → 99 rows: open 15 → 13, IPC 3 → 2, closed 80 → 84 (6 by
+  disposition); class 3 17 → 18; triage new 26 → 27; disposition per DR or cycle
+  addendum 20 → 24, recorded 18, pending 60 → 57.
+- Regulatory register 34 → 37 rows (X-1..X-3).
+- Coverage register 20 → 22 rows: open 14, closed 6 → 8.
+- Named conformance tests 85 → 86 (STATE-18).

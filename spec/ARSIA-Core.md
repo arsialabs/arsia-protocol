@@ -183,9 +183,11 @@ use, including monitoring and logging.
 Beyond the AI Act, the General Data Protection Regulation (GDPR, Regulation 2016/679)
 imposes data residency and processing constraints that directly affect how agent
 messages may be routed and stored across jurisdictions. The Markets in Financial
-Instruments Directive (MiFID II, Directive 2014/65/EU) requires financial services
-firms to retain records of all communications for a minimum of five years, including
-algorithmic communications between automated systems.
+Instruments Directive (MiFID II, Directive 2014/65/EU) and Regulation (EU) No 600/2014
+(MiFIR) require investment firms to keep specified records for five years — among
+them the relevant data relating to orders and transactions in financial instruments
+(MiFIR Art. 25(1)) and the records of telephone conversations and electronic
+communications covered by MiFID II Art. 16(7).
 
 Today, an AI agent operating under MiFID II obligations has no protocol-level mechanism
 to declare its audit retention requirements to a counterparty agent. A high-risk AI
@@ -1357,9 +1359,9 @@ declares** a `retention` value, the receiving agent MUST compare the two per
 If `retention` is absent, the effective retention is the profile's retention
 minimum and this rule does not reject (`resolution_source: "profile-minimum"` in
 the audit record). This rule applies uniformly to every profile that declares a
-retention minimum — for example MIFID-II (`P1827D`, enforcing MiFID II
-Article 16(7) as implemented via Commission Delegated Regulation (EU) 2017/565,
-Article 72), DORA (`P1827D`), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
+retention minimum — for example MIFID-II (`P1827D`, a profile floor grounded on
+MiFIR Art. 25(1) and MiFID II Art. 16(7) for the records they cover, ARSIA-State.md
+§6.3), DORA (`P1827D`), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
 EU-AI-ACT-HIGH-RISK (`P6M`, a calendar period), and EU-AI-ACT-LIMITED-RISK. A
 profile's retention minimum is a **profile floor**; whether it is also a legal
 minimum is recorded per profile in the catalog (`retention_basis`,
@@ -3869,12 +3871,19 @@ The ARSIA threat model considers the following adversaries and attack vectors:
 
 9. **Wrongful PURGE.** An adversary with (or having escalated to)
    `arsiaprotocol.state.purge` irreversibly destroys data ahead of retention
-   obligations, or purges to cover tracks. Mitigations: non-delegable capability;
-   PURGE MUST NOT bypass regulatory retention (ARSIA-State.md §5.3 — erasure vs
-   retention conflict rules); every PURGE generates an audit event that survives
-   the purge (without the purged value); propagation rules bound replica/backup
-   deletion windows. Residual: an adversary with both purge capability and audit
-   store control defeats local tamper evidence (see ARSIA-State.md §7.2 scope
+   obligations, or purges to cover tracks. Mitigations: non-delegable capability; a
+   PURGE that removes values still within retention is rejected unless it carries a
+   `retention_override` identifying the operator's determination, and the executor —
+   never the requester — establishes from stored state whether the values are within
+   retention (ARSIA-State.md §3.2.2); every PURGE generates an audit event that
+   survives the purge (without the purged value) and records whether it removed
+   values within retention, until when they were to be retained, and the
+   determination referenced; propagation rules bound replica/backup deletion
+   windows. Residual: the override makes an early erasure attributable, not lawful —
+   the protocol neither verifies that the referenced determination exists nor that it
+   is legally correct (ARSIA-State.md §5.3.2), and an adversary holding the
+   capability can supply an override; an adversary with both purge capability and
+   audit store control defeats local tamper evidence (see ARSIA-State.md §7.2 scope
    statement).
 
 10. **Escrow abuse.** A compromised `release_agent` (or escrow holder) releases
@@ -4207,6 +4216,10 @@ of the European Union, L 119, 4 May 2016.
 
 **[MiFID-II]** European Parliament and Council, "Directive 2014/65/EU on markets in
 financial instruments (MiFID II)", Official Journal of the European Union, L 173,
+12 June 2014.
+
+**[MiFIR]** European Parliament and Council, "Regulation (EU) No 600/2014 on markets
+in financial instruments (MiFIR)", Official Journal of the European Union, L 173,
 12 June 2014.
 
 ---

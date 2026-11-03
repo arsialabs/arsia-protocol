@@ -45,7 +45,7 @@ ARSIA Protocol embeds compliance into the message envelope — the same way TLS 
 
 ### For Developers
 
-**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [33 JSON Schemas](schemas/) (Draft 2020-12) and [783 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
+**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [33 JSON Schemas](schemas/) (Draft 2020-12) and [815 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
 
 ARSIA defines three [conformance levels](spec/ARSIA-Core.md#12-conformance-levels) — pick the one that fits your deployment:
 
@@ -65,9 +65,9 @@ Key protocol sections for regulatory review: human oversight workflow ([Actions 
 
 ### For Regulators
 
-Six [Requirements Traceability Matrices](docs/rtm/) (1,981 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
+Six [Requirements Traceability Matrices](docs/rtm/) (1,986 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
 
-All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [800 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
+All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [815 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
 
 ---
 
@@ -93,7 +93,7 @@ Seven normative profiles map EU regulation directly to protocol fields:
 | `GDPR-STANDARD`          | GDPR Art. 5, 6                  | Per operator             | Not required              | Optional |
 | `EU-AI-ACT-HIGH-RISK`    | EU AI Act Art. 13, 14, 17, 26   | `P6M` (6 calendar months)| Required before execution | Required |
 | `EU-AI-ACT-LIMITED-RISK` | EU AI Act Art. 50               | `P90D` (90 days)         | Not required              | Required |
-| `MIFID-II`               | MiFID II Art. 16(7), DORA, PSD2 | `P1827D` (5 years)       | Required before execution | Required |
+| `MIFID-II`               | MiFIR Art. 25(1), MiFID II Art. 16(7), DORA, PSD2 | `P1827D` (profile floor) | Required before execution | Required |
 | `PAC-AGRICULTURE`        | CAP Reg. 2021/2116              | `P1096D` (3 years)       | Required post-execution   | Required |
 | `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | `P1096D` (3 years)       | Required within 24h       | Required |
 | `DORA`                   | DORA Art. 5, 17, 19, 28         | `P1827D` (5 years)       | Required within 24h       | Required |
@@ -109,8 +109,8 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 33 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 800 test vectors (463 schema-valid, 189 expected-invalid, 148 runtime-only) |
-| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (1,981 rows) |
+| [`test-vectors/`](test-vectors/) | 815 test vectors (469 schema-valid, 198 expected-invalid, 148 runtime-only) |
+| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (1,986 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
 15 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.

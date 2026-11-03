@@ -313,6 +313,38 @@ definitions expose their axes.
   specific diagnostics of Core §4.3.8 take precedence over the generic
   `obligation_conflict`.
 
+**Addendum — 2026-11-03 (owner decisions for the retention-axis cycle, under D4).**
+- **R1 — A-7: recorded override.** Not adjudicating the legal question does not, by
+  itself, permit any PURGE. A PURGE that removes values still within retention is
+  executed under the existing authorization together with an explicit determination of
+  the operator, recorded and bound to the request (`retention_override`: `reason`,
+  `determination_ref`); without it, it is rejected. The executor determines
+  `within_retention` and the retention instants from stored state, never from the
+  request, over every generation whose values the PURGE removes, with or without a live
+  entry; `entry_retained_until` is the latest instant. The override does not shorten
+  the retention of the `state_purge` record, and the A-79 idempotency rules stand. Its
+  presence is not evidence that the determination is legally correct. State §5.3.2 no
+  longer promises that pseudonymisation satisfies both duties (GDPR recital 26) or that
+  the PURGE record satisfies the obligation to preserve the erased records.
+- **R2 — A-70: `profile_floor`.** MiFIR Art. 25(1) (orders and transactions, five
+  years), MiFID II Art. 16(7) (the communications it covers, five years, up to seven on
+  request) and the ARSIA choice (the floor extended to every record of the profile,
+  anchored by the protocol) are stated separately; `retention_reference` is
+  `"MIFIR:25(1); MIFID-II:16(7)"`; Delegated Regulation (EU) 2017/565 Art. 72 is not a
+  source of the period. The Art. 17(3)(b) argument resting on those provisions is
+  limited to the records they cover, without denying that other records may be subject
+  to another legal retention obligation.
+- **R3 — Value.** `P1827D` is kept as a profile policy: under the Core calendar
+  arithmetic it is never shorter than `P5Y` from the same anchor and exceeds it by zero
+  to two days (34,310 / 108,499 / 3,288 of the 146,097 anchors of a 400-year cycle). It
+  is neither an exact conversion of "five years" nor a statement of legal sufficiency.
+  The catalog change alters the `profile-floor` digest; the vectors carrying it are
+  migrated.
+- **R4 — Adjacent.** Core §2's "all communications … algorithmic communications"
+  sentence is corrected as an A-70 echo. The DORA rationale is registered (A-96)
+  without changing the floor; the absence of its sources from the local folder neither
+  confirms nor refutes it.
+
 ---
 
 ## DR-5 — Audit hash chain (A-8 → option a)

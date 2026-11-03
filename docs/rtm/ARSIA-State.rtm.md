@@ -24,7 +24,7 @@
 | STATE-§1.2-02 | 1.2 | MUST_NOT | sdk_enabled | behavioural_negative | Agents other than the one whose agent_id matches owner_agent_id MUST NOT read or write agent-scoped entries unless an explicit grant has been issued | — | STV-02, ITV-182 |
 | STATE-§1.2-03 | 1.2 | MAY | sdk_enabled | behavioural_positive | Grantee agents MAY access agent-scoped entries per the grant's access_level (read or read-write) | — | ITV-182 |
 | STATE-§1.2-04 | 1.2 | MUST | deployment | behavioural_positive | Agent-scoped state MUST be persisted to durable storage | — | — |
-| STATE-§1.2-05 | 1.2 | MUST_NOT | sdk | behavioural_negative | Agent-scoped entries MUST NOT be physically deleted before retention expires, except via PURGE | — | ITV-183 |
+| STATE-§1.2-05 | 1.2 | MUST_NOT | sdk | behavioural_negative | Agent-scoped entries MUST NOT be physically deleted before retention expires, except via PURGE with a recorded retention override (§3.2.2) | — | ITV-183 |
 | STATE-§1.2-06 | 1.2 | MUST | sdk | procedural | SET and DELETE on agent-scoped entries MUST generate audit events when audit_required is true | — | ITV-184, ITV-185 |
 | STATE-§1.2-07 | 1.2 | MUST | sdk | behavioural_positive | Audit events MUST include operation type, entry key, owner_agent_id, actor, timestamp, generation, and version | arsia-audit-record | ITV-184 |
 | STATE-§1.2-08 | 1.2 | MUST_NOT | sdk | behavioural_negative | Audit events MUST NOT include the entry value unless value-level auditing is required | — | ITV-185 |
@@ -71,7 +71,7 @@
 | STATE-§2.1.8-01 | 2.1.8 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.retention field is OPTIONAL (integer, minimum 1) | arsia-state-entry | ITV-138 |
 | STATE-§2.1.8-02 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | The effective retention MUST NOT be less than the compliance profile's minimum. | arsia-state-entry | INV-08 |
 | STATE-§2.1.8-03 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entry-level retention MUST NOT reduce retention below the compliance profile minimum | — | INV-08 |
-| STATE-§2.1.8-04 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entries within retention MUST NOT be physically deleted, except via PURGE for GDPR erasure | — | ITV-200 |
+| STATE-§2.1.8-04 | 2.1.8 | MUST_NOT | sdk | behavioural_negative | Entries within retention MUST NOT be physically deleted, except via PURGE with a recorded retention override (§3.2.2) | — | ITV-200 |
 | STATE-§2.1.9-01 | 2.1.9 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.data_residency field is OPTIONAL (ISO 3166-1 or supranational code) | arsia-state-entry | ITV-138 |
 | STATE-§2.1.9-02 | 2.1.9 | MUST | deployment | behavioural_positive | data_residency declares the geographic zone where the entry MUST be stored | arsia-state-entry | — |
 | STATE-§2.1.9-03 | 2.1.9 | MUST | deployment | behavioural_positive | Storage backend MUST physically reside within the declared data_residency zone | — | — |
@@ -200,7 +200,7 @@
 | STATE-§3.2.2-05 | 3.2.2 | SHOULD | deployment | behavioural_positive | Full purge propagation, including backup media rotation, SHOULD complete within 30 days | — | — |
 | STATE-§3.2.2-06 | 3.2.2 | MUST | sdk | behavioural_positive | Active grants on purged entries MUST be automatically revoked during the PURGE operation | — | ITV-235 |
 | STATE-§3.2.2-07 | 3.2.2 | MUST | sdk | behavioural_positive | Grant revocation audit events MUST be generated for each revoked grant. | arsia-audit-record | ITV-236 |
-| STATE-§3.2.2-08 | 3.2.2 | MUST | sdk | procedural | PURGE MUST always generate an audit event, regardless of audit_required setting | arsia-audit-record | STV-04, ITV-103, ITV-233, ITV-529 |
+| STATE-§3.2.2-08 | 3.2.2 | MUST | sdk | procedural | PURGE MUST always generate an audit event, regardless of audit_required setting | arsia-audit-record | STV-04, ITV-103, ITV-233, ITV-529, ITV-683, ITV-684, ITV-686, ITV-687 |
 | STATE-§3.2.2-09 | 3.2.2 | OPTIONAL | sdk_enabled | behavioural_positive | PURGE audit event reason field is OPTIONAL (e.g., "gdpr_erasure", "data_subject_request") | arsia-audit-record | STV-04 |
 | STATE-§3.2.2-10 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT contain the purged value (erasure would be defeated) | arsia-audit-record | ITV-237 |
 | STATE-§3.2.2-11 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | arsiaprotocol.state.purge MUST NOT be included in wildcard capability grants | — | ITV-238, ITV-285 |
@@ -208,6 +208,12 @@
 | STATE-§3.2.2-13 | 3.2.2 | MUST | sdk | behavioural_positive | Repeated PURGE with no later write MUST return success with the original purged_at timestamp | arsia-state-operations | ITV-239, ITV-680 |
 | STATE-§3.2.2-14 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | A repeated PURGE with no later write MUST NOT generate a second audit event. | — | ITV-239, ITV-680 |
 | STATE-§3.2.2-15 | 3.2.2 | MUST | sdk | behavioural_positive | A PURGE after a later write MUST execute the procedure and generate a new audit event | arsia-audit-record | ITV-680 |
+| STATE-§3.2.2-16 | 3.2.2 | MUST | sdk | procedural | The implementation MUST determine from stored state the generations whose values PURGE removes and entry_retained_until (latest instant), with or without a live entry | — | ITV-683, ITV-686, ITV-687 |
+| STATE-§3.2.2-17 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | Within-retention status and retention instants MUST NOT be taken from the PURGE request | arsia-state-operations | INV-99 |
+| STATE-§3.2.2-18 | 3.2.2 | MUST | sdk | behavioural_positive | A PURGE within retention MUST carry retention_override (reason, determination_ref) | arsia-state-operations | ITV-682, INV-95, INV-96 |
+| STATE-§3.2.2-19 | 3.2.2 | MUST | sdk | behavioural_negative | Without retention_override, a PURGE within retention MUST be rejected with invalid_request and {within_retention, entry_retained_until}, removing nothing | arsia-message | ITV-685, INV-97, INV-98 |
+| STATE-§3.2.2-20 | 3.2.2 | MUST | sdk | behavioural_positive | The state_purge audit event MUST record within_retention, entry_retained_until and, when carried, retention_override | arsia-audit-record | ITV-683, ITV-684, INV-92, INV-93, INV-94, INV-100 |
+| STATE-§3.2.2-21 | 3.2.2 | MUST | operational_policy | behavioural_positive | The operator MUST keep the determination referenced by determination_ref retrievable while the state_purge record is retained | — | — |
 | STATE-§3.3.1-01 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.key_pattern field is REQUIRED | arsia-state-operations | ITV-51 |
 | STATE-§3.3.1-02 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.grantee_agent_id field is REQUIRED | arsia-state-operations | ITV-51 |
 | STATE-§3.3.1-03 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.access_level field is REQUIRED ("read" or "read_write") | arsia-state-operations | ITV-51, ITV-52, ITV-113 |
@@ -226,13 +232,13 @@
 | STATE-§3.3.2-07 | 3.3.2 | MUST | sdk | procedural | REVOKE MUST generate a "state_revoke" audit event when audit_required is true | arsia-audit-record | ITV-104, ITV-249, ITV-531 |
 | STATE-§3.3.2-08 | 3.3.2 | REQUIRED | sdk | structural | REVOKE payload.args.grant_id field is REQUIRED | arsia-state-operations | ITV-107 |
 | STATE-§4.1-01 | 4.1 | MUST | sdk | behavioural_positive | Retention policy governs how long state entries MUST be kept before physical removal | — | — |
-| STATE-§4.1.1-01 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entries MUST NOT be physically deleted before the regulatory minimum retention expires | — | ITV-250 |
-| STATE-§4.1.1-02 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entry-level retention MUST NOT reduce retention below the regulatory minimum | — | ITV-251 |
+| STATE-§4.1.1-01 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entries MUST NOT be physically deleted before the profile retention minimum expires, except via PURGE with a recorded retention override (§3.2.2) | — | ITV-250 |
+| STATE-§4.1.1-02 | 4.1.1 | MUST_NOT | sdk | behavioural_negative | Entry-level retention MUST NOT reduce retention below the profile retention minimum | — | ITV-251 |
 | STATE-§4.1.2-01 | 4.1.2 | RECOMMENDED | sdk_enabled | behavioural_positive | GDPR-STANDARD profile RECOMMENDED default retention is 90 days when no expires_at is set | — | — |
-| STATE-§4.1.2-02 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | EU-AI-ACT-HIGH-RISK entries MUST NOT be physically removed before 180 days from creation | arsia-compliance-field | — |
-| STATE-§4.1.2-03 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | MIFID-II entries MUST NOT be physically removed before 1827 days (5 years) from creation | arsia-compliance-field | — |
+| STATE-§4.1.2-02 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | EU-AI-ACT-HIGH-RISK entries MUST NOT be physically removed before created_at + P6M (six calendar months) | arsia-compliance-field | — |
+| STATE-§4.1.2-03 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | MIFID-II entries MUST NOT be physically removed before 1827 days from creation (profile floor) | arsia-compliance-field | — |
 | STATE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | PAC-AGRICULTURE entries MUST NOT be physically removed before 1096 days (3 years) from creation | arsia-compliance-field | ITV-252 |
-| STATE-§4.1.2-05 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DSA-VLOP entries MUST NOT be physically removed before 730 days (2 years) from creation | arsia-compliance-field | — |
+| STATE-§4.1.2-05 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DSA-VLOP entries MUST NOT be physically removed before created_at + P1096D | arsia-compliance-field | — |
 | STATE-§4.1.2-06 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DORA entries MUST NOT be physically removed before 1827 days (5 years) from creation | arsia-compliance-field | — |
 | STATE-§4.1.3-01 | 4.1.3 | MAY | sdk_enabled | behavioural_positive | Post-retention entries MAY be handled by archival (cold storage) or permanent deletion | — | — |
 | STATE-§4.1.3-02 | 4.1.3 | MUST | deployment | behavioural_positive | Archived entries MUST remain SNAPSHOT-accessible for 12 months after archival | — | — |
@@ -274,8 +280,6 @@
 | STATE-§5.3.1-04 | 5.3.1 | RECOMMENDED | deployment | behavioural_positive | A 30-day purge propagation timeline to backup media is RECOMMENDED | — | — |
 | STATE-§5.3.1-05 | 5.3.1 | MUST | operational_policy | behavioural_positive | Operators MUST document the expected backup propagation timeline and communicate it on request | — | — |
 | STATE-§5.3.2-01 | 5.3.2 | MUST | operational_policy | behavioural_positive | The operator MUST make the legal determination when GDPR erasure conflicts with regulatory retention | — | — |
-| STATE-§5.3.2-02 | 5.3.2 | MAY | operational_policy | behavioural_positive | Operators MAY argue MiFID II Art. 16(7) retention takes precedence over erasure under Art. 17(3)(b) | — | — |
-| STATE-§5.3.2-03 | 5.3.2 | SHOULD | operational_policy | behavioural_positive | Operators SHOULD consider pseudonymisation as an alternative satisfying both erasure and retention | — | — |
 | STATE-§5.4-01 | 5.4 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD enforce configurable per-agent limits on entry count and storage size | — | ITV-258 |
 | STATE-§5.4-02 | 5.4 | RECOMMENDED | operational_policy | behavioural_positive | RECOMMENDED per-agent limits: 10,000 entries, 100 MiB storage, 1,000 personal data entries | — | — |
 | STATE-§5.4-03 | 5.4 | SHOULD | operational_policy | behavioural_positive | Per-agent storage limits SHOULD be configurable by the platform operator | — | — |
@@ -394,6 +398,7 @@
 | STATE-§8.4-01 | 8.4 | MUST | sdk | behavioural_positive | Conflict errors on a live entry MUST include current_generation, current_version, the stated preconditions, updated_at and updated_by | arsia-message | ITV-82, ITV-87, ITV-151, INV-86, INV-89 |
 | STATE-§8.4-02 | 8.4 | MUST | sdk | behavioural_positive | Absent-entry conflict details MUST consist of entry_live false and the stated preconditions | arsia-message | ITV-679, INV-87, INV-90, INV-91 |
 | STATE-§8.4-03 | 8.4 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT include current_generation, current_version, updated_at or updated_by | arsia-message | INV-87 |
+| STATE-§8.4-04 | 8.4 | MUST | sdk | behavioural_positive | PURGE retention error details MUST consist of within_retention (true) and entry_retained_until | arsia-message | ITV-685, INV-97, INV-98 |
 | STATE-§9-01 | 9 | MUST | sdk_enabled | behavioural_positive | Conformant implementations MUST pass all conformance tests at their applicable level | — | — |
 | STATE-§9-02 | 9 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT include the purged entry value (STATE-03 test) | arsia-audit-record | ITV-270 |
 | STATE-§9-03 | 9 | MUST_NOT | sdk | behavioural_negative | Implementation MUST NOT physically remove entries before the retention period elapses (STATE-05 test) | arsia-state-entry | ITV-271 |
@@ -440,11 +445,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 427 |
-| Schema ≠ — | 167 |
-| Vector ≠ — | 224 |
-| Both ≠ — | 114 |
-| Both = — (gaps) | 150 |
+| Total requirements | 432 |
+| Schema ≠ — | 172 |
+| Vector ≠ — | 230 |
+| Both ≠ — | 119 |
+| Both = — (gaps) | 149 |
 
 ### Per-section breakdown
 
@@ -452,12 +457,12 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
 | 2 | 83 | 32 | 48 | 22 | 25 |
-| 3 | 100 | 49 | 82 | 42 | 11 |
+| 3 | 106 | 53 | 87 | 46 | 12 |
 | 4 | 36 | 5 | 8 | 1 | 24 |
-| 5 | 35 | 8 | 12 | 6 | 21 |
+| 5 | 33 | 8 | 12 | 6 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
 | 7 | 62 | 39 | 27 | 23 | 19 |
-| 8 | 17 | 7 | 15 | 6 | 1 |
+| 8 | 18 | 8 | 16 | 7 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |
 | 11 | 11 | 1 | 4 | 1 | 7 |
@@ -480,3 +485,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | §2.1.10 item 2: SHOULD-set + MUST-warn | §2.1.10 | state-entry | — |
 | §10.4 rewritten; AEAD defined; legal_basis personal+sensitive | §10.4, §5.2 | — | — |
 | entry generation; preconditions across recreation (expected_generation, entry_live); PURGE repetition by generation; conflict details aligned (A-79, A-94, A-95) | §2.1.14, §2.4, §3.1.2, §3.2.2, §8.4 | state-entry, state-operations, audit-record, message | ITV-676..681, INV-81..91; harness R17 |
+| PURGE within retention needs a recorded retention_override, evaluated from stored state over every generation; state_purge records within_retention / entry_retained_until; erasure-vs-retention guidance no longer adjudicates; MIFID-II floor re-grounded as profile_floor (A-7, A-70, A-90, A-44) | §3.2.2, §4.1.1, §4.1.2, §5.3.2, §6.3, §7.1, §8.4 | common, state-operations, audit-record, message, catalog | ITV-682..687, INV-92..100; harness R18 |

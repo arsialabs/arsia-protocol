@@ -338,6 +338,41 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   ITV-595 replaces is synthetic; its content is recorded in [§18][ev18] so the
   tombstone value is reproducible. ITV-598, ITV-599 and ITV-602 were rederived from the
   new ITV-594 and ITV-595 and fail with their stated reasons.
+- **Published counts after the retention-axis cycle:** 33 schemas (incl. meta), 815
+  vectors (469/198/148), 15 keypairs, RTM 1986 / 1189, 124 consistency checks, harness
+  R1-R18; README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md and
+  test-vectors/README.md updated. README.md still said 783 test vectors in its "New
+  here?" paragraph (stale since the A-79 cycle); it now says 815.
+- **Named conformance tests (retention-axis cycle):** 86 (State 18, adding STATE-18);
+  its scenario is executed by harness R18. STATE-17 now states that its entry has no
+  retention period, so its PURGEs need no override.
+- **Echoes outside the plan inventory (retention-axis cycle):** the sweeps found two
+  A-70 echoes the plan did not list: the MIFID-II row of profiles/README.md ("MiFID II
+  Art. 16(7)") and the description of `arsia-mifid-audit-record.schema.json` ("Article
+  16(7) record-keeping", "1827 days (5 years)"). Both were aligned with the State §6.3
+  grounding.
+- **Stale RTM retention rows (retention-axis cycle):** STATE-§4.1.2-02 ("180 days") and
+  STATE-§4.1.2-05 ("730 days (2 years)") had drifted from the spec (P6M, P1096D); they
+  were corrected with the §4.1.2 rows of the cycle. The day counts of the profiles/README.md
+  retention column (180 for EU-AI-ACT-HIGH-RISK, 730 for DSA-VLOP; observed in
+  DR-3/DR-4) remain stale and out of the cycle's scope.
+- **Retired RTM rows (retention-axis cycle):** STATE-§5.3.2-02 (MAY argue MiFID II
+  Art. 16(7) precedence) and STATE-§5.3.2-03 (SHOULD consider pseudonymisation as
+  satisfying both duties): the informative guidance of §5.3.2 no longer uses RFC 2119
+  keywords and no longer makes either claim.
+- **Extension-field descriptions (retention-axis cycle):** `within_retention`,
+  `entry_retained_until` and `retention_override` are described by the State §3.2.2
+  purge audit table and the §7.1 extension table, like `generation` in the A-79 cycle;
+  §7.1 has no per-field heading for extension fields.
+- **Retention changes on update (observed in the retention-axis cycle, not fixed):**
+  the spec does not say whether a SET that updates an entry may change its `retention`,
+  nor, if it may, which retention governs the values written before the change. State
+  §3.2.2 uses "the effective retention of that entry" (§2.1.8, §4.1.1); harness R18 uses
+  the retention resolved when the generation was created.
+- **Propagation impact (retention-axis cycle):** implementations evaluate PURGE against
+  stored retention over every generation, accept `retention_override`, reject with the
+  State §8.4 retention details, and emit `within_retention`, `entry_retained_until` and
+  `retention_override` in `state_purge` records. The SDK migration track carries this.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

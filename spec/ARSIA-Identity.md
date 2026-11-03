@@ -1958,8 +1958,8 @@ All audit records MUST use `payload_hash` (a hash of the payload content), NOT t
 payload. This satisfies the immutability requirements of ARSIA-State.md §7.2.
 
 Audit records for onboarding decisions MUST be retained for at least the duration
-specified by the applicable compliance profile's `retention_minimum` field. For MiFID II
-deployments, this is 1827 days (5 years) per ARSIA-State.md §6.3.
+specified by the applicable compliance profile's `retention_minimum` field. For the
+MIFID-II profile, this is the 1827-day profile floor (ARSIA-State.md §6.3).
 
 ### 9.4 Off-Boarding and Token Revocation
 

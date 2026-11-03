@@ -2229,7 +2229,7 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
 - The retention period for broker relay audit records is determined by the compliance
   profile of the relayed message:
   - `EU-AI-ACT-HIGH-RISK`: `"P6M"` (six calendar months) minimum.
-  - `MIFID-II`: `"P1827D"` (5 years) minimum.
+  - `MIFID-II`: `"P1827D"` (profile floor, ARSIA-State.md §6.3) minimum.
   - `PAC-AGRICULTURE`: `"P1096D"` (3 years) minimum.
   - `DSA-VLOP`: `"P1096D"` (3 years, leap-safe) minimum.
   - `DORA`: `"P1827D"` (5 years) minimum.

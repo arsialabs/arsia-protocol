@@ -184,7 +184,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 800 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that checks all 815 test vectors against the JSON Schemas, with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -228,7 +228,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
 - [Security model](security.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,981 rows)
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (1,986 rows)
 
 ---
 

@@ -4944,7 +4944,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5019,7 +5019,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -5124,7 +5124,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5199,7 +5199,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -5303,7 +5303,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5378,7 +5378,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -5483,7 +5483,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5558,7 +5558,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -5662,7 +5662,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5737,7 +5737,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -5890,7 +5890,7 @@
         "chain_id": "d5c00095-0001-4001-8001-000000000095",
         "chain_seq": 1,
         "chain_format": 1,
-        "hash_chain": "a9e3337905946d3ca382bf2ed443d0a2fcbb4765fe45683c78cfb7d18c0c52bf",
+        "hash_chain": "d0c319e6df5a72b622bc6ecfafc7cc9072928f51c7da4debc97499ce55f926cd",
         "declared_retention": null,
         "obligation_resolution": {
           "outcome": "accepted",
@@ -5899,7 +5899,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -5974,7 +5974,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -6073,7 +6073,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -6148,7 +6148,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -6669,7 +6669,7 @@
     },
     {
       "id": "ITV-103",
-      "description": "Valid audit record — state_purge event_type — GDPR Art. 17 erasure. Per State §3.2, §7.1.",
+      "description": "Valid audit record — state_purge event_type — GDPR Art. 17 erasure. Per State §3.2, §7.1. The purged entry has no retention period: within_retention false, entry_retained_until null (State §3.2.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -6690,6 +6690,8 @@
         "initiator_agent_id": "agent:arsialabs.demo.data-agent",
         "generation": 1,
         "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -10564,7 +10566,7 @@
     },
     {
       "id": "ITV-233",
-      "description": "State §3.2.2: Valid state_purge audit record — PURGE audit event MUST NOT contain the purged value. The audit record stores payload_hash, not raw content. Per ARSIA-State.md §3.2.2.",
+      "description": "State §3.2.2: Valid state_purge audit record — PURGE audit event MUST NOT contain the purged value. The audit record stores payload_hash, not raw content. Per ARSIA-State.md §3.2.2. The purged entry has no retention period: within_retention false, entry_retained_until null (State §3.2.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -10584,6 +10586,8 @@
         "initiator_agent_id": "agent:acme.billing",
         "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -10828,7 +10832,7 @@
     },
     {
       "id": "ITV-237",
-      "description": "State §3.2.2: Valid state_purge audit record — the audit event MUST NOT contain the purged value (erasure must not be defeated by the audit trail). Per ARSIA-State.md §3.2.2.",
+      "description": "State §3.2.2: Valid state_purge audit record — the audit event MUST NOT contain the purged value (erasure must not be defeated by the audit trail). Per ARSIA-State.md §3.2.2. The purged entry has no retention period: within_retention false, entry_retained_until null (State §3.2.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -10848,6 +10852,8 @@
         "initiator_agent_id": "agent:acme.billing",
         "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -11876,7 +11882,7 @@
     },
     {
       "id": "ITV-270",
-      "description": "State §9: Valid state_purge audit record — conformance test STATE-03 verifies PURGE audit event does not contain the purged value. The audit record stores payload_hash only. Per ARSIA-State.md §9.",
+      "description": "State §9: Valid state_purge audit record — conformance test STATE-03 verifies PURGE audit event does not contain the purged value. The audit record stores payload_hash only. Per ARSIA-State.md §9. The purged entry has no retention period: within_retention false, entry_retained_until null (State §3.2.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -11896,6 +11902,8 @@
         "initiator_agent_id": "agent:acme.billing",
         "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -21318,7 +21326,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -21393,7 +21401,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -21741,7 +21749,7 @@
     },
     {
       "id": "ITV-529",
-      "description": "State §3.2.2: INVALID state_purge audit record — missing required 'purged_at' field. When event_type is 'state_purge', schema requires key, owner_agent_id, initiator_agent_id, generation, purged_at, and pii_classification. This vector omits 'purged_at' and must be rejected.",
+      "description": "State §3.2.2: INVALID state_purge audit record — missing required 'purged_at' field. When event_type is 'state_purge', schema requires key, owner_agent_id, initiator_agent_id, generation, purged_at, pii_classification, within_retention, and entry_retained_until. This vector omits 'purged_at' and must be rejected.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -21760,6 +21768,8 @@
         "owner_agent_id": "agent:acme.testing",
         "initiator_agent_id": "agent:acme.testing",
         "pii_classification": "personal",
+        "within_retention": false,
+        "entry_retained_until": null,
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
         "retention_source": "platform-default",
@@ -25356,7 +25366,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -25431,7 +25441,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -25787,7 +25797,7 @@
             "applied": "MIFID-II",
             "source": {
               "name": "MIFID-II",
-              "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
             }
           },
           "facts": [],
@@ -25862,7 +25872,7 @@
                   "source": {
                     "class": "profile-floor",
                     "id": "MIFID-II",
-                    "sha256": "79ac6f3f278682fa459fab283f3abebdd7466ba91d1a607cae4c66574f82d9c9"
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
                   },
                   "fact": null,
                   "minimum": "P1827D"
@@ -33002,6 +33012,8 @@
         "owner_agent_id": "agent:arsialabs.demo.data-agent",
         "initiator_agent_id": "agent:arsialabs.demo.data-agent",
         "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -33591,7 +33603,7 @@
     },
     {
       "id": "ITV-680",
-      "description": "Valid state_purge record of a PURGE after a later write — PURGE, repeated PURGE without a write (same purged_at, no record), SET (generation 2: the sequence continues across the purge), PURGE: a new purge whose record carries generation 2 and its own purged_at (State §3.2.2 Idempotency, §2.1.14). Executed by harness R17.",
+      "description": "Valid state_purge record of a PURGE after a later write — PURGE, repeated PURGE without a write (same purged_at, no record), SET (generation 2: the sequence continues across the purge), PURGE: a new purge whose record carries generation 2 and its own purged_at (State §3.2.2 Idempotency, §2.1.14). No retention period applies: within_retention false, entry_retained_until null. Executed by harness R17.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "category": "state",
@@ -33613,6 +33625,8 @@
         "initiator_agent_id": "agent:acme.billing",
         "generation": 2,
         "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": null,
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
         "compliance_profile_resolved": "GDPR-STANDARD",
@@ -33933,6 +33947,1383 @@
           ]
         }
       }
+    },
+    {
+      "id": "ITV-682",
+      "description": "Valid PURGE carrying a retention_override (reason, determination_ref): REQUIRED when the PURGE removes values still within retention, as the implementation determines from stored state (State §3.2.2).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/purge",
+        "args": {
+          "key": "agent:acme.billing/agent/record",
+          "retention_override": {
+            "reason": "gdpr_art17_erasure",
+            "determination_ref": "DPO-2026-0042"
+          }
+        },
+        "result": {
+          "purged": true,
+          "key": "agent:acme.billing/agent/record",
+          "purged_at": "2026-04-27T14:00:00.500Z"
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-683",
+      "description": "Valid state_purge record of a PURGE within retention — the live entry was created 30 days earlier with effective retention P1827D; the PURGE carries a retention_override, and the record carries within_retention true, entry_retained_until 2031-03-29T09:00:00.000Z and the override (State §3.2.2). Executed by harness R18.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "e7ba9932-8c52-4ddc-ac5f-6f78a06372d9",
+        "message_id": "39eb1ef1-64c3-4ce6-abfd-c88f27979f47",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": true,
+        "entry_retained_until": "2031-03-29T09:00:00.000Z",
+        "retention_override": {
+          "reason": "gdpr_art17_erasure",
+          "determination_ref": "DPO-2026-0042"
+        },
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v",
+              "at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1827D"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z",
+              "override": {
+                "reason": "gdpr_art17_erasure",
+                "determination_ref": "DPO-2026-0042"
+              }
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-684",
+      "description": "Valid state_purge record of a PURGE beyond retention — the entry's retention (P6M from 2020-03-28) ended at 2020-09-28T09:00:00.000Z; no retention_override is needed: within_retention false (State §3.2.2). Executed by harness R18.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "f527c2b3-21b4-44d2-a9e0-dd6a7b95145b",
+        "message_id": "97b214b6-435d-4a1f-a477-71988d29accd",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": "2020-09-28T09:00:00.000Z",
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v",
+              "at": "2020-03-28T09:00:00.000Z",
+              "retention": "P6M"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-685",
+      "description": "Valid invalid_request error — PURGE within retention without a retention_override: rejected, nothing removed; the details consist of within_retention true and entry_retained_until, determined from stored state (State §3.2.2, §8.4). Executed by harness R18.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "2bfb935e-ea58-415d-aaee-e283e7395fb0",
+        "ts": "2026-04-27T14:00:00.600Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "720c295a-f2f2-4a09-a8c8-6bce7cc63dc5",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "PURGE within retention requires a retention_override",
+            "details": {
+              "within_retention": true,
+              "entry_retained_until": "2031-03-29T09:00:00.000Z"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "maCmyL1rVCcr1WvT4PEmos4naR2tnxYIWK1YAiZrx3IInGLLqxws5dG89xNpySnUOnNrm96QZu-3LpEhtgDZAA"
+        },
+        "root_request_id": "720c295a-f2f2-4a09-a8c8-6bce7cc63dc5"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2237323063323935612d663266322d346130392d613863382d366263653763633633646335222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2232626662393335652d656135382d343135642d616165652d653238336537333935666230222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2250555247452077697468696e20726574656e74696f6e207265717569726573206120726574656e74696f6e5f6f76657272696465222c2264657461696c73223a7b22656e7472795f72657461696e65645f756e74696c223a22323033312d30332d32395430393a30303a30302e3030305a222c2277697468696e5f726574656e74696f6e223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2237323063323935612d663266322d346130392d613863382d366263653763633633646335222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3630305a222c2276223a22322e30227d",
+        "signature_base64url": "maCmyL1rVCcr1WvT4PEmos4naR2tnxYIWK1YAiZrx3IInGLLqxws5dG89xNpySnUOnNrm96QZu-3LpEhtgDZAA",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v",
+              "at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1827D"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "invalid_request",
+            "details": {
+              "within_retention": true,
+              "entry_retained_until": "2031-03-29T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-686",
+      "description": "Valid state_purge record with no live entry — the only generation was logically deleted but its values are still within retention, so the PURGE needed a retention_override: within_retention true (State §3.2.2, every generation whose values the PURGE removes). Executed by harness R18.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "c13d9a49-4e2c-49db-abe1-18861954a95f",
+        "message_id": "21895c49-824f-449e-ae07-7e065451c2fa",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": true,
+        "entry_retained_until": "2031-03-29T09:00:00.000Z",
+        "retention_override": {
+          "reason": "gdpr_art17_erasure",
+          "determination_ref": "DPO-2026-0042"
+        },
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v",
+              "at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1827D"
+            },
+            {
+              "op": "delete",
+              "at": "2026-04-01T09:00:00.000Z"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z",
+              "override": {
+                "reason": "gdpr_art17_erasure",
+                "determination_ref": "DPO-2026-0042"
+              }
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-687",
+      "description": "Valid state_purge record over two generations — generation 1 (logically deleted, P10Y from 2020-01-10) and generation 2 (live, P6M from 2020-03-10, expired): entry_retained_until is the latest instant, generation 1's 2030-01-10, so the PURGE is within retention and carries a retention_override (State §3.2.2). Executed by harness R18.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "7429a193-039b-4c66-afbd-0c390f183487",
+        "message_id": "fa8eb8bb-665a-4e48-a9a2-d6a447c861bc",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 2,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": true,
+        "entry_retained_until": "2030-01-10T09:00:00.000Z",
+        "retention_override": {
+          "reason": "gdpr_art17_erasure",
+          "determination_ref": "DPO-2026-0042"
+        },
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "old",
+              "at": "2020-01-10T09:00:00.000Z",
+              "retention": "P10Y"
+            },
+            {
+              "op": "delete",
+              "at": "2020-02-10T09:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "new",
+              "at": "2020-03-10T09:00:00.000Z",
+              "retention": "P6M"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z",
+              "override": {
+                "reason": "gdpr_art17_erasure",
+                "determination_ref": "DPO-2026-0042"
+              }
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "INV-92",
+      "description": "INVALID — state_purge record with within_retention true but no retention_override: a PURGE within retention MUST carry it and the record MUST record it (State §3.2.2, §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "11d06334-e8d3-4ffc-a7fb-a50de2fae916",
+        "message_id": "da9236a0-874f-47f5-a79c-0e7e05d2d07d",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": true,
+        "entry_retained_until": "2031-03-29T09:00:00.000Z",
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "'retention_override' is a required property"
+    },
+    {
+      "id": "INV-93",
+      "description": "INVALID — state_purge record without within_retention: REQUIRED extension of state_purge records (State §3.2.2, §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "8c0df6c4-9a6a-4fba-ad07-df4691df7403",
+        "message_id": "f51562ea-5cfa-45b0-a7b0-17cd2af4a129",
+        "event_type": "state_purge",
+        "from_agent": "agent:arsialabs.demo.data-agent",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:arsialabs.demo/user/personal-data",
+        "owner_agent_id": "agent:arsialabs.demo.data-agent",
+        "initiator_agent_id": "agent:arsialabs.demo.data-agent",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "entry_retained_until": null,
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "'within_retention' is a required property"
+    },
+    {
+      "id": "INV-94",
+      "description": "INVALID — state_purge record without entry_retained_until: REQUIRED extension of state_purge records, null only when no affected generation has a retention period (State §3.2.2, §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "49f55d07-06ce-4781-ae52-2eccb2d8ab0f",
+        "message_id": "8a90f44d-09d2-44ae-a35c-f94547ad6b76",
+        "event_type": "state_purge",
+        "from_agent": "agent:arsialabs.demo.data-agent",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:arsialabs.demo/user/personal-data",
+        "owner_agent_id": "agent:arsialabs.demo.data-agent",
+        "initiator_agent_id": "agent:arsialabs.demo.data-agent",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "'entry_retained_until' is a required property"
+    },
+    {
+      "id": "INV-95",
+      "description": "INVALID — retention_override without determination_ref: the override identifies a retrievable determination of the operator (State §3.2.2).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/purge",
+        "args": {
+          "key": "agent:acme.billing/agent/record",
+          "retention_override": {
+            "reason": "gdpr_art17_erasure"
+          }
+        },
+        "result": {
+          "purged": true,
+          "key": "agent:acme.billing/agent/record",
+          "purged_at": "2026-04-27T14:00:00.500Z"
+        }
+      },
+      "expected_error": "'determination_ref' is a required property"
+    },
+    {
+      "id": "INV-96",
+      "description": "INVALID — retention_override with an empty reason: 1–1024 characters (State §3.2.2).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/purge",
+        "args": {
+          "key": "agent:acme.billing/agent/record",
+          "retention_override": {
+            "reason": "",
+            "determination_ref": "DPO-2026-0042"
+          }
+        },
+        "result": {
+          "purged": true,
+          "key": "agent:acme.billing/agent/record",
+          "purged_at": "2026-04-27T14:00:00.500Z"
+        }
+      },
+      "expected_error": "minLength — reason '' is too short"
+    },
+    {
+      "id": "INV-97",
+      "description": "INVALID — PURGE retention error details without entry_retained_until: the details MUST consist of within_retention and entry_retained_until (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "00100c45-2d28-4018-abfe-c8ec1313e2bb",
+        "ts": "2026-04-27T14:00:00.700Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "98a6e9bd-f9bd-4943-aacb-1858914cfbe8",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "PURGE within retention requires a retention_override",
+            "details": {
+              "within_retention": true
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "b2dyATvluT_qXigMKsna6JJGiI0TJ2oqu7GnSbFRkb_iow-ZHf5J6EqBuWqsIGqxgPg2ccoYC5o1cfdh7gecBA"
+        },
+        "root_request_id": "98a6e9bd-f9bd-4943-aacb-1858914cfbe8"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2239386136653962642d663962642d343934332d616163622d313835383931346366626538222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2230303130306334352d326432382d343031382d616266652d633865633133313365326262222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2250555247452077697468696e20726574656e74696f6e207265717569726573206120726574656e74696f6e5f6f76657272696465222c2264657461696c73223a7b2277697468696e5f726574656e74696f6e223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2239386136653962642d663962642d343934332d616163622d313835383931346366626538222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3730305a222c2276223a22322e30227d",
+        "signature_base64url": "b2dyATvluT_qXigMKsna6JJGiI0TJ2oqu7GnSbFRkb_iow-ZHf5J6EqBuWqsIGqxgPg2ccoYC5o1cfdh7gecBA",
+        "expect_signature": "valid"
+      },
+      "expected_error": "'entry_retained_until' is a required property"
+    },
+    {
+      "id": "INV-98",
+      "description": "INVALID — PURGE retention error details with an extra member: the details MUST consist of within_retention and entry_retained_until only (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "4bfc3206-70cd-432c-acaf-625ce972a869",
+        "ts": "2026-04-27T14:00:00.800Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "0733c681-3adf-4ec1-a4f3-e791bad6383e",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "PURGE within retention requires a retention_override",
+            "details": {
+              "within_retention": true,
+              "entry_retained_until": "2031-03-29T09:00:00.000Z",
+              "retention_minimum": "P1827D"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "n44EZDIeEJb5HoCRDJmTlmjFbXT614rPBif66bZT08a5osKtCs2RPy1_h0MXh7TzdiAb4ZgcOwVrAuJAq1u2Cg"
+        },
+        "root_request_id": "0733c681-3adf-4ec1-a4f3-e791bad6383e"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2230373333633638312d336164662d346563312d613466332d653739316261643633383365222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2234626663333230362d373063642d343332632d616361662d363235636539373261383639222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2250555247452077697468696e20726574656e74696f6e207265717569726573206120726574656e74696f6e5f6f76657272696465222c2264657461696c73223a7b22656e7472795f72657461696e65645f756e74696c223a22323033312d30332d32395430393a30303a30302e3030305a222c22726574656e74696f6e5f6d696e696d756d223a22503138323744222c2277697468696e5f726574656e74696f6e223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2230373333633638312d336164662d346563312d613466332d653739316261643633383365222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3830305a222c2276223a22322e30227d",
+        "signature_base64url": "n44EZDIeEJb5HoCRDJmTlmjFbXT614rPBif66bZT08a5osKtCs2RPy1_h0MXh7TzdiAb4ZgcOwVrAuJAq1u2Cg",
+        "expect_signature": "valid"
+      },
+      "expected_error": "additionalProperties — retention_minimum is not allowed"
+    },
+    {
+      "id": "INV-99",
+      "description": "INVALID — PURGE arguments stating within_retention: whether a PURGE is within retention is determined by the implementation from stored state and MUST NOT be taken from the request; the arguments admit no such member (State §3.2.2).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/purge",
+        "args": {
+          "key": "agent:acme.billing/agent/record",
+          "within_retention": false
+        },
+        "result": {
+          "purged": true,
+          "key": "agent:acme.billing/agent/record",
+          "purged_at": "2026-04-27T14:00:00.500Z"
+        }
+      },
+      "expected_error": "additionalProperties — within_retention is not allowed"
+    },
+    {
+      "id": "INV-100",
+      "description": "INVALID — state_purge record with within_retention true and entry_retained_until null: within retention requires an existing, not yet reached instant, so entry_retained_until is a timestamp (State §3.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "75fd6fde-99d1-419c-a10e-3adf6b88bc87",
+        "message_id": "6071c4b9-6e8e-4beb-a040-233d1843f55a",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": true,
+        "entry_retained_until": null,
+        "retention_override": {
+          "reason": "gdpr_art17_erasure",
+          "determination_ref": "DPO-2026-0042"
+        },
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "type — entry_retained_until None is not of type 'string'"
     }
   ]
 }

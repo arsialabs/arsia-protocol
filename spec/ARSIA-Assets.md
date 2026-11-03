@@ -186,10 +186,11 @@ audit and human oversight requirements.
 Defines what MUST be logged for every financial operation.
 
 **Rationale.** This is the primary value proposition of ARSIA in financial services.
-MiFID II Article 16(7), as implemented through Commission Delegated Regulation (EU)
-2017/565, Articles 72-76, requires investment firms to
-retain records of all services, activities, and transactions sufficient to enable
-competent authorities to fulfil their supervisory tasks. The audit trail format
+MiFID II Article 16(6), with Commission Delegated Regulation (EU) 2017/565,
+Articles 72-76, requires investment firms to keep records of all services,
+activities, and transactions sufficient to enable competent authorities to fulfil
+their supervisory tasks; MiFIR Article 25(1) requires the relevant data relating to
+orders and transactions in financial instruments to be kept for five years. The audit trail format
 defined in this specification maps ARSIA protocol fields to the specific data points
 required by those Articles, ensuring that firms can satisfy their record-keeping obligations
 through protocol-level audit records without additional instrumentation.
@@ -1997,11 +1998,17 @@ All fields are REQUIRED unless marked OPTIONAL.
 
 #### 6.1.2 Retention
 
-MiFID II Article 16(7), as implemented through Commission Delegated Regulation (EU)
-2017/565, Article 72, requires investment firms to retain records of all services,
-activities, and transactions for a period of at least five years.
+MiFID II Article 16(6) requires investment firms to keep records of all services,
+activities and transactions; Commission Delegated Regulation (EU) 2017/565,
+Article 72, governs the medium and form in which they are retained and sets no
+period. Five-year periods apply to the relevant data relating to orders and
+transactions in financial instruments (MiFIR Article 25(1)) and to the records of
+telephone conversations and electronic communications covered by MiFID II
+Article 16(7).
 
-**Retention period:** 1827 days (5 years) MINIMUM.
+**Retention period:** 1827 days MINIMUM — the MIFID-II profile floor (ARSIA-State.md
+§6.3), applied to every record listed below whether or not one of those provisions
+covers it.
 
 This retention period applies to:
 
@@ -2047,7 +2054,7 @@ MiFID II audit records MUST be queryable by the following fields:
 | `amount`             | range   | Range query on the transfer amount.                       |
 
 These query capabilities ensure that competent authorities can retrieve records for
-supervisory purposes as required by MiFID II Article 16(7) and Commission Delegated
+supervisory purposes as required by MiFID II Article 16(6) and Commission Delegated
 Regulation (EU) 2017/565, Article 72(1)(a) (records retained so that the competent
 authority is able to access them readily and to reconstitute each key stage of the
 processing of each transaction).
@@ -2671,7 +2678,7 @@ Query the audit trail for the `payment_reference` of the completed transfer.
    - `payload_hash` (SHA-256 of canonicalized payload)
    - `human_oversight_status`
    - `created_at`
-3. The effective retention satisfies the `"P1827D"` profile minimum (5 years) per ARSIA-Core.md §4.3.6.4.1.
+3. The effective retention satisfies the `"P1827D"` profile floor (ARSIA-State.md §6.3) per ARSIA-Core.md §4.3.6.4.1.
 4. The record is queryable by `payment_reference`, `from_agent`, `to_agent`,
    `initiated_at` range, and `compliance_profile`.
 
@@ -2786,14 +2793,22 @@ currencies", ISO 4217:2015.
 Directive 2014/65/EU of the European Parliament and of the Council of 15 May 2014 on
 markets in financial instruments and amending Directive 2002/92/EC and Directive
 2011/61/EU (recast). OJ L 173, 12.6.2014, p. 349–496.
-- Article 16(7): Record-keeping obligations for investment firms.
+- Article 16(6): Records of all services, activities and transactions.
+- Article 16(7): Recording of telephone conversations and electronic communications
+  (five years; up to seven on request).
+
+**[MiFIR]**
+Regulation (EU) No 600/2014 of the European Parliament and of the Council of 15 May
+2014 on markets in financial instruments and amending Regulation (EU) No 648/2012.
+OJ L 173, 12.6.2014, p. 84–148.
+- Article 25(1): Obligation to maintain records — orders and transactions, five years.
 
 **[MiFID II Delegated Regulation]**
 Commission Delegated Regulation (EU) 2017/565 of 25 April 2016 supplementing Directive
 2014/65/EU of the European Parliament and of the Council as regards organisational
 requirements and operating conditions for investment firms and defined terms for the
 purposes of that Directive. OJ L 87, 31.3.2017, p. 1–83.
-- Article 72: General record-keeping requirements.
+- Article 72: Retention of records (medium and form; no period).
 - Article 73: Record keeping of rights and obligations of the investment firm and the
   client.
 - Article 74: Record of client orders and decisions to deal.

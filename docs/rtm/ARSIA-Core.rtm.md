@@ -125,7 +125,7 @@
 | CORE-§4.3.8-07 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 2: pii_involved=true without legal_basis MUST reject with invalid_request | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
 | CORE-§4.3.8-08 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 3: for a request under the high-risk requirement set, the composed oversight set MUST contain a mode other than not_required; a valid mode filled from a profile default counts | arsia-compliance-field | ITV-421, ITV-579, ITV-610, ITV-611 |
 | CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | A high-risk request whose composed set has no mode other than not_required, or that explicitly declares not_required, MUST be rejected with invalid_request and details high_risk_missing_oversight (declared, sources) | — | ITV-579, ITV-603, ITV-604, ITV-605, ITV-608, INV-07, ITV-452, ITV-454 |
-| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 (5 years) | arsia-compliance-field | CTV-03, ITV-417 |
+| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 days (profile floor) | arsia-compliance-field | CTV-03, ITV-417 |
 | CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 |
 | CORE-§4.3.8-12 | 4.3.8 | MUST | deployment | procedural | Rule 5: data_residency MUST trigger routing through an in-zone Compliance Broker | — | — |
 | CORE-§4.3.8-13 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 6: per-message ai_system_classification MUST NOT exceed agent-level classification | — | ITV-418 |

@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-800 test vectors (463 schema-valid, 189 expected-invalid, 148 runtime-only — validator classification) for
+815 test vectors (469 schema-valid, 198 expected-invalid, 148 runtime-only — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -11,7 +11,7 @@ verification outcome (`crypto.expect_signature`).
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 800 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 815 test vectors |
 | [keypairs.json](keypairs.json) | 15 test keypairs: 13 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle is stated in the file) |
 
 ## Vector Formats
@@ -21,23 +21,23 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 320 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 476 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `message-only` | 323 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `schema-ref` | 488 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 
 ## ID Prefixes
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 681 |
-| `INV-` | Invalid (all specs) | 91 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 687 |
+| `INV-` | Invalid (all specs) | 100 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-682** / **INV-92**
+Next available ID: **ITV-688** / **INV-101**
 
 ## Runtime-Only Vectors
 
@@ -74,8 +74,10 @@ and `router` (R10), `execution` (R15), `timing` (R16) and `state` (R17). A `timi
 scenario gives the recipient's clock (`input.recipient_time`); R16 computes the
 clock-skew tolerance (the profile's `clock_skew_seconds`, else 300 s), the `ts` offset
 and expiry, and reports temporal causes apart from compliance causes. A `state`
-scenario gives an operation sequence on one key (`input.ops`); R17 runs it on a
-reference store and checks that the vector's data is what the store produces. A
+scenario gives an operation sequence on one key (`input.ops`, with an optional
+`retention` on a SET and `override` on a PURGE); R17 (ITV-677..681) and R18
+(ITV-683..687) run it on a reference store and check that the vector's data is what the
+store produces. A
 schema-valid vector may also carry a scenario.
 
 ### Posture

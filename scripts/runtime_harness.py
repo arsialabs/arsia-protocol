@@ -35,6 +35,10 @@ Schema cannot express, executed as tests — including against the runtime
   R17 State generations: (key, generation, version)       (State §2.1.14, §2.4, §3.1.2, §3.2.1,
       identity, recreation, preconditions, snapshot,        §3.2.2; A-79, A-94)
       PURGE repetition
+  R18 Retention axis: PURGE within retention needs a        (State §3.2.2, §6.3, §8.4; A-7, A-70)
+      recorded override, evaluated from stored state over
+      every generation; own record retention untouched;
+      P1827D against P5Y over a 400-year cycle
 
 Exit code 0 = all green.
 """
@@ -1912,8 +1916,10 @@ def r16(vectors):
 
 # ------------------------------------------- R17 state generations (State §2.1.14, §2.4, §3.1.2, §3.2)
 class StateStore:
-    """Reference store for one owner: generations, versions, preconditions, snapshot, PURGE repetition.
-    Entries are kept per (key, generation); `held` is the information the implementation still holds."""
+    """Reference store for one owner: generations, versions, preconditions, snapshot, PURGE repetition,
+    retention override. Entries are kept per (key, generation); `held` is the information the
+    implementation still holds; `retained_until` is created_at + the effective retention resolved at
+    creation (None when no retention period applies)."""
 
     def __init__(self, owner="agent:acme.billing"):
         self.owner = owner
@@ -1941,7 +1947,7 @@ class StateStore:
             out["deleted"] = deleted
         return out
 
-    def set(self, key, value, at, actor=None, expected_version=None, expected_generation=None):
+    def set(self, key, value, at, actor=None, expected_version=None, expected_generation=None, retention=None):
         actor = actor or self.owner
         cur = self.live(key)
         stated = {k: v for k, v in (("expected_generation", expected_generation),
@@ -1958,7 +1964,8 @@ class StateStore:
         if cur is None:
             g = (self.top.get(key, 0) if self.held(key) else 0) + 1
             self.top[key] = g
-            e = {"versions": [], "created_at": at, "deleted_at": None, "purged_at": None}
+            e = {"versions": [], "created_at": at, "deleted_at": None, "purged_at": None,
+                 "retained_until": stamp(add_duration(iso(at), retention)) if retention else None}
             self.gens.setdefault(key, {})[g] = e
         else:
             g, e = cur
@@ -1979,7 +1986,7 @@ class StateStore:
                              "version": e["versions"][-1]["version"], "timestamp": at})
         return {"result": {"deleted": True, "key": key}}
 
-    def purge(self, key, at, idem):
+    def purge(self, key, at, idem, override=None):
         if idem in self.idem:                                   # retransmission (Core §10.3)
             return self.idem[idem]
         latest = self.top.get(key)
@@ -1987,13 +1994,26 @@ class StateStore:
         if last and last[1] == latest:                          # no SET created an entry since that purge
             out = {"result": {"purged": True, "key": key, "purged_at": last[0]}}
         else:
-            for e in self.gens.get(key, {}).values():           # values of every generation still stored
-                e["purged_at"] = e["purged_at"] or at
+            # State §3.2.2: generations whose values this PURGE removes, from stored state, live or not
+            affected = [e for e in self.gens.get(key, {}).values() if not e["purged_at"]]
+            instants = [e["retained_until"] for e in affected if e["retained_until"]]
+            until = max(instants) if instants else None
+            within = until is not None and at < until
+            if within and override is None:
+                out = {"error": "invalid_request", "details": {"within_retention": True, "entry_retained_until": until}}
+                self.idem[idem] = out
+                return out
+            for e in affected:
+                e["purged_at"] = at
                 for ver in e["versions"]:
                     ver["value"] = None
             self.purges[key] = (at, latest)
-            self.records.append({"event_type": "state_purge", "key": key, "owner_agent_id": self.owner,
-                                 "initiator_agent_id": self.owner, "generation": latest, "purged_at": at})
+            rec = {"event_type": "state_purge", "key": key, "owner_agent_id": self.owner,
+                   "initiator_agent_id": self.owner, "generation": latest, "purged_at": at,
+                   "within_retention": within, "entry_retained_until": until}
+            if override is not None:
+                rec["retention_override"] = override
+            self.records.append(rec)
             out = {"result": {"purged": True, "key": key, "purged_at": at}}
         self.idem[idem] = out
         return out
@@ -2034,18 +2054,21 @@ def state_case(inp):
         kind = op["op"]
         if kind == "set":
             out = st.set(inp["key"], op["value"], op["at"], op.get("actor"), op.get("expected_version"),
-                         op.get("expected_generation"))
+                         op.get("expected_generation"), op.get("retention"))
         elif kind == "delete":
             out = st.delete(inp["key"], op["at"])
         elif kind == "purge":
-            out = st.purge(inp["key"], op["at"], op["idem"])
+            out = st.purge(inp["key"], op["at"], op["idem"], op.get("override"))
         elif kind == "snapshot":
             out = {"result": st.snapshot(op["as_of"])}
     return {"last": out, "records": st.records, "history": [list(t) for t in st.history(inp["key"])]}
 
 
 STATE_PROJECTION = {"state_set": ("key", "owner_agent_id", "actor_agent_id", "generation", "version", "timestamp"),
-                    "state_purge": ("key", "owner_agent_id", "initiator_agent_id", "generation", "purged_at")}
+                    "state_purge": ("key", "owner_agent_id", "initiator_agent_id", "generation", "purged_at",
+                                    "within_retention", "entry_retained_until", "retention_override")}
+R17_STATE_IDS = ["ITV-677", "ITV-678", "ITV-679", "ITV-680", "ITV-681"]
+R18_STATE_IDS = ["ITV-683", "ITV-684", "ITV-685", "ITV-686", "ITV-687"]
 
 
 def state_vector_data_matches(v, got):
@@ -2138,9 +2161,8 @@ def r17(vectors):
           p3["result"]["purged_at"] == t("13") and len(purges) == 2 and purges[-1]["generation"] == 2)
 
     # (j) scenario vectors
-    sv = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "state"]
-    check("R17 state vectors present (ITV-677..681)",
-          sorted(v["id"] for v in sv) == ["ITV-677", "ITV-678", "ITV-679", "ITV-680", "ITV-681"])
+    sv = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "state" and v["id"] in R17_STATE_IDS]
+    check("R17 state vectors present (ITV-677..681)", sorted(v["id"] for v in sv) == R17_STATE_IDS)
     for v in sv:
         got = state_case(v["test_metadata"]["input"])
         miss = subset_match(v["test_metadata"]["expect"], got)
@@ -2148,10 +2170,145 @@ def r17(vectors):
         check(f"R17 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
 
 
+def full_purge_record(rec, message, at, pii_classification, operator_id=RECEIVER_OPERATOR):
+    """State §7.1 record for a store `state_purge` entry, completed with the purged entry's
+    classification and the PURGE message's resolution. Its retention fields come from that
+    resolution (§7.3), never from the removed values or the retention override."""
+    res = resolve_obligations(message["intent"], message.get("compliance"), anchor=at)
+    return audit_record(message, res, at, operator_id, "state_purge", obligation_resolution=res,
+                        pii_classification=pii_classification,
+                        **{k: v for k, v in rec.items() if k != "event_type"})
+
+
+def r18(vectors):
+    # (a) P1827D against P5Y from the same anchor over a 400-year Gregorian cycle (State §6.3)
+    base, dist = dt.datetime(2000, 1, 1), {}
+    for i in range(146097):
+        a = base + dt.timedelta(days=i)
+        d = (add_duration(a, "P1827D") - add_duration(a, "P5Y")).days
+        dist[d] = dist.get(d, 0) + 1
+    check("R18 (a) P1827D never shorter than P5Y; exceeds it by 0/1/2 days for 34,310/108,499/3,288 anchors",
+          dist == {0: 34310, 1: 108499, 2: 3288}, str(dist))
+    a = iso("2097-03-01T00:00:00.000Z")
+    check("R18 (a) 2097-03-01: P5Y -> 2102-03-01, P1827D -> 2102-03-03 (2100 is not a leap year)",
+          (add_duration(a, "P5Y"), add_duration(a, "P1827D"))
+          == (iso("2102-03-01T00:00:00.000Z"), iso("2102-03-03T00:00:00.000Z")))
+
+    K = "agent:acme.billing/agent/record"
+    OVR = {"reason": "gdpr_art17_erasure", "determination_ref": "DPO-2026-0042"}
+    T0, T1 = "2026-01-15T09:00:00.000Z", "2026-02-14T09:00:00.000Z"  # T1 = T0 + 30 days
+    until = stamp(add_duration(iso(T0), "P1827D"))
+    purges = lambda st: [r for r in st.records if r["event_type"] == "state_purge"]
+
+    # (b)-(c) live entry within retention
+    st = StateStore()
+    st.set(K, "v", T0, retention="P1827D")
+    check("R18 (b) within retention without override: invalid_request with the details of State §8.4",
+          st.purge(K, T1, "k1") == {"error": "invalid_request",
+                                     "details": {"within_retention": True, "entry_retained_until": until}})
+    check("R18 (b) the rejected PURGE removes nothing and records nothing",
+          st.gens[K][1]["versions"][0]["value"] == "v" and not st.gens[K][1]["purged_at"] and not purges(st))
+    out = st.purge(K, T1, "k2", OVR)
+    rec = purges(st)[-1] if purges(st) else {}
+    check("R18 (c) with retention_override: purged; the record carries within_retention, entry_retained_until, override",
+          "result" in out and st.gens[K][1]["versions"][0]["value"] is None
+          and (rec.get("within_retention"), rec.get("entry_retained_until"), rec.get("retention_override")) == (True, until, OVR))
+
+    # (d) no live entry
+    st = StateStore()
+    st.set(K, "v", T0, retention="P1827D"); st.delete(K, "2026-01-20T09:00:00.000Z")
+    check("R18 (d) no live entry: a deleted generation within retention still requires the override",
+          st.purge(K, T1, "k1").get("error") == "invalid_request" and "result" in st.purge(K, T1, "k2", OVR))
+
+    # (e) the latest instant over every affected generation
+    st = StateStore()
+    st.set(K, "old", "2020-01-10T09:00:00.000Z", retention="P10Y"); st.delete(K, "2020-02-10T09:00:00.000Z")
+    st.set(K, "new", "2020-03-10T09:00:00.000Z", retention="P6M")
+    check("R18 (e) entry_retained_until is the latest instant (g1 deleted P10Y, g2 live P6M expired)",
+          st.purge(K, T1, "k1") == {"error": "invalid_request", "details": {
+              "within_retention": True, "entry_retained_until": "2030-01-10T09:00:00.000Z"}})
+
+    # (f) beyond retention; (g) no retention period
+    st = StateStore()
+    st.set(K, "v", "2020-01-10T09:00:00.000Z", retention="P6M"); st.purge(K, T1, "k1")
+    rec = purges(st)[-1] if purges(st) else {}
+    check("R18 (f) values beyond retention: no override needed, within_retention false, instant in the past",
+          (rec.get("within_retention"), rec.get("entry_retained_until")) == (False, "2020-07-10T09:00:00.000Z")
+          and "retention_override" not in rec)
+    st = StateStore()
+    st.set(K, "v", T0); st.purge(K, T1, "k1")
+    rec = purges(st)[-1] if purges(st) else {}
+    check("R18 (g) no retention period: entry_retained_until null, within_retention false",
+          (rec.get("within_retention"), rec.get("entry_retained_until")) == (False, None) and "entry_retained_until" in rec)
+
+    # (h) a physically removed generation holds no value
+    st = StateStore()
+    st.set(K, "old", T0, retention="P10Y"); st.delete(K, "2026-01-20T09:00:00.000Z")
+    st.set(K, "new", "2026-01-25T09:00:00.000Z"); st.remove_generation(K, 1)
+    out = st.purge(K, T1, "k1")
+    rec = purges(st)[-1] if purges(st) else {}
+    check("R18 (h) a physically removed generation does not enter the evaluation",
+          "result" in out and (rec.get("within_retention"), rec.get("entry_retained_until")) == (False, None))
+
+    # (i) the record's own retention (State §7.3), against an independent expectation
+    def own(created, retention, override):
+        s = StateStore()
+        s.set(K, "v", created, retention=retention)
+        args = dict({"key": K}, **({"retention_override": override} if override else {}))
+        msg = {"v": "2.0", "id": "b0000018-0001-4001-8001-0000000000" + ("01" if override else "00"),
+               "ts": T1, "from": s.owner, "to": "agent:arsialabs.demo.state-store", "intent": "request",
+               "capabilities": ["arsiaprotocol.state.purge"], "compliance": {"profile": "MIFID-II"},
+               "payload": {"type": "arsiaprotocol.state/purge", "args": args}}
+        s.purge(K, T1, "k1", override)
+        pii = s.entry(K, 1, s.gens[K][1], s.gens[K][1]["versions"][-1])["pii_classification"]
+        full = full_purge_record(purges(s)[-1], msg, T1, pii)
+        return schema_errors(full, "arsia-audit-record.schema.json"), \
+            {f: full.get(f) for f in ("effective_retention", "retention_anchor", "retained_until")}
+    want = {"effective_retention": "P1827D", "retention_anchor": T1,
+            "retained_until": stamp(iso(T1) + dt.timedelta(days=1827))}
+    for name, created, override in (("expired values, no override", "2020-01-10T09:00:00.000Z", None),
+                                    ("expired values, override", "2020-01-10T09:00:00.000Z", OVR),
+                                    ("values within retention, override", T0, OVR)):
+        errs, got = own(created, "P1827D", override)
+        check(f"R18 (i) completed state_purge record validates against arsia-audit-record ({name})",
+              not errs, "; ".join(errs[:3]))
+        check(f"R18 (i) state_purge record retention from its own anchor, unaffected by the override ({name})",
+              got == want, str(got))
+
+    # (j) A-79 idempotency is unchanged
+    st = StateStore()
+    st.set(K, "v", T0, retention="P1827D")
+    rejected = st.purge(K, T1, "k1")
+    check("R18 (j) retransmission returns the stored response, including a rejection; nothing removed",
+          st.purge(K, T1, "k1", OVR) == rejected and not purges(st))
+    first = st.purge(K, T1, "k2", OVR)
+    again = st.purge(K, "2026-02-15T09:00:00.000Z", "k3")
+    check("R18 (j) repeated PURGE without a later write: same purged_at, no record, no new evaluation",
+          again == first and len(purges(st)) == 1)
+    st.set(K, "w", "2026-02-16T09:00:00.000Z")
+    later = st.purge(K, "2026-02-17T09:00:00.000Z", "k4")
+    check("R18 (j) PURGE after a later write is evaluated on the set it would remove (erased values excluded)",
+          "result" in later and len(purges(st)) == 2 and purges(st)[-1]["within_retention"] is False)
+
+    # (k) scenario vectors
+    sv = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "state"]
+    check("R18 state vectors present (ITV-683..687)",
+          sorted(v["id"] for v in sv if v["id"] in R18_STATE_IDS) == R18_STATE_IDS)
+    check("R18 every state-scenario vector belongs to R17 or R18",
+          sorted(v["id"] for v in sv) == sorted(R17_STATE_IDS + R18_STATE_IDS), str(sorted(v["id"] for v in sv)))
+    for v in sv:
+        if v["id"] not in R18_STATE_IDS:
+            continue
+        got = state_case(v["test_metadata"]["input"])
+        miss = subset_match(v["test_metadata"]["expect"], got)
+        check(f"R18 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R18 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
-    r16(vectors); r17(vectors)
+    r16(vectors); r17(vectors); r18(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

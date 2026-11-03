@@ -535,7 +535,7 @@
     },
     "purge-args": {
       "type": "object",
-      "description": "Arguments for the PURGE operation per ARSIA-State.md §3.2.2. Requires elevated capability arsiaprotocol.state.purge and ownership of the entry (enforced at runtime). PURGE permanently deletes the entry and all historical versions. A PURGE audit event MUST be generated regardless of audit_required (enforced at runtime). The capability MUST NOT be included in wildcard grants.",
+      "description": "Arguments for the PURGE operation per ARSIA-State.md §3.2.2. Requires elevated capability arsiaprotocol.state.purge and ownership of the entry (enforced at runtime). PURGE permanently deletes the entry and all historical versions. A PURGE audit event MUST be generated regardless of audit_required (enforced at runtime). The capability MUST NOT be included in wildcard grants. A PURGE that removes values still within retention MUST carry retention_override; whether it is within retention is determined by the implementation from stored state and is never taken from the request (no member of these args states it).",
       "required": [
         "key"
       ],
@@ -548,12 +548,20 @@
             }
           ],
           "description": "Full namespaced key of the entry to permanently purge."
+        },
+        "retention_override": {
+          "allOf": [
+            {
+              "$ref": "arsia-common.schema.json#/$defs/retention-override"
+            }
+          ],
+          "description": "OPTIONAL; REQUIRED when the PURGE is within retention (ARSIA-State.md §3.2.2). Without it, such a PURGE is rejected with invalid_request (State §8.4)."
         }
       }
     },
     "purge-result": {
       "type": "object",
-      "description": "Result for the PURGE operation. Idempotent — purging an already-purged key returns success with the original purged_at timestamp. Per ARSIA-State.md §3.2.2.",
+      "description": "Result for the PURGE operation. Idempotent — a repeated PURGE with no later write returns success with the original purged_at timestamp. Per ARSIA-State.md §3.2.2.",
       "required": [
         "purged",
         "key",

@@ -240,8 +240,8 @@ rules:
    `StateEntry.retention` (if set) or the active compliance profile's
    `retention_minimum` (if the entry was created in a compliance context). The entry
    MUST NOT be physically deleted before the effective retention period expires,
-   except via PURGE for GDPR erasure (§5.3). See §4.1 for the complete retention
-   policy.
+   except via PURGE, which within retention requires a recorded retention override
+   (§3.2.2, §5.3). See §4.1 for the complete retention policy.
 
 2. **Audit.** If the compliance profile's `audit_required` field is `true` for the
    context in which this entry was created or modified, every SET and DELETE operation
@@ -618,8 +618,8 @@ The StateEntry object contains the following fields:
   now < created_at + effective_retention   (calendar arithmetic)
   ```
 
-  Entries within retention MUST NOT be physically deleted, except via PURGE for GDPR
-  erasure (§5.3).
+  Entries within retention MUST NOT be physically deleted, except via PURGE, which
+  within retention requires a recorded retention override (§3.2.2, §5.3).
 
   *Draft-01 compatibility:* the Draft-01 integer field `retention_days: N` maps to
   `retention: "PND"` (ARSIA-Core.md §4.3.6.4).
@@ -1437,7 +1437,14 @@ unrecoverable.
 | `intent`             | `"request"`                             |
 | `capabilities`       | `["arsiaprotocol.state.purge"]`                 |
 | `payload.type`       | `"arsiaprotocol.state/purge"`                   |
-| `payload.args`       | `{ "key": "{entry-key}" }`              |
+| `payload.args`       | `{ "key": "{entry-key}", "retention_override": { … } }` |
+
+| Field                                  | Type   | Requirement | Description |
+|----------------------------------------|--------|-------------|-------------|
+| `key`                                  | string | REQUIRED    | The key of the entry to purge. |
+| `retention_override`                   | object | OPTIONAL    | REQUIRED when the PURGE is within retention (see "Retention override" below). |
+| `retention_override.reason`            | string | REQUIRED    | The justification for erasing values still within retention (e.g. `"gdpr_art17_erasure"`); 1–1024 characters. |
+| `retention_override.determination_ref` | string | REQUIRED    | A reference by which the operator's documented determination can be retrieved (e.g. a case or document identifier); 1–512 characters. |
 
 **Response message (success):**
 
@@ -1500,6 +1507,9 @@ they serve the accountability requirement of GDPR Art. 5(2).
 | `initiator_agent_id` | The agent that requested the PURGE.     |
 | `purged_at`          | RFC 3339 timestamp of the purge.        |
 | `pii_classification` | The PII classification of the purged entry. |
+| `within_retention`     | Whether the PURGE removed values still within retention (see "Retention override"), as determined by the implementation. |
+| `entry_retained_until` | The latest retention instant of the generations whose values the PURGE removed, or `null` when none has a retention period. |
+| `retention_override`   | The `retention_override` of the request, when it carried one. REQUIRED when `within_retention` is `true`. |
 | `reason`             | OPTIONAL — reason for the purge (e.g., `"gdpr_erasure"`, `"data_subject_request"`). |
 
 **Critical constraint:** The PURGE audit event MUST NOT contain the purged value.
@@ -1509,10 +1519,38 @@ content that was erased.
 
 **Retention override:**
 
-PURGE overrides all retention policies. An entry that is within its retention period
-(e.g., a MiFID II entry with 1827-day retention that is only 100 days old) CAN be
-purged if GDPR erasure is required. The conflict between retention and erasure is
-addressed in §5.3.
+Retention does not by itself make a PURGE impossible: whether erasure prevails over a
+retention obligation is a legal determination that the protocol does not make
+(§5.3.2). Not making that determination does not, by itself, permit any PURGE. A
+PURGE that removes values still within retention is executed only under the
+authorization of step 1 together with an explicit determination of the operator,
+recorded and bound to the request:
+
+1. Before recording the purge event (step 2), the implementation MUST determine, from
+   the state it stores, the set of generations of the key (§2.1.14) whose values the
+   PURGE will remove — in primary, temporal or archival storage, whether or not the
+   key has a live entry — and, for each, the instant `created_at + effective
+   retention` of that entry (§2.1.8, §4.1.1). `entry_retained_until` is the latest of
+   these instants, or `null` when no generation of the set has a retention period.
+   The PURGE is *within retention* when `entry_retained_until` is not `null` and the
+   time of the purge precedes it. The implementation MUST NOT take whether the PURGE
+   is within retention, or any retention instant, from the request.
+2. A PURGE within retention MUST carry `retention_override`. Without it, the PURGE
+   MUST be rejected with error code `"invalid_request"` and details
+   `{ "within_retention": true, "entry_retained_until": "{T}" }` (§8.4), and nothing
+   is removed.
+3. The `state_purge` audit event MUST record `within_retention`,
+   `entry_retained_until` and, when the request carried it, `retention_override`.
+4. The operator MUST keep the determination referenced by `determination_ref`
+   retrievable for at least as long as the `state_purge` record is retained.
+5. `retention_override` records that the operator stated a determination. It does
+   not establish that the determination exists or is legally correct, and the
+   implementation is not required to verify it.
+6. `retention_override` does not affect the retention of the `state_purge` record,
+   which is retained like any audit record (§7.3).
+7. The idempotency rules below are unchanged. A repeated PURGE without a later write
+   removes nothing and is answered under rule 2, with no new evaluation. A PURGE after
+   a later write is evaluated on the set it would remove.
 
 **Elevated capability:**
 
@@ -1525,7 +1563,8 @@ capability grants:
 - `arsiaprotocol.state.purge` MUST be explicitly granted in the access token's scope.
 
 This restriction exists because PURGE is an irreversible, destructive operation that
-bypasses retention safeguards. It should be available only to agents that have been
+can remove values still within retention, under a recorded retention override (see
+above). It should be available only to agents that have been
 specifically authorised for erasure operations.
 
 **Idempotency:**
@@ -1752,9 +1791,12 @@ The effective retention period for a state entry is determined by the following
 hierarchy, from highest to lowest priority:
 
 1. **Profile retention minimum.** The compliance profile's `retention_minimum`
-   value (an ISO 8601 calendar duration, §6) sets the profile floor. This is the minimum retention required by the applicable
-   regulation. The entry MUST NOT be physically deleted before this period expires,
-   regardless of other settings.
+   value (an ISO 8601 calendar duration, §6) sets the profile floor, a requirement of
+   the profile. Whether the floor maps a legal period or is a choice of the profile is
+   recorded per profile in the catalog (`retention_basis`, `retention_reference`;
+   §6). The entry MUST NOT be physically deleted before this period expires, whatever
+   its entry-level settings (`retention`, `expires_at`), except via PURGE, which within
+   retention requires a recorded retention override (§3.2.2).
 
 2. **Entry-level override.** The `StateEntry.retention` field, if set, overrides
    the profile minimum — but only upward. An entry-level retention explicitly below
@@ -1809,16 +1851,16 @@ defined in §6:
 | `retention_minimum`    | `"P6M"` (six calendar months)          |
 | Behaviour              | Entry data MUST NOT be physically removed before `created_at + P6M` (six calendar months, ARSIA-Core.md §4.3.6.4.1). Logical deletion (§3.1.3) is permitted — it hides the entry from GET/QUERY but the data is retained in the temporal store. |
 | Rationale              | EU AI Act Art. 26(6) — deployers of high-risk AI systems must keep automatically generated logs for a period appropriate to the intended purpose of the high-risk AI system, of at least six months (applicable to Annex III high-risk systems from 2 December 2027, Article 113(c)). |
-| Exception              | PURGE for GDPR erasure (§5.3) overrides the P6M minimum. |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). |
 
 **MIFID-II:**
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_minimum`    | `"P1827D"` (5 years, accounts for leap years) |
+| `retention_minimum`    | `"P1827D"` (profile floor; never shorter than five calendar years, §6.3) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1827 days from creation. Logical deletion is permitted — data is retained in temporal store. |
-| Rationale              | MiFID II Art. 16(7) — investment firms must keep records of all services, activities, and transactions for a minimum of five years. |
-| Exception              | PURGE for GDPR erasure overrides, but the PURGE audit event itself is retained for the full 1827-day period. |
+| Rationale              | Profile floor (§6.3). Five-year periods apply to the relevant data relating to orders and transactions in financial instruments (MiFIR Art. 25(1)) and to the records of telephone conversations and electronic communications covered by MiFID II Art. 16(7); applying the floor to every entry of the profile is an ARSIA choice. |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). The `state_purge` record is retained for the full 1827-day period; the override does not shorten it. |
 
 **PAC-AGRICULTURE:**
 
@@ -1827,7 +1869,7 @@ defined in §6:
 | `retention_minimum`    | `"P1096D"` (3 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1096 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | EU 2021/2116 Art. 51 (access to documents) with Implementing Regulation (EU) 2022/128 Art. 34 — supporting documents kept at least 3 years from the anchoring events (account clearance, final payment, recovery). P1096D from record creation is a conservative approximation of those event-anchored clocks (statement subject to legal review). |
-| Exception              | PURGE for GDPR erasure overrides.      |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). |
 
 **EU-AI-ACT-LIMITED-RISK:**
 
@@ -1836,7 +1878,7 @@ defined in §6:
 | `retention_minimum`    | `"P90D"`                               |
 | Behaviour              | Entry data MUST NOT be physically removed before 90 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | EU AI Act Art. 50 does not prescribe a retention period. 90 days covers a reasonable compliance verification period for transparency obligations. |
-| Exception              | PURGE for GDPR erasure overrides.      |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). |
 
 **DSA-VLOP:**
 
@@ -1845,7 +1887,7 @@ defined in §6:
 | `retention_minimum`    | `"P1096D"` (3 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before `created_at + P1096D`. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | DSA Art. 34(3) — supporting documents of risk assessments preserved for at least 3 years after the performance of the risk assessments. Mapping the profile floor to this document-retention rule is a statement subject to legal review. |
-| Exception              | PURGE for GDPR erasure overrides.      |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). |
 
 **DORA:**
 
@@ -1854,7 +1896,7 @@ defined in §6:
 | `retention_minimum`    | `"P1827D"` (5 years, accounts for leap years) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1827 days from creation. Logical deletion is permitted — data is retained in temporal store. |
 | Rationale              | DORA Art. 6(5) — annual ICT risk management review. 5 years aligns with European financial sector retention floors (CRD IV, Solvency II, IORP II) and covers at least 5 review cycles. |
-| Exception              | PURGE for GDPR erasure overrides, but the PURGE audit event itself is retained for the full 1827-day period. |
+| Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). The `state_purge` record is retained for the full 1827-day period; the override does not shorten it. |
 
 #### 4.1.3 Post-Retention Lifecycle
 
@@ -2142,7 +2184,9 @@ in part) and MUST inform the data subject of the grounds for refusal.
 
 **Step 4: PURGE execution.** For each identified entry where no exception applies,
 the operator issues a PURGE request (§3.2.2). The PURGE operation physically deletes
-the entry's value from all storage, including the temporal store.
+the entry's value from all storage, including the temporal store. When values of an
+identified entry are still within retention, the PURGE carries a `retention_override`
+that references the determination made under Step 3 and §5.3.2 (§3.2.2).
 
 **Step 5: Backup propagation.** The implementation SHOULD complete purge propagation
 to backup media within 30 days (RECOMMENDED). This timeline accounts for normal
@@ -2154,43 +2198,58 @@ operator may reference the PURGE audit events as evidence of erasure.
 
 #### 5.3.2 Conflict: Erasure vs. Retention
 
-GDPR Art. 17 erasure may conflict with regulatory retention requirements (e.g.,
-MiFID II 5-year retention). This conflict is a well-known tension in European
-regulatory compliance. The ARSIA Protocol handles this conflict as follows:
+GDPR Art. 17 erasure may conflict with retention obligations under other Union or
+Member State law (for example MiFIR Art. 25(1) for the relevant data relating to orders
+and transactions in financial instruments, §6.3). The ARSIA Protocol handles this
+conflict as follows:
 
 **Protocol position:** ARSIA provides the PURGE mechanism but does not adjudicate the
 legal conflict. The operator MUST make the legal determination based on the specific
-circumstances.
+circumstances. When the operator determines that erasure proceeds while values are
+still within retention, the PURGE carries a `retention_override` that identifies that
+determination (§3.2.2); the protocol records the determination and does not verify
+that it exists or that it is legally correct.
 
 **Practical guidance (informative):**
 
-1. **GDPR generally prevails over retention** when the data subject's erasure right
-   is not overridden by one of the Art. 17(3) exceptions. However, Art. 17(3)(b)
-   ("compliance with a legal obligation which requires processing by Union or Member
-   State law to which the controller is subject") may itself provide a basis for
-   retaining the data.
+1. **Art. 17(3)(b).** The right to erasure does not apply to the extent that
+   processing is necessary for compliance with a legal obligation which requires
+   processing by Union or Member State law to which the controller is subject. Whether
+   a retention obligation meets that condition is assessed per record and per
+   obligation; a profile retention floor does not by itself establish it.
 
-2. **For MiFID II:** Art. 16(7) retention is a legal obligation under Art. 17(3)(b).
-   An operator MAY argue that MiFID II retention takes precedence and decline erasure.
-   However, the operator SHOULD consider pseudonymisation as an alternative that
-   satisfies both requirements: pseudonymise the data (removing direct identifiers)
-   to satisfy the spirit of the erasure request while retaining the pseudonymised
-   record to satisfy MiFID II retention.
+2. **MiFIR and MiFID II.** MiFIR Art. 25(1) (the relevant data relating to all orders
+   and all transactions in financial instruments, five years) and MiFID II Art. 16(7)
+   (the records of telephone conversations and electronic communications it covers,
+   five years and, where requested by the competent authority, up to seven years) may
+   ground an Art. 17(3)(b) assessment for the records they cover. That argument is
+   limited to those records: the MIFID-II profile floor (§6.3) extends retention to
+   every record under the profile as an ARSIA choice and does not make every such
+   record subject to those provisions. Other records may be subject to other legal
+   retention obligations, assessed on their own terms.
 
-3. **For EU AI Act:** Art. 26(6) logging requirements may also constitute a legal
-   obligation under Art. 17(3)(b). The same pseudonymisation approach applies.
+3. **EU AI Act.** Art. 26(6) may likewise ground an Art. 17(3)(b) assessment for the
+   logs it covers.
 
-4. **When erasure proceeds despite retention:** If the operator determines that
-   erasure prevails, the PURGE operation is executed. The PURGE audit event is
-   retained for the full retention period of the compliance profile. This audit event
-   records that erasure occurred, providing an audit trail that satisfies the
-   retention regulation's requirement for records even when the underlying data has
-   been erased.
+4. **Pseudonymisation.** Pseudonymisation reduces identifiability but does not by
+   itself fulfil an erasure request or take the data outside the GDPR: personal data
+   which have undergone pseudonymisation and could be attributed to a natural person
+   by the use of additional information are information on an identifiable natural
+   person (GDPR recital 26). An operator can weigh pseudonymisation as a
+   risk-reduction measure within its determination; the protocol does not treat it as
+   satisfying both obligations.
 
-**Key design principle:** ARSIA provides the mechanism (PURGE for erasure, retention
-policies for regulatory retention, audit events for accountability). The legal
-determination of which obligation prevails in a specific case is the operator's
-responsibility. The protocol is designed to support any lawful outcome.
+5. **When erasure proceeds within retention.** The PURGE is executed with a
+   `retention_override` (§3.2.2). Its audit event records that erasure occurred, when,
+   under which referenced determination, and until when the removed values were to be
+   retained, and is retained for the retention of its own record (§7.3). It does not
+   preserve the removed records and does not by itself satisfy a retention obligation
+   that applied to them.
+
+**Key design principle:** ARSIA provides the mechanism (PURGE for erasure, a recorded
+retention override for erasure within retention, retention policies for regulatory
+retention, audit events for accountability). The legal determination of which
+obligation prevails in a specific case is the operator's responsibility.
 
 ### 5.4 Data Minimisation (Art. 5(1)(c))
 
@@ -2495,7 +2554,7 @@ services subject to the Markets in Financial Instruments Directive.
 |---------------------------|----------------------------------|
 | `audit_required`          | `true`                           |
 | `retention_minimum`       | `"P1827D"`                       |
-| `retention_basis`         | `"regulatory"` — MiFID II Art. 16(7) / (EU) 2017/565 Art. 72 |
+| `retention_basis`         | `"profile_floor"` — MiFIR Art. 25(1) and MiFID II Art. 16(7) for the records they cover; extended to every record of the profile (ARSIA choice) |
 | `human_oversight`         | `"required_before_execution"`    |
 | `explainability_required` | `true`                           |
 | `pii_involved`            | `true`                           |
@@ -2505,16 +2564,36 @@ services subject to the Markets in Financial Instruments Directive.
 
 **Regulatory mapping:**
 
-**MiFID II Art. 16(7) — Record-keeping obligations.** `retention_minimum` is
-`"P1827D"` (5 years). Commission Delegated Regulation (EU) 2017/565, Article 72,
-governs how records are retained: in a medium that allows the competent authority to
-access them readily and to reconstitute each key stage of the processing of each
-transaction, with corrections and prior contents ascertainable and without
-manipulation, and, with Annex I, the minimum list of records to be kept. Article 72
-itself does not set a retention period. This applies to all services, activities, and
-transactions — including those executed or assisted by autonomous agents. The value 1827 accounts for the worst case of two
-leap years within any five consecutive calendar years, ensuring the retention floor is
-never shorter than five calendar years.
+**Retention — profile floor `"P1827D"`.** The MIFID-II `retention_minimum` is a
+profile floor (`retention_basis: "profile_floor"`), not the transcription of a single
+legal period. Its grounding is:
+
+- **MiFIR (Regulation (EU) No 600/2014) Art. 25(1):** investment firms keep at the
+  disposal of the competent authority, for five years, the relevant data relating to
+  all orders and all transactions in financial instruments which they have carried
+  out, whether on own account or on behalf of a client.
+- **MiFID II Art. 16(7):** the records of telephone conversations and electronic
+  communications covered by that provision are kept for five years and, where
+  requested by the competent authority, for up to seven years.
+- **ARSIA choice:** the profile applies the floor to every record under the profile —
+  state entries, audit records and the records of ARSIA-Assets.md §6.1, including
+  records that neither provision covers — anchored at the record's creation
+  (ARSIA-Core.md §4.3.6.4.1). MiFIR Art. 25(1) states no anchor.
+- **Value:** `P1827D` is a fixed day count. Under the calendar arithmetic of
+  ARSIA-Core.md §4.3.6.4.1 it is never shorter than `P5Y` from the same anchor and
+  exceeds it by zero to two days (over the 146,097 anchors of a 400-year Gregorian
+  cycle: 0 days for 34,310, 1 day for 108,499, 2 days for 3,288). It is a profile
+  policy, neither an exact conversion of "five years" nor a statement of legal
+  sufficiency: scope, anchor and any longer period that applies to a record (the
+  seven years of Art. 16(7) on request, a national requirement) remain to be assessed
+  (ARSIA-Assets.md §6.1.2).
+
+Commission Delegated Regulation (EU) 2017/565 Art. 72 governs how the records required
+by Article 16(6) of Directive 2014/65/EU are retained — in a medium that allows the
+competent authority to access them readily and to reconstitute each key stage of the
+processing of each transaction, with corrections and prior contents ascertainable and
+without manipulation — and, with Annex I, the minimum list of records to be kept. It
+sets no retention period and is not a source of the floor.
 
 **DORA Art. 17 — ICT-related incident management.** Infrastructure failures during
 financial operations generate incident events as defined in ARSIA-Assets.md §6.2.
@@ -3201,9 +3280,11 @@ that resolution (ARSIA-Core.md §4.3.10.7) and MUST NOT diverge from it:
 > is unavoidable (e.g., sole proprietor), deployments SHOULD use pseudonymisation
 > (e.g., a non-reversible reference identifier) to avoid conflicts between the
 > append-only audit requirement (§7.2) and data subject erasure obligations
-> (GDPR Art. 17). Where pseudonymisation is not feasible, retention obligations under
-> applicable financial regulation (e.g., MiFID II Art. 72) prevail over erasure
-> requests per GDPR Art. 17(3)(b).
+> (GDPR Art. 17). Pseudonymised identifiers can still be personal data (GDPR recital
+> 26). Where a retention obligation under applicable law covers the record — for
+> example MiFIR Art. 25(1), whose order and transaction records include details of
+> the identity of the client — an erasure request is assessed under GDPR Art. 17(3)(b)
+> per §5.3.2; the protocol does not determine that retention prevails.
 
 #### `hash_chain`
 
@@ -3279,7 +3360,7 @@ by the schema.
 | `event_type` = `response` or `error` | — | `correlation_id`, `root_request_id`, `outcome` (final record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 4 |
 | `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`); OPTIONAL: `pii_special_categories` (the entry's categories, when `sensitive`) | §3.1.2; §8.3 rule 3; §2.1.11 |
 | `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `timestamp` | — | §3.1.3 |
-| `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `generation`, `purged_at`, `pii_classification` | `reason` | §3.2.2 |
+| `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `generation`, `purged_at`, `pii_classification`, `within_retention`, `entry_retained_until` | `reason`; `retention_override` (REQUIRED when `within_retention` is `true`, §3.2.2) | §3.2.2 |
 | `event_type` = `state_grant` | `grant_id`, `key_pattern`, `grantor_agent_id`, `grantee_agent_id`, `access_level`, `valid_until`, `timestamp` | — | §3.3.1 |
 | `event_type` = `state_revoke` | `grant_id`, `grantor_agent_id`, `grantee_agent_id`, `timestamp` | — | §3.3.2 |
 | `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at` | — | ARSIA-Assets.md §4.3.1 |
@@ -3476,7 +3557,7 @@ record was created (§6):
 | Profile              | Minimum Retention          |
 |----------------------|----------------------------|
 | EU-AI-ACT-HIGH-RISK  | `P6M` (six calendar months) |
-| MIFID-II             | `P1827D` (5 years)         |
+| MIFID-II             | `P1827D` (profile floor, §6.3) |
 | PAC-AGRICULTURE      | `P1096D` (3 years)         |
 | DSA-VLOP             | `P1096D` (3 years)         |
 | DORA                 | `P1827D` (5 years)         |
@@ -3616,8 +3697,8 @@ They cannot be obtained through wildcards. This restriction is normative and MUS
 enforced by both Authorization Servers (when issuing tokens) and by state
 implementations (when validating tokens).
 
-**Rationale:** PURGE is an irreversible, destructive operation that overrides
-retention safeguards. SNAPSHOT provides access to historical data that may have been
+**Rationale:** PURGE is an irreversible, destructive operation that can remove values
+still within retention, under a recorded retention override (§3.2.2). SNAPSHOT provides access to historical data that may have been
 logically deleted. Both operations require explicit authorisation because their misuse
 has regulatory consequences.
 
@@ -3728,6 +3809,14 @@ each precondition the request stated, and MUST NOT include `current_generation`,
 
 This information allows the requesting agent to understand the conflict and resolve
 it (e.g., by re-reading the entry and merging the changes).
+
+**PURGE retention details:** When a PURGE is rejected because it is within retention
+and carries no `retention_override` (§3.2.2), the error details MUST consist of
+`within_retention` (`true`) and `entry_retained_until`:
+
+```json
+{ "within_retention": true, "entry_retained_until": "2031-04-27T14:00:00.000Z" }
+```
 
 ---
 
@@ -3904,9 +3993,19 @@ all tests at the applicable conformance level.
 |-----------------|--------------------------------------------------------------------|
 | **test_id**     | `STATE-17`                                                         |
 | **description** | Verify PURGE repetition and PURGE after a later write.             |
-| **preconditions** | Agent A owns `"agent:a.test/agent/record"` and has `arsiaprotocol.state.purge` and `arsiaprotocol.state.write` (step 3 is a SET). |
+| **preconditions** | Agent A owns `"agent:a.test/agent/record"` and has `arsiaprotocol.state.purge` and `arsiaprotocol.state.write` (step 3 is a SET). The entry has no retention period (no profile `retention_minimum`, no `retention`). |
 | **action**      | 1. Agent A sends PURGE for the key (new idempotency key). 2. Agent A sends PURGE for the key again (new idempotency key). 3. Agent A sends SET for the key. 4. Agent A sends PURGE for the key (new idempotency key). |
 | **expected**    | Step 2 returns the `purged_at` of step 1, and no second `state_purge` record exists. Step 3 creates an entry whose `generation` is the purged generation plus `1`. Step 4 returns a new `purged_at` and produces a second `state_purge` record carrying the generation created in step 3. |
+
+### STATE-18: PURGE within retention requires a retention override
+
+| Field           | Value                                                              |
+|-----------------|--------------------------------------------------------------------|
+| **test_id**     | `STATE-18`                                                         |
+| **description** | Verify that a PURGE of values within retention requires a retention override, determined from stored state. |
+| **preconditions** | Agent A created `"agent:a.test/agent/record"` at T0 under `compliance.profile = "MIFID-II"` (effective retention `P1827D`). Agent A has `arsiaprotocol.state.purge`. |
+| **action**      | 1. Agent A sends PURGE without `retention_override` at T0 + 30 days. 2. Agent A sends PURGE with `retention_override` `{ "reason": "gdpr_art17_erasure", "determination_ref": "DPO-2026-0042" }`. |
+| **expected**    | Step 1 fails with `"invalid_request"` and details `{ "within_retention": true, "entry_retained_until": "{T0 + P1827D}" }`; GET still returns the entry, and no `state_purge` record exists. Step 2 succeeds; its `state_purge` record carries `within_retention: true`, `entry_retained_until` = T0 + P1827D and the `retention_override` as sent, and its own retention fields are those of §7.3. |
 
 ---
 
@@ -4125,7 +4224,9 @@ verification; external anchoring of chain heads remains optional (§7.2).
   - Art. 5(1)(e) — Storage limitation principle.
   - Art. 5(2) — Accountability principle.
   - Art. 6 — Lawfulness of processing.
-  - Art. 17 — Right to erasure ('right to be forgotten').
+  - Art. 17 — Right to erasure ('right to be forgotten'); Art. 17(3)(b) — compliance
+    with a legal obligation.
+  - Recital 26 — pseudonymised data.
   - Art. 20 — Right to data portability.
   - Art. 30 — Records of processing activities.
 
@@ -4143,7 +4244,13 @@ verification; external anchoring of chain heads remains optional (§7.2).
   - Art. 1(40) — Amendment of Article 113 of Regulation (EU) 2024/1689.
 
 - **MiFID II** — Directive 2014/65/EU.
-  - Art. 16(7) — Record retention for investment firms (5 years minimum).
+  - Art. 16(6) — records of all services, activities and transactions.
+  - Art. 16(7) — recording of telephone conversations and electronic communications
+    (five years; up to seven where requested by the competent authority).
+
+- **MiFIR** — Regulation (EU) No 600/2014 of the European Parliament and of the
+  Council of 15 May 2014 on markets in financial instruments.
+  - Art. 25(1) — obligation to maintain records (orders and transactions, five years).
 
 - **Common Agricultural Policy (CAP)** — Regulation (EU) 2021/2116.
   - Record-keeping requirements for agricultural subsidies and payments.
@@ -4159,7 +4266,8 @@ verification; external anchoring of chain heads remains optional (§7.2).
 
 - **Commission Delegated Regulation (EU) 2017/565** — supplementing MiFID II as regards
   organisational requirements and operating conditions for investment firms.
-  - Art. 72 (retention of records).
+  - Art. 72 — retention of records: medium and form (Article 16(6) of Directive
+    2014/65/EU); sets no period.
 
 - **DORA** — Regulation (EU) 2022/2554 of the European Parliament and of the Council
   of 14 December 2022 on digital operational resilience for the financial sector.

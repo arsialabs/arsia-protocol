@@ -139,16 +139,18 @@
         "human_oversight": "required_before_execution",
         "legal_basis": "contract",
         "pii_involved": true,
-        "retention_basis": "regulatory",
+        "retention_basis": "profile_floor",
         "retention_interpretation": "day-count",
         "retention_minimum": "P1827D",
-        "retention_reference": "MIFID-II:16(7); EU-2017/565:72"
+        "retention_reference": "MIFIR:25(1); MIFID-II:16(7)"
       },
       "description": "MiFID II compliance for agent-assisted financial services",
       "name": "MIFID-II",
       "regulatory_references": [
+        "MiFIR 600/2014/EU Art. 25(1)",
+        "MiFID II 2014/65/EU Art. 16(6)",
         "MiFID II 2014/65/EU Art. 16(7)",
-        "EU 2017/565 Art. 72 (MiFID II Organisational Regulation)",
+        "EU 2017/565 Art. 72 (Retention of records — medium and form)",
         "DORA 2022/2554/EU Art. 17",
         "DORA 2022/2554/EU Art. 19",
         "PSD2 2015/2366/EU Art. 97",

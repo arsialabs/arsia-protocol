@@ -680,6 +680,23 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         }
       }
+    },
+    "error-details-retention-override": {
+      "type": "object",
+      "description": "Error details for a PURGE rejected because it is within retention and carries no retention_override — ARSIA-State.md §3.2.2, §8.4. Consist of within_retention (true) and entry_retained_until, both determined by the implementation from stored state.",
+      "required": [
+        "within_retention",
+        "entry_retained_until"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "within_retention": {
+          "const": true
+        },
+        "entry_retained_until": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        }
+      }
     }
   },
   "required": [
@@ -1249,6 +1266,32 @@
                     "properties": {
                       "details": {
                         "$ref": "#/$defs/error-details-conflict-version"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "within_retention"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-retention-override"
                       }
                     }
                   }

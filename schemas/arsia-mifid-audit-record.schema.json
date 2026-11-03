@@ -3,7 +3,7 @@
   "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-mifid-audit-record.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA MiFID II Audit Record",
-  "description": "MiFID II audit record for asset transfers involving EU-regulated entities or MIFID-II compliance profile. Generated for every qualifying AssetTransferRequest per ARSIA-Assets.md §6.1. Contains financial-specific fields — transaction amounts, provider references, settlement timestamps, and human oversight status — that extend the base audit concept for MiFID II Article 16(7) record-keeping. Records are immutable and retained for minimum 1827 days (5 years) per §6.1.2.",
+  "description": "MiFID II audit record for asset transfers involving EU-regulated entities or MIFID-II compliance profile. Generated for every qualifying AssetTransferRequest per ARSIA-Assets.md §6.1. Contains financial-specific fields — transaction amounts, provider references, settlement timestamps, and human oversight status — that extend the base audit concept for MiFID II Article 16(6) record-keeping (with MiFIR Article 25(1) for order and transaction data). Records are immutable and retained for at least the 1827-day MIFID-II profile floor (ARSIA-State.md §6.3; ARSIA-Assets.md §6.1.2).",
   "type": "object",
   "required": [
     "audit_id",

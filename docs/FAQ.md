@@ -66,7 +66,7 @@ Yes. Wildcard matching is prefix-based with no depth limit. A token scope entry 
 
 ### Why can't wildcards grant arsiaprotocol.state.purge or arsiaprotocol.oversight.approve?
 
-These capabilities are designated as non-delegable (Actions §1.4). Purge permanently and irreversibly destroys data (bypassing retention safeguards), snapshot exposes historical data that may have been logically deleted, and oversight.approve authorises decisions for high-risk operations. In Draft-02 EVERY arsiaprotocol. capability is non-delegable: scope entries containing a wildcard within the reserved namespace (e.g. arsiaprotocol.*, arsiaprotocol.state.*) MUST NOT be issued and satisfy nothing; each reserved capability requires an exact string match in the token scope. This is enforced at both the Authorization Server (token issuance) and the receiving agent (PEP). See Actions §1.2 condition 3.
+These capabilities are designated as non-delegable (Actions §1.4). Purge permanently and irreversibly destroys data and, for values still within retention, requires a recorded retention override (State §3.2.2), snapshot exposes historical data that may have been logically deleted, and oversight.approve authorises decisions for high-risk operations. In Draft-02 EVERY arsiaprotocol. capability is non-delegable: scope entries containing a wildcard within the reserved namespace (e.g. arsiaprotocol.*, arsiaprotocol.state.*) MUST NOT be issued and satisfy nothing; each reserved capability requires an exact string match in the token scope. This is enforced at both the Authorization Server (token issuance) and the receiving agent (PEP). See Actions §1.2 condition 3.
 
 ### Why doesn't Core §6.4 mention wildcard matching?
 
@@ -78,11 +78,11 @@ Core §6.4 defines capability enforcement at the envelope layer, where matching 
 
 ### Why does GDPR-STANDARD have retention_minimum: null?
 
-GDPR does not prescribe a specific retention period for audit records. Art. 5(1)(e) establishes the "storage limitation" principle — data should be kept only as long as necessary for the processing purpose — but does not mandate a numeric duration. When retention_minimum is null, retention is governed by expires_at from the message envelope or by the platform's default policy (P90D recommended). Profiles with explicit regulatory retention requirements (MIFID-II: P1827D, DORA: P1827D, PAC-AGRICULTURE: P1096D) set concrete values, and EU-AI-ACT-HIGH-RISK uses the calendar duration P6M because the AI Act's "at least six months" is a calendar period, not a day count (Core §4.3.6.4.1).
+GDPR does not prescribe a specific retention period for audit records. Art. 5(1)(e) establishes the "storage limitation" principle — data should be kept only as long as necessary for the processing purpose — but does not mandate a numeric duration. When retention_minimum is null, retention is governed by expires_at from the message envelope or by the platform's default policy (P90D recommended). Profiles with retention floors (MIFID-II: P1827D, DORA: P1827D, PAC-AGRICULTURE: P1096D) set concrete values, and the catalog records each floor's basis (`retention_basis`: a mapped legal period or a profile floor). EU-AI-ACT-HIGH-RISK uses the calendar duration P6M because the AI Act's "at least six months" is a calendar period, not a day count (Core §4.3.6.4.1).
 
 ### Why do retention values use 1827 instead of 1825 for 5-year retention?
 
-Calendar years contain leap years. The naive formula 365 × 5 = 1825 undercounts by 1-2 days depending on the span. For regulatory compliance, the worst case matters: a 5-year span can contain 2 leap years (e.g., 2024-2028), yielding 1827 days. Similarly, 3-year retention uses 1096 (1 leap year possible). Using the mathematically precise worst-case value eliminates the risk of retention falling short by a day at audit time.
+Calendar years contain leap years. The naive formula 365 × 5 = 1825 undercounts by 1-2 days depending on the span. For regulatory compliance, the worst case matters: a 5-year span can contain 2 leap years (e.g., 2024-2028), yielding 1827 days. Similarly, 3-year retention uses 1096 (1 leap year possible). Using the mathematically precise worst-case value eliminates the risk of retention falling short by a day at audit time: under the Core calendar arithmetic, P1827D is never shorter than P5Y from the same anchor and exceeds it by zero to two days. For MIFID-II it is a profile floor, not an exact conversion of "five years" (State §6.3).
 
 ### Why don't compliance profiles have per-profile versioning?
 
@@ -146,15 +146,15 @@ State §2.2 says implementations MUST reject SET operations from agents with the
 
 ### Why are purge and snapshot elevated capabilities that can't be wildcarded?
 
-Purge permanently and irreversibly destroys data, bypassing all retention safeguards. Snapshot provides access to historical data that may have been logically deleted. Both operations have regulatory consequences if misused — premature purge violates retention obligations (MiFID II 5-year requirement), and unauthorized snapshot access exposes data that GDPR deletion was supposed to erase. These capabilities require explicit, auditable authorization — not blanket wildcard grants.
+Purge permanently and irreversibly destroys data; a PURGE that removes values still within retention is rejected unless it carries a recorded retention override, and the executor determines from stored state whether the values are within retention (Actions §1.4, State §3.2.2). Snapshot provides access to historical data that may have been logically deleted. Both operations have regulatory consequences if misused — a premature purge can breach a retention obligation that applies to the record (for example MiFIR Art. 25(1) for order and transaction data), and unauthorized snapshot access exposes data that GDPR deletion was supposed to erase. These capabilities require explicit, auditable authorization — not blanket wildcard grants.
 
 ### How does ARSIA handle GDPR Art. 9 special categories (health data, biometrics)?
 
 The pii_classification field supports "sensitive" (State §2.1.10), which inherits all obligations of "personal" plus additional encryption requirements. Compliance validation Rule 8 (Core §4.3.8) requires pii_special_categories and a valid Art. 9(2) legal basis when sensitive data is involved. The protocol enforces that a legal ground exists but does not validate specific category-to-ground mappings, which vary by EU Member State derogation.
 
-### Why can PURGE override retention? Doesn't that violate MiFID II?
+### Can PURGE erase data still within retention? Doesn't that violate MiFID II?
 
-GDPR Article 17 (right to erasure) and MiFID II Article 16(7) (5-year retention) can genuinely conflict. The ARSIA Protocol does not resolve this conflict — it provides the mechanisms for both (retention enforcement via the retention duration model, erasure via PURGE) and leaves the legal determination to the data controller. State §5.3 documents this tension. The PURGE audit event records that erasure occurred (without the purged value) to maintain accountability even when data is destroyed.
+GDPR Article 17 (right to erasure) can conflict with retention obligations such as MiFIR Article 25(1) (order and transaction data, five years) or MiFID II Article 16(7) (the communications it covers, five years). The ARSIA Protocol does not adjudicate that conflict, but it does not accept an unconditional erasure either: a PURGE that removes values still within retention is rejected unless it carries a `retention_override` identifying the operator's determination, and the executor — not the requester — establishes from stored state whether the values are within retention (State §3.2.2). The PURGE audit event records that erasure occurred (without the purged value), whether it was within retention, until when the values were to be retained, and the determination referenced. The override makes an early erasure attributable, not lawful: the protocol does not verify the determination (State §5.3.2), and the MIFID-II floor applies to more records than those provisions cover (State §6.3).
 
 ---
 
@@ -180,7 +180,7 @@ Transport-layer headers are visible to intermediaries (load balancers, brokers) 
 
 This follows the standard conformance tier pattern used in protocol specifications. OPTIONAL at the protocol level means an implementation may choose not to support the feature. REQUIRED at the Full conformance tier means an implementation that claims Full conformance must support it. An implementation can be conformant at the Core tier without these features. The tiers provide a progression path: Core → Compliance → Full.
 
-### Why does ARSIA publish 800 test vectors?
+### Why does ARSIA publish 815 test vectors?
 
 Comprehensive test vectors enable deterministic conformance testing across languages and platforms. Each vector tests a specific constraint — valid vectors exercise real schema and protocol rules, invalid vectors verify that implementations correctly reject malformed input. The vectors are the executable specification: if an implementation passes all vectors, it handles the same edge cases as every other conformant implementation. 148 vectors are marked skip_schema for constraints that require runtime enforcement (cross-object validation, temporal logic, token context), each individually classified in docs/draft-02-skip-classification.md.
 

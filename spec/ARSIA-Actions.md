@@ -486,7 +486,7 @@ Particularly sensitive examples and their rationale:
 
 | Capability | Rationale |
 |------------|-----------|
-| `arsiaprotocol.state.purge` | Irreversible physical erasure that bypasses retention safeguards. |
+| `arsiaprotocol.state.purge` | Irreversible physical erasure; within retention only under a recorded retention override (ARSIA-State.md §3.2.2). |
 | `arsiaprotocol.state.snapshot` | Access to historical data that may have been logically deleted. |
 | `arsiaprotocol.oversight.approve` | Authorises approval of human oversight decisions for high-risk actions. |
 | `arsiaprotocol.broker.relay` | Confers the Compliance Broker role (Routing §7). |
@@ -3004,7 +3004,9 @@ tests at the applicable conformance level.
 
 - **MiFID II** — Directive 2014/65/EU of the European Parliament and of the Council
   of 15 May 2014 on markets in financial instruments.
-  - Record retention requirements (minimum 5 years / 1827 days).
+  - Art. 16(6)-(7) — record-keeping; five-year periods for the records covered by
+    Art. 16(7) and by MiFIR Art. 25(1). The MIFID-II profile floor `P1827D` is
+    defined in ARSIA-State.md §6.3.
 
 - **NIST AI Risk Management Framework 1.0** — National Institute of Standards and
   Technology. January 2023.

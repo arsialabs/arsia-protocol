@@ -49,6 +49,29 @@
       "type": "string",
       "pattern": "^[a-zA-Z][a-zA-Z0-9]*(\\.[a-zA-Z][a-zA-Z0-9]*)*(\\/[a-zA-Z][a-zA-Z0-9_-]*)*$",
       "description": "Payload type / action identifier with dot segments and optional slash subpath."
+    },
+    "retention-override": {
+      "type": "object",
+      "description": "Retention override of a PURGE (ARSIA-State.md §3.2.2): the operator's explicit determination that values still within retention are erased. REQUIRED in a PURGE within retention, as determined by the implementation from stored state. Records that a determination was stated; it does not establish that the determination exists or is legally correct.",
+      "required": [
+        "reason",
+        "determination_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "The justification for erasing values still within retention (e.g. 'gdpr_art17_erasure')."
+        },
+        "determination_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "A reference by which the operator's documented determination can be retrieved (e.g. a case or document identifier). The operator keeps it retrievable for at least as long as the state_purge record is retained."
+        }
+      }
     }
   }
 }
