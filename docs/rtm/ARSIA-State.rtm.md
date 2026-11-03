@@ -26,7 +26,7 @@
 | STATE-§1.2-04 | 1.2 | MUST | deployment | behavioural_positive | Agent-scoped state MUST be persisted to durable storage | — | — |
 | STATE-§1.2-05 | 1.2 | MUST_NOT | sdk | behavioural_negative | Agent-scoped entries MUST NOT be physically deleted before retention expires, except via PURGE | — | ITV-183 |
 | STATE-§1.2-06 | 1.2 | MUST | sdk | procedural | SET and DELETE on agent-scoped entries MUST generate audit events when audit_required is true | — | ITV-184, ITV-185 |
-| STATE-§1.2-07 | 1.2 | MUST | sdk | behavioural_positive | Audit events MUST include operation type, entry key, owner_agent_id, actor, timestamp, and version | arsia-audit-record | ITV-184 |
+| STATE-§1.2-07 | 1.2 | MUST | sdk | behavioural_positive | Audit events MUST include operation type, entry key, owner_agent_id, actor, timestamp, generation, and version | arsia-audit-record | ITV-184 |
 | STATE-§1.2-08 | 1.2 | MUST_NOT | sdk | behavioural_negative | Audit events MUST NOT include the entry value unless value-level auditing is required | — | ITV-185 |
 | STATE-§1.2-09 | 1.2 | MUST | deployment | behavioural_positive | Agent-scoped entry storage MUST physically reside within the declared data_residency zone | arsia-state-entry | — |
 | STATE-§1.3-01 | 1.3 | MUST_NOT | sdk | behavioural_negative | Agents without a grant MUST NOT access shared-scoped entries, even by key guessing | — | ITV-186 |
@@ -96,13 +96,16 @@
 | STATE-§2.1.12-01 | 2.1.12 | MUST | sdk | behavioural_positive | SET with expected_version MUST verify current version matches before applying the update | arsia-state-operations | — |
 | STATE-§2.1.12-02 | 2.1.12 | MUST | sdk | behavioural_positive | SET MUST fail with error code "conflict" when expected_version does not match current version | arsia-message | ITV-82 |
 | STATE-§2.1.12-03 | 2.1.12 | MUST_NOT | sdk | behavioural_negative | Entry version number is monotonically increasing and MUST NOT be reset or decremented within an entry's lifetime | arsia-state-entry | — |
-| STATE-§2.1.12-04 | 2.1.12 | MUST | sdk | behavioural_positive | Recreated entries start at version 1, but implementations MUST retain prior version history for SNAPSHOT | — | ITV-204 |
+| STATE-§2.1.12-04 | 2.1.12 | MUST | sdk | behavioural_positive | Recreated entries are a new generation starting at version 1; prior version history retained for SNAPSHOT | — | ITV-204, ITV-681 |
 | STATE-§2.1.13-01 | 2.1.13 | MAY | sdk_enabled | behavioural_positive | Logically deleted entries MAY appear in SNAPSHOT results for times when they were active | — | ITV-206 |
 | STATE-§2.1.13-02 | 2.1.13 | MUST_NOT | sdk | behavioural_negative | The deleted flag MUST NOT be set directly by agents; only the implementation sets it on DELETE | arsia-state-entry | STV-03 |
 | STATE-§2.1.13-03 | 2.1.13 | MAY | sdk_enabled | behavioural_positive | After the retention period expires, the implementation MAY physically remove the entry | — | — |
 | STATE-§2.1.13-04 | 2.1.13 | OPTIONAL | sdk_enabled | behavioural_positive | StateEntry.deleted field is OPTIONAL in representations returned to agents | arsia-state-entry | ITV-138, ITV-205 |
 | STATE-§2.1.13-05 | 2.1.13 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD omit the deleted field from GET and QUERY responses | — | ITV-205 |
 | STATE-§2.1.13-06 | 2.1.13 | REQUIRED | sdk | behavioural_positive | The deleted field is REQUIRED in SNAPSHOT responses for entries deleted at the queried time | — | ITV-206 |
+| STATE-§2.1.14-01 | 2.1.14 | REQUIRED | sdk | structural | StateEntry.generation is REQUIRED (integer ≥ 1, implementation-set) | arsia-state-entry | INV-81, INV-82 |
+| STATE-§2.1.14-02 | 2.1.14 | MUST_NOT | sdk | behavioural_negative | While any information of the key is held, a generation number already assigned under the key MUST NOT be assigned to a new entry, also after a PURGE or a partial removal | — | ITV-680, ITV-681 |
+| STATE-§2.1.14-03 | 2.1.14 | MUST | sdk | behavioural_positive | The implementation MUST keep the highest generation assigned under a key for as long as it holds any information of the key (evidence: R17 (h)) | — | ITV-680 |
 | STATE-§2.2-01 | 2.2 | RECOMMENDED | sdk_enabled | behavioural_positive | Naming conventions for the local-key segment of state entry keys are RECOMMENDED | — | — |
 | STATE-§2.2-02 | 2.2 | MAY | sdk_enabled | structural | Agents MAY use any key format conforming to the §2.1.1 pattern; naming conventions are non-normative | arsia-state-entry | — |
 | STATE-§2.2-03 | 2.2 | RECOMMENDED | sdk_enabled | behavioural_positive | Lowercase-with-hyphens key naming (e.g., client-preferences) is RECOMMENDED | — | — |
@@ -119,9 +122,9 @@
 | STATE-§2.3-06 | 2.3 | MUST_NOT | sdk | behavioural_negative | Values MUST NOT contain executable code intended for evaluation by receiving agents | — | — |
 | STATE-§2.3-07 | 2.3 | MUST | sdk | behavioural_positive | All string values within the JSON MUST be valid UTF-8 | — | ITV-212, ITV-213 |
 | STATE-§2.3-08 | 2.3 | MUST | sdk | behavioural_positive | Implementations MUST reject values containing invalid UTF-8 sequences. | — | ITV-212, ITV-213 |
-| STATE-§2.4-01 | 2.4 | OPTIONAL | sdk_enabled | behavioural_positive | The expected_version parameter is OPTIONAL. | arsia-state-operations | — |
+| STATE-§2.4-01 | 2.4 | OPTIONAL | sdk_enabled | behavioural_positive | Both expected_version and expected_generation are OPTIONAL; when neither is supplied, SET is unconditional | arsia-state-operations | ITV-112, ITV-676 |
 | STATE-§2.4-02 | 2.4 | MUST | sdk | behavioural_positive | SNAPSHOT-supporting implementations MUST retain version history for the effective retention period | — | ITV-214 |
-| STATE-§2.4-03 | 2.4 | MUST | sdk | behavioural_positive | Each version MUST be associated with version number, value, updated_at timestamp, and actor agent | — | ITV-214 |
+| STATE-§2.4-03 | 2.4 | MUST | sdk | behavioural_positive | Each version MUST be associated with generation, version number, value, updated_at timestamp, and actor agent | — | ITV-214, ITV-677 |
 | STATE-§3.1.1-01 | 3.1.1 | MUST | sdk | behavioural_positive | GET payload.args.key MUST be the full namespaced key of the entry to retrieve | arsia-state-operations | STV-02, ITV-172, ITV-180 |
 | STATE-§3.1.1-02 | 3.1.1 | MUST | sdk | behavioural_positive | GET requests MUST carry the arsiaprotocol.state.read capability in the access token | — | STV-02 |
 | STATE-§3.1.1-03 | 3.1.1 | MUST | sdk | behavioural_positive | GET requests MUST come from the entry owner or an agent with a matching active grant | — | STV-02 |
@@ -142,13 +145,18 @@
 | STATE-§3.1.2-12 | 3.1.2 | MUST | sdk | behavioural_positive | The scope segment of the key MUST match the scope field in payload.args. | arsia-state-operations | STV-01, ITV-219 |
 | STATE-§3.1.2-13 | 3.1.2 | MUST | sdk | behavioural_positive | SET for personal entries MUST include legal_basis in the compliance envelope | arsia-compliance-field | ITV-217 |
 | STATE-§3.1.2-14 | 3.1.2 | MUST | sdk | behavioural_positive | SET without legal_basis for personal entries MUST be rejected with "invalid_request" | — | ITV-201 |
-| STATE-§3.1.2-15 | 3.1.2 | MUST | sdk | behavioural_positive | SET MUST fail with "conflict" when expected_version mismatches, returning both version numbers | arsia-message | — |
+| STATE-§3.1.2-15 | 3.1.2 | MUST | sdk | behavioural_positive | SET MUST fail with "conflict" when a precondition mismatches the live entry, returning the current generation and version and the stated preconditions | arsia-message | ITV-678 |
 | STATE-§3.1.2-16 | 3.1.2 | MUST | sdk | behavioural_positive | SET MUST be rejected with "invalid_request" when the declared data_residency zone is unavailable | arsia-message | — |
 | STATE-§3.1.2-17 | 3.1.2 | MUST | sdk | behavioural_positive | SET MUST be rejected with "payload_too_large" when value exceeds 1,048,576 bytes | — | ITV-218 |
 | STATE-§3.1.2-18 | 3.1.2 | MUST | sdk | behavioural_positive | SET MUST be rejected with "invalid_request" when scope mismatches an existing entry's scope | — | ITV-219 |
 | STATE-§3.1.2-19 | 3.1.2 | MUST | sdk | procedural | SET MUST generate a "state_set" audit event when audit_required is true | arsia-audit-record | ITV-220, ITV-527 |
 | STATE-§3.1.2-20 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | SET audit events MUST NOT include the entry value unless value-level auditing is required | arsia-audit-record | ITV-221 |
 | STATE-§3.1.2-21 | 3.1.2 | NOT_RECOMMENDED | sdk | behavioural_positive | Value-level auditing of personal or pseudonymised entries is NOT RECOMMENDED | — | — |
+| STATE-§3.1.2-22 | 3.1.2 | OPTIONAL | sdk_enabled | behavioural_positive | SET payload.args.expected_generation field is OPTIONAL | arsia-state-operations | ITV-676, INV-83 |
+| STATE-§3.1.2-23 | 3.1.2 | MUST | sdk | behavioural_positive | Preconditions are evaluated against the live entry in one atomic check; when both are set, both MUST hold | — | ITV-678 |
+| STATE-§3.1.2-24 | 3.1.2 | MUST | sdk | behavioural_positive | A conditional SET on a key without a live entry MUST be rejected with conflict and entry_live false | arsia-message | ITV-679 |
+| STATE-§3.1.2-25 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | A conditional SET on a key without a live entry MUST NOT create an entry | — | ITV-679 |
+| STATE-§3.1.2-26 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT distinguish a deleted key from a key never written | — | ITV-679 |
 | STATE-§3.1.3-01 | 3.1.3 | MUST | sdk | behavioural_positive | The requesting agent MUST be the owning agent of the entry. | — | STV-03, ITV-173 |
 | STATE-§3.1.3-02 | 3.1.3 | MUST_NOT | sdk | behavioural_negative | Grantees with read_write access MUST NOT DELETE entries; DELETE is owner-only | — | STV-03 |
 | STATE-§3.1.3-03 | 3.1.3 | MUST | sdk | behavioural_positive | DELETE by a non-owner MUST return error code "forbidden" | arsia-message | — |
@@ -197,8 +205,9 @@
 | STATE-§3.2.2-10 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT contain the purged value (erasure would be defeated) | arsia-audit-record | ITV-237 |
 | STATE-§3.2.2-11 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | arsiaprotocol.state.purge MUST NOT be included in wildcard capability grants | — | ITV-238, ITV-285 |
 | STATE-§3.2.2-12 | 3.2.2 | MUST | sdk | behavioural_positive | arsiaprotocol.state.purge MUST be explicitly granted in the access token scope | — | STV-04, ITV-238, ITV-284 |
-| STATE-§3.2.2-13 | 3.2.2 | MUST | sdk | behavioural_positive | Repeated PURGE on the same key MUST return success with the original purged_at timestamp | arsia-state-operations | ITV-239 |
-| STATE-§3.2.2-14 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | A second PURGE on the same key MUST NOT generate a second audit event. | — | ITV-239 |
+| STATE-§3.2.2-13 | 3.2.2 | MUST | sdk | behavioural_positive | Repeated PURGE with no later write MUST return success with the original purged_at timestamp | arsia-state-operations | ITV-239, ITV-680 |
+| STATE-§3.2.2-14 | 3.2.2 | MUST_NOT | sdk | behavioural_negative | A repeated PURGE with no later write MUST NOT generate a second audit event. | — | ITV-239, ITV-680 |
+| STATE-§3.2.2-15 | 3.2.2 | MUST | sdk | behavioural_positive | A PURGE after a later write MUST execute the procedure and generate a new audit event | arsia-audit-record | ITV-680 |
 | STATE-§3.3.1-01 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.key_pattern field is REQUIRED | arsia-state-operations | ITV-51 |
 | STATE-§3.3.1-02 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.grantee_agent_id field is REQUIRED | arsia-state-operations | ITV-51 |
 | STATE-§3.3.1-03 | 3.3.1 | REQUIRED | sdk | structural | GRANT payload.args.access_level field is REQUIRED ("read" or "read_write") | arsia-state-operations | ITV-51, ITV-52, ITV-113 |
@@ -382,7 +391,9 @@
 | STATE-§8.3-07 | 8.3 | MUST_NOT | sdk | behavioural_negative | legal_basis MUST NOT be stored on the StateEntry itself | arsia-state-entry | — |
 | STATE-§8.3-08 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be recorded in the audit event | arsia-audit-record | ITV-542 |
 | STATE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | Profile defaults MUST be applied for compliance fields not explicitly set | — | ITV-541 |
-| STATE-§8.4-01 | 8.4 | MUST | sdk | behavioural_positive | SET conflict errors MUST include current_version, expected_version, updated_at, and updated_by | arsia-message | ITV-82, ITV-87 |
+| STATE-§8.4-01 | 8.4 | MUST | sdk | behavioural_positive | Conflict errors on a live entry MUST include current_generation, current_version, the stated preconditions, updated_at and updated_by | arsia-message | ITV-82, ITV-87, ITV-151, INV-86, INV-89 |
+| STATE-§8.4-02 | 8.4 | MUST | sdk | behavioural_positive | Absent-entry conflict details MUST consist of entry_live false and the stated preconditions | arsia-message | ITV-679, INV-87, INV-90, INV-91 |
+| STATE-§8.4-03 | 8.4 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT include current_generation, current_version, updated_at or updated_by | arsia-message | INV-87 |
 | STATE-§9-01 | 9 | MUST | sdk_enabled | behavioural_positive | Conformant implementations MUST pass all conformance tests at their applicable level | — | — |
 | STATE-§9-02 | 9 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT include the purged entry value (STATE-03 test) | arsia-audit-record | ITV-270 |
 | STATE-§9-03 | 9 | MUST_NOT | sdk | behavioural_negative | Implementation MUST NOT physically remove entries before the retention period elapses (STATE-05 test) | arsia-state-entry | ITV-271 |
@@ -429,10 +440,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 411 |
-| Schema ≠ — | 156 |
-| Vector ≠ — | 204 |
-| Both ≠ — | 99 |
+| Total requirements | 427 |
+| Schema ≠ — | 167 |
+| Vector ≠ — | 224 |
+| Both ≠ — | 114 |
 | Both = — (gaps) | 150 |
 
 ### Per-section breakdown
@@ -440,13 +451,13 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
-| 2 | 80 | 31 | 44 | 20 | 25 |
-| 3 | 94 | 46 | 75 | 38 | 11 |
+| 2 | 83 | 32 | 48 | 22 | 25 |
+| 3 | 100 | 49 | 82 | 42 | 11 |
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 35 | 8 | 12 | 6 | 21 |
-| 6 | 20 | 15 | 5 | 5 | 5 |
-| 7 | 56 | 33 | 21 | 17 | 19 |
-| 8 | 15 | 5 | 13 | 4 | 1 |
+| 6 | 19 | 14 | 6 | 6 | 5 |
+| 7 | 62 | 39 | 27 | 23 | 19 |
+| 8 | 17 | 7 | 15 | 6 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |
 | 11 | 11 | 1 | 4 | 1 | 7 |
@@ -468,3 +479,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | reserved prefix examples arsiaprotocol.meta/ | §2.2 | — | — |
 | §2.1.10 item 2: SHOULD-set + MUST-warn | §2.1.10 | state-entry | — |
 | §10.4 rewritten; AEAD defined; legal_basis personal+sensitive | §10.4, §5.2 | — | — |
+| entry generation; preconditions across recreation (expected_generation, entry_live); PURGE repetition by generation; conflict details aligned (A-79, A-94, A-95) | §2.1.14, §2.4, §3.1.2, §3.2.2, §8.4 | state-entry, state-operations, audit-record, message | ITV-676..681, INV-81..91; harness R17 |

@@ -114,7 +114,7 @@
       "description": "Result for the GET operation: complete StateEntry object if found, null if the key does not exist, has been logically deleted, or has expired. Per ARSIA-State.md §3.1.1.",
       "oneOf": [
         {
-          "$ref": "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"
+          "$ref": "arsia-state-entry.schema.json"
         },
         {
           "type": "null"
@@ -214,7 +214,12 @@
         "expected_version": {
           "type": "integer",
           "minimum": 1,
-          "description": "For optimistic concurrency control. If set and does not match the current version, SET MUST be rejected with error code 'conflict'. Per ARSIA-State.md §3.1.2 rule 4."
+          "description": "Precondition on the live entry's version. If set and it does not match the live entry's version, or the key has no live entry, SET MUST be rejected with error code 'conflict'. Per ARSIA-State.md §3.1.2 rule 4."
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Precondition on the live entry's generation, checked with expected_version in one atomic check; SET MUST be rejected with 'conflict' when it does not hold or the key has no live entry. Per ARSIA-State.md §3.1.2 rule 4, §2.4."
         },
         "retention": {
           "type": "string",
@@ -321,7 +326,7 @@
     },
     "set-result": {
       "description": "Result for the SET operation: complete StateEntry object with updated version, updated_at, and implementation-set fields. Per ARSIA-State.md §3.1.2.",
-      "$ref": "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"
+      "$ref": "arsia-state-entry.schema.json"
     },
     "delete-args": {
       "type": "object",
@@ -440,7 +445,7 @@
         "entries": {
           "type": "array",
           "items": {
-            "$ref": "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"
+            "$ref": "arsia-state-entry.schema.json"
           },
           "description": "Array of StateEntry objects matching the filters."
         },
@@ -509,9 +514,9 @@
         "entries": {
           "type": "array",
           "items": {
-            "$ref": "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"
+            "$ref": "arsia-state-entry.schema.json"
           },
-          "description": "Array of StateEntry objects as they existed at as_of."
+          "description": "Array of StateEntry objects as they existed at as_of. A key can appear once per generation (ARSIA-State.md §3.2.1)."
         },
         "timestamp": {
           "allOf": [

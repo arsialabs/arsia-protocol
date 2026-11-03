@@ -280,6 +280,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   and ITV-663, which cite ACTIONS-15, -16, -17 and -18. Per-test classification
   (integral, partial, equivalent, absent) belongs to the coverage program; a literal
   reference to a test name does not count as coverage.
+  After the A-79 cycle: 85 (State 17, adding STATE-16 and STATE-17); their scenarios
+  are executed by harness R17.
 - **INV-39 and INV-38 fixtures (LM3, A-54):** INV-39 verifies under the Draft-02
   profile (only `security.sig` removed) and fails under the Draft-01 profile (the whole
   `security` removed), which is the scenario its description announces; the negative
@@ -303,6 +305,40 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   change is needed only if that review finds remaining ambiguity. A-88 does not
   authorize changing the retention calculation or its anchor, altering schemas or
   adding fields.
+  Resolved in the A-79 cycle: the generation model (State §2.1.14) keeps an update of
+  the same entry apart from a new entry after DELETE; §2.1.5 now states that
+  `created_at` is the creation time of the entry (generation) and is immutable for its
+  lifetime. Retention calculation and anchor are unchanged; the `generation` field
+  comes from A-79 (DR-5/D2), not from A-88. Closed by clarification and disposition
+  ([§18][ev18]).
+- **Published counts after the A-79 cycle:** 33 schemas (incl. meta), 800 vectors
+  (463/189/148), 15 keypairs, RTM 1981 / 1182, 124 consistency checks, harness
+  R1-R17; README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md and
+  test-vectors/README.md updated. docs/FAQ.md still said 154 skip_schema vectors (stale
+  since VC); it now says 148. README.md (two places) and docs/getting-started.md still
+  said 1,940 RTM rows (the DR-3/DR-4 total, stale since DR-1/DR-2 raised it to 1,970); they now say 1,981.
+- **State RTM coverage summary (A-79 cycle):** the "Coverage Gaps" summary of
+  docs/rtm/ARSIA-State.rtm.md stated 411 requirements while the table held 416 rows at
+  `df6219c` (§6 and §7 stale since earlier cycles); it is recomputed from the table
+  (427 rows after the cycle).
+- **STATE-01 (A-79 cycle):** its expected StateEntry now lists `generation` = `1`, a
+  consequence of the REQUIRED field (not listed in the cycle plan's text).
+- **SNAPSHOT `hash` construction (observed in the A-79 cycle, not fixed):** Actions
+  §1.4 requires a "cryptographic hash of the state data" in snapshot responses and the
+  schema requires `hash`, but no construction is defined. ITV-677 carries an
+  illustrative value (SHA-256 of the RFC 8785 form of its entries) that no rule
+  checks.
+- **Propagation impact (A-79 cycle):** implementations emit `generation` in every
+  StateEntry and in state_set, state_delete and state_purge records, accept
+  `expected_generation`, return the State §8.4 details (including `entry_live: false`)
+  and keep the highest generation per key while any information of it is held. The SDK
+  migration track carries this.
+- **Chain fixtures regenerated (A-79 cycle):** ITV-594 gained `generation`, so its
+  chain value and those of positions 4 and 5 changed. The record that tombstone
+  ITV-595 replaces is synthetic; its content is recorded in [§18][ev18] so the
+  tombstone value is reproducible. ITV-598, ITV-599 and ITV-602 were rederived from the
+  new ITV-594 and ITV-595 and fail with their stated reasons.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
+[ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

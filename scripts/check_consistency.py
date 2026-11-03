@@ -229,9 +229,11 @@ def resolution_vector_mismatches(vectors, rh):
     out = []
     for v in vectors:
         meta = v.get("test_metadata", {})
-        if meta.get("scenario") in ("resolution", "router", "execution", "timing"):
+        if meta.get("scenario") in ("resolution", "router", "execution", "timing", "state"):
             if meta["scenario"] == "timing":
                 got = rh.timing(v["message"], meta["input"]["recipient_time"], v.get("posture"))
+            elif meta["scenario"] == "state":
+                got = rh.state_case(meta["input"])
             else:
                 got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else rh.scenario_result(meta)
             miss = rh.subset_match(meta["expect"], got)
@@ -766,6 +768,37 @@ def coverage_claim_problems(skip_doc, vectors):
     return out
 
 
+def unresolved_refs(schemas):
+    """A-93: every $ref in every schema resolves in a registry built from the schemas' $id only (no
+    file-name fallback) — fragments, relative references and nested $id bases included."""
+    from referencing import Registry, Resource
+    from referencing.jsonschema import DRAFT202012
+    from urllib.parse import urljoin
+    reg = Registry().with_resources(
+        [(j["$id"], Resource.from_contents(j, default_specification=DRAFT202012)) for j in schemas.values()])
+    out = []
+
+    def walk(node, base, name):
+        if isinstance(node, dict):
+            if isinstance(node.get("$id"), str):
+                base = urljoin(base, node["$id"])
+            ref = node.get("$ref")
+            if isinstance(ref, str):
+                try:
+                    reg.resolver(base_uri=base).lookup(ref)
+                except Exception:
+                    out.append(f"{name}: {ref}")
+            for v in node.values():
+                walk(v, base, name)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v, base, name)
+
+    for name, j in sorted(schemas.items()):
+        walk(j, j["$id"], name)
+    return out
+
+
 def skip_structure_selftest(vectors):
     """A-42 self-test: the validator still validates runtime-only vectors structurally. A synthetic skip vector
     missing a required envelope field must make validate_vectors.py fail (a restored skip bypass goes dead)."""
@@ -817,6 +850,15 @@ def main() -> int:
         doc = json.load(open("test-vectors/arsia-test-vectors.json"))
         sample = next(x for x in doc["vectors"] if x["id"] == "CTV-01")["message"]
         check("strict $ref resolution (CTV-01)", not list(v.iter_errors(sample)))
+        dead = unresolved_refs(schemas)
+        check("every $ref in every schema resolves by $id (fragments, relative bases; A-93)", not dead,
+              ", ".join(dead[:5]))
+        planted = json.loads(json.dumps(schemas))
+        planted["arsia-state-operations.schema.json"]["$defs"]["set-result"]["$ref"] = \
+            "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"
+        check("$ref resolution self-test (a planted dead reference is detected)",
+              unresolved_refs(planted) == ["arsia-state-operations.schema.json: "
+                                           "https://arsiaprotocol.org/schemas/state-entry/v1.0.json"])
     except ImportError:
         print("skip strict-resolution check (referencing not installed)")
 

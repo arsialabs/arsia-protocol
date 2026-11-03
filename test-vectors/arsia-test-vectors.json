@@ -774,8 +774,8 @@
       "crypto": {
         "private_key_hex": "8b1edf8df671b6700fca6f4cf5bf227b6c172e8bee33b5399106f91be67259ed",
         "public_key_hex": "646c559fdb23b13fdd09aede9fbc3329c248bd116a0e02beee997f0d95c39193",
-        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2261303030303030322d666666662d343030312d383030312d303030303030303030313032222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c226964223a2261303030303030322d303030312d343030312d383030312d303030303030303030313032222c22696e74656e74223a22726573706f6e7365222c227061796c6f6164223a7b22726573756c74223a7b22637265617465645f6174223a22323032362d30342d30395431323a33303a30302e3030305a222c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f6167656e742f73657373696f6e2d636f756e746572222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a226167656e74222c22757064617465645f6174223a22323032362d30342d31305430383a35393a31322e3030305a222c2276616c7565223a7b22636f756e74223a34322c226c6173745f75706461746564223a22323032362d30342d31305430383a35393a31322e3030305a227d2c2276657273696f6e223a31377d2c2274797065223a22617273696170726f746f636f6c2e73746174652f676574227d2c22726f6f745f726571756573745f6964223a2261303030303030322d666666662d343030312d383030312d303030303030303030313032222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d636c69656e74222c227473223a22323032362d30342d31305430393a30353a30302e3530305a222c2276223a22322e30227d",
-        "signature_base64url": "TUx3i2gimWWqHwd2B-XQVefG7fHzFbhfubJwqQsQ7RppnHWlQyK9_JcjR7wDHYZ56SNxRaTSvzEBVE5CDHnfBw",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2261303030303030322d666666662d343030312d383030312d303030303030303030313032222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c226964223a2261303030303030322d303030312d343030312d383030312d303030303030303030313032222c22696e74656e74223a22726573706f6e7365222c227061796c6f6164223a7b22726573756c74223a7b22637265617465645f6174223a22323032362d30342d30395431323a33303a30302e3030305a222c2267656e65726174696f6e223a312c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f6167656e742f73657373696f6e2d636f756e746572222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a226167656e74222c22757064617465645f6174223a22323032362d30342d31305430383a35393a31322e3030305a222c2276616c7565223a7b22636f756e74223a34322c226c6173745f75706461746564223a22323032362d30342d31305430383a35393a31322e3030305a227d2c2276657273696f6e223a31377d2c2274797065223a22617273696170726f746f636f6c2e73746174652f676574227d2c22726f6f745f726571756573745f6964223a2261303030303030322d666666662d343030312d383030312d303030303030303030313032222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d636c69656e74222c227473223a22323032362d30342d31305430393a30353a30302e3530305a222c2276223a22322e30227d",
+        "signature_base64url": "7fK-KvWIv0ioZ6ANYeMvnMGNgnkiHhlfvgOMIqTRj3_E0WNVGlB33LkEEOFfAjmBGkLCHGMF4SHpzhkpaj8aDg",
         "expect_signature": "valid"
       },
       "message": {
@@ -799,13 +799,14 @@
             "pii_classification": "none",
             "created_at": "2026-04-09T12:30:00.000Z",
             "updated_at": "2026-04-10T08:59:12.000Z",
+            "generation": 1,
             "version": 17
           }
         },
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.compliance-checker#key1",
-          "sig": "TUx3i2gimWWqHwd2B-XQVefG7fHzFbhfubJwqQsQ7RppnHWlQyK9_JcjR7wDHYZ56SNxRaTSvzEBVE5CDHnfBw"
+          "sig": "7fK-KvWIv0ioZ6ANYeMvnMGNgnkiHhlfvgOMIqTRj3_E0WNVGlB33LkEEOFfAjmBGkLCHGMF4SHpzhkpaj8aDg"
         },
         "root_request_id": "a0000002-ffff-4001-8001-000000000102"
       },
@@ -905,8 +906,8 @@
       "crypto": {
         "private_key_hex": "8b1edf8df671b6700fca6f4cf5bf227b6c172e8bee33b5399106f91be67259ed",
         "public_key_hex": "646c559fdb23b13fdd09aede9fbc3329c248bd116a0e02beee997f0d95c39193",
-        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2261303030303030352d666666662d343030312d383030312d303030303030303030313035222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c226964223a2261303030303030352d303030312d343030312d383030312d303030303030303030313035222c22696e74656e74223a22726573706f6e7365222c227061796c6f6164223a7b22726573756c74223a7b2261735f6f66223a22323032362d30342d31305430393a31393a35392e3939395a222c22656e7472696573223a5b7b22637265617465645f6174223a22323032362d30342d30385431303a30303a30302e3030305a222c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f6167656e742f707265666572656e636573222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a226167656e74222c22757064617465645f6174223a22323032362d30342d30395431343a33303a30302e3030305a222c2276616c7565223a7b226c616e6775616765223a22656e2d4742222c227468656d65223a226c69676874227d2c2276657273696f6e223a337d2c7b22637265617465645f6174223a22323032362d30342d30315430383a30303a30302e3030305a222c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f7368617265642f7465616d2d636f6e666967222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a22736861726564222c22757064617465645f6174223a22323032362d30342d30355431313a32303a30302e3030305a222c2276616c7565223a7b22726574656e74696f6e5f706f6c696379223a22393064222c2274696d657a6f6e65223a224575726f70652f4c6973626f6e227d2c2276657273696f6e223a327d5d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736e617073686f74227d2c22726f6f745f726571756573745f6964223a2261303030303030352d666666662d343030312d383030312d303030303030303030313035222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d636c69656e74222c227473223a22323032362d30342d31305430393a32303a30302e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "KgIo8Mjf70y1inuJbKjbhQrw2sUj2mNwLTh0fedTK8zH8toq2WuDzABKpr1KqgwwGJy8jA5mxUAPMZfvdgFtDQ",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2261303030303030352d666666662d343030312d383030312d303030303030303030313035222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c226964223a2261303030303030352d303030312d343030312d383030312d303030303030303030313035222c22696e74656e74223a22726573706f6e7365222c227061796c6f6164223a7b22726573756c74223a7b2261735f6f66223a22323032362d30342d31305430393a31393a35392e3939395a222c22656e7472696573223a5b7b22637265617465645f6174223a22323032362d30342d30385431303a30303a30302e3030305a222c2267656e65726174696f6e223a312c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f6167656e742f707265666572656e636573222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a226167656e74222c22757064617465645f6174223a22323032362d30342d30395431343a33303a30302e3030305a222c2276616c7565223a7b226c616e6775616765223a22656e2d4742222c227468656d65223a226c69676874227d2c2276657273696f6e223a337d2c7b22637265617465645f6174223a22323032362d30342d30315430383a30303a30302e3030305a222c2267656e65726174696f6e223a312c226b6579223a226167656e743a61636d652e6563686f2d636c69656e742f7368617265642f7465616d2d636f6e666967222c226f776e65725f6167656e745f6964223a226167656e743a61636d652e6563686f2d636c69656e74222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a22736861726564222c22757064617465645f6174223a22323032362d30342d30355431313a32303a30302e3030305a222c2276616c7565223a7b22726574656e74696f6e5f706f6c696379223a22393064222c2274696d657a6f6e65223a224575726f70652f4c6973626f6e227d2c2276657273696f6e223a327d5d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736e617073686f74227d2c22726f6f745f726571756573745f6964223a2261303030303030352d666666662d343030312d383030312d303030303030303030313035222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d636c69656e74222c227473223a22323032362d30342d31305430393a32303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "kfIsEcn60NaI4DPBd7p5gUdwXRJvURxXkHq5TkFA6-ZHSqltaJooOrG4qbfBHWXKjUm5m6TR76Fh1eR_QyR_Cg",
         "expect_signature": "valid"
       },
       "message": {
@@ -933,6 +934,7 @@
                 "pii_classification": "none",
                 "created_at": "2026-04-08T10:00:00.000Z",
                 "updated_at": "2026-04-09T14:30:00.000Z",
+                "generation": 1,
                 "version": 3
               },
               {
@@ -946,6 +948,7 @@
                 "pii_classification": "none",
                 "created_at": "2026-04-01T08:00:00.000Z",
                 "updated_at": "2026-04-05T11:20:00.000Z",
+                "generation": 1,
                 "version": 2
               }
             ]
@@ -954,7 +957,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.compliance-checker#key1",
-          "sig": "KgIo8Mjf70y1inuJbKjbhQrw2sUj2mNwLTh0fedTK8zH8toq2WuDzABKpr1KqgwwGJy8jA5mxUAPMZfvdgFtDQ"
+          "sig": "kfIsEcn60NaI4DPBd7p5gUdwXRJvURxXkHq5TkFA6-ZHSqltaJooOrG4qbfBHWXKjUm5m6TR76Fh1eR_QyR_Cg"
         },
         "root_request_id": "a0000005-ffff-4001-8001-000000000105"
       },
@@ -2846,7 +2849,7 @@
     },
     {
       "id": "ITV-16",
-      "description": "Audit record with event_type='state_set' and human_oversight_status='denied' — exercises 2 untested enum values. approver_id is required when human_oversight_status is 'denied'. Includes state-operation fields (key, owner, actor, version, pii_classification, timestamp). Per State §7.1.",
+      "description": "Audit record with event_type='state_set' and human_oversight_status='denied' — exercises 2 untested enum values. approver_id is required when human_oversight_status is 'denied'. Includes state-operation fields (key, owner, actor, generation, version, pii_classification, timestamp). Per State §7.1.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -2867,6 +2870,7 @@
         "key": "agent:arsialabs.demo/config/risk-threshold",
         "owner_agent_id": "agent:arsialabs.demo.data-agent",
         "actor_agent_id": "agent:arsialabs.demo.data-agent",
+        "generation": 1,
         "version": 3,
         "pii_classification": "none",
         "timestamp": "2026-04-27T12:04:59.500Z",
@@ -3111,6 +3115,7 @@
         "updated_at": "2026-04-27T12:15:00.000Z",
         "expires_at": "2026-04-27T13:10:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 3
       },
       "expected_error": null
@@ -3128,6 +3133,7 @@
         "created_at": "2026-04-01T00:00:00.000Z",
         "updated_at": "2026-04-27T08:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 14
       },
       "expected_error": null
@@ -4572,7 +4578,7 @@
     },
     {
       "id": "ITV-82",
-      "description": "Valid error message — conflict with version details. Exercises error-details-conflict-version $def triggered by details.current_version. Per State §8.4.",
+      "description": "Valid error message — conflict on a live entry with the State §8.4 details (current_generation, current_version, expected_version, updated_at, updated_by). Exercises the error-details-conflict-version $def, selected by any optimistic-concurrency member. Per State §8.4.",
       "schema_ref": "arsia-message.schema.json",
       "expected": "valid",
       "data": {
@@ -4589,6 +4595,7 @@
             "code": "conflict",
             "description": "Optimistic concurrency conflict: expected version 3, current is 5",
             "details": {
+              "current_generation": 1,
               "current_version": 5,
               "expected_version": 3,
               "updated_at": "2026-04-27T13:55:00.000Z",
@@ -4869,7 +4876,7 @@
     },
     {
       "id": "ITV-87",
-      "description": "INVALID — conflict error with details.current_version but missing details.expected_version. The conflict-version conditional fires (details has current_version) and the $def requires expected_version. Per State §8.4.",
+      "description": "INVALID — conflict error on a live entry whose details carry current_generation, current_version, updated_at and updated_by but state no precondition: the conflict-version conditional requires at least one of expected_version or expected_generation. Per State §8.4, §3.1.2 rule 4.",
       "schema_ref": "arsia-message.schema.json",
       "expected": "invalid",
       "data": {
@@ -4886,7 +4893,10 @@
             "code": "conflict",
             "description": "Optimistic concurrency conflict",
             "details": {
-              "current_version": 5
+              "current_generation": 1,
+              "current_version": 5,
+              "updated_at": "2026-04-27T13:55:00.000Z",
+              "updated_by": "agent:arsialabs.demo.other-writer"
             }
           }
         },
@@ -4897,7 +4907,7 @@
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b915"
       },
-      "expected_error": "required — details missing 'expected_version' when conflict-version conditional fires — State §8.4"
+      "expected_error": "anyOf — details state no precondition (expected_version or expected_generation) — State §8.4"
     },
     {
       "id": "ITV-88",
@@ -6229,6 +6239,7 @@
         "key": "agent:arsialabs.demo/session/expired-token",
         "owner_agent_id": "agent:arsialabs.demo.data-agent",
         "actor_agent_id": "agent:arsialabs.demo.data-agent",
+        "generation": 1,
         "version": 2,
         "timestamp": "2026-04-27T13:59:59.500Z",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -6677,6 +6688,7 @@
         "key": "agent:arsialabs.demo/user/personal-data",
         "owner_agent_id": "agent:arsialabs.demo.data-agent",
         "initiator_agent_id": "agent:arsialabs.demo.data-agent",
+        "generation": 1,
         "purged_at": "2026-04-27T14:00:00.500Z",
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -7731,6 +7743,7 @@
         "expires_at": "2027-01-15T08:00:00.000Z",
         "data_residency": "PT",
         "pii_classification": "personal",
+        "generation": 1,
         "version": 5,
         "deleted": true,
         "retention": "P365D"
@@ -8031,14 +8044,14 @@
     },
     {
       "id": "ITV-151",
-      "description": "Valid error response — error code 'conflict'. Exercises untested error.code enum value. Includes error-details-conflict-version $def with current_version and expected_version. Per Core §11.2.",
+      "description": "Valid error response — error code 'conflict'. Exercises untested error.code enum value. Includes the error-details-conflict-version $def with current_generation, current_version, expected_version, updated_at and updated_by. Per Core §11.2, State §8.4.",
       "valid": true,
       "category": "core",
       "crypto": {
         "private_key_hex": "b6f4f453d6a69231275abf3bf7f2f8b60c7016034d612657814ec5fd69907185",
         "public_key_hex": "1a5150838e2e8f4b3f2342df4cfdc792d12351e0ff687b402b0add95ed9fc6bf",
-        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2235623465323266312d323464392d346332332d613437352d323564396338633262343037222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e67617465776179222c226964223a2234333734323664622d333466362d346134352d383531612d616263643036333561363032222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a2253746174652076657273696f6e20636f6e666c69637420647572696e67206f7074696d697374696320636f6e63757272656e637920757064617465222c2264657461696c73223a7b2263757272656e745f76657273696f6e223a352c2265787065637465645f76657273696f6e223a332c22757064617465645f6174223a22323032362d30342d32375430393a35303a30302e3030305a222c22757064617465645f6279223a226167656e743a61727369616c6162732e64656d6f2e6f746865722d6167656e74227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2235623465323266312d323464392d346332332d613437352d323564396338633262343037222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e67617465776179236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636c69656e74222c227473223a22323032362d30342d32375431303a30333a30302e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "CIi7ikGZbbiqgczhPIqVfoGhZ586lcddNPoWt1vf4ZnUI9v1aLMgZOHmHXpsARtf1pEmrlODLfj88mvs4CLSAA",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2235623465323266312d323464392d346332332d613437352d323564396338633262343037222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e67617465776179222c226964223a2234333734323664622d333466362d346134352d383531612d616263643036333561363032222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a2253746174652076657273696f6e20636f6e666c69637420647572696e67206f7074696d697374696320636f6e63757272656e637920757064617465222c2264657461696c73223a7b2263757272656e745f67656e65726174696f6e223a312c2263757272656e745f76657273696f6e223a352c2265787065637465645f76657273696f6e223a332c22757064617465645f6174223a22323032362d30342d32375430393a35303a30302e3030305a222c22757064617465645f6279223a226167656e743a61727369616c6162732e64656d6f2e6f746865722d6167656e74227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2235623465323266312d323464392d346332332d613437352d323564396338633262343037222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e67617465776179236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636c69656e74222c227473223a22323032362d30342d32375431303a30333a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "QQJXM9WIEstVBzvtoLIZBLIKtlgTxRP8TFGDzgXnoLDgftJh2vkby3V69sWe5nf7ys2-nNXnMFH-nnjxRpU8Cw",
         "expect_signature": "valid"
       },
       "message": {
@@ -8055,6 +8068,7 @@
             "code": "conflict",
             "description": "State version conflict during optimistic concurrency update",
             "details": {
+              "current_generation": 1,
               "current_version": 5,
               "expected_version": 3,
               "updated_at": "2026-04-27T09:50:00.000Z",
@@ -8065,7 +8079,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.gateway#key1",
-          "sig": "CIi7ikGZbbiqgczhPIqVfoGhZ586lcddNPoWt1vf4ZnUI9v1aLMgZOHmHXpsARtf1pEmrlODLfj88mvs4CLSAA"
+          "sig": "QQJXM9WIEstVBzvtoLIZBLIKtlgTxRP8TFGDzgXnoLDgftJh2vkby3V69sWe5nf7ys2-nNXnMFH-nnjxRpU8Cw"
         },
         "root_request_id": "5b4e22f1-24d9-4c23-a475-25d9c8c2b407"
       },
@@ -9013,6 +9027,7 @@
         "created_at": "2026-01-15T08:00:00.000Z",
         "updated_at": "2026-03-15T14:30:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 3,
         "deleted": true,
         "retention": "P90D"
@@ -9242,6 +9257,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": "invalid_request"
@@ -9259,6 +9275,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -9280,6 +9297,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -9331,6 +9349,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -9369,6 +9388,7 @@
         "updated_at": "2026-01-01T00:00:00.000Z",
         "expires_at": "2026-03-01T00:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1,
         "retention": "P365D"
       },
@@ -9410,6 +9430,7 @@
         "updated_at": "2026-01-01T00:00:00.000Z",
         "expires_at": "2026-02-01T00:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -9429,6 +9450,7 @@
         "created_at": "2026-03-01T00:00:00.000Z",
         "updated_at": "2026-04-01T00:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 2,
         "deleted": true,
         "retention": "P90D"
@@ -9512,13 +9534,14 @@
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "personal",
         "data_residency": "PT",
+        "generation": 1,
         "version": 2
       },
       "expected_error": null
     },
     {
       "id": "ITV-204",
-      "description": "State §2.1.11: Valid state entry with version 1 — when a deleted key is recreated via SET, the new entry starts with version 1. Prior history is retained for SNAPSHOT. Per ARSIA-State.md §2.1.11.",
+      "description": "State §2.1.12: Valid state entry recreated after DELETE — the recreated key starts a new generation (2) at version 1 (State §2.1.14, §2.4). Prior history is retained for SNAPSHOT under generation 1. Per ARSIA-State.md §2.1.12, §2.1.14.",
       "schema_ref": "arsia-state-entry.schema.json",
       "expected": "valid",
       "data": {
@@ -9531,6 +9554,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 2,
         "version": 1
       },
       "expected_error": null
@@ -9551,6 +9575,7 @@
         "created_at": "2026-04-15T10:00:00.000Z",
         "updated_at": "2026-04-15T10:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -9570,6 +9595,7 @@
         "created_at": "2026-03-01T00:00:00.000Z",
         "updated_at": "2026-04-01T00:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 3,
         "deleted": true
       },
@@ -10017,7 +10043,7 @@
     },
     {
       "id": "ITV-220",
-      "description": "State §3.1.2: Valid state_set audit record — when audit_required is true, SET MUST generate an audit event of type 'state_set' with key, owner, actor, version, pii_classification, and timestamp. Per ARSIA-State.md §3.1.2.",
+      "description": "State §3.1.2: Valid state_set audit record — when audit_required is true, SET MUST generate an audit event of type 'state_set' with key, owner, actor, generation, version, pii_classification, and timestamp. Per ARSIA-State.md §3.1.2.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -10035,6 +10061,7 @@
         "key": "agent:acme.billing/invoice/current-total",
         "owner_agent_id": "agent:acme.billing",
         "actor_agent_id": "agent:acme.billing",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-04-15T09:59:59.500Z",
@@ -10168,6 +10195,7 @@
         "key": "agent:acme.billing/customer/profile-hash",
         "owner_agent_id": "agent:acme.billing",
         "actor_agent_id": "agent:acme.billing",
+        "generation": 1,
         "version": 2,
         "pii_classification": "pseudonymised",
         "timestamp": "2026-04-15T09:59:59.500Z",
@@ -10301,6 +10329,7 @@
         "key": "agent:acme.billing/invoice/draft-2026Q1",
         "owner_agent_id": "agent:acme.billing",
         "actor_agent_id": "agent:acme.billing",
+        "generation": 1,
         "version": 3,
         "timestamp": "2026-04-15T09:59:59.500Z",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -10553,6 +10582,7 @@
         "key": "agent:acme.billing/customer/payment-method",
         "owner_agent_id": "agent:acme.billing",
         "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -10816,6 +10846,7 @@
         "key": "agent:acme.billing/customer/contact-info",
         "owner_agent_id": "agent:acme.billing",
         "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -10930,7 +10961,7 @@
     },
     {
       "id": "ITV-239",
-      "description": "State §3.2.2: Valid PURGE operation — PURGE is idempotent. A second PURGE on the same key MUST return success and MUST NOT generate a second audit event. Per ARSIA-State.md §3.2.2.",
+      "description": "State §3.2.2: Valid PURGE operation — repeated PURGE without a later write is idempotent: it MUST return success with the original purged_at and MUST NOT generate a second audit event (Idempotency rule 2). Per ARSIA-State.md §3.2.2.",
       "schema_ref": "arsia-state-operations.schema.json",
       "expected": "valid",
       "data": {
@@ -11307,6 +11338,7 @@
         "created_at": "2026-04-15T09:00:00.000Z",
         "updated_at": "2026-04-15T09:00:00.000Z",
         "pii_classification": "pseudonymised",
+        "generation": 1,
         "version": 1,
         "data_residency": "EU",
         "retention": "P1827D"
@@ -11349,6 +11381,7 @@
         "created_at": "2026-04-15T09:00:00.000Z",
         "updated_at": "2026-04-15T09:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1,
         "retention": "P365D"
       },
@@ -11494,6 +11527,7 @@
         "created_at": "2026-04-15T09:00:00.000Z",
         "updated_at": "2026-04-15T09:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -11513,6 +11547,7 @@
         "created_at": "2026-04-15T09:00:00.000Z",
         "updated_at": "2026-04-15T09:00:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 1
       },
       "expected_error": null
@@ -11689,6 +11724,7 @@
         "key": "agent:acme.billing/compliance/audit-flag",
         "owner_agent_id": "agent:acme.billing",
         "actor_agent_id": "agent:acme.billing",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-04-15T09:59:59.500Z",
@@ -11858,6 +11894,7 @@
         "key": "agent:acme.billing/customer/address",
         "owner_agent_id": "agent:acme.billing",
         "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
         "purged_at": "2026-04-15T10:00:00.500Z",
         "pii_classification": "personal",
         "compliance_profile_declared": "GDPR-STANDARD",
@@ -11973,6 +12010,7 @@
         "created_at": "2026-04-15T09:00:00.000Z",
         "updated_at": "2026-04-15T14:30:00.000Z",
         "pii_classification": "pseudonymised",
+        "generation": 1,
         "version": 3,
         "data_residency": "EU",
         "retention": "P180D"
@@ -21464,7 +21502,7 @@
     },
     {
       "id": "ITV-527",
-      "description": "State §3.1.2: INVALID state_set audit record — missing required 'key' field. When event_type is 'state_set', schema requires key, owner_agent_id, actor_agent_id, version, pii_classification, and timestamp. This vector omits 'key' and must be rejected.",
+      "description": "State §3.1.2: INVALID state_set audit record — missing required 'key' field. When event_type is 'state_set', schema requires key, owner_agent_id, actor_agent_id, generation, version, pii_classification, and timestamp. This vector omits 'key' and must be rejected.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -21481,6 +21519,7 @@
         "payload_type": "arsiaprotocol.state/set",
         "owner_agent_id": "agent:acme.testing",
         "actor_agent_id": "agent:acme.testing",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-05-01T09:59:59.500Z",
@@ -21583,7 +21622,7 @@
     },
     {
       "id": "ITV-528",
-      "description": "State §3.1.3: INVALID state_delete audit record — missing required 'version' field. When event_type is 'state_delete', schema requires key, owner_agent_id, actor_agent_id, version, and timestamp. This vector omits 'version' and must be rejected.",
+      "description": "State §3.1.3: INVALID state_delete audit record — missing required 'version' field. When event_type is 'state_delete', schema requires key, owner_agent_id, actor_agent_id, generation, version, and timestamp. This vector omits 'version' and must be rejected.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -21695,13 +21734,14 @@
           }
         },
         "effective_retention": "P90D",
-        "retention_anchor": "2026-05-01T10:00:00.000Z"
+        "retention_anchor": "2026-05-01T10:00:00.000Z",
+        "generation": 1
       },
       "expected_error": "'version' is a required property"
     },
     {
       "id": "ITV-529",
-      "description": "State §3.2.2: INVALID state_purge audit record — missing required 'purged_at' field. When event_type is 'state_purge', schema requires key, owner_agent_id, initiator_agent_id, purged_at, and pii_classification. This vector omits 'purged_at' and must be rejected.",
+      "description": "State §3.2.2: INVALID state_purge audit record — missing required 'purged_at' field. When event_type is 'state_purge', schema requires key, owner_agent_id, initiator_agent_id, generation, purged_at, and pii_classification. This vector omits 'purged_at' and must be rejected.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -21813,7 +21853,8 @@
           }
         },
         "effective_retention": "P90D",
-        "retention_anchor": "2026-05-01T10:00:00.000Z"
+        "retention_anchor": "2026-05-01T10:00:00.000Z",
+        "generation": 1
       },
       "expected_error": "'purged_at' is a required property"
     },
@@ -22525,6 +22566,7 @@
         "key": "agent:acme.data-agent/user/profile-540",
         "owner_agent_id": "agent:acme.data-agent",
         "actor_agent_id": "agent:acme.data-agent",
+        "generation": 1,
         "version": 1,
         "pii_classification": "personal",
         "legal_basis": "consent",
@@ -24944,6 +24986,7 @@
         "updated_at": "2026-04-27T12:15:00.000Z",
         "expires_at": "2026-04-27T13:10:00.000Z",
         "pii_classification": "none",
+        "generation": 1,
         "version": 3,
         "retention_days": 90
       },
@@ -26233,13 +26276,14 @@
         "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
         "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
         "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-09-28T10:06:00.000Z",
         "chain_id": "d5c00592-0000-4000-8000-000000000592",
         "chain_seq": 3,
         "chain_format": 1,
-        "hash_chain": "2478e11305e04df263e9ecaaf1dd8d219c88f472bc0f1279c366994f413db76b",
+        "hash_chain": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -26353,8 +26397,8 @@
         "chain_id": "d5c00592-0000-4000-8000-000000000592",
         "chain_seq": 4,
         "chain_format": 1,
-        "hash_chain": "abe382b516fb44011c97e596fcf2ba7455008908a30b9acc7f3065872c23cfee",
-        "previous_chain_value": "2478e11305e04df263e9ecaaf1dd8d219c88f472bc0f1279c366994f413db76b"
+        "hash_chain": "d4e0f1c017b63f54f8f5c100a4a65a5c06faa76a7523c382fed9b5b146ee041a",
+        "previous_chain_value": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe"
       },
       "expected_error": null
     },
@@ -26387,7 +26431,7 @@
         "chain_id": "d5c00592-0000-4000-8000-000000000592",
         "chain_seq": 5,
         "chain_format": 1,
-        "hash_chain": "4ae02bb0a31d495af0edce39cd8b5aa627a4d7b4ad9ef5be73c476a45a62ee14",
+        "hash_chain": "3bfc1ad981e5226b8816846d57c381fa5e992b07ba4bc6fabf020e3d9ad8c9c9",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -26554,13 +26598,14 @@
         "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
         "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
         "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-09-28T10:06:00.000Z",
         "chain_id": "d5c00598-0000-4000-8000-000000000598",
         "chain_seq": 3,
         "chain_format": 1,
-        "hash_chain": "2478e11305e04df263e9ecaaf1dd8d219c88f472bc0f1279c366994f413db76b",
+        "hash_chain": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -26674,7 +26719,7 @@
         "chain_id": "d5c00592-0000-4000-8000-000000000592",
         "chain_seq": 4,
         "chain_format": 1,
-        "hash_chain": "abe382b516fb44011c97e596fcf2ba7455008908a30b9acc7f3065872c23cfee",
+        "hash_chain": "d4e0f1c017b63f54f8f5c100a4a65a5c06faa76a7523c382fed9b5b146ee041a",
         "previous_chain_value": "0000000000000000000000000000000000000000000000000000000000000000"
       },
       "expected_error": null
@@ -27128,13 +27173,14 @@
         "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
         "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
         "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-09-28T10:06:00.000Z",
         "chain_id": "d5c00592-0000-4000-8000-000000000592",
         "chain_seq": 3,
         "chain_format": 1,
-        "hash_chain": "2478e11305e04df263e9ecaaf1dd8d219c88f472bc0f1279c366994f413db76b",
+        "hash_chain": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -28214,6 +28260,7 @@
         "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
         "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
         "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+        "generation": 1,
         "version": 1,
         "pii_classification": "none",
         "timestamp": "2026-09-28T10:06:00.000Z"
@@ -32712,6 +32759,1180 @@
         "trace_hint": "introduced-in-v2.1"
       },
       "expected_error": null
+    },
+    {
+      "id": "INV-81",
+      "description": "INVALID — StateEntry without generation: generation is REQUIRED and set by the implementation (State §2.1.14).",
+      "schema_ref": "arsia-state-entry.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "key": "agent:acme.billing/agent/active-entry",
+        "value": {
+          "status": "active",
+          "priority": 5
+        },
+        "owner_agent_id": "agent:acme.billing",
+        "scope": "agent",
+        "created_at": "2026-04-15T10:00:00.000Z",
+        "updated_at": "2026-04-15T10:00:00.000Z",
+        "pii_classification": "none",
+        "version": 1
+      },
+      "expected_error": "'generation' is a required property"
+    },
+    {
+      "id": "INV-82",
+      "description": "INVALID — StateEntry with generation 0: generation is an integer ≥ 1 (State §2.1.14).",
+      "schema_ref": "arsia-state-entry.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "key": "agent:acme.billing/agent/active-entry",
+        "value": {
+          "status": "active",
+          "priority": 5
+        },
+        "owner_agent_id": "agent:acme.billing",
+        "scope": "agent",
+        "created_at": "2026-04-15T10:00:00.000Z",
+        "updated_at": "2026-04-15T10:00:00.000Z",
+        "pii_classification": "none",
+        "generation": 0,
+        "version": 1
+      },
+      "expected_error": "minimum — generation 0 is less than the minimum of 1"
+    },
+    {
+      "id": "ITV-676",
+      "description": "Valid SET with both preconditions — expected_generation and expected_version are checked against the live entry in one atomic check (State §3.1.2 rule 4, §2.4).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/set",
+        "args": {
+          "key": "agent:acme.billing/agent/profile",
+          "value": {
+            "tier": "gold"
+          },
+          "scope": "agent",
+          "pii_classification": "none",
+          "expected_generation": 2,
+          "expected_version": 4
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "INV-83",
+      "description": "INVALID — SET with expected_generation 0: the precondition is an integer ≥ 1 (State §3.1.2).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/set",
+        "args": {
+          "key": "agent:acme.billing/agent/profile",
+          "value": {
+            "tier": "gold"
+          },
+          "scope": "agent",
+          "pii_classification": "none",
+          "expected_generation": 0,
+          "expected_version": 4
+        }
+      },
+      "expected_error": "minimum — expected_generation 0 is less than the minimum of 1"
+    },
+    {
+      "id": "INV-84",
+      "description": "INVALID — state_set audit record without generation: State §7.1 makes generation a REQUIRED extension of state_set records (§3.1.2, §2.1.14).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "297d43b5-239e-4eb9-ae0a-b2de6b152dc4",
+        "message_id": "9a9c9f1b-8f95-4ac2-a276-0c0a19f7eeee",
+        "event_type": "state_set",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:acme.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/set",
+        "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "processed_at": "2026-04-15T10:00:00.000Z",
+        "retained_until": "2026-10-12T10:00:00.000Z",
+        "operator_id": "VAT:PT501234567",
+        "key": "agent:acme.billing/invoice/current-total",
+        "owner_agent_id": "agent:acme.billing",
+        "actor_agent_id": "agent:acme.billing",
+        "version": 1,
+        "pii_classification": "none",
+        "timestamp": "2026-04-15T09:59:59.500Z",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "EU-AI-ACT-HIGH-RISK",
+            "applied": "EU-AI-ACT-HIGH-RISK",
+            "source": {
+              "name": "EU-AI-ACT-HIGH-RISK",
+              "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P6M",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "EU-AI-ACT-HIGH-RISK",
+                    "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                  },
+                  "fact": null,
+                  "minimum": "P6M"
+                }
+              ],
+              "result": {
+                "duration": "P6M",
+                "anchor": "2026-04-15T10:00:00.000Z",
+                "retained_until": "2026-10-15T10:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P6M",
+        "retention_anchor": "2026-04-15T10:00:00.000Z"
+      },
+      "expected_error": "'generation' is a required property"
+    },
+    {
+      "id": "INV-85",
+      "description": "INVALID — state_purge audit record without generation: the latest generation the PURGE covers is REQUIRED (State §3.2.2, §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "record_id": "b224d753-bf13-4e7e-af27-1ba264bf93ff",
+        "message_id": "38f81d22-69a6-408c-aae2-36debb4f9eaa",
+        "event_type": "state_purge",
+        "from_agent": "agent:arsialabs.demo.data-agent",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:arsialabs.demo/user/personal-data",
+        "owner_agent_id": "agent:arsialabs.demo.data-agent",
+        "initiator_agent_id": "agent:arsialabs.demo.data-agent",
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "'generation' is a required property"
+    },
+    {
+      "id": "INV-86",
+      "description": "INVALID — conflict on a live entry whose details omit current_generation (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "f828de75-9b04-48ec-ab61-f2e5106ea3bd",
+        "ts": "2026-04-15T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "07432098-a87f-4a92-a26a-20fdebce1876",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "Optimistic concurrency conflict",
+            "details": {
+              "current_version": 5,
+              "expected_version": 3,
+              "updated_at": "2026-04-15T12:00:00.000Z",
+              "updated_by": "agent:acme.billing"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "ENFG8Z7s7W43cSOyN82Gx3A_YQVVbuRBEbm-Bxqi-fFVvJEGhkAzSr6yNDsswlitsvHIcTT3A7dRB-qRYHnFAw"
+        },
+        "root_request_id": "07432098-a87f-4a92-a26a-20fdebce1876"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2230373433323039382d613837662d346139322d613236612d323066646562636531383736222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266383238646537352d396230342d343865632d616236312d663265353130366561336264222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224f7074696d697374696320636f6e63757272656e637920636f6e666c696374222c2264657461696c73223a7b2263757272656e745f76657273696f6e223a352c2265787065637465645f76657273696f6e223a332c22757064617465645f6174223a22323032362d30342d31355431323a30303a30302e3030305a222c22757064617465645f6279223a226167656e743a61636d652e62696c6c696e67227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2230373433323039382d613837662d346139322d613236612d323066646562636531383736222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "ENFG8Z7s7W43cSOyN82Gx3A_YQVVbuRBEbm-Bxqi-fFVvJEGhkAzSr6yNDsswlitsvHIcTT3A7dRB-qRYHnFAw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "'current_generation' is a required property"
+    },
+    {
+      "id": "INV-87",
+      "description": "INVALID — absent-entry conflict details carrying current_version: with entry_live false the details MUST NOT include current_* or updated_* members (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "896155f6-59af-49e9-a031-e1a8a10b385f",
+        "ts": "2026-04-15T12:00:02.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "e388b710-43f7-4ef4-ae46-a2774585687a",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "No live entry",
+            "details": {
+              "entry_live": false,
+              "expected_version": 1,
+              "current_version": 2
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "8tKZP9pJKW2k_5fjRQ-j2vjZkjjh5Hm_jB8bEqY4YPQmseevCm8wl-Tat-1_DEZpi7Vff71FdpSeu1GaDAMqCw"
+        },
+        "root_request_id": "e388b710-43f7-4ef4-ae46-a2774585687a"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2265333838623731302d343366372d346566342d616534362d613237373435383536383761222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2238393631353566362d353961662d343965392d613033312d653161386131306233383566222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224e6f206c69766520656e747279222c2264657461696c73223a7b2263757272656e745f76657273696f6e223a322c22656e7472795f6c697665223a66616c73652c2265787065637465645f76657273696f6e223a317d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2265333838623731302d343366372d346566342d616534362d613237373435383536383761222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30322e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "8tKZP9pJKW2k_5fjRQ-j2vjZkjjh5Hm_jB8bEqY4YPQmseevCm8wl-Tat-1_DEZpi7Vff71FdpSeu1GaDAMqCw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "additionalProperties — current_version is not allowed when entry_live is false"
+    },
+    {
+      "id": "INV-88",
+      "description": "INVALID — SNAPSHOT result whose entry has no generation: the entries are validated against the StateEntry schema through the resolved $ref (State §3.2.1, §2.1.14; A-93).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/snapshot",
+        "result": {
+          "as_of": "2026-04-15T13:00:00.000Z",
+          "entries": [
+            {
+              "key": "agent:acme.billing/agent/active-entry",
+              "value": {
+                "status": "active",
+                "priority": 5
+              },
+              "owner_agent_id": "agent:acme.billing",
+              "scope": "agent",
+              "created_at": "2026-04-15T10:00:00.000Z",
+              "updated_at": "2026-04-15T10:00:00.000Z",
+              "pii_classification": "none",
+              "version": 1
+            }
+          ],
+          "timestamp": "2026-04-15T13:00:01.000Z",
+          "hash": "sha256:e36c545c04966a5720b037fb097bce927fa61c7bfafb28df2fd552833080a65d"
+        }
+      },
+      "expected_error": "'generation' is a required property"
+    },
+    {
+      "id": "INV-89",
+      "description": "INVALID — conflict details with current_generation, expected_generation, updated_at and updated_by but no current_version: any optimistic-concurrency member selects the live-entry branch, which requires current_version (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "3aa07642-514a-4b88-a6df-b59f82652146",
+        "ts": "2026-04-15T12:00:03.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "08203d72-4f69-44c9-acbf-f120efb36995",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "Optimistic concurrency conflict",
+            "details": {
+              "current_generation": 1,
+              "expected_generation": 2,
+              "updated_at": "2026-04-15T12:00:00.000Z",
+              "updated_by": "agent:acme.billing"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "hTNUZXGKcpKfss_ieLpRblibm8Il9PXb9GgddTCWoze3wrTeJbo-RAjk2wKA4cOf_pwPEK8X-evCyHQ5lIVfDg"
+        },
+        "root_request_id": "08203d72-4f69-44c9-acbf-f120efb36995"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2230383230336437322d346636392d343463392d616362662d663132306566623336393935222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2233616130373634322d353134612d346238382d613664662d623539663832363532313436222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224f7074696d697374696320636f6e63757272656e637920636f6e666c696374222c2264657461696c73223a7b2263757272656e745f67656e65726174696f6e223a312c2265787065637465645f67656e65726174696f6e223a322c22757064617465645f6174223a22323032362d30342d31355431323a30303a30302e3030305a222c22757064617465645f6279223a226167656e743a61636d652e62696c6c696e67227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2230383230336437322d346636392d343463392d616362662d663132306566623336393935222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30332e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "hTNUZXGKcpKfss_ieLpRblibm8Il9PXb9GgddTCWoze3wrTeJbo-RAjk2wKA4cOf_pwPEK8X-evCyHQ5lIVfDg",
+        "expect_signature": "valid"
+      },
+      "expected_error": "'current_version' is a required property"
+    },
+    {
+      "id": "INV-90",
+      "description": "INVALID — absent-entry conflict details with a non-integer precondition (State §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "0a9c524e-b7f0-4627-af13-ab92717183fb",
+        "ts": "2026-04-15T12:00:04.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "092c7f6a-c676-4a25-aadc-5d2c9f77a9c9",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "No live entry",
+            "details": {
+              "entry_live": false,
+              "expected_generation": "bad"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "M7VWZ_6GTHK3VD7gUyHYNqPQoqndNSQOnLTsolsIAhd1PivIY_kR66p9aXRg-FJr3PBmiXekO8hV2u-yZei4Dw"
+        },
+        "root_request_id": "092c7f6a-c676-4a25-aadc-5d2c9f77a9c9"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2230393263376636612d633637362d346132352d616164632d356432633966373761396339222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2230613963353234652d623766302d343632372d616631332d616239323731373138336662222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224e6f206c69766520656e747279222c2264657461696c73223a7b22656e7472795f6c697665223a66616c73652c2265787065637465645f67656e65726174696f6e223a22626164227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2230393263376636612d633637362d346132352d616164632d356432633966373761396339222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30342e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "M7VWZ_6GTHK3VD7gUyHYNqPQoqndNSQOnLTsolsIAhd1PivIY_kR66p9aXRg-FJr3PBmiXekO8hV2u-yZei4Dw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "type — expected_generation 'bad' is not of type integer"
+    },
+    {
+      "id": "INV-91",
+      "description": "INVALID — absent-entry conflict details with an extra member revealing a former deletion: the details MUST NOT distinguish a deleted key from a key never written (State §3.1.2 rule 4, §8.4).",
+      "valid": false,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "3eabd9b7-af25-4b72-a565-15d41a9dfeb9",
+        "ts": "2026-04-15T12:00:05.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "1864f617-5c3d-4bce-a88f-68755edf896b",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "No live entry",
+            "details": {
+              "entry_live": false,
+              "expected_version": 1,
+              "previously_deleted": true
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "Qouwwkvy3YJAWpulvVsZenwYdzUAnE7MOdpWzEfr84E2ij92GnufPuBfamiB-Y1g6MmyZumlkJsv4p3OaW1lCg"
+        },
+        "root_request_id": "1864f617-5c3d-4bce-a88f-68755edf896b"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2231383634663631372d356333642d346263652d613838662d363837353565646638393662222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2233656162643962372d616632352d346237322d613536352d313564343161396466656239222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224e6f206c69766520656e747279222c2264657461696c73223a7b22656e7472795f6c697665223a66616c73652c2265787065637465645f76657273696f6e223a312c2270726576696f75736c795f64656c65746564223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2231383634663631372d356333642d346263652d613838662d363837353565646638393662222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30352e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "Qouwwkvy3YJAWpulvVsZenwYdzUAnE7MOdpWzEfr84E2ij92GnufPuBfamiB-Y1g6MmyZumlkJsv4p3OaW1lCg",
+        "expect_signature": "valid"
+      },
+      "expected_error": "additionalProperties — previously_deleted is not allowed"
+    },
+    {
+      "id": "ITV-677",
+      "description": "Valid SNAPSHOT result with the same key twice — the logically deleted generation 1 (version 2) and the live generation 2 (version 1), distinguished by generation (State §3.2.1, §2.1.14). The hash value is illustrative: Actions §1.4 defines no construction for it. Executed by harness R17 against the reference store.",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/snapshot",
+        "args": {
+          "as_of": "2026-04-15T13:00:00.000Z"
+        },
+        "result": {
+          "as_of": "2026-04-15T13:00:00.000Z",
+          "entries": [
+            {
+              "key": "agent:acme.billing/agent/profile",
+              "value": "v2",
+              "owner_agent_id": "agent:acme.billing",
+              "scope": "agent",
+              "created_at": "2026-04-15T09:00:00.000Z",
+              "updated_at": "2026-04-15T11:00:00.000Z",
+              "pii_classification": "none",
+              "generation": 1,
+              "version": 2,
+              "deleted": true
+            },
+            {
+              "key": "agent:acme.billing/agent/profile",
+              "value": "w1",
+              "owner_agent_id": "agent:acme.billing",
+              "scope": "agent",
+              "created_at": "2026-04-15T12:00:00.000Z",
+              "updated_at": "2026-04-15T12:00:00.000Z",
+              "pii_classification": "none",
+              "generation": 2,
+              "version": 1,
+              "deleted": false
+            }
+          ],
+          "timestamp": "2026-04-15T13:00:01.000Z",
+          "hash": "sha256:73cf055d2eaa186449be309ba1fbb46999584964f2ad8d427793fedda5c2702e"
+        }
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/profile",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-04-15T09:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-15T10:00:00.000Z"
+            },
+            {
+              "op": "delete",
+              "at": "2026-04-15T11:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "w1",
+              "at": "2026-04-15T12:00:00.000Z"
+            },
+            {
+              "op": "snapshot",
+              "as_of": "2026-04-15T13:00:00.000Z"
+            }
+          ]
+        },
+        "expect": {
+          "history": [
+            [
+              "agent:acme.billing/agent/profile",
+              1,
+              1
+            ],
+            [
+              "agent:acme.billing/agent/profile",
+              1,
+              2
+            ],
+            [
+              "agent:acme.billing/agent/profile",
+              2,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-678",
+      "description": "Valid conflict error — ABA across a recreation: the client read generation 1 at version 1, the key was deleted and recreated (generation 2, version 1), and its SET stating expected_generation 1 and expected_version 1 is rejected with the live details (State §3.1.2 rule 4, §2.4, §8.4). Executed by harness R17.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "ea64357a-5be4-4f5b-ac34-772b2cf8b5d1",
+        "ts": "2026-04-15T12:00:00.100Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "adebbca9-0a5e-4057-a770-e2f1f59d7123",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "Optimistic concurrency conflict",
+            "details": {
+              "current_generation": 2,
+              "current_version": 1,
+              "updated_at": "2026-04-15T11:00:00.000Z",
+              "updated_by": "agent:acme.billing",
+              "expected_generation": 1,
+              "expected_version": 1
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "n2aVxblfcCYCAwOYlK-g8fxEGJIKPthKAWq_mn2zXKXcjH9c-XAorgY3Ys_y19i4zQDtG0b6jcdly9uwRJxRDw"
+        },
+        "root_request_id": "adebbca9-0a5e-4057-a770-e2f1f59d7123"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2261646562626361392d306135652d343035372d613737302d653266316635396437313233222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2265613634333537612d356265342d346635622d616333342d373732623263663862356431222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224f7074696d697374696320636f6e63757272656e637920636f6e666c696374222c2264657461696c73223a7b2263757272656e745f67656e65726174696f6e223a322c2263757272656e745f76657273696f6e223a312c2265787065637465645f67656e65726174696f6e223a312c2265787065637465645f76657273696f6e223a312c22757064617465645f6174223a22323032362d30342d31355431313a30303a30302e3030305a222c22757064617465645f6279223a226167656e743a61636d652e62696c6c696e67227d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2261646562626361392d306135652d343035372d613737302d653266316635396437313233222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431323a30303a30302e3130305a222c2276223a22322e30227d",
+        "signature_base64url": "n2aVxblfcCYCAwOYlK-g8fxEGJIKPthKAWq_mn2zXKXcjH9c-XAorgY3Ys_y19i4zQDtG0b6jcdly9uwRJxRDw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/profile",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "a",
+              "at": "2026-04-15T09:00:00.000Z"
+            },
+            {
+              "op": "delete",
+              "at": "2026-04-15T10:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "b",
+              "at": "2026-04-15T11:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "stale",
+              "at": "2026-04-15T12:00:00.000Z",
+              "expected_generation": 1,
+              "expected_version": 1
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "conflict",
+            "details": {
+              "current_generation": 2,
+              "current_version": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-679",
+      "description": "Valid conflict error — conditional SET on a key without a live entry: the details consist of entry_live false and the stated precondition, without current_* members, and do not reveal the former deletion (State §3.1.2 rule 4, §8.4). Executed by harness R17.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "6d3ed441-9a29-4eb4-a93e-03728790b0e7",
+        "ts": "2026-04-15T11:00:00.100Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "5feff670-4338-4fae-a69c-94faf773837f",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "conflict",
+            "description": "No live entry",
+            "details": {
+              "entry_live": false,
+              "expected_version": 1
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "rxq2YiK3DSEmVMSxVgk5IcFFfekg4fODOyzIkNJLAfcBTBKyNahiAywCerqph7wUlQFgGUzS-eqOb3QG9-o-Bw"
+        },
+        "root_request_id": "5feff670-4338-4fae-a69c-94faf773837f"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2235666566663637302d343333382d346661652d613639632d393466616637373338333766222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2236643365643434312d396132392d346562342d613933652d303337323837393062306537222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22636f6e666c696374222c226465736372697074696f6e223a224e6f206c69766520656e747279222c2264657461696c73223a7b22656e7472795f6c697665223a66616c73652c2265787065637465645f76657273696f6e223a317d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2235666566663637302d343333382d346661652d613639632d393466616637373338333766222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d31355431313a30303a30302e3130305a222c2276223a22322e30227d",
+        "signature_base64url": "rxq2YiK3DSEmVMSxVgk5IcFFfekg4fODOyzIkNJLAfcBTBKyNahiAywCerqph7wUlQFgGUzS-eqOb3QG9-o-Bw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/profile",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "a",
+              "at": "2026-04-15T09:00:00.000Z"
+            },
+            {
+              "op": "delete",
+              "at": "2026-04-15T10:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "x",
+              "at": "2026-04-15T11:00:00.000Z",
+              "expected_version": 1
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "conflict",
+            "details": {
+              "entry_live": false,
+              "expected_version": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-680",
+      "description": "Valid state_purge record of a PURGE after a later write — PURGE, repeated PURGE without a write (same purged_at, no record), SET (generation 2: the sequence continues across the purge), PURGE: a new purge whose record carries generation 2 and its own purged_at (State §3.2.2 Idempotency, §2.1.14). Executed by harness R17.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "758881c2-03fc-4c1c-afac-11d540e3c4c5",
+        "message_id": "14d1c827-7338-480b-a4b4-2b5f41e83a2b",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2033-04-27T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/profile",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 2,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/profile",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "a",
+              "at": "2026-04-27T09:00:00.000Z"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T10:00:00.000Z"
+            },
+            {
+              "op": "purge",
+              "idem": "k2",
+              "at": "2026-04-27T11:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "b",
+              "at": "2026-04-27T12:00:00.000Z"
+            },
+            {
+              "op": "purge",
+              "idem": "k3",
+              "at": "2026-04-27T14:00:00.500Z"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-681",
+      "description": "Valid state_set record of a recreation — the key's history is (1,1), (1,2), DELETE, (2,1): version 1 occurs twice and (key, generation, version) still identifies each version (State §2.1.12, §2.1.14, §3.1.2). Executed by harness R17.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "5750d597-12fa-4a07-a616-1462e9c8487c",
+        "message_id": "a5524ab3-6720-4cc4-a7b8-d8d976444256",
+        "event_type": "state_set",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:acme.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/set",
+        "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "processed_at": "2026-04-15T10:00:00.000Z",
+        "retained_until": "2026-10-12T10:00:00.000Z",
+        "operator_id": "VAT:PT501234567",
+        "key": "agent:acme.billing/agent/profile",
+        "owner_agent_id": "agent:acme.billing",
+        "actor_agent_id": "agent:acme.billing",
+        "generation": 2,
+        "version": 1,
+        "pii_classification": "none",
+        "timestamp": "2026-04-15T09:59:59.500Z",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "EU-AI-ACT-HIGH-RISK",
+            "applied": "EU-AI-ACT-HIGH-RISK",
+            "source": {
+              "name": "EU-AI-ACT-HIGH-RISK",
+              "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P6M",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "EU-AI-ACT-HIGH-RISK",
+                    "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                  },
+                  "fact": null,
+                  "minimum": "P6M"
+                }
+              ],
+              "result": {
+                "duration": "P6M",
+                "anchor": "2026-04-15T10:00:00.000Z",
+                "retained_until": "2026-10-15T10:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P6M",
+        "retention_anchor": "2026-04-15T10:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/profile",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-04-15T09:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-15T09:30:00.000Z"
+            },
+            {
+              "op": "delete",
+              "at": "2026-04-15T09:45:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "w1",
+              "at": "2026-04-15T09:59:59.500Z"
+            }
+          ]
+        },
+        "expect": {
+          "history": [
+            [
+              "agent:acme.billing/agent/profile",
+              1,
+              1
+            ],
+            [
+              "agent:acme.billing/agent/profile",
+              1,
+              2
+            ],
+            [
+              "agent:acme.billing/agent/profile",
+              2,
+              1
+            ]
+          ]
+        }
+      }
     }
   ]
 }

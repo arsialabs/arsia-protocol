@@ -13,6 +13,7 @@
     "created_at",
     "updated_at",
     "pii_classification",
+    "generation",
     "version"
   ],
   "additionalProperties": false,
@@ -58,7 +59,7 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         },
         {
-          "description": "RFC 3339 timestamp with millisecond precision and UTC designator, set by the implementation at creation time. Immutable thereafter. Baseline for retention period calculation (§4.1). Per ARSIA-State.md §2.1.5."
+          "description": "RFC 3339 timestamp with millisecond precision and UTC designator, set by the implementation at creation time of this entry (generation, §2.1.14). Immutable for the lifetime of the entry; a recreation after DELETE is a new entry with its own created_at. Baseline for retention period calculation (§4.1). Per ARSIA-State.md §2.1.5."
         }
       ]
     },
@@ -126,7 +127,12 @@
     "version": {
       "type": "integer",
       "minimum": 1,
-      "description": "Monotonically increasing version number. Set to 1 on creation and incremented by 1 on every successful SET that modifies the entry. Used with expected_version for optimistic concurrency control. Per ARSIA-State.md §2.1.12."
+      "description": "Monotonically increasing version number. Set to 1 on creation and incremented by 1 on every successful SET that modifies the entry. Used with expected_version for optimistic concurrency control. Restarts at 1 in each generation (§2.4). Per ARSIA-State.md §2.1.12."
+    },
+    "generation": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Generation of the entry: distinguishes the successive entries created under the same key. Set by the implementation as the next number after the highest generation ever assigned under the key; unchanged by SET updates and DELETE; never reassigned while the implementation holds any information of the key. (key, generation, version) identifies one version. Per ARSIA-State.md §2.1.14."
     },
     "deleted": {
       "type": "boolean",

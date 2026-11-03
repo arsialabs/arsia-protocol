@@ -248,8 +248,8 @@ rules:
    on this entry MUST generate an audit event. The audit event format is defined in
    §7. At minimum, the audit event MUST
    include: the operation type (`state_set`, `state_delete`), the entry key, the
-   `owner_agent_id`, the agent that performed the operation, a timestamp, and the
-   entry's new version number. The audit event MUST NOT include the entry's value
+   `owner_agent_id`, the agent that performed the operation, a timestamp, the
+   entry's generation (§2.1.14) and its new version number. The audit event MUST NOT include the entry's value
    unless the compliance profile explicitly requires value-level auditing.
 
 3. **Data residency.** If `StateEntry.data_residency` is set (either explicitly or
@@ -542,9 +542,13 @@ The StateEntry object contains the following fields:
 - **Format:** RFC 3339 date-time with millisecond precision and UTC timezone
   designator.
 - **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
-- **Constraints:** The timestamp of when this entry was first created. Set by the
-  implementation at creation time and immutable thereafter. Used as the baseline for
-  retention period calculation (§4.1).
+- **Constraints:** The timestamp at which this entry — this generation of its key
+  (§2.1.14) — was created. Set by the implementation at creation time and immutable
+  for the lifetime of the entry. A SET that recreates a logically deleted key creates
+  a new entry with its own `created_at` (§3.1.2); the `created_at` of earlier
+  generations is not changed. Used as the baseline for retention period calculation
+  (§4.1) of this entry; recreating the key neither changes nor renews the retention
+  of earlier generations.
 
 #### 2.1.6 `updated_at` — Last Modification Timestamp
 
@@ -731,16 +735,20 @@ The StateEntry object contains the following fields:
   The version number is used in conjunction with the `expected_version` parameter
   of the SET operation (§3.1) to detect concurrent modifications. When a SET request
   includes `expected_version`, the implementation MUST verify that the current
-  version of the entry equals `expected_version` before applying the modification.
-  If the versions do not match, the SET MUST fail with error code `"conflict"`
-  (§8.4).
+  version of the live entry (§2.4) equals `expected_version` before applying the
+  modification. If the versions do not match, the SET MUST fail with error code
+  `"conflict"` (§8.4). The complete precondition rules, including
+  `expected_generation` and a key without a live entry, are in §3.1.2, rule 4.
 
   Within the lifetime of an entry, the version number is monotonically increasing and
   MUST NOT be reset or decremented. When an entry is deleted via DELETE (§3.1) and
-  subsequently recreated via SET, the recreated entry is a new entry and starts with
-  version `1` (§2.4, §3.1.2) — but the implementation MUST retain the version history
-  of the deleted entry for SNAPSHOT purposes (§3.2) if the compliance profile requires
-  temporal storage.
+  subsequently recreated via SET, the recreated entry is a new entry: it has the next
+  generation (§2.1.14) and starts with version `1` (§2.4, §3.1.2) — but the
+  implementation MUST retain the version history of the deleted entry for SNAPSHOT
+  purposes (§3.2) if the compliance profile requires temporal storage. A version
+  number identifies a version only together with the key and the generation: the
+  triple (`key`, `generation`, `version`) identifies one version of one entry (§2.4,
+  §2.1.14).
 
 #### 2.1.13 `deleted` — Deletion Flag
 
@@ -761,6 +769,39 @@ The StateEntry object contains the following fields:
   agents. Implementations SHOULD omit it from GET and QUERY responses (since those
   operations never return deleted entries). It is REQUIRED in SNAPSHOT responses
   when the entry was deleted at the requested point in time.
+
+#### 2.1.14 `generation` — Entry Generation
+
+- **Type:** integer
+- **Minimum value:** 1
+- **REQUIRED.**
+- **Set by:** Implementation (not by the agent).
+- **Constraints:** The generation distinguishes the successive entries created under
+  the same key. An entry keeps one generation for its whole lifetime: SET updates
+  and DELETE do not change it.
+
+  A SET that creates an entry (§3.1.2) assigns it the generation that follows the
+  highest generation ever assigned under the same key, and generation `1` to the
+  first entry of a key. The implementation MUST keep that highest assigned
+  generation for as long as it holds any information of the key, in any storage
+  tier including archive (§4.1.3, §7.3): the live entry (§2.4); a logically deleted
+  entry still stored, in primary or temporal storage (§2.1.13); a version of any
+  entry of the key in the temporal store (§2.4); the metadata retained after a PURGE
+  (§3.2.2, step 3); or an audit record that carries the key (§7.1). While it holds
+  any such information, the implementation MUST NOT assign to a new entry a
+  generation number already assigned under the same key; in particular, neither a
+  PURGE nor the removal of some generations restarts or rewinds the sequence.
+
+  While any information of a key is held, the triple (`key`, `generation`,
+  `version`) identifies exactly one version of one entry.
+
+  **Declared limit.** The uniqueness lasts as long as information of the key is
+  held. Only after every piece of information listed above has been physically
+  removed can the sequence restart at `1`; a (`generation`, `version`) pair
+  observed before that removal can then match an entry created after it. The
+  `expected_generation` and `expected_version` preconditions (§3.1.2, rule 4) do not
+  protect a client that keeps such a pair across the removal of all information of
+  the key.
 
 ### 2.2 Key Naming Conventions
 
@@ -866,17 +907,25 @@ agents to detect and handle concurrent modifications without distributed locks.
 
 #### Version Lifecycle
 
-1. **Creation.** When a new entry is created via SET, the version is set to `1`.
+1. **Creation.** When a new entry is created via SET, the version is set to `1` and
+   the entry receives its generation (§2.1.14) — `1` for the first entry of a key.
 
-2. **Update.** Each subsequent SET on the same key increments the version by exactly
-   `1`. The version after the Nth successful SET is `N`.
+2. **Update.** Each subsequent SET on the same live entry increments the version by
+   exactly `1`. The version after the Nth successful SET of the entry is `N`.
 
-3. **Deletion.** A DELETE operation does not change the version — the entry retains
-   its last version number. The `deleted` flag is set to `true`.
+3. **Deletion.** A DELETE operation changes neither the version nor the generation —
+   the entry retains its last version number. The `deleted` flag is set to `true`.
 
-4. **Recreation.** If a deleted key is recreated via SET, the new entry starts at
-   version `1`. The previous version history is retained in the temporal store for
-   SNAPSHOT purposes.
+4. **Recreation.** If a deleted key is recreated via SET, the new entry has the next
+   generation (§2.1.14) and starts at version `1`. The previous version history is
+   retained in the temporal store for SNAPSHOT purposes; each of its versions keeps
+   the generation it was written in.
+
+5. **Live entry.** The live entry of a key is the entry most recently created under
+   it, while that entry is neither logically deleted (§3.1.3), purged (§3.2.2), nor
+   physically removed. A key has at most one live entry. SET updates only the live
+   entry (§3.1.2); GET and QUERY never return an entry that is not live (§3.1.1,
+   §3.1.4).
 
 #### Optimistic Concurrency Control
 
@@ -890,11 +939,20 @@ concurrency control:
 4. If another agent has modified the entry (version is now `4` or higher), the SET
    fails with error code `"conflict"`. Agent A must re-read the entry, resolve the
    conflict, and retry.
+5. Version numbers restart at `1` in each generation. A precondition on
+   `expected_version` alone therefore does not detect that the entry was deleted and
+   recreated between the read and the write once the new entry has reached the same
+   version. An agent that needs that guarantee sends `expected_generation` together
+   with `expected_version`; both are checked against the live entry in the same
+   atomic check that conditions the write (§3.1.2, rule 4). `expected_generation`
+   alone does not detect updates within the same generation. The protection holds
+   within the limit declared in §2.1.14.
 
-The `expected_version` parameter is OPTIONAL. When omitted, the SET operation is
-unconditional — it overwrites the current value regardless of concurrent
-modifications. Unconditional SET is appropriate when the agent is the sole writer
-for a key or when last-write-wins semantics are acceptable.
+Both `expected_version` and `expected_generation` are OPTIONAL. When neither is
+supplied, the SET operation is unconditional — it overwrites the current value
+regardless of concurrent modifications. When either is supplied, the precondition
+rules in §3.1.2, rule 4 apply. Unconditional SET is appropriate when the agent is
+the sole writer for a key or when last-write-wins semantics are acceptable.
 
 #### Version History
 
@@ -902,13 +960,15 @@ Implementations that support the SNAPSHOT operation (§3.2) MUST retain historic
 versions of entries for the duration of the effective retention period. Each version
 MUST be associated with:
 
+- The generation of the entry (§2.1.14).
 - The version number.
 - The value at that version.
 - The `updated_at` timestamp of that version.
 - The agent that performed the write.
 
 This version history forms the temporal dimension of the state store and enables
-point-in-time queries.
+point-in-time queries. Within the history of a key, the pair (`generation`,
+`version`) identifies each version (§2.1.14).
 
 ---
 
@@ -1013,6 +1073,7 @@ The `payload.args` object for SET contains:
 | `retention`          | string   | OPTIONAL    | Retention override — ISO 8601 calendar duration per §2.1.8 (e.g. `"P1827D"`). |
 | `data_residency`     | string   | OPTIONAL    | ISO 3166 zone override.                    |
 | `expected_version`   | integer  | OPTIONAL    | For optimistic concurrency control.        |
+| `expected_generation` | integer | OPTIONAL    | For optimistic concurrency control across recreation (§2.4). |
 
 The `scope` field MUST NOT be `"global"` — agents cannot create global-scoped entries
 through the SET operation. Attempting to SET a global-scoped entry MUST result in an
@@ -1028,7 +1089,8 @@ error with code `"forbidden"`.
 | `payload.result`     | `{StateEntry object}`                   |
 
 The `payload.result` contains the complete StateEntry after the SET operation,
-including the updated `version`, `updated_at`, and any implementation-set fields.
+including its `generation`, the updated `version`, `updated_at`, and any
+implementation-set fields.
 
 **Validation rules:**
 
@@ -1043,9 +1105,19 @@ including the updated `version`, `updated_at`, and any implementation-set fields
    `{ "missing_legal_basis": true }`. For `"sensitive"` entries, the `legal_basis`
    MUST additionally be an Art. 9(2) ground (Core §4.3.8, Rule 8).
 
-4. If `expected_version` is set and does not match the current version of the entry,
-   the SET MUST be rejected with error code `"conflict"` and details
-   `{ "current_version": {N}, "expected_version": {M} }`.
+4. If `expected_version` or `expected_generation` is set, the implementation MUST
+   evaluate the preconditions against the live entry of the key (§2.4) in the same
+   atomic check that conditions the write; when both are set, both MUST hold:
+   - If the key has no live entry — it was never written, or its last entry has been
+     logically deleted, purged or physically removed — the SET MUST be rejected with
+     error code `"conflict"` and details
+     `{ "entry_live": false, "expected_generation": {G}, "expected_version": {M} }`,
+     carrying each precondition the request stated. The SET MUST NOT create an
+     entry, and the details MUST NOT distinguish a deleted key from a key never
+     written (as GET does not, §3.1.1).
+   - If `expected_version` is set and differs from the live entry's version, or
+     `expected_generation` is set and differs from the live entry's generation, the
+     SET MUST be rejected with error code `"conflict"` and the details of §8.4.
 
 5. If `data_residency` is set and the implementation cannot store the entry in the
    declared zone, the SET MUST be rejected with error code `"invalid_request"` and
@@ -1056,12 +1128,14 @@ including the updated `version`, `updated_at`, and any implementation-set fields
 
 **Behaviour on create vs. update:**
 
-- If the key does not exist (or has been logically deleted), SET creates a new entry
-  with `version: 1`, `created_at` set to the current time, and `updated_at` equal to
-  `created_at`.
-- If the key exists and is not deleted, SET updates the entry: increments `version`,
-  sets `updated_at` to the current time, and replaces the `value`. The `created_at`,
-  `owner_agent_id`, and `scope` fields are NOT modified.
+- If the key has no live entry (§2.4) — it was never written, or its last entry has
+  been logically deleted (§3.1.3), purged (§3.2.2) or physically removed — SET
+  creates a new entry with the generation determined by §2.1.14, `version: 1`,
+  `created_at` set to the current time, and `updated_at` equal to `created_at`.
+  Earlier generations and their history are not modified.
+- If the key has a live entry, SET updates it: increments `version`, sets
+  `updated_at` to the current time, and replaces the `value`. The `generation`,
+  `created_at`, `owner_agent_id`, and `scope` fields are NOT modified.
 - If the key exists but the `scope` in the request differs from the existing entry's
   scope, the SET MUST be rejected with error code `"invalid_request"` and details
   `{ "scope_mismatch": true, "existing_scope": "{scope}" }`.
@@ -1077,6 +1151,7 @@ generate an audit event of type `"state_set"` containing:
 | `key`                | The entry key.                          |
 | `owner_agent_id`     | The owning agent.                       |
 | `actor_agent_id`     | The agent that performed the SET.       |
+| `generation`         | The entry's generation (§2.1.14).       |
 | `version`            | The new version number.                 |
 | `pii_classification` | The entry's PII classification.         |
 | `timestamp`          | RFC 3339 timestamp of the operation.    |
@@ -1113,7 +1188,8 @@ purposes until its retention period expires.
 
 1. The entry's `deleted` flag is set to `true`.
 2. The entry's `updated_at` is set to the current time.
-3. The entry's `version` is NOT incremented — deletion is not a value change.
+3. The entry's `version` and `generation` are NOT changed — deletion is not a value
+   change.
 4. The entry remains in storage, subject to its effective retention period.
 5. Subsequent GET requests for the same key return `null`.
 6. Subsequent SNAPSHOT requests for the same key at a point in time before the
@@ -1167,6 +1243,7 @@ type `"state_delete"` containing:
 | `key`                | The entry key.                          |
 | `owner_agent_id`     | The owning agent.                       |
 | `actor_agent_id`     | The agent that performed the DELETE.    |
+| `generation`         | The entry's generation (§2.1.14).       |
 | `version`            | The entry's version at time of deletion.|
 | `timestamp`          | RFC 3339 timestamp of the operation.    |
 
@@ -1276,6 +1353,11 @@ implementation MUST return entries as they existed at `as_of`, including:
 - The values and metadata of entries as they were at `as_of`, not their current state.
 - Entries with `deleted: true` if they were deleted before `as_of` and the deletion
   occurred within the temporal window of the snapshot.
+
+Each returned entry carries the generation it had at `as_of` (§2.1.14). A key can
+therefore appear more than once in a snapshot — a logically deleted earlier
+generation and the generation live at `as_of` — and its entries are distinguished by
+`generation`.
 
 **Response message:**
 
@@ -1391,7 +1473,7 @@ The implementation MUST execute the following steps when processing a PURGE requ
    are retained.
 
 4. **Delete all historical versions.** Remove all historical values from the temporal
-   store for this key. After this step, SNAPSHOT queries for this key at any point in
+   store for this key, of every generation (§2.1.14). After this step, SNAPSHOT queries for this key at any point in
    time MUST return `null` for the entry's value.
 
 5. **Propagate to replicas.** If the entry has been replicated (within the allowed
@@ -1414,6 +1496,7 @@ they serve the accountability requirement of GDPR Art. 5(2).
 | `event_type`         | `"state_purge"`                         |
 | `key`                | The key of the purged entry.            |
 | `owner_agent_id`     | The owning agent of the purged entry.   |
+| `generation`         | The latest generation of the key that the PURGE covers; the PURGE also removes the values of every earlier generation still stored (§2.1.14). |
 | `initiator_agent_id` | The agent that requested the PURGE.     |
 | `purged_at`          | RFC 3339 timestamp of the purge.        |
 | `pii_classification` | The PII classification of the purged entry. |
@@ -1447,10 +1530,20 @@ specifically authorised for erasure operations.
 
 **Idempotency:**
 
-PURGE is idempotent. If a PURGE request is received for a key that has already been
-purged, the implementation MUST return a successful response (not an error) with the
-same `purged_at` timestamp as the original purge. A second PURGE on the same key
-MUST NOT generate a second audit event.
+1. **Retransmission.** A PURGE request whose idempotency key matches a stored
+   association receives the stored response without the purge being executed again
+   (ARSIA-Core.md §10.3).
+2. **Repeated PURGE without a later write.** If a PURGE request is received for a key
+   that has already been purged and under which no SET has created an entry since
+   that purge, the implementation MUST return a successful response (not an error)
+   with the same `purged_at` timestamp as that purge, and MUST NOT generate a second
+   audit event.
+3. **PURGE after a later write.** If a SET has created an entry under the key since
+   its last purge (§3.1.2), a PURGE request for that key is a new purge: the
+   implementation MUST execute the purge procedure above and MUST generate a new
+   audit event, with its own `purged_at` and the generation that purge covers.
+
+The generation sequence of the key continues across a purge (§2.1.14).
 
 ### 3.3 Shared State Access Grants
 
@@ -3184,9 +3277,9 @@ by the schema.
 | `event_type` = `approval_decision` | `correlation_id`, `root_request_id`, `decision`, `approver_id` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 |
 | `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, `decision` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 (expiry) |
 | `event_type` = `response` or `error` | — | `correlation_id`, `root_request_id`, `outcome` (final record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 4 |
-| `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`); OPTIONAL: `pii_special_categories` (the entry's categories, when `sensitive`) | §3.1.2; §8.3 rule 3; §2.1.11 |
-| `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `version`, `timestamp` | — | §3.1.3 |
-| `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `purged_at`, `pii_classification` | `reason` | §3.2.2 |
+| `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`); OPTIONAL: `pii_special_categories` (the entry's categories, when `sensitive`) | §3.1.2; §8.3 rule 3; §2.1.11 |
+| `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `timestamp` | — | §3.1.3 |
+| `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `generation`, `purged_at`, `pii_classification` | `reason` | §3.2.2 |
 | `event_type` = `state_grant` | `grant_id`, `key_pattern`, `grantor_agent_id`, `grantee_agent_id`, `access_level`, `valid_until`, `timestamp` | — | §3.3.1 |
 | `event_type` = `state_revoke` | `grant_id`, `grantor_agent_id`, `grantee_agent_id`, `timestamp` | — | §3.3.2 |
 | `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at` | — | ARSIA-Assets.md §4.3.1 |
@@ -3595,7 +3688,7 @@ plus the following state-specific error codes:
 
 | Error code         | HTTP status | Description                                 |
 |--------------------|------------|----------------------------------------------|
-| `conflict`         | 409        | Optimistic concurrency conflict. The entry's current version does not match `expected_version`. |
+| `conflict`         | 409        | Optimistic concurrency conflict: a precondition (`expected_version`, `expected_generation`) does not hold for the live entry, or the key has no live entry (§3.1.2, rule 4). |
 | `invalid_request`  | 400        | Validation failure. Details object specifies the reason (e.g., `missing_legal_basis`, `scope_mismatch`, `data_residency_violation`, `snapshot_unavailable`). |
 | `forbidden`        | 403        | Access denied. The requesting agent does not own the entry and has no active grant, or lacks the required capability. |
 | `payload_too_large`| 413        | The serialized value exceeds 1 MiB.          |
@@ -3604,15 +3697,32 @@ plus the following state-specific error codes:
 
 **Conflict error details:**
 
-When a SET fails due to an optimistic concurrency conflict, the error response MUST
-include the following details:
+When a SET fails because a precondition does not hold for the live entry, the error
+response MUST include the following details: the live entry's `current_generation`
+and `current_version`, each precondition the request stated (`expected_generation`,
+`expected_version`), and the live entry's `updated_at` and `updated_by` (the agent of
+its last write):
 
 ```json
 {
+  "current_generation": 2,
   "current_version": 5,
+  "expected_generation": 1,
   "expected_version": 3,
   "updated_at": "2026-03-24T15:30:00.000Z",
   "updated_by": "agent:acme.risk-assessor"
+}
+```
+
+When the key has no live entry, the details MUST consist of `"entry_live": false` and
+each precondition the request stated, and MUST NOT include `current_generation`,
+`current_version`, `updated_at` or `updated_by`:
+
+```json
+{
+  "entry_live": false,
+  "expected_generation": 1,
+  "expected_version": 3
 }
 ```
 
@@ -3636,7 +3746,7 @@ all tests at the applicable conformance level.
 | **description** | Verify that a state entry can be created and retrieved.            |
 | **preconditions** | Agent A has capabilities `arsiaprotocol.state.write` and `arsiaprotocol.state.read`. No entry exists at key `agent:a.test/agent/config`. |
 | **action**      | 1. Agent A sends SET with key `"agent:a.test/agent/config"`, value `{ "theme": "dark" }`, scope `"agent"`, pii_classification `"none"`. 2. Agent A sends GET with key `"agent:a.test/agent/config"`. |
-| **expected**    | GET returns a StateEntry with: `key` = `"agent:a.test/agent/config"`, `value` = `{ "theme": "dark" }`, `scope` = `"agent"`, `owner_agent_id` = `"agent:a.test"`, `pii_classification` = `"none"`, `version` = `1`, `created_at` and `updated_at` are equal and are valid RFC 3339 timestamps. |
+| **expected**    | GET returns a StateEntry with: `key` = `"agent:a.test/agent/config"`, `value` = `{ "theme": "dark" }`, `scope` = `"agent"`, `owner_agent_id` = `"agent:a.test"`, `pii_classification` = `"none"`, `generation` = `1`, `version` = `1`, `created_at` and `updated_at` are equal and are valid RFC 3339 timestamps. |
 
 ### STATE-02: DELETE hides entry from GET
 
@@ -3706,7 +3816,7 @@ all tests at the applicable conformance level.
 | **description** | Verify that SNAPSHOT returns historical state, not current state.  |
 | **preconditions** | Implementation supports temporal storage. Entry created at T1 with value `"v1"`. Entry updated at T2 (where T2 > T1) with value `"v2"`. Agent has `arsiaprotocol.state.snapshot` capability. |
 | **action**      | Agent A sends SNAPSHOT with `as_of` = T1 + 1 second (a time between T1 and T2). |
-| **expected**    | SNAPSHOT returns the entry with value `"v1"` (the state at the requested point in time, before the T2 update). The entry's `version` in the snapshot is `1`, and `updated_at` is approximately T1. |
+| **expected**    | SNAPSHOT returns the entry with value `"v1"` (the state at the requested point in time, before the T2 update). The entry's `generation` in the snapshot is `1`, its `version` is `1`, and `updated_at` is approximately T1. |
 
 ### STATE-09: Personal data requires legal basis
 
@@ -3726,7 +3836,7 @@ all tests at the applicable conformance level.
 | **description** | Verify that SET with `expected_version` detects concurrent modifications. |
 | **preconditions** | Entry exists at key `"agent:a.test/agent/counter"` with value `{ "count": 1 }`, version `1`. |
 | **action**      | 1. Agent A reads the entry (version = 1). 2. Agent B updates the entry to `{ "count": 2 }` (version becomes 2). 3. Agent A sends SET with key `"agent:a.test/agent/counter"`, value `{ "count": 10 }`, `expected_version` = `1`. |
-| **expected**    | Agent A's SET fails with error code `"conflict"` and details `{ "current_version": 2, "expected_version": 1 }`. The entry retains Agent B's value `{ "count": 2 }` at version `2`. |
+| **expected**    | Agent A's SET fails with error code `"conflict"` and details `{ "current_generation": 1, "current_version": 2, "expected_version": 1, "updated_at": "{T}", "updated_by": "agent:b.test" }`. The entry retains Agent B's value `{ "count": 2 }` at version `2`. |
 
 ### STATE-11: Profile defaults applied when field is missing
 
@@ -3777,6 +3887,26 @@ all tests at the applicable conformance level.
 | **preconditions** | 20 audit records exist. 5 have `compliance_profile_resolved = "MIFID-II"`. |
 | **action**        | `GET /.well-known/arsia/audit?compliance_profile=MIFID-II&limit=10` |
 | **expected**      | Response contains exactly 5 records. `has_more` is `false`. `total` is `5`. All returned records have `compliance_profile_resolved = "MIFID-II"`. |
+
+### STATE-16: Recreation after DELETE starts a new generation
+
+| Field           | Value                                                              |
+|-----------------|--------------------------------------------------------------------|
+| **test_id**     | `STATE-16`                                                         |
+| **description** | Verify that recreation after DELETE starts a new generation and that a stale precondition is rejected. |
+| **preconditions** | Implementation supports temporal storage. Agent A has `arsiaprotocol.state.write` and `arsiaprotocol.state.snapshot`. |
+| **action**      | 1. Agent A sends SET for `"agent:a.test/agent/profile"` with value `"v1"` at T1, and with value `"v2"` at T2. 2. Agent A sends DELETE at T3. 3. Agent A sends SET with value `"w1"` at T4. 4. Agent A sends SET with `expected_generation` = `1` and `expected_version` = `1`. 5. Agent A sends SNAPSHOT with `as_of` between T2 and T3, and SNAPSHOT with `as_of` after T4. |
+| **expected**    | Step 3 returns `generation` `2`, `version` `1`, `created_at` approximately T4. Step 4 fails with `"conflict"` and details `{ "current_generation": 2, "current_version": 1, "expected_generation": 1, "expected_version": 1, "updated_at": "{T4}", "updated_by": "agent:a.test" }`. The first SNAPSHOT returns `generation` `1`, `version` `2`, value `"v2"`. The second SNAPSHOT returns `generation` `2`, `version` `1`, value `"w1"`; if it also returns the logically deleted earlier entry (§3.2.1), that entry carries `generation` `1` and `deleted: true`. |
+
+### STATE-17: PURGE repetition and PURGE after a later write
+
+| Field           | Value                                                              |
+|-----------------|--------------------------------------------------------------------|
+| **test_id**     | `STATE-17`                                                         |
+| **description** | Verify PURGE repetition and PURGE after a later write.             |
+| **preconditions** | Agent A owns `"agent:a.test/agent/record"` and has `arsiaprotocol.state.purge` and `arsiaprotocol.state.write` (step 3 is a SET). |
+| **action**      | 1. Agent A sends PURGE for the key (new idempotency key). 2. Agent A sends PURGE for the key again (new idempotency key). 3. Agent A sends SET for the key. 4. Agent A sends PURGE for the key (new idempotency key). |
+| **expected**    | Step 2 returns the `purged_at` of step 1, and no second `state_purge` record exists. Step 3 creates an entry whose `generation` is the purged generation plus `1`. Step 4 returns a new `purged_at` and produces a second `state_purge` record carrying the generation created in step 3. |
 
 ---
 
@@ -3903,8 +4033,8 @@ of entries. Several approaches are available:
    approach is more complex but preserves every state transition as an append-only
    event log (tamper evidence remains bounded by §7.2).
 
-3. **Version table.** Maintain a separate table of (key, version, value, timestamp)
-   tuples. SNAPSHOT queries filter by timestamp. Simpler than event sourcing but
+3. **Version table.** Maintain a separate table of (key, generation, version, value,
+   timestamp) tuples. SNAPSHOT queries filter by timestamp. Simpler than event sourcing but
    requires periodic cleanup.
 
 4. **Object store versioning.** S3 and compatible object stores support object

@@ -454,3 +454,65 @@ counts unchanged (A-88 was already among the 18 recorded dispositions). Coverage
 register unchanged (open 14, closed 4; "Revocation under cache ceiling" stays open
 through A-58). Tool counts unchanged: vectors 783, consistency checks 122, harness
 R1-R16, RTM 1970 / 1173.
+
+## 18. A-79 cycle closure evidence
+
+Execution baseline `df6219c`. Owner decisions G1–G5 are in the design record (DR-5
+addendum, A-79 cycle). Line references are to the files after the cycle. Mutations ran
+on a scratch copy: `git archive df6219c` with the full candidate diff applied, the
+unmutated copy first passing the whole battery, and the candidate restored between
+cases; the repository was not touched and no early commit was made.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-79 | (key, version) history unambiguous across generations after reset | State §2.1.14 (l.773) `generation`, the highest assigned kept while any information of the key is held; §2.1.12 the triple (key, generation, version); §2.4 lifecycle items 1–5 and history keyed by (generation, version); §3.1.2 rule 4 (l.1108) preconditions on the live entry; §3.2.1 one entry per generation; §7.1 `generation` REQUIRED in state_set, state_delete, state_purge. Harness R17 (a)–(h) (`runtime_harness.py` l.1914 `StateStore`, l.2064 `r17`); ITV-677, ITV-678, ITV-679, ITV-681 executed by R17; INV-81, INV-82, INV-84 | (a) generation restarts at 1 → R17 (a), (b); (b) `expected_generation` ignored → R17 (d); (d) absent details carry `current_version` → R17 (g); (e) numbering restarts after PURGE → R17 (h); (f) next = highest retained + 1 → R17 (h) partial removal; (h) `generation` out of the state_set conditional → A-59 guard and INV-84 | yes |
+| A-88 | `created_at` rule consistent with recreation (State §2) | §2.1.5 (l.538): creation time of this entry (generation), immutable for its lifetime, a recreation has its own `created_at`, retention of earlier generations neither changed nor renewed; disposition (LM3) unchanged; R17 (a) "recreation leaves the first generation's created_at unchanged (A-88)" | (a) → R17 (a) | yes (by clarification and disposition) |
+| A-93 | Every `$ref` of every schema resolves by `$id` | 4 `$ref`s → `arsia-state-entry.schema.json`; `schemas/README.md` convention; `check_consistency.py` l.771 `unresolved_refs` (registry by `$id` only, nested `$id` bases, fragments, relative refs) with planted-reference self-test; INV-88 and ITV-677 validate entries through the resolved reference | (g) a `$ref` back to `…/state-entry/v1.0.json` → "every $ref in every schema resolves by $id" | yes |
+| A-94 | PURGE repetition distinguishes retransmission, repetition without a later write and PURGE after a later write | §3.2.2 Idempotency (l.1531) rules 1–3, step 4 "of every generation", `state_purge.generation` (latest covered) REQUIRED; R17 (i) three cases; ITV-680 | (c) idempotency per key again → R17 (i) PURGE after a later write | yes |
+| A-95 | Conflict-details schema equal to State §8.4 | §8.4 (l.3684) live and absent details; `arsia-message.schema.json` `error-details-conflict-version` (current_generation, current_version, updated_at, updated_by required; one stated precondition) and `error-details-conflict-absent` (`entry_live: false`, closed to the stated preconditions), selected by any concurrency member and by `entry_live`; ITV-82, ITV-151 valid; ITV-87, INV-86, INV-87, INV-89, INV-90, INV-91 invalid for their single stated cause; other `conflict` vectors (ITV-334, ITV-335, ITV-374 and those without details) keep their results | (i) live branch selected by `current_version` only → INV-89 accepted; (j) absent branch open → INV-91 accepted | yes |
+
+**Mutations.** 10/10 detected:
+
+```
+(a) recreation restarts generation at 1: DETECTED
+(b) expected_generation ignored: DETECTED
+(c) PURGE idempotency per key again: DETECTED
+(d) absent-entry details carry current_version: DETECTED
+(e) numbering restarts after PURGE: DETECTED
+(f) next generation = highest retained + 1: DETECTED
+(g) a $ref back to state-entry/v1.0.json: DETECTED
+(h) generation out of the state_set conditional: DETECTED
+(i) live branch selected by current_version only: DETECTED
+(j) absent branch without additionalProperties false: DETECTED
+```
+
+**Vector migration (structural, by ID).**
+- StateEntry `generation` (24 objects in 23 vectors): STV-02, STV-05 (2), ITV-21, 22,
+  138, 183, 191, 192, 193, 195, 197, 199, 200, 203, 204 (generation 2), 205, 206, 250,
+  252, 260, 261, 271, INV-42.
+- `state_set` records: ITV-16, 220, 221, 269, 527, 542, 594, 598, 602, INV-54.
+  `state_delete`: ITV-97, 223, 528. `state_purge`: ITV-103, 233, 237, 270, 529.
+- Conflict details: ITV-82, ITV-151 (`current_generation`); ITV-87 restated (no
+  precondition as single cause).
+- Re-signed with real signatures: STV-02, STV-05, ITV-151.
+- Chain: ITV-594 recomputed; tombstone ITV-595 (`previous_chain_value` and its own
+  value) and ITV-596 recomputed; ITV-598, ITV-599, ITV-602 rederived; R14 passes with
+  the stated reasons. The record that ITV-595 replaces is synthetic; its chain value is
+  `chain_value(record, ITV-594.hash_chain)` for:
+  `{"record_id": "d5c00595-0001-4001-8001-000000000595", "message_id": "d5c00595-0002-4001-8001-000000000595", "event_type": "response", "from_agent": "agent:arsialabs.demo.compliance-checker", "to_agent": "agent:arsialabs.demo.risk-assessor", "intent": "response", "payload_type": "com.example.notes/delete", "payload_hash": "5555555555555555555555555555555555555555555555555555555555555555", "processed_at": "2026-09-28T10:20:00.000Z", "operator_id": "urn:lei:529900HNOAA1KXQJUQ27", "chain_id": "d5c00592-0000-4000-8000-000000000592", "chain_seq": 4, "chain_format": 1}`.
+- New: ITV-676..681, INV-81..91 (17). Message vectors (7) signed for real:
+  INV-86, INV-87, INV-89, INV-90, INV-91, ITV-678, ITV-679.
+
+**Counts before → after.**
+- Vectors 783 → 800 (validator 457 / 178 / 148 → 463 / 189 / 148; formats message-only
+  313 → 320, schema-ref 466 → 476, hybrid 4); crypto-checked 114 → 121; 0 failures in
+  all four modes.
+- RTM 1970 / 1173 → 1981 / 1182 (11 rows added, 8 rewritten); State coverage summary
+  recomputed (427 rows).
+- Consistency checks 122 → 124; harness R1-R16 → R1-R17; example blocks 78 → 79.
+- Findings register 95 → 98 rows: open 17 → 15, IPC 3, closed 75 → 80 (5 → 6 by
+  disposition); class 1 48 → 51; triage CONF 48, PART 17, INT 7, new 23 → 26 (A-79
+  keeps `new (C3b)`); disposition per DR or cycle addendum 16 → 20, recorded 18,
+  pending 61 → 60.
+- Coverage register 18 → 20 rows: open 14, closed 4 → 6.
+- Named conformance tests 83 → 85 (STATE-16, STATE-17).

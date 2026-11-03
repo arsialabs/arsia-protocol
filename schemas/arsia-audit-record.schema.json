@@ -413,6 +413,11 @@
       ],
       "description": "Agent-id of the agent that initiated the purge operation. Present in state_purge audit records. Per ARSIA-State.md §3.2.2."
     },
+    "generation": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Generation of the state entry (ARSIA-State.md §2.1.14). Present in state_set, state_delete and state_purge records; in a state_purge record, the latest generation the PURGE covers."
+    },
     "version": {
       "type": "integer",
       "minimum": 1,
@@ -973,6 +978,7 @@
           "key",
           "owner_agent_id",
           "actor_agent_id",
+          "generation",
           "version",
           "pii_classification",
           "timestamp"
@@ -1019,6 +1025,7 @@
           "key",
           "owner_agent_id",
           "actor_agent_id",
+          "generation",
           "version",
           "timestamp"
         ]
@@ -1040,6 +1047,7 @@
           "key",
           "owner_agent_id",
           "initiator_agent_id",
+          "generation",
           "purged_at",
           "pii_classification"
         ]

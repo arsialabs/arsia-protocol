@@ -45,7 +45,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 ## Conventions
 
 - `$schema`: `https://json-schema.org/draft/2020-12/schema`
-- `$id`: `https://arsiaprotocol.org/schemas/{name}/v1.0.json`
+- `$id`: `https://arsiaprotocol.org/schemas/v2.0/{file}` (the file name, e.g. `arsia-state-entry.schema.json`); cross-schema `$ref`s use the relative file name
 - `additionalProperties: false` unless the spec explicitly allows extension
 - Every property has a `description` referencing the spec section
 - Conditional required fields use `if/then` inside `allOf`

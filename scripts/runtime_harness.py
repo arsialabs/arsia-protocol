@@ -32,6 +32,9 @@ Schema cannot express, executed as tests — including against the runtime
   R16 Message timing: clock-skew tolerance and expiry       (Core §4.1.3, §4.2.2, §8.3)
       against a declared recipient clock; MAY posture;
       temporal causes kept apart from compliance causes
+  R17 State generations: (key, generation, version)       (State §2.1.14, §2.4, §3.1.2, §3.2.1,
+      identity, recreation, preconditions, snapshot,        §3.2.2; A-79, A-94)
+      PURGE repetition
 
 Exit code 0 = all green.
 """
@@ -1907,10 +1910,248 @@ def r16(vectors):
           not timing(m, "2026-05-01T12:05:00.000Z")["expired"] and timing(m, "2026-05-01T12:05:00.001Z")["expired"])
 
 
+# ------------------------------------------- R17 state generations (State §2.1.14, §2.4, §3.1.2, §3.2)
+class StateStore:
+    """Reference store for one owner: generations, versions, preconditions, snapshot, PURGE repetition.
+    Entries are kept per (key, generation); `held` is the information the implementation still holds."""
+
+    def __init__(self, owner="agent:acme.billing"):
+        self.owner = owner
+        self.gens = {}         # key -> {generation: {"versions": [...], "created_at", "deleted_at", "purged_at"}}
+        self.top = {}          # key -> highest generation ever assigned (kept while anything of the key is held)
+        self.records = []      # audit records (state fields only)
+        self.idem = {}         # idempotency key -> stored response
+        self.purges = {}       # key -> (purged_at, latest generation covered) of the last purge
+
+    def live(self, key):
+        g = self.top.get(key)
+        e = self.gens.get(key, {}).get(g)
+        if e is None or e["deleted_at"] or e["purged_at"]:
+            return None
+        return g, e
+
+    def held(self, key):
+        return bool(self.gens.get(key)) or key in self.purges or any(r["key"] == key for r in self.records)
+
+    def entry(self, key, g, e, ver, deleted=None):
+        out = {"key": key, "value": ver["value"], "owner_agent_id": self.owner, "scope": key.split("/")[1],
+               "created_at": e["created_at"], "updated_at": ver["at"], "pii_classification": "none",
+               "generation": g, "version": ver["version"]}
+        if deleted is not None:
+            out["deleted"] = deleted
+        return out
+
+    def set(self, key, value, at, actor=None, expected_version=None, expected_generation=None):
+        actor = actor or self.owner
+        cur = self.live(key)
+        stated = {k: v for k, v in (("expected_generation", expected_generation),
+                                    ("expected_version", expected_version)) if v is not None}
+        if stated:
+            if cur is None:
+                return {"error": "conflict", "details": dict({"entry_live": False}, **stated)}
+            g, e = cur
+            last = e["versions"][-1]
+            if (expected_version is not None and expected_version != last["version"]) or \
+               (expected_generation is not None and expected_generation != g):
+                return {"error": "conflict", "details": dict({"current_generation": g, "current_version": last["version"],
+                                                              "updated_at": last["at"], "updated_by": last["actor"]}, **stated)}
+        if cur is None:
+            g = (self.top.get(key, 0) if self.held(key) else 0) + 1
+            self.top[key] = g
+            e = {"versions": [], "created_at": at, "deleted_at": None, "purged_at": None}
+            self.gens.setdefault(key, {})[g] = e
+        else:
+            g, e = cur
+        ver = {"version": len(e["versions"]) + 1, "value": value, "at": at, "actor": actor}
+        e["versions"].append(ver)
+        self.records.append({"event_type": "state_set", "key": key, "owner_agent_id": self.owner,
+                             "actor_agent_id": actor, "generation": g, "version": ver["version"], "timestamp": at})
+        return {"result": self.entry(key, g, e, ver)}
+
+    def delete(self, key, at, actor=None):
+        cur = self.live(key)
+        if cur is None:
+            return {"result": None}
+        g, e = cur
+        e["deleted_at"] = at
+        self.records.append({"event_type": "state_delete", "key": key, "owner_agent_id": self.owner,
+                             "actor_agent_id": actor or self.owner, "generation": g,
+                             "version": e["versions"][-1]["version"], "timestamp": at})
+        return {"result": {"deleted": True, "key": key}}
+
+    def purge(self, key, at, idem):
+        if idem in self.idem:                                   # retransmission (Core §10.3)
+            return self.idem[idem]
+        latest = self.top.get(key)
+        last = self.purges.get(key)
+        if last and last[1] == latest:                          # no SET created an entry since that purge
+            out = {"result": {"purged": True, "key": key, "purged_at": last[0]}}
+        else:
+            for e in self.gens.get(key, {}).values():           # values of every generation still stored
+                e["purged_at"] = e["purged_at"] or at
+                for ver in e["versions"]:
+                    ver["value"] = None
+            self.purges[key] = (at, latest)
+            self.records.append({"event_type": "state_purge", "key": key, "owner_agent_id": self.owner,
+                                 "initiator_agent_id": self.owner, "generation": latest, "purged_at": at})
+            out = {"result": {"purged": True, "key": key, "purged_at": at}}
+        self.idem[idem] = out
+        return out
+
+    def snapshot(self, as_of):
+        out = []
+        for key in sorted(self.gens):
+            for g in sorted(self.gens[key]):
+                e = self.gens[key][g]
+                vs = [v for v in e["versions"] if v["at"] <= as_of]
+                if not vs:
+                    continue
+                deleted = bool(e["deleted_at"] and e["deleted_at"] <= as_of)
+                ent = self.entry(key, g, e, vs[-1], deleted)
+                if deleted:
+                    ent["updated_at"] = e["deleted_at"]
+                out.append(ent)
+        return out
+
+    def remove_generation(self, key, g):
+        self.gens[key].pop(g, None)
+        self.records = [r for r in self.records if not (r["key"] == key and r["generation"] == g)]
+
+    def remove_all(self, key):
+        self.gens.pop(key, None)
+        self.purges.pop(key, None)
+        self.records = [r for r in self.records if r["key"] != key]
+
+    def history(self, key):
+        return [(key, g, v["version"]) for g in sorted(self.gens.get(key, {})) for v in self.gens[key][g]["versions"]]
+
+
+def state_case(inp):
+    """Runs a runtime vector's `state` scenario; returns the last operation's result and the audit records."""
+    st = StateStore(inp.get("owner", "agent:acme.billing"))
+    out = None
+    for op in inp["ops"]:
+        kind = op["op"]
+        if kind == "set":
+            out = st.set(inp["key"], op["value"], op["at"], op.get("actor"), op.get("expected_version"),
+                         op.get("expected_generation"))
+        elif kind == "delete":
+            out = st.delete(inp["key"], op["at"])
+        elif kind == "purge":
+            out = st.purge(inp["key"], op["at"], op["idem"])
+        elif kind == "snapshot":
+            out = {"result": st.snapshot(op["as_of"])}
+    return {"last": out, "records": st.records, "history": [list(t) for t in st.history(inp["key"])]}
+
+
+STATE_PROJECTION = {"state_set": ("key", "owner_agent_id", "actor_agent_id", "generation", "version", "timestamp"),
+                    "state_purge": ("key", "owner_agent_id", "initiator_agent_id", "generation", "purged_at")}
+
+
+def state_vector_data_matches(v, got):
+    """The vector's data is what the reference store produces for the stated operation sequence."""
+    body = v.get("data") or v.get("message")
+    if v.get("schema_ref") == "arsia-state-operations.schema.json":
+        return body["result"]["entries"] == got["last"]["result"]
+    if "payload" in body:
+        return body["payload"]["error"]["code"] == got["last"]["error"] and \
+            body["payload"]["error"]["details"] == got["last"]["details"]
+    rec = got["records"][-1]
+    fields = STATE_PROJECTION[body["event_type"]]
+    return body["event_type"] == rec["event_type"] and all(body.get(f) == rec.get(f) for f in fields)
+
+
+def r17(vectors):
+    K = "agent:acme.billing/agent/profile"
+    t = lambda h: f"2026-04-15T{h}:00:00.000Z"
+    st = StateStore()
+    st.set(K, "v1", t("09")); st.set(K, "v2", t("10")); st.delete(K, t("11"))
+    rec = st.set(K, "w1", t("12"))["result"]
+    check("R17 (a) recreation after DELETE: generation 2, version 1, own created_at",
+          (rec["generation"], rec["version"], rec["created_at"]) == (2, 1, t("12")))
+    check("R17 (a) recreation leaves the first generation's created_at unchanged (A-88)",
+          st.gens[K][1]["created_at"] == t("09"))
+    hist = st.history(K)
+    check("R17 (b) (key, generation, version) unique while version numbers repeat across generations",
+          len(set(hist)) == len(hist) == 3 and [v for _, _, v in hist].count(1) == 2)
+    trip = [(r["key"], r["generation"], r["version"]) for r in st.records if r["event_type"] == "state_set"]
+    check("R17 (b) state_set records: triples unique, (key, version) pairs repeat",
+          len(set(trip)) == len(trip) and len({(k, v) for k, _, v in trip}) < len(trip))
+    before = st.snapshot("2026-04-15T10:30:00.000Z")
+    check("R17 (c) snapshot between update and DELETE returns generation 1 at version 2",
+          [(e["generation"], e["version"], e["value"]) for e in before] == [(1, 2, "v2")])
+    after = st.snapshot(t("13"))
+    check("R17 (c) snapshot after recreation returns both generations, distinguished by generation",
+          [(e["generation"], e["version"], e["deleted"]) for e in after] == [(1, 2, True), (2, 1, False)])
+
+    # (d)-(g) preconditions across generations
+    st = StateStore()
+    st.set(K, "a", t("09")); st.delete(K, t("10")); st.set(K, "b", t("11"))
+    aba = st.set(K, "stale", t("12"), expected_version=1, expected_generation=1)
+    check("R17 (d) ABA: expected_generation + expected_version rejected with the live details",
+          aba == {"error": "conflict", "details": {"current_generation": 2, "current_version": 1, "updated_at": t("11"),
+                                                   "updated_by": st.owner, "expected_generation": 1, "expected_version": 1}})
+    check("R17 (e) declared limit: expected_version alone does not detect the recreation",
+          "result" in st.set(K, "stale", t("13"), expected_version=1))
+    check("R17 (f) declared limit: expected_generation alone accepts an update within the generation",
+          "result" in st.set(K, "c", t("14"), expected_generation=2))
+    st.delete(K, t("15"))
+    gone = st.set(K, "x", t("16"), expected_version=3)
+    fresh = StateStore().set("agent:acme.billing/agent/never", "x", t("16"), expected_version=3)
+    check("R17 (g) no live entry: conflict entry_live false, no current_* member",
+          gone == {"error": "conflict", "details": {"entry_live": False, "expected_version": 3}})
+    check("R17 (g) deleted key and key never written give identical details", gone == fresh)
+    check("R17 (g) the rejected conditional SET creates no entry", st.live(K) is None and st.top[K] == 2)
+
+    # (h) numbering
+    st = StateStore()
+    st.set(K, "a", t("09")); st.purge(K, t("10"), "p1")
+    check("R17 (h) numbering continues after PURGE", st.set(K, "b", t("11"))["result"]["generation"] == 2)
+    st = StateStore()
+    for i, h in enumerate(("09", "10", "11")):
+        st.set(K, i, t(h)); st.delete(K, t(h).replace(":00:00", ":30:00"))
+    st.remove_generation(K, 3); st.remove_generation(K, 1)
+    check("R17 (h) partial removal (g3 removed, g2 held): next generation is 4, the sequence does not rewind",
+          st.set(K, "d", t("12"))["result"]["generation"] == 4)
+    st = StateStore()
+    st.set(K, "a", t("09")); st.delete(K, t("10"))
+    st.records = []  # audit trail removed; the logically deleted entry is still stored
+    check("R17 (h) a logically deleted entry still stored keeps the sequence",
+          st.set(K, "b", t("11"))["result"]["generation"] == 2)
+    st.remove_all(K)
+    check("R17 (h) declared limit: after every information of the key is removed the sequence restarts at 1",
+          st.set(K, "c", t("12"))["result"]["generation"] == 1)
+
+    # (i) PURGE repetition
+    st = StateStore()
+    st.set(K, "a", t("09"))
+    p1 = st.purge(K, t("10"), "k1")
+    check("R17 (i) retransmission with the same idempotency key: stored response, no new record",
+          st.purge(K, "2026-04-15T10:05:00.000Z", "k1") == p1 and len([r for r in st.records if r["event_type"] == "state_purge"]) == 1)
+    again = st.purge(K, t("11"), "k2")
+    check("R17 (i) repeated PURGE without a later write: same purged_at, no new record",
+          again["result"]["purged_at"] == t("10") and len([r for r in st.records if r["event_type"] == "state_purge"]) == 1)
+    st.set(K, "b", t("12"))
+    p3 = st.purge(K, t("13"), "k3")
+    purges = [r for r in st.records if r["event_type"] == "state_purge"]
+    check("R17 (i) PURGE after a later write: new purge, new record carrying generation 2",
+          p3["result"]["purged_at"] == t("13") and len(purges) == 2 and purges[-1]["generation"] == 2)
+
+    # (j) scenario vectors
+    sv = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "state"]
+    check("R17 state vectors present (ITV-677..681)",
+          sorted(v["id"] for v in sv) == ["ITV-677", "ITV-678", "ITV-679", "ITV-680", "ITV-681"])
+    for v in sv:
+        got = state_case(v["test_metadata"]["input"])
+        miss = subset_match(v["test_metadata"]["expect"], got)
+        check(f"R17 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R17 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
-    r16(vectors)
+    r16(vectors); r17(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

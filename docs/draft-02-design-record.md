@@ -380,3 +380,34 @@ canonicalization text corrected) in the same or an earlier cycle.
   returned chain.
 - **Verification scope (owner condition).** Positions 1 to h of the held head must
   be present exactly and consecutively. Later entries are reported, not rejected.
+
+**Addendum — 2026-11-03 (owner decisions for the A-79 cycle, under D2).**
+- **G1 — Generation numbering.** A new entry takes the generation after the highest
+  ever assigned under its key. The implementation keeps that highest number while it
+  holds any information of the key — the live entry, a logically deleted entry still
+  stored, temporal versions, archive, PURGE metadata, audit records — so neither a
+  PURGE nor a partial removal rewinds the sequence. Restart at 1 is possible only after
+  every such information is removed; the uniqueness of (key, generation, version) is
+  bounded by that, as a declared limit (State §2.1.14).
+- **G2 — Preconditions.** `expected_generation` joins `expected_version`; both are
+  checked against the live entry in one atomic check. Version alone does not detect a
+  recreation; generation alone does not detect updates within a generation. A
+  conditional SET on a key without a live entry gets `conflict` with
+  `entry_live: false`, no `current_*` member, no entry created, and nothing that
+  distinguishes a deleted key from a key never written. The ABA protection holds
+  within G1.
+- **G3 — A-88.** `created_at` is the creation time of the entry (generation) and is
+  immutable for its lifetime; a recreation has its own. Retention anchor and
+  calculation unchanged; recreation renews nothing of earlier generations. Triage
+  stays INT; closed by the §2.1.5 clarification and the disposition.
+- **G4 — Adjacent findings closed in the cycle.** A-93: the four dead StateEntry
+  `$ref`s of the state-operations schema, the README `$id` convention, and a guard over
+  every `$ref` (fragments and relative bases included). A-94: PURGE repetition —
+  retransmission per Core §10.3, repeated PURGE without a later write idempotent, PURGE
+  after a later write a new purge; `state_purge.generation` is the latest generation
+  covered. A-7 (PURGE versus retention) is not touched.
+- **G5 — A-95 (plan proposal, accepted at review).** The conflict-details schema
+  follows the existing State §8.4 MUST (current and updated members required); the
+  live and absent branches are selected by any concurrency member and by
+  `entry_live`, and the absent branch admits only `entry_live` and the stated
+  preconditions.

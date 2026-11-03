@@ -213,13 +213,35 @@
     },
     "error-details-conflict-version": {
       "type": "object",
-      "description": "Error details for conflict caused by optimistic concurrency — State §8.4",
+      "description": "Error details for a conflict on a live entry caused by an optimistic-concurrency precondition — State §8.4, §3.1.2 rule 4. Carries the live entry's current_generation, current_version, updated_at and updated_by, and each precondition the request stated (at least one of expected_version, expected_generation).",
       "required": [
+        "current_generation",
         "current_version",
-        "expected_version"
+        "updated_at",
+        "updated_by"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "expected_version"
+          ]
+        },
+        {
+          "required": [
+            "expected_generation"
+          ]
+        }
       ],
       "properties": {
+        "current_generation": {
+          "type": "integer",
+          "minimum": 1
+        },
         "current_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_generation": {
           "type": "integer",
           "minimum": 1
         },
@@ -236,6 +258,39 @@
               "$ref": "arsia-common.schema.json#/$defs/agent-id"
             }
           ]
+        }
+      }
+    },
+    "error-details-conflict-absent": {
+      "type": "object",
+      "description": "Error details for a conditional SET on a key without a live entry — State §3.1.2 rule 4, §8.4. Consist of entry_live false and each precondition the request stated; no current_* or updated_* member and nothing that distinguishes a deleted key from a key never written.",
+      "required": [
+        "entry_live"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "expected_version"
+          ]
+        },
+        {
+          "required": [
+            "expected_generation"
+          ]
+        }
+      ],
+      "properties": {
+        "entry_live": {
+          "const": false
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_version": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -1119,9 +1174,70 @@
                         "const": "conflict"
                       },
                       "details": {
+                        "type": "object",
                         "required": [
-                          "current_version"
+                          "entry_live"
                         ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-conflict-absent"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "conflict"
+                      },
+                      "details": {
+                        "type": "object",
+                        "anyOf": [
+                          {
+                            "required": [
+                              "current_generation"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "current_version"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "expected_generation"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "expected_version"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "updated_at"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "updated_by"
+                            ]
+                          }
+                        ],
+                        "not": {
+                          "required": [
+                            "entry_live"
+                          ]
+                        }
                       }
                     },
                     "required": [
