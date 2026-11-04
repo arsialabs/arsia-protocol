@@ -236,6 +236,8 @@
 | CORE-§6.2-09 | 6.2 | REQUIRED | external | structural | Token response MUST include scope with granted capabilities (may differ from requested) | arsia-jwt-claims | — |
 | CORE-§6.3-01 | 6.3 | RECOMMENDED | sdk | interoperability | DPoP proof-of-possession is RECOMMENDED for high-security deployments or intermediary traversal | arsia-dpop-proof | ITV-33, ITV-34, ITV-126 |
 | CORE-§6.3-02 | 6.3 | SHOULD | sdk | interoperability | Implementations SHOULD use DPoP when the compliance profile requires high-risk controls | arsia-dpop-proof | — |
+| CORE-§6.3-03 | 6.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify DPoP proofs as specified in Identity §3.3 (RFC 9449 §4.3 checks and the ARSIA profile) and reject failures as specified there: unauthorized, or the nonce challenge under its exception | arsia-dpop-proof | ITV-451, INV-104, INV-105, INV-106, INV-107 |
+| CORE-§6.3-04 | 6.3 | MAY | sdk | interoperability | A receiving agent MAY require a server-provided DPoP nonce (Identity §3.3) | arsia-dpop-proof | ITV-580 |
 | CORE-§6.4-01 | 6.4 | MUST | sdk | procedural | Receiving agent MUST enforce capability-based authorization for every request message | — | — |
 | CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-434 |
 | CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-435, ITV-447, ITV-448 |
@@ -341,7 +343,7 @@
 | CORE-§9.2-04 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT bypass broker routing even if direct connectivity is available | — | — |
 | CORE-§9.2-05 | 9.2 | MUST_NOT | external | behavioural_negative | Compliance brokers MUST NOT modify message envelope contents | — | — |
 | CORE-§9.2-06 | 9.2 | MUST | external | interoperability | Broker-forwarded message MUST be byte-identical to original after JSON canonicalization | — | — |
-| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every relayed message | arsia-audit-record | — |
+| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every message received for relay, including messages they do not forward | arsia-audit-record | ITV-508, ITV-688, ITV-689 |
 | CORE-§9.2-08 | 9.2 | MUST | external | behavioural_positive | Broker audit record MUST include message id, from, to, ts, broker id, relay timestamp, and zone | arsia-audit-record | — |
 | CORE-§9.2-09 | 9.2 | MAY | deployment | informational | Broker discovery endpoint MAY be hosted by any ARSIA infrastructure service | — | — |
 | CORE-§9.2-10 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT send the message if no broker is available for the required residency zone | — | — |
@@ -417,11 +419,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 393 |
-| Schema ≠ — | 169 |
-| Vector ≠ — | 138 |
-| Both ≠ — | 75 |
-| Both = — (gaps) | 161 |
+| Total requirements | 404 |
+| Schema ≠ — | 180 |
+| Vector ≠ — | 149 |
+| Both ≠ — | 87 |
+| Both = — (gaps) | 162 |
 
 ### Per-section breakdown
 
@@ -430,12 +432,12 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 136 | 73 | 73 | 40 | 30 |
-| 5 | 34 | 7 | 19 | 4 | 12 |
-| 6 | 34 | 19 | 12 | 5 | 8 |
+| 4 | 141 | 78 | 77 | 45 | 31 |
+| 5 | 35 | 8 | 20 | 5 | 12 |
+| 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
-| 9 | 21 | 4 | 0 | 0 | 17 |
+| 9 | 21 | 4 | 1 | 1 | 17 |
 | 10 | 15 | 2 | 0 | 0 | 13 |
 | 11 | 31 | 15 | 7 | 6 | 15 |
 | 12 | 5 | 1 | 1 | 1 | 4 |
@@ -467,3 +469,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | JWKS cache ceiling 3600 s; revocation signal; key-revocation event | §5.2 caching, §7.3 | — | integration |
 | Threat model +6 adversaries | §13.1 | — | — |
 | CORE-COMPLIANCE-04..09 added; in-repo runner | §12.3, §12.4 | — | as listed per test |
+| DPoP receiver checks delegated to Identity §3.3; single-use jti stated as an ARSIA requirement; broker audit covers messages not forwarded (A-49, A-89) | §6.3, §9.2, §13.2.2 | dpop-proof, audit-record | INV-104..107, ITV-688, ITV-689; harness R19, R20 |

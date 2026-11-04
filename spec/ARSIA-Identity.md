@@ -531,24 +531,92 @@ Payload:
 }
 ```
 
-**Verification by receiving agent:**
+**Verification by receiving agent.** A receiving agent presented with a DPoP-bound
+access token (`Authorization: DPoP …`) MUST verify the DPoP proof as follows and MUST
+NOT accept the request unless every check succeeds. Checks 1–12 are those of
+[RFC 9449] §4.3 and may be performed in any order; text marked *ARSIA profile* states a
+restriction of this protocol that RFC 9449 leaves to deployments.
 
-1. Verify that the `typ` header parameter has the value `dpop+jwt` (RFC 9449 §4.3).
-2. Verify that the `alg` header parameter identifies an asymmetric digital signature
-   algorithm, is not `none`, and is acceptable per local policy (RFC 9449 §4.3). ARSIA
-   DPoP proofs use `EdDSA` (`arsia-dpop-proof.schema.json`, `$defs/dpop-header`).
-3. Verify the DPoP proof JWT signature using the `jwk` embedded in the proof header.
-4. Verify that `htu` matches the inbox URL that received the request.
-5. Verify that `htm` equals `"POST"`.
-6. Verify that `iat` is within the clock skew tolerance of the current time —
-   ARSIA-Core.md §8.3: ±300 seconds by default, or the applicable compliance
-   profile's `clock_skew_seconds`.
-7. Verify that `ath` equals the base64url-encoded SHA-256 hash of the access token.
-8. Verify that the `jwk` in the proof header matches the `cnf` (confirmation) claim in
-   the access token.
+1. There is exactly one `DPoP` HTTP request header field ([RFC 9449] §4.3, §7.1).
+2. Its value is a single, well-formed JWT.
+3. The JWT contains every claim required by [RFC 9449] §4.2 — `jti`, `htm`, `htu`, `iat`
+   and, because the proof is presented with an access token, `ath` — and `nonce` when
+   the receiving agent requires one (`arsia-dpop-proof.schema.json`; for a missing
+   `nonce`, see the nonce rule after the list).
+4. The `typ` header parameter has the value `dpop+jwt`.
+5. The `alg` header parameter identifies a registered asymmetric digital signature
+   algorithm, is not `none`, is supported, and is acceptable per local policy.
+   *ARSIA profile:* `alg` is `EdDSA` and the `jwk` is an Ed25519 public key
+   (`$defs/dpop-header`; ARSIA-Core.md §5.1).
+6. The JWT signature verifies with the public key in the `jwk` header parameter.
+7. The `jwk` header parameter does not contain a private key; an Ed25519 `jwk` carries
+   no `d` member.
+8. `htm` matches the HTTP method of the request. *ARSIA profile:* inbox delivery uses
+   `POST` (ARSIA-Core.md §8.1), so `htm` is `"POST"`.
+9. `htu` matches the HTTP URI of the request in which the proof was received, ignoring
+   any query and fragment parts; the receiving agent SHOULD apply syntax-based and
+   scheme-based normalisation ([RFC 3986] §6.2.2, §6.2.3) before comparing. In brokered
+   delivery this URI is the recipient's inbox URL (ARSIA-Routing.md §2.3.1).
+10. If the receiving agent provided a nonce to the sender (below), the `nonce` claim
+    matches that nonce.
+11. The creation time of the proof is within the acceptance window. *ARSIA profile:*
+    `iat` is within the clock skew tolerance S of the receiving agent's clock —
+    ARSIA-Core.md §8.3: ±300 seconds by default, or the applicable compliance
+    profile's `clock_skew_seconds`. A receiving agent that provides nonces MAY
+    additionally bound the lifetime of a proof by the server time its nonce encodes
+    ([RFC 9449] §11.1).
+12. Because the proof is presented with an access token: `ath` equals the
+    base64url-encoded SHA-256 hash of that access token, and the key to which the
+    token is bound — the token's `cnf.jkt`, the JWK SHA-256 Thumbprint (RFC 7638) of
+    the key ([RFC 9449] §6.1) — is the proof's `jwk`.
+13. *ARSIA profile:* the proof's `jti` has not been accepted before for the same target
+    URI (single use, below).
 
 If any check fails, the receiving agent MUST reject the request with error code
-`"unauthorized"`.
+`"unauthorized"`, except for the nonce. When the receiving agent requires a nonce, a
+request that passes every check not concerning the nonce, but carries no `nonce` claim
+or a `nonce` the agent does not accept, MUST be answered with the nonce challenge
+below, not with a generic `"unauthorized"`. This holds whichever check detects it
+(check 3 or check 10) and includes the first request, before any nonce has been
+provided ([RFC 9449] §9).
+
+**Single-use `jti` (ARSIA requirement).** [RFC 9449] §11.1 permits deployments that do
+not track `jti`; the ARSIA profile does not:
+
+- A receiving agent MUST NOT accept a proof whose `jti` it has already accepted in the
+  context of the same target URI (the `htu` after the comparison of check 9).
+- The check and the recording of the `jti` MUST be a single atomic operation, shared by
+  every instance that serves the same endpoint: two requests carrying the same `jti`
+  for the same target URI MUST NOT both be accepted, whichever instance receives them.
+- The target URI that scopes the record is the one compared in check 9, without query
+  and fragment: varying the query or fragment does not create a separate scope in which
+  the same `jti` could be accepted again.
+- A `jti` MUST remain recorded for as long as a proof carrying it could still pass
+  check 11 — at least until `iat` + S on the receiving agent's clock. A fixed period
+  counted from the first receipt does not suffice: a proof whose `iat` is ahead of the
+  receiving agent's clock remains acceptable for up to 2·S after its first receipt.
+- The receiving agent MAY record a hash of the `jti` instead of its value
+  ([RFC 9449] §11.1).
+- A nonce does not replace this check: a nonce may be accepted many times, a `jti` only
+  once.
+
+**Server-provided nonce.** A receiving agent MAY require a nonce in the DPoP proofs
+presented to it ([RFC 9449] §9). It provides the nonce — in response to a request
+without an acceptable nonce, the first one included — in an HTTP 401 (Unauthorized)
+response carrying `WWW-Authenticate: DPoP error="use_dpop_nonce"` and a `DPoP-Nonce`
+header — a transport-level response (ARSIA-Core.md §11.1.1) — and MAY provide a new
+nonce in `DPoP-Nonce` on any later response ([RFC 9449] §8.2). A nonce is valid only at
+the agent that issued it. Once it has provided a nonce for a DPoP key, the receiving
+agent MUST NOT accept a proof made with that key without the `nonce` claim
+([RFC 9449] §11.3). In brokered delivery the recipient's challenge reaches the sender
+through the broker (ARSIA-Routing.md §2.3.3).
+
+**Retransmission.** A sender that retransmits a request — after a transient error, a
+nonce challenge or a relay failure — MUST present a new DPoP proof, with a new `jti`
+and a current `iat`; it MAY retransmit the envelope unchanged, keeping its `id` and
+`idempotency.key` (ARSIA-Core.md §10). A DPoP proof is not part of the envelope and
+does not affect its idempotency. ([RFC 9449] §7.3 recommends a unique proof on retries;
+under the single-use rule above, a re-sent proof is rejected.)
 
 ---
 
@@ -733,6 +801,16 @@ tests at the applicable conformance level.
 | **preconditions** | Overlap period (24h+) has elapsed. `key1` has been removed from JWKS. Only `key2` remains. |
 | **action**      | Send a message signed with `key1`.                                |
 | **expected**    | Receiving agent fetches JWKS and finds no entry for `key1`. Message is rejected with error code `"unauthorized"`. |
+
+### IDENTITY-23: DPoP single-use `jti` and nonce challenge
+
+| Field           | Value                                                             |
+|-----------------|-------------------------------------------------------------------|
+| **test_id**     | `IDENTITY-23`                                                     |
+| **description** | Verify single-use `jti` and nonce handling for DPoP proofs (§3.3) |
+| **preconditions** | Agent B accepts DPoP-bound access tokens and requires a nonce in DPoP proofs. Agent A holds a valid DPoP-bound token for B. |
+| **action**      | (1) Agent A sends a request with a valid DPoP proof without `nonce`. (2) Agent A retries with a new proof carrying the nonce from the challenge. (3) Agent A re-sends the proof of step 2 unchanged. |
+| **expected**    | (1) HTTP 401 with `WWW-Authenticate: DPoP error="use_dpop_nonce"` and a `DPoP-Nonce` header. (2) The request is accepted. (3) The request is rejected with error code `"unauthorized"` (the `jti` was already accepted for this target URI). |
 
 ---
 
@@ -1930,7 +2008,7 @@ theft and replay attacks by binding the access token to the sender's cryptograph
 When DPoP is in use:
 
 - The external agent MUST present a DPoP proof JWT alongside the access token.
-- The infrastructure router MUST verify the DPoP proof before accepting the request.
+- The infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request.
 - The token MUST contain a `cnf` claim binding it to the agent's Ed25519 key.
 
 Organizations with high-security requirements SHOULD mandate DPoP for all external agents
@@ -2108,12 +2186,14 @@ tests.
   §7.1 (ArsiaAuditRecord Structure), §7.2 (Immutability Requirements),
   §7.4 (Audit Trail Query Endpoint).
 - **RFC 2119** — Key words for use in RFCs to Indicate Requirement Levels.
+- **RFC 3986** — Uniform Resource Identifier (URI): Generic Syntax.
 - **RFC 5280** — Internet X.509 Public Key Infrastructure Certificate and
   Certificate Revocation List (CRL) Profile.
 - **RFC 6960** — X.509 Internet Public Key Infrastructure Online Certificate Status
   Protocol — OCSP.
 - **RFC 7517** — JSON Web Key (JWK).
 - **RFC 7519** — JSON Web Token (JWT).
+- **RFC 7638** — JSON Web Key (JWK) Thumbprint.
 - **RFC 8174** — Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words.
 - **RFC 8785** — JSON Canonicalization Scheme (JCS).
 - **RFC 9449** — OAuth 2.0 Demonstrating Proof of Possession (DPoP).

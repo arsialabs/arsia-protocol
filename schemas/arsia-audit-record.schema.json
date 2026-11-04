@@ -636,7 +636,7 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "Relay attestation identifier (Routing §7.4)"
+          "description": "Relay attestation identifier (Routing §7.4.1). In broker_relay records, present with forwarded_at and relay_latency_ms when the broker initiated forwarding, absent otherwise (Routing §7.4.2)"
         }
       ]
     },
@@ -663,7 +663,7 @@
     "residency_zone": {
       "type": "string",
       "pattern": "^[A-Z]{2}$",
-      "description": "Zone this relay satisfies (Routing §7.4.2)"
+      "description": "The zone declared in the relayed message's compliance.data_residency — the zone a forwarded relay satisfies (Routing §7.3 Rule 7, §7.4.2)"
     },
     "received_at": {
       "allOf": [
@@ -681,14 +681,14 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         },
         {
-          "description": "When the broker initiated forwarding"
+          "description": "When the broker initiated the forwarding attempt; absent when the broker did not forward (Routing §7.4.2)"
         }
       ]
     },
     "relay_latency_ms": {
       "type": "integer",
       "minimum": 0,
-      "description": "Receipt-to-forward latency in ms"
+      "description": "forwarded_at − received_at, exactly, in whole milliseconds: the interval until forwarding was initiated, not until the recipient's response; absent when the broker did not forward (Routing §7.4.2)"
     },
     "forwarding_result": {
       "type": "string",
@@ -696,7 +696,8 @@
         "success",
         "failure",
         "timeout"
-      ]
+      ],
+      "description": "success: forwarding initiated and the recipient answered with an ARSIA envelope or HTTP 202 (delivery, not the outcome of the operation); timeout: refused (Rule 9) or abandoned (§2.3.4) for time; failure: every other case, before or after forwarding. Routing §7.4.2"
     },
     "rejection_cause": {
       "type": "string",
@@ -1160,17 +1161,52 @@
       },
       "then": {
         "required": [
-          "attestation_id",
           "broker_agent_id",
           "message_ts",
           "residency_zone",
           "received_at",
-          "forwarded_at",
-          "relay_latency_ms",
+          "forwarding_result"
+        ],
+        "dependentRequired": {
+          "attestation_id": [
+            "forwarded_at",
+            "relay_latency_ms"
+          ],
+          "forwarded_at": [
+            "attestation_id",
+            "relay_latency_ms"
+          ],
+          "relay_latency_ms": [
+            "attestation_id",
+            "forwarded_at"
+          ]
+        }
+      },
+      "$comment": "broker_relay extension fields per Routing §7.3 Rule 7, §7.4.2 (M-05 unification); attestation_id, forwarded_at and relay_latency_ms present together when forwarding was initiated"
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "broker_relay"
+          },
+          "forwarding_result": {
+            "const": "success"
+          }
+        },
+        "required": [
+          "event_type",
           "forwarding_result"
         ]
       },
-      "$comment": "broker_relay extension fields per Routing §7.4.2 (M-05 unification)"
+      "then": {
+        "required": [
+          "attestation_id",
+          "forwarded_at",
+          "relay_latency_ms"
+        ]
+      },
+      "$comment": "a success record carries the forwarding fields (Routing §7.4.2)"
     },
     {
       "if": {

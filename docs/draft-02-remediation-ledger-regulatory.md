@@ -54,18 +54,22 @@ those of any other register.
 | A-50 | T-7 | W3C Trace Context: all-zero ids accepted | DEFECT | W3C Trace Context (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-51 | T-8 | BCP 14: MAY used as a prohibition | DEFECT | BCP 14 (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
 | A-52 | T-9 | EDPB Guidelines 05/2021 v2.0 dated Feb 2022; the correct date is 14 Feb 2023 | DEFECT | EDPB (triage) | `official host (C2); out of scope of OD-4 pass` | closed (C2) |
+| A-49 | T-10 | RFC 9449 §4.3: Identity §3.3 omitted checks 1-3 (one well-formed DPoP header field; required claims), 7 (no private key in `jwk`) and 10 (nonce match); Core §6.3 omitted the `typ`/`alg` checks (C2 residual) | DEFECT | rfc-editor.org `rfc9449.txt` | `RFC 9449 (September 2023), read 2026-11-04` | closed (relay/DPoP cycle) |
+| A-49 | T-11 | RFC 9449 §9, §8.2, §11.3: a resource server provides a nonce with HTTP 401, `WWW-Authenticate: DPoP error="use_dpop_nonce"` and `DPoP-Nonce`; a nonce is accepted only by the server that issued it; once a nonce has been provided, no proof without the nonce claim is accepted — basis of Identity §3.3 and Routing §2.3.3 | CORRECT | rfc-editor.org `rfc9449.txt` | `RFC 9449 (September 2023), read 2026-11-04` | closed (relay/DPoP cycle) |
+| A-49 | T-12 | RFC 9449 §11.1, §7.3: `jti` tracking is optional ("may not always be feasible in practice") and a unique proof is recommended on retries; Identity §3.3 states single use as an ARSIA requirement, not as a requirement of the RFC | CORRECT | rfc-editor.org `rfc9449.txt` | `RFC 9449 (September 2023), read 2026-11-04` | closed (relay/DPoP cycle) |
 | A-44 | O-1 | Del. Reg. (EU) 2017/565 labelled "RTS 22"; RTS 22 is 2017/590 | DEFECT | EUR-Lex web page (orchestrator) | `02017R0565-20220802; 32017R0590 original` | closed (C2); currency confirmed 2026-09-28 |
 | A-70 | X-1 | MiFIR, Reg. (EU) No 600/2014, Art. 25(1): investment firms keep "for five years, the relevant data relating to all orders and all transactions in financial instruments"; basis of the MIFID-II floor for the records it covers | CORRECT | EUR-Lex `consolidated/02014R0600-20251123.pdf` | `02014R0600-20251123` | closed (retention-axis cycle) |
 | A-90 | X-2 | MiFID II Art. 72 cited for retention precedence over erasure (State §7.1); Art. 72 is "Exercise of supervisory powers and powers to impose sanctions" | DEFECT | EUR-Lex `consolidated/02014L0065-20260606.pdf` | `02014L0065-20260606` | closed (retention-axis cycle) |
 | A-70, A-44 | X-3 | Del. Reg. (EU) 2017/565 Art. 72 presented as implementing MiFID II Art. 16(7) and as a source of the five-year period; its heading is "Retention of records (Article 16(6) of Directive 2014/65/EU)" and it sets no period | DEFECT | EUR-Lex `consolidated/02017R0565-20220802.pdf` | `02017R0565-20220802` | closed (retention-axis cycle) |
 | A-48 | O-2 | eIDAS 2.0 described as a "Proposal … anticipated"; it is Reg. (EU) 2024/1183, in force | DEFECT | EUR-Lex web page (orchestrator) | `32024R1183 original; manifest status "In force"` | closed (C2); currency confirmed 2026-09-28 |
 
-**Totals (this register only, 37 rows).**
-- Defects: 30 (19 V + 7 T + 2 O + 2 X).
-- Correct: 7 (4 V + 2 T + 1 X).
+**Totals (this register only, 40 rows).**
+- Defects: 31 (19 V + 8 T + 2 O + 2 X).
+- Correct: 9 (4 V + 4 T + 1 X).
 - Unverified: 0.
-- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass); closed 3 (X-1..X-3, retention-axis cycle).
+- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass); closed 3 (X-1..X-3, retention-axis cycle); closed 3 (T-10..T-12, relay/DPoP cycle).
 - X items (retention-axis cycle, 3): closed 3; not part of the 2026-09-28 currency pass.
+- T-10..T-12 (relay/DPoP cycle, 3): closed 3; verified on the RFC text, not part of the 2026-09-28 currency pass.
 - Currency totals (26 items): CONFIRMADO 24 / REABERTO 2 / PENDENTE 0; A-70 apart: evidence complete, finding closed in the retention-axis cycle ([§19][ev19]).
 
 ## 8. Open notes (regulatory)
@@ -84,9 +88,9 @@ those of any other register.
   QcType `id-etsi-qct-eseal`, which §6.3 now names (T-2 was verified correct
   under the restrictive reading).
 - **RFC 9449 §4.3 residual (C2 observation, tracked in A-49):** Identity
-  §3.3 omits checks 1-3 (single, well-formed DPoP header; required claims),
-  7 (no private key in `jwk`) and 10 (nonce match). Core §6.3 omits the
-  `typ`/`alg` checks.
+  §3.3 omitted checks 1-3 (single, well-formed DPoP header; required claims),
+  7 (no private key in `jwk`) and 10 (nonce match); Core §6.3 omitted the
+  `typ`/`alg` checks. Closed in the relay/DPoP cycle (T-10; [§20][ev20]).
 - **Art. 14 mentions reviewed under A-69 (C2):** the remaining mentions were
   reviewed and none attributes per-action pre-execution approval to Art. 14.
   - Actions l.392 (Art. 14(1), a human in the decision loop);
@@ -186,3 +190,4 @@ RTM: no row references the edited sentences, so no rows were re-traced and the c
 stay at 1903 / 1114.
 
 [ev19]: draft-02-remediation-ledger-evidence.md#19-retention-axis-cycle-closure-evidence
+[ev20]: draft-02-remediation-ledger-evidence.md#20-relaydpop-cycle-closure-evidence

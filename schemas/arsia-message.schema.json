@@ -131,7 +131,7 @@
     },
     "error-details-relay-failed": {
       "type": "object",
-      "description": "Error details for broker relay failure — Routing §2.3.3, §7.3",
+      "description": "Error details for broker relay failure — Routing §2.3.3, §2.3.4, §7.3",
       "required": [
         "relay_failed",
         "relay_id"
@@ -153,7 +153,7 @@
         },
         "reason": {
           "type": "string",
-          "description": "Relay failure reason (e.g. relay_timeout) — Routing §2.3.4"
+          "description": "Relay failure reason (e.g. relay_timeout, Routing §2.3.4; recipient_dpop_nonce, Routing §2.3.3)"
         },
         "original_error": {
           "type": "object",
@@ -166,8 +166,64 @@
               "type": "string"
             }
           }
+        },
+        "dpop_nonce": {
+          "type": "string",
+          "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$",
+          "description": "The recipient's DPoP-Nonce value, unmodified, when the recipient answered with a DPoP nonce challenge. Syntax: nonce = 1*NQCHAR (RFC 9449 §8.1). Routing §2.3.3"
+        },
+        "dpop_nonce_htu": {
+          "type": "string",
+          "format": "uri",
+          "description": "The recipient inbox URL to which the broker forwarded — the htu of the sender's proof; identifies the server that issued dpop_nonce. Routing §2.3.3"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reason": {
+                "const": "recipient_dpop_nonce"
+              }
+            },
+            "required": [
+              "reason"
+            ]
+          },
+          "then": {
+            "required": [
+              "dpop_nonce",
+              "dpop_nonce_htu"
+            ]
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "dpop_nonce"
+                ]
+              },
+              {
+                "required": [
+                  "dpop_nonce_htu"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "reason"
+            ],
+            "properties": {
+              "reason": {
+                "const": "recipient_dpop_nonce"
+              }
+            }
+          }
+        }
+      ]
     },
     "error-details-rate-limited": {
       "type": "object",

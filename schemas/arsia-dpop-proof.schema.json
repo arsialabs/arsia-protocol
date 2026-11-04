@@ -3,7 +3,7 @@
   "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-dpop-proof.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA DPoP Proof JWT Payload",
-  "description": "Schema for the decoded payload of a DPoP proof JWT per ARSIA-Core.md §6.3 and RFC 9449 §4. The header schema is in $defs/dpop-header.",
+  "description": "Schema for the decoded payload of a DPoP proof JWT per ARSIA-Identity.md §3.3 (verification) and RFC 9449 §4. The header schema is in $defs/dpop-header.",
   "type": "object",
   "properties": {
     "jti": {
@@ -12,35 +12,35 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "Unique identifier for this DPoP proof (UUID v4). MUST NOT be reused (replay protection). ARSIA-Core.md §6.3."
+          "description": "Unique identifier for this DPoP proof (UUID v4). Accepted only once per target URI within the acceptance window — an ARSIA requirement (ARSIA-Identity.md §3.3 check 13)."
         }
       ]
     },
     "htm": {
       "type": "string",
       "const": "POST",
-      "description": "HTTP method of the request. ARSIA requires POST for all inbox deliveries. ARSIA-Core.md §6.3, §8.1."
+      "description": "HTTP method of the request. ARSIA requires POST for all inbox deliveries. ARSIA-Identity.md §3.3 check 8, ARSIA-Core.md §8.1."
     },
     "htu": {
       "type": "string",
       "format": "uri",
-      "description": "HTTP URI of the target inbox endpoint. MUST match the request URL. ARSIA-Core.md §6.3."
+      "description": "HTTP URI of the target inbox endpoint. MUST match the request URI, ignoring query and fragment. ARSIA-Identity.md §3.3 check 9."
     },
     "iat": {
       "type": "number",
-      "description": "Issued-at time as NumericDate. MUST be within the clock skew tolerance of the receiver's clock — ±300 seconds by default, or the applicable compliance profile's clock_skew_seconds (ARSIA-Core.md §8.3). ARSIA-Core.md §6.3."
+      "description": "Issued-at time as NumericDate. MUST be within the clock skew tolerance of the receiver's clock — ±300 seconds by default, or the applicable compliance profile's clock_skew_seconds (ARSIA-Core.md §8.3). ARSIA-Identity.md §3.3 check 11."
     },
     "ath": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]+$",
       "minLength": 43,
       "maxLength": 43,
-      "description": "Base64url-encoded SHA-256 hash of the access token. Binds the DPoP proof to a specific access token. ARSIA-Core.md §6.3, RFC 9449 §4.2."
+      "description": "Base64url-encoded SHA-256 hash of the access token. Binds the DPoP proof to a specific access token. ARSIA-Identity.md §3.3 check 12, RFC 9449 §4.2."
     },
     "nonce": {
       "type": "string",
       "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+$",
-      "description": "Server-provided nonce. MUST be present when the server has supplied a nonce via the DPoP-Nonce HTTP header (RFC 9449 §4.2, §8). Syntax: nonce = 1*NQCHAR (RFC 9449 §8.1; NQCHAR per RFC 6749 Appendix A)."
+      "description": "Server-provided nonce. MUST be present when the receiving agent requires one; it carries the value the receiving agent supplied via the DPoP-Nonce HTTP header (RFC 9449 §4.2, §8, §9; ARSIA-Identity.md §3.3). Syntax: nonce = 1*NQCHAR (RFC 9449 §8.1; NQCHAR per RFC 6749 Appendix A)."
     }
   },
   "required": [
@@ -55,7 +55,7 @@
     "dpop-header": {
       "type": "object",
       "title": "ARSIA DPoP Proof JWT Header",
-      "description": "JOSE header for ARSIA DPoP proof JWTs. ARSIA-Core.md §6.3.",
+      "description": "JOSE header for ARSIA DPoP proof JWTs. ARSIA-Identity.md §3.3 checks 4-7.",
       "properties": {
         "typ": {
           "type": "string",
@@ -65,11 +65,11 @@
         "alg": {
           "type": "string",
           "const": "EdDSA",
-          "description": "Signing algorithm. ARSIA requires EdDSA (Ed25519). ARSIA-Core.md §5.1, §6.3."
+          "description": "Signing algorithm. ARSIA requires EdDSA (Ed25519). ARSIA-Identity.md §3.3 check 5, ARSIA-Core.md §5.1."
         },
         "jwk": {
           "type": "object",
-          "description": "The public key (JWK) corresponding to the signing key. Its thumbprint MUST match the cnf.jkt in the access token.",
+          "description": "The public key (JWK) corresponding to the signing key — public key only: no private key member such as d (RFC 9449 §4.3, ARSIA-Identity.md §3.3 check 7). Its JWK SHA-256 Thumbprint (RFC 7638) MUST equal the cnf.jkt of the access token (check 12).",
           "properties": {
             "kty": {
               "type": "string",

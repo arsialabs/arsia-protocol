@@ -39,6 +39,11 @@ Schema cannot express, executed as tests — including against the runtime
       recorded override, evaluated from stored state over
       every generation; own record retention untouched;
       P1827D against P5Y over a 400-year cycle
+  R19 Broker relay record: forwarding fields together,   (Routing §7.3 Rule 7, §7.4.2; A-89)
+      success carries them, latency = forwarded_at − received_at
+  R20 DPoP proof verification: RFC 9449 §4.3 checks and   (Identity §3.3, Routing §2.3.3; A-49)
+      the ARSIA profile, nonce challenge, single-use jti
+      (atomic reference store), brokered nonce challenge
 
 Exit code 0 = all green.
 """
@@ -2305,10 +2310,614 @@ def r18(vectors):
         check(f"R18 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
 
 
+# ---------------------------------------------------------------- R19 broker relay record
+RELAY_FORWARD_FIELDS = ("attestation_id", "forwarded_at", "relay_latency_ms")
+
+
+def relay_record_problems(rec):
+    """Routing §7.4.2 runtime rules of a broker_relay record, as (kind, text) pairs.
+
+    structure: the forwarding fields are present together, and a success record carries them;
+    timing: relay_latency_ms is forwarded_at − received_at exactly, in whole milliseconds, non-negative."""
+    present = [f for f in RELAY_FORWARD_FIELDS if f in rec]
+    problems = []
+    if present and len(present) != len(RELAY_FORWARD_FIELDS):
+        problems.append(("structure", f"forwarding fields partially present: {present}"))
+    if rec.get("forwarding_result") == "success" and not present:
+        problems.append(("structure", "success without the forwarding fields"))
+    if "forwarded_at" in rec and "relay_latency_ms" in rec:
+        delta = iso(rec["forwarded_at"]) - iso(rec["received_at"])
+        ms = delta.days * 86_400_000 + delta.seconds * 1000 + delta.microseconds // 1000
+        if ms < 0:
+            problems.append(("timing", f"forwarded_at precedes received_at by {-ms} ms"))
+        if rec["relay_latency_ms"] != ms:
+            problems.append(("timing", f"relay_latency_ms {rec['relay_latency_ms']} != forwarded_at − received_at = {ms}"))
+    return problems
+
+
+def relay_record(message_id, received_at, result, forwarded_ms=None, attestation_id=None, seed="relay"):
+    """A complete broker_relay ArsiaAuditRecord (State §7.1, Routing §7.4.2) under the platform default (P90D)."""
+    rec = {"record_id": record_id_for(seed, "record"), "message_id": message_id, "event_type": "broker_relay",
+           "from_agent": DPOP_SENDER, "to_agent": DPOP_RECIPIENT, "intent": "request",
+           "payload_type": "com.acme.notes/list", "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4"}
+    end = received_at + dt.timedelta(milliseconds=(forwarded_ms or 0) + 20)
+    rec.update(processed_at=stamp(end), retained_until=stamp(add_duration(end, "P90D")),
+               operator_id="urn:lei:5493001KJTIIGC8Y1R12", compliance_profile_declared=None,
+               compliance_profile_resolved="none", retention_source="platform-default", declared_retention=None,
+               broker_agent_id=DPOP_BROKER, message_ts=stamp(received_at - dt.timedelta(milliseconds=450)),
+               residency_zone="EU", received_at=stamp(received_at), forwarding_result=result)
+    if forwarded_ms is not None:
+        rec.update(attestation_id=attestation_id, forwarded_at=stamp(received_at + dt.timedelta(milliseconds=forwarded_ms)),
+                   relay_latency_ms=forwarded_ms)
+    return rec
+
+
+def r19(vectors):
+    recs = [v for v in vectors if isinstance(v.get("data"), dict) and v["data"].get("event_type") == "broker_relay"]
+    valid = [v for v in recs if v.get("expected") == "valid"]
+    invalid = [v for v in recs if v.get("expected") == "invalid"]
+    check("R19 broker_relay vectors present (valid and invalid)", len(valid) >= 10 and len(invalid) >= 5,
+          f"{len(valid)} valid, {len(invalid)} invalid")
+    # (a) every valid record satisfies Routing §7.4.2
+    bad = {v["id"]: relay_record_problems(v["data"]) for v in valid if relay_record_problems(v["data"])}
+    check("R19 (a) every valid broker_relay record: forwarding fields together, latency = forwarded_at − received_at",
+          not bad, str(bad))
+    # (b) an invalid record carries no timing defect: its only cause is the declared one
+    bad = {v["id"]: p for v in invalid for p in [[t for k, t in relay_record_problems(v["data"]) if k == "timing"]] if p}
+    check("R19 (b) no invalid broker_relay vector carries a timing defect besides its declared cause", not bad, str(bad))
+    # (c) the Routing §7.4.2 example
+    text = open("spec/ARSIA-Routing.md", encoding="utf-8").read()
+    block = text.split("**Example audit record (extension fields shown):**", 1)[1].split("```json", 1)[1].split("```", 1)[0]
+    example = json.loads(block)
+    check("R19 (c) the Routing §7.4.2 example satisfies the derivation",
+          example["relay_latency_ms"] == 47 and not relay_record_problems(example), str(relay_record_problems(example)))
+    # (d) synthetic negatives
+    t0 = dt.datetime(2026, 11, 4, 10, 0, 0, 100000)
+    ok = relay_record("d0b00700-ffff-4a3d-8e4f-567890abcdef", t0, "success", 38, "d0b00700-aaaa-4a3d-8e4f-567890abcdef")
+    off = dict(ok, relay_latency_ms=39)
+    early = dict(ok, forwarded_at=stamp(t0 - dt.timedelta(milliseconds=5)), relay_latency_ms=-5)
+    bare = {k: x for k, x in ok.items() if k not in RELAY_FORWARD_FIELDS}
+    partial = {k: x for k, x in ok.items() if k not in ("attestation_id", "relay_latency_ms")}
+    partial["forwarding_result"] = "failure"
+    rejected = dict(bare, forwarding_result="failure")
+    kinds = lambda r: {k for k, _ in relay_record_problems(r)}
+    check("R19 (d) latency one millisecond off is detected", kinds(off) == {"timing"})
+    check("R19 (d) forwarded_at before received_at is detected", "timing" in kinds(early))
+    check("R19 (d) success without the forwarding fields is detected", kinds(dict(bare, forwarding_result="success")) == {"structure"})
+    check("R19 (d) partial forwarding fields are detected", kinds(partial) == {"structure"})
+    check("R19 (d) a record of a message not forwarded (failure, no forwarding fields) has no defect", not kinds(rejected))
+    # (e) the schema agrees with the structural rules
+    cases = {"complete": ok, "not forwarded": rejected, "success without fields": dict(bare, forwarding_result="success"),
+             "partial": partial, "attestation only": dict(rejected, attestation_id="d0b00700-aaaa-4a3d-8e4f-567890abcdef")}
+    disagree = [n for n, r in cases.items()
+                if bool(schema_errors(r, "arsia-audit-record.schema.json")) != ("structure" in kinds(r))]
+    check("R19 (e) arsia-audit-record accepts exactly the structurally sound records", not disagree, str(disagree))
+
+
+# ---------------------------------------------------------------- R20 DPoP proof verification
+DPOP_SENDER = "agent:acme.dpop-sender"
+DPOP_INTRUDER = "agent:acme.dpop-intruder"
+DPOP_RECIPIENT = "agent:acme.dpop-recipient"
+DPOP_BROKER = "agent:arsialabs.broker.eu-west"
+DPOP_INBOX = "https://agent.acme-recipient.example/v1/arsia/inbox"
+DPOP_OTHER_INBOX = "https://agent.acme-recipient.example/v1/arsia/stream-inbox"
+DPOP_SKEW = 300  # Core §8.3 default
+DPOP_TOKEN = "eyJhbGciOiJFZERTQSJ9.dpop-bound-token.sig"  # an opaque presented token; its cnf.jkt is in bindings
+AGENT_SEEDS.update({DPOP_SENDER: 17, DPOP_INTRUDER: 18})
+NONCE_CHALLENGE = 'DPoP error="use_dpop_nonce"'
+
+
+def _b64u(b):
+    import base64
+    return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+
+def _unb64u(s):
+    import base64
+    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+
+def _jwk(agent):
+    from cryptography.hazmat.primitives import serialization
+    raw = _key(agent).public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    return {"kty": "OKP", "crv": "Ed25519", "x": _b64u(raw)}
+
+
+def jkt(jwk):
+    """RFC 7638 JWK SHA-256 Thumbprint of an OKP key: required members crv, kty, x in lexicographic order."""
+    import hashlib
+    return _b64u(hashlib.sha256(json.dumps({k: jwk[k] for k in ("crv", "kty", "x")},
+                                           separators=(",", ":")).encode()).digest())
+
+
+def token_hash(token):
+    import hashlib
+    return _b64u(hashlib.sha256(token.encode()).digest())
+
+
+def dpop_jti(n):
+    return f"d0b0{n:04x}-0000-4000-8000-{n:012x}"
+
+
+def make_proof(agent, htu, iat, jti, token, nonce=None, **over):
+    """A DPoP proof JWT (Identity §3.3) signed with agent's key; over replaces header/payload members or the signer."""
+    header = {"typ": "dpop+jwt", "alg": "EdDSA", "jwk": _jwk(agent)}
+    payload = {"jti": jti, "htm": "POST", "htu": htu, "iat": iat, "ath": token_hash(token)}
+    if nonce is not None:
+        payload["nonce"] = nonce
+    header.update(over.get("header", {}))
+    payload.update(over.get("payload", {}))
+    for c in over.get("drop", ()):
+        payload.pop(c)
+    signing_input = _b64u(json.dumps(header).encode()) + "." + _b64u(json.dumps(payload).encode())
+    return signing_input + "." + _b64u(_key(over.get("signer", agent)).sign(signing_input.encode()))
+
+
+def effective_uri(uri):
+    """Identity §3.3 check 9: the URI without query and fragment, scheme and host lower-cased, default port dropped."""
+    from urllib.parse import urlsplit, urlunsplit
+    p = urlsplit(uri)
+    host = (p.hostname or "").lower()
+    if p.port and not (p.scheme.lower() == "https" and p.port == 443):
+        host += f":{p.port}"
+    return urlunsplit((p.scheme.lower(), host, p.path or "/", "", ""))
+
+
+class JtiStore:
+    """Reference single-use store (Identity §3.3): one atomic claim per (target URI, jti), held until iat + S."""
+
+    def __init__(self):
+        import threading
+        self._seen, self._lock = {}, threading.Lock()
+
+    def _get(self, key):
+        return self._seen.get(key)
+
+    def _put(self, key, until):
+        self._seen[key] = until
+
+    def claim(self, key, until, now):
+        with self._lock:
+            held = self._get(key)
+            if held is not None and held >= now:
+                return False
+            self._put(key, until)
+            return True
+
+    def accepted(self, key, now):
+        """Whether the jti is already recorded; records nothing (the nonce challenge must not consume it)."""
+        with self._lock:
+            until = self._get(key)
+            return until is not None and until >= now
+
+
+class NoncePolicy:
+    """A receiving agent that requires a nonce (Identity §3.3, RFC 9449 §9): nonces it provided, per DPoP key."""
+
+    def __init__(self):
+        self.provided, self.n = {}, 0
+
+    def issue(self, key_thumbprint):
+        self.n += 1
+        value = f"n-{self.n:04d}.{key_thumbprint[:8]}"
+        self.provided.setdefault(key_thumbprint, set()).add(value)
+        return value
+
+    def accepts(self, key_thumbprint, nonce):
+        return nonce in self.provided.get(key_thumbprint, set())
+
+
+def dpop_verify(req, now, store, bindings, nonce_policy=None, skew=DPOP_SKEW):
+    """Identity §3.3 verification of the DPoP proof of req at the receiving agent's clock now (epoch seconds).
+
+    req = {"method", "url", "headers": [(name, value), ...]}; bindings maps an access token to its cnf.jkt.
+    Returns the transport response: {"status", "headers", "code", "check"}."""
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    def fail(n):
+        return {"status": 401, "headers": {}, "code": "unauthorized", "check": n}
+
+    dpop = [v for k, v in req["headers"] if k.lower() == "dpop"]
+    auth = [v for k, v in req["headers"] if k.lower() == "authorization"]
+    if len(dpop) != 1:                                                           # check 1
+        return fail(1)
+    try:                                                                         # check 2
+        h64, p64, s64 = dpop[0].split(".")
+        header, payload = json.loads(_unb64u(h64)), json.loads(_unb64u(p64))
+        assert isinstance(header, dict) and isinstance(payload, dict)
+    except Exception:
+        return fail(2)
+    if any(c not in payload for c in ("jti", "htm", "htu", "iat", "ath")):      # check 3 (nonce: below)
+        return fail(3)
+    number = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool) and abs(x) < 2 ** 53
+    if not all(isinstance(payload[c], str) for c in ("jti", "htm", "htu", "ath")) or not number(payload["iat"]):
+        return fail(3)                                                           # claims of the wrong type
+    if header.get("typ") != "dpop+jwt":                                          # check 4
+        return fail(4)
+    jwk = header.get("jwk")
+    if (header.get("alg") != "EdDSA" or not isinstance(jwk, dict) or jwk.get("kty") != "OKP"
+            or jwk.get("crv") != "Ed25519" or not isinstance(jwk.get("x"), str)):  # check 5
+        return fail(5)
+    try:                                                                         # check 6
+        Ed25519PublicKey.from_public_bytes(_unb64u(jwk["x"])).verify(_unb64u(s64), f"{h64}.{p64}".encode())
+    except Exception:
+        return fail(6)
+    if any(m in jwk for m in ("d", "p", "q", "dp", "dq", "qi", "k")):           # check 7
+        return fail(7)
+    if payload["htm"] != req["method"] or req["method"] != "POST":              # check 8
+        return fail(8)
+    try:                                                                         # check 9
+        if effective_uri(payload["htu"]) != effective_uri(req["url"]):
+            return fail(9)
+    except ValueError:
+        return fail(9)
+    if abs(now - payload["iat"]) > skew:                                         # check 11
+        return fail(11)
+    token = auth[0].split(" ", 1)[1] if auth and auth[0].startswith("DPoP ") else None
+    if token is None or payload["ath"] != token_hash(token) or bindings.get(token) != jkt(jwk):  # check 12
+        return fail(12)
+    key = (effective_uri(req["url"]), payload["jti"])                           # check 13: single use
+    if nonce_policy is not None:                                                 # checks 3 and 10: nonce
+        thumb = jkt(jwk)
+        nonce = payload.get("nonce")
+        if not (isinstance(nonce, str) and nonce_policy.accepts(thumb, nonce)):
+            if store.accepted(key, now):                                         # not a nonce-only failure
+                return fail(13)
+            return {"status": 401, "code": None, "check": 10,
+                    "headers": {"WWW-Authenticate": NONCE_CHALLENGE, "DPoP-Nonce": nonce_policy.issue(thumb)}}
+    if not store.claim(key, payload["iat"] + skew, now):
+        return fail(13)
+    return {"status": 200, "headers": {}, "code": None, "check": None}
+
+
+def dpop_request(proof, token=None, url=DPOP_INBOX, extra=()):
+    token = token or DPOP_TOKEN
+    return {"method": "POST", "url": url,
+            "headers": [("Authorization", f"DPoP {token}"), ("DPoP", proof), *extra]}
+
+
+class DpopRecipient:
+    """A receiving agent behind a simulated transport; it records every proof that reaches it."""
+
+    def __init__(self, bindings, nonce_policy=None):
+        self.store, self.bindings, self.nonce_policy, self.seen = JtiStore(), bindings, nonce_policy, []
+
+    def handle(self, req, now):
+        self.seen.append([v for k, v in req["headers"] if k.lower() == "dpop"])
+        return dpop_verify(req, now, self.store, self.bindings, self.nonce_policy)
+
+
+AUTH_TOKEN = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
+AUTH_PARAM = re.compile(rf'({AUTH_TOKEN})[ \t]*=[ \t]*("(?:[^"\\]|\\.)*"|{AUTH_TOKEN})')
+AUTH_TOKEN68 = re.compile(r"[A-Za-z0-9._~+/-]+=*")
+AUTH_SCHEME = re.compile(AUTH_TOKEN)
+NQCHAR_NONCE = re.compile(r"^[\x21\x23-\x5B\x5D-\x7E]+$")
+
+
+def auth_challenges(value):
+    """RFC 9110 §11.3, §11.6.1 WWW-Authenticate = #challenge, challenge = auth-scheme [ 1*SP ( token68 /
+    #auth-param ) ]: [(scheme, {param: value}, token68 or None)], or None when the value does not parse.
+
+    A challenge may carry no parameters, a token68 or auth-params, and several challenges share the field;
+    after a comma, an element that is not an auth-param starts the next challenge."""
+    n = len(value)
+
+    def ows(p):
+        while p < n and value[p] in " \t":
+            p += 1
+        return p
+
+    def element(p):
+        """Start of the next non-empty list element (empty elements and OWS skipped)."""
+        p = ows(p)
+        while p < n and value[p] == ",":
+            p = ows(p + 1)
+        return p
+
+    out, pos = [], element(0)
+    while pos < n:
+        m = AUTH_SCHEME.match(value, pos)
+        if not m:
+            return None
+        challenge = (m.group(0), {}, None)
+        out.append(challenge)
+        pos = m.end()
+        if ows(pos) == n or value[ows(pos)] == ",":                              # no parameters
+            pos = element(pos)
+            continue
+        if value[pos] != " ":                                                    # 1*SP before the parameters
+            return None
+        pos = ows(pos)
+        p = AUTH_PARAM.match(value, pos)
+        if not p:                                                                # token68
+            t = AUTH_TOKEN68.match(value, pos)
+            if not t or not (ows(t.end()) == n or value[ows(t.end())] == ","):
+                return None
+            out[-1] = (challenge[0], {}, t.group(0))
+            pos = element(t.end())
+            continue
+        while p:                                                                 # #auth-param
+            v = p.group(2)
+            challenge[1][p.group(1).lower()] = re.sub(r"\\(.)", r"\1", v[1:-1]) if v.startswith('"') else v
+            after = ows(p.end())
+            if after < n and value[after] != ",":
+                return None
+            pos = element(after)
+            p = AUTH_PARAM.match(value, pos) if pos < n else None
+    return out
+
+
+def recipient_nonce(resp):
+    """The nonce of a complete DPoP nonce challenge (Identity §3.3, RFC 9449 §9), else None: HTTP 401, a DPoP
+    challenge with error="use_dpop_nonce" (other parameters allowed), and a well-formed DPoP-Nonce header."""
+    headers = {k.lower(): v for k, v in resp.get("headers", {}).items()}
+    challenges = auth_challenges(headers.get("www-authenticate", "")) or []
+    if resp.get("status") != 401 or not any(s.lower() == "dpop" and p.get("error") == "use_dpop_nonce"
+                                            for s, p, _ in challenges):
+        return None
+    nonce = headers.get("dpop-nonce")
+    return nonce if isinstance(nonce, str) and NQCHAR_NONCE.match(nonce) else None
+
+
+class DpopBroker:
+    """Routing §2.3.2/§2.3.3: forwards the sender's proof once and returns a recipient nonce challenge to the sender."""
+
+    def __init__(self, transport):
+        self.transport, self.records, self.n = transport, [], 0
+
+    def relay(self, envelope, token, proof, now):
+        self.n += 1
+        received = dt.datetime(2026, 11, 4, 10, 0, 0) + dt.timedelta(seconds=now - DPOP_T0)
+        attestation = f"d0b0{self.n:04x}-aaaa-4a3d-8e4f-567890abcdef"
+        resp = self.transport(dpop_request(proof, token), now)
+        if resp["status"] == 200:
+            self.records.append(relay_record(envelope["id"], received, "success", 30, attestation, f"relay-{self.n}"))
+            return {"headers": {}, "message": {"intent": "response", "correlation_id": envelope["id"]}}
+        self.records.append(relay_record(envelope["id"], received, "failure", 30, attestation, f"relay-{self.n}"))
+        details = {"relay_failed": True, "relay_id": attestation}
+        nonce = recipient_nonce(resp)
+        if nonce is not None:
+            details.update(reason="recipient_dpop_nonce", dpop_nonce=nonce, dpop_nonce_htu=DPOP_INBOX)
+        else:
+            details["original_error"] = {"code": resp["code"] or "unauthorized", "description": "Recipient rejected the request."}
+        message = {"v": "2.0", "id": record_id_for(f"relay-error-{self.n}", "message"),
+                   "ts": stamp(received + dt.timedelta(milliseconds=60)), "from": DPOP_BROKER, "to": envelope["from"],
+                   "intent": "error", "correlation_id": envelope["id"], "root_request_id": envelope["id"],
+                   "payload": {"type": "arsiaprotocol.broker/relay-error",
+                               "error": {"code": "service_unavailable",
+                                         "description": "Failed to relay message to recipient.", "details": details}}}
+        return {"headers": {}, "message": message}
+
+
+DPOP_T0 = 1793786400  # 2026-11-04T10:00:00Z
+
+
+def r20(vectors):
+    import threading
+    t0, S = DPOP_T0, DPOP_SKEW
+    token = DPOP_TOKEN
+    other_token = "eyJhbGciOiJFZERTQSJ9.another-token.sig"
+    bindings = {token: jkt(_jwk(DPOP_SENDER)), other_token: jkt(_jwk(DPOP_SENDER))}
+    seq = iter(range(1, 10_000))
+    fresh = lambda **kw: make_proof(DPOP_SENDER, kw.pop("htu", DPOP_INBOX), kw.pop("iat", t0), dpop_jti(next(seq)),
+                                    kw.pop("token", token), kw.pop("nonce", None), **kw)
+    run = lambda req, now=t0, store=None, policy=None: dpop_verify(req, now, store or JtiStore(), bindings, policy)
+    plain = lambda r: r["status"] == 401 and r["code"] == "unauthorized" and not r["headers"]
+
+    # (a) a valid proof is accepted
+    check("R20 (a) a valid DPoP proof is accepted", run(dpop_request(fresh()))["status"] == 200)
+
+    # (b) one mutation per check not concerning the nonce: rejected by that check, generic unauthorized
+    d_jwk = dict(_jwk(DPOP_SENDER), d=_b64u(bytes(32)))
+    cases = {
+        1: dpop_request(fresh(), token, extra=[("DPoP", fresh())]),
+        2: dpop_request(fresh().rsplit(".", 1)[0], token),
+        3: dpop_request(fresh(drop=("jti",))),
+        4: dpop_request(fresh(header={"typ": "JWT"})),
+        5: dpop_request(fresh(header={"alg": "ES256"})),
+        6: dpop_request(fresh(signer=DPOP_INTRUDER)),
+        7: dpop_request(fresh(header={"jwk": d_jwk})),
+        8: dpop_request(fresh(payload={"htm": "GET"})),
+        9: dpop_request(fresh(htu=DPOP_OTHER_INBOX)),
+        11: dpop_request(fresh(iat=t0 - S - 1)),
+        12: dpop_request(fresh(token=other_token)),
+    }
+    for n, req in cases.items():
+        r = run(req)
+        check(f"R20 (b) check {n} failure is rejected by check {n} with a generic unauthorized", plain(r) and r["check"] == n,
+              f"got status {r['status']} check {r['check']}")
+    r = run(dpop_request(fresh(header={"jwk": _jwk(DPOP_INTRUDER)}, signer=DPOP_INTRUDER)))
+    check("R20 (b) check 12: a proof key other than the token's cnf.jkt is rejected", plain(r) and r["check"] == 12)
+    st = JtiStore()
+    p = fresh()
+    run(dpop_request(p), store=st)
+    r = run(dpop_request(p), store=st)
+    check("R20 (b) check 13: a replayed jti is rejected with a generic unauthorized", plain(r) and r["check"] == 13)
+    malformed = {"jwk null": (5, dict(header={"jwk": None})), "iat a string": (3, dict(payload={"iat": str(t0)})),
+                 "htu null": (3, dict(payload={"htu": None})), "jti a list": (3, dict(payload={"jti": []})),
+                 "htu with an invalid port": (9, dict(payload={"htu": "https://agent.acme-recipient.example:x/v1/arsia/inbox"}))}
+    for name, (n, over) in malformed.items():
+        try:
+            r = run(dpop_request(fresh(**over)))
+            got = f"status {r['status']} check {r['check']}"
+            ok = plain(r) and r["check"] == n
+        except Exception as e:
+            got, ok = f"exception {type(e).__name__}", False
+        check(f"R20 (b) malformed proof ({name}, validly signed) is rejected by check {n}, without an exception", ok, got)
+    check("R20 (b) zero DPoP header fields fail check 1",
+          plain(run({"method": "POST", "url": DPOP_INBOX, "headers": [("Authorization", f"DPoP {token}")]})))
+
+    # (c) htu compared without query and fragment
+    check("R20 (c) a request URI with query and fragment matches htu",
+          run(dpop_request(fresh(), url=DPOP_INBOX + "?trace=1#frag"))["status"] == 200)
+
+    # (d) single use per target URI; query or fragment variants share the scope
+    st = JtiStore()
+    p = fresh()
+    first = run(dpop_request(p), store=st)
+    again = run(dpop_request(p), store=st)
+    variant = run(dpop_request(p, url=DPOP_INBOX + "?x=1#y"), store=st)
+    jti = json.loads(_unb64u(p.split(".")[1]))["jti"]
+    elsewhere = run(dpop_request(make_proof(DPOP_SENDER, DPOP_OTHER_INBOX, t0, jti, token), url=DPOP_OTHER_INBOX), store=st)
+    check("R20 (d) the same jti is rejected again for the same target URI", first["status"] == 200 and again["check"] == 13)
+    check("R20 (d) a query or fragment variant does not open a new scope for the same jti", variant["check"] == 13,
+          f"status {variant['status']}")
+    check("R20 (d) the same jti is accepted for another target URI", elsewhere["status"] == 200)
+
+    # (e) retention until iat + S, not a fixed period from the first receipt
+    st = JtiStore()
+    p = fresh(iat=t0 + S)
+    ahead = run(dpop_request(p), now=t0, store=st)
+    late = run(dpop_request(p), now=t0 + S + 1, store=st)
+    check("R20 (e) a proof with iat = t0 + S, first received at t0, is still rejected as a replay at t0 + S + 1",
+          ahead["status"] == 200 and late["check"] == 13, f"replay at t0+S+1: {late}")
+
+    # (f) after iat + S the proof fails check 11, whatever the store holds
+    check("R20 (f) after iat + S the proof fails the acceptance window (check 11)",
+          run(dpop_request(p), now=t0 + 2 * S + 1, store=st)["check"] == 11)
+
+    # (g) a receiving agent that requires a nonce
+    def challenge(r):
+        return (r["status"] == 401 and r["headers"].get("WWW-Authenticate") == NONCE_CHALLENGE
+                and bool(r["headers"].get("DPoP-Nonce")) and r["code"] is None)
+    pol, st = NoncePolicy(), JtiStore()
+    r1 = run(dpop_request(fresh()), store=st, policy=pol)
+    check("R20 (g) 1 the first request without a nonce is answered with the nonce challenge (401, both headers)",
+          challenge(r1), str(r1))
+    r2 = run(dpop_request(fresh()), store=st, policy=pol)
+    check("R20 (g) 2 a proof without nonce after one was provided gets the challenge, not a generic unauthorized",
+          challenge(r2), str(r2))
+    r3 = run(dpop_request(fresh(nonce="not-a-nonce-it-issued")), store=st, policy=pol)
+    check("R20 (g) 3 a nonce the agent does not accept gets the challenge", challenge(r3), str(r3))
+    nonce = r1["headers"].get("DPoP-Nonce")
+    r4 = run(dpop_request(fresh(nonce=nonce)), store=st, policy=pol)
+    r5 = run(dpop_request(fresh(nonce=nonce)), store=st, policy=pol)
+    check("R20 (g) 4 the provided nonce is accepted; reused with a new jti it is accepted again",
+          r4["status"] == 200 and r5["status"] == 200)
+    r6 = run(dpop_request(fresh(nonce=nonce, token=other_token), token), store=st, policy=pol)
+    check("R20 (g) 5 a correct nonce with another failure (ath) gets a generic unauthorized, no challenge",
+          plain(r6) and r6["check"] == 12, str(r6))
+
+    pol, st = NoncePolicy(), JtiStore()
+    nonce = run(dpop_request(fresh()), store=st, policy=pol)["headers"].get("DPoP-Nonce")
+    jti = dpop_jti(next(seq))
+    once = lambda n: dpop_request(make_proof(DPOP_SENDER, DPOP_INBOX, t0, jti, token, n))
+    r7 = run(once(nonce), store=st, policy=pol)
+    r8 = run(once(nonce), store=st, policy=pol)
+    r9 = run(once("not-a-nonce-it-issued"), store=st, policy=pol)
+    check("R20 (g) 6 a jti already accepted, with an unaccepted nonce, is rejected by check 13, not challenged",
+          r7["status"] == 200 and r8["check"] == 13 and plain(r9) and r9["check"] == 13, str(r9))
+    jti2 = dpop_jti(next(seq))
+    r10 = run(dpop_request(make_proof(DPOP_SENDER, DPOP_INBOX, t0, jti2, token, "stale")), store=st, policy=pol)
+    r11 = run(dpop_request(make_proof(DPOP_SENDER, DPOP_INBOX, t0, jti2, token, r10["headers"].get("DPoP-Nonce"))),
+              store=st, policy=pol)
+    check("R20 (g) 7 a new jti with an unaccepted nonce is challenged, and the challenge does not consume the jti",
+          challenge(r10) and r11["status"] == 200, f"{r10['status']}/{r11['status']}")
+    r12 = run(dpop_request(fresh(nonce=7)), store=st, policy=pol)
+    check("R20 (g) 8 a nonce claim of the wrong type is an unaccepted nonce: challenged, no exception", challenge(r12))
+
+    # (h) retransmission: a new proof is accepted, the same proof is not
+    st = JtiStore()
+    p = fresh()
+    run(dpop_request(p), store=st)
+    check("R20 (h) a retransmission with a new proof is accepted; the re-sent proof is rejected",
+          run(dpop_request(fresh()), store=st)["status"] == 200 and run(dpop_request(p), store=st)["check"] == 13)
+
+    # (i) generated proofs conform to arsia-dpop-proof
+    p = fresh(nonce="eyJ7S_zG.eyJH0-Z.HX4w-7v")
+    h64, p64, _ = p.split(".")
+    errs = (schema_errors(json.loads(_unb64u(h64)), "arsia-dpop-proof.schema.json", "dpop-header")
+            + schema_errors(json.loads(_unb64u(p64)), "arsia-dpop-proof.schema.json"))
+    check("R20 (i) the generated header and payload validate against arsia-dpop-proof", not errs, "; ".join(errs[:2]))
+
+    # (j) brokered delivery: recipient challenge -> sender -> new proof -> delivery
+    recipient = DpopRecipient(bindings, NoncePolicy())
+    broker = DpopBroker(recipient.handle)
+    envelope = {"id": "d0b00720-ffff-4a3d-8e4f-567890abcdef", "from": DPOP_SENDER}
+    old = fresh()
+    out1 = broker.relay(envelope, token, old, t0)
+    det = out1["message"]["payload"]["error"]["details"] if out1["message"].get("intent") == "error" else {}
+    issued = sorted(recipient.nonce_policy.provided.get(bindings[token], set()))
+    check("R20 (j) 1 the broker returns the challenge: reason recipient_dpop_nonce, the recipient's nonce, its inbox URL",
+          det.get("reason") == "recipient_dpop_nonce" and [det.get("dpop_nonce")] == issued
+          and det.get("dpop_nonce_htu") == DPOP_INBOX, str(det))
+    errs = schema_errors(out1["message"], "arsia-message.schema.json")
+    check("R20 (j) 1 the relay error validates against arsia-message", not errs, "; ".join(errs[:2]))
+    check("R20 (j) 2 the broker does not present the recipient's nonce as its own DPoP-Nonce",
+          det.get("dpop_nonce") not in out1["headers"].values())
+    rec1 = broker.records[-1]
+    check("R20 (j) 3 the attempt is recorded as failure with the forwarding fields",
+          rec1["forwarding_result"] == "failure" and all(f in rec1 for f in RELAY_FORWARD_FIELDS)
+          and not relay_record_problems(rec1) and not schema_errors(rec1, "arsia-audit-record.schema.json"),
+          str(schema_errors(rec1, "arsia-audit-record.schema.json")[:2]))
+    out2 = broker.relay(envelope, token, fresh(nonce=det.get("dpop_nonce")), t0 + 1)
+    rec2 = broker.records[-1]
+    old_seen = sum(old in proofs for proofs in recipient.seen)
+    check("R20 (j) 4 the old proof reached the recipient exactly once (never re-sent)", old_seen == 1, f"{old_seen} times")
+    check("R20 (j) 5 the retry with a new proof and the nonce is delivered and recorded as success",
+          out2["message"].get("intent") == "response" and rec2["forwarding_result"] == "success"
+          and rec2["message_id"] == rec1["message_id"] and rec2["attestation_id"] != rec1["attestation_id"]
+          and not relay_record_problems(rec2) and not schema_errors(rec2, "arsia-audit-record.schema.json"))
+
+    variants = {
+        "error_description parameter (RFC 9449 Figure 24)":
+            ({"WWW-Authenticate": 'DPoP error="use_dpop_nonce", error_description="Resource server requires nonce in DPoP proof"',
+              "DPoP-Nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v"}, "eyJ7S_zG.eyJH0-Z.HX4w-7v"),
+        "another challenge first, lower-case header names":
+            ({"www-authenticate": 'Bearer realm="acme", DPoP algs="EdDSA", error="use_dpop_nonce"', "dpop-nonce": "n-1"}, "n-1"),
+        "after a challenge without parameters":
+            ({"WWW-Authenticate": 'Negotiate, DPoP error="use_dpop_nonce"', "DPoP-Nonce": "n-1"}, "n-1"),
+        "after a token68 challenge":
+            ({"WWW-Authenticate": 'Negotiate YWJjZA==, DPoP error="use_dpop_nonce"', "DPoP-Nonce": "n-1"}, "n-1"),
+        "challenge without DPoP-Nonce": ({"WWW-Authenticate": NONCE_CHALLENGE}, None),
+        "another DPoP error with a nonce": ({"WWW-Authenticate": 'DPoP error="invalid_dpop_proof"', "DPoP-Nonce": "n-2"}, None),
+        "unparseable WWW-Authenticate": ({"WWW-Authenticate": "== DPoP", "DPoP-Nonce": "n-3"}, None),
+    }
+    for name, (headers, expect) in variants.items():
+        canned = lambda req, now, h=headers: {"status": 401, "headers": h, "code": None, "check": 10}
+        try:
+            out = DpopBroker(canned).relay(envelope, token, fresh(), t0 + 2)
+            det = out["message"]["payload"]["error"]["details"]
+            ok = (det.get("dpop_nonce") == expect and (det.get("reason") == "recipient_dpop_nonce") == (expect is not None)
+                  and det.get("dpop_nonce_htu") == (DPOP_INBOX if expect else None)
+                  and not schema_errors(out["message"], "arsia-message.schema.json"))
+            got = str({k: det.get(k) for k in ("reason", "dpop_nonce", "dpop_nonce_htu")})
+        except Exception as e:
+            ok, got = False, f"exception {type(e).__name__}"
+        check(f"R20 (j) 6 broker, {name}: " + ("the challenge is preserved" if expect else "a generic relay error, no exception"),
+              ok, got)
+
+    # (k) atomic claim on the shared reference store: two concurrent proofs, one acceptance
+    class Interleaving(JtiStore):
+        """Pauses after each lookup so that a non-atomic claim interleaves lookup A, lookup B, record A, record B."""
+
+        def __init__(self):
+            super().__init__()
+            self.gate = threading.Barrier(2, timeout=0.5)
+
+        def _get(self, key):
+            held = super()._get(key)
+            try:
+                self.gate.wait()
+            except threading.BrokenBarrierError:
+                pass
+            return held
+
+    st, p, results = Interleaving(), fresh(), []
+    threads = [threading.Thread(target=lambda: results.append(run(dpop_request(p), store=st)["status"]))
+               for _ in range(2)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+    check("R20 (k) two concurrent requests with the same jti and URI: exactly one is accepted",
+          sorted(results) == [200, 401], str(results))
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
-    r16(vectors); r17(vectors); r18(vectors)
+    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

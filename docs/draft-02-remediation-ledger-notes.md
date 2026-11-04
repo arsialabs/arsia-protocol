@@ -373,6 +373,46 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   stored retention over every generation, accept `retention_override`, reject with the
   State §8.4 retention details, and emit `within_retention`, `entry_retained_until` and
   `retention_override` in `state_purge` records. The SDK migration track carries this.
+- **Published counts after the relay/DPoP cycle:** 33 schemas (incl. meta), 829
+  vectors (473/208/148), 15 keypairs, RTM 2020 / 1217, 124 consistency checks, harness
+  R1-R20; README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md and
+  test-vectors/README.md (including the per-prefix counts ITV 691, INV 110) updated.
+  schemas/README.md maps arsia-dpop-proof to Identity §3.3 and Core §6.3.
+- **Named conformance tests (relay/DPoP cycle):** 89 (Identity 23, Routing 12; adding
+  IDENTITY-23, ROUTING-11, ROUTING-12). IDENTITY-23 and ROUTING-12 correspond to R20
+  (g), (h) and (j) on the reference model; the record shape of ROUTING-11 is ITV-688.
+  No test is run against an implementation.
+- **RTM coverage summaries (relay/DPoP cycle):** the "Coverage Gaps" summaries of the
+  Identity, Routing and Core RTMs were stale since the Draft-02 regeneration (at
+  `24b32ed` they stated 263 / 264 / 393 requirements while the tables held 274 / 264 /
+  402 rows; Routing's total matched but its vector counts did not). They are recomputed
+  from the tables (297 / 273 / 404 rows after the cycle). The "Generated: 2026-07-22"
+  lines are kept, as in the State RTM.
+- **Broker relay retention fields (observed in the relay/DPoP cycle, not fixed):** the
+  ten pre-existing `broker_relay` vectors state `retention_source: "platform-default"`
+  and `compliance_profile_resolved: "none"` with `retained_until` 2031-04-11 (five
+  years), while the platform default is P90D (State §7.3); in ITV-146, 147, 490, 492,
+  508, 511 and 515 the `retained_until` anchor also precedes `processed_at` by days. No
+  rule checks these fields for broker records. The new records (ITV-688, 689, 691,
+  INV-101..103) use `processed_at` + P90D.
+- **RFC section citations (observed in the relay/DPoP cycle, not fixed):** State and
+  Assets each cite "RFC 8785 §3.1" without brackets; `check_links.py` resolves the §3.1
+  to a section of the citing document by coincidence. The new text of the cycle uses the
+  bracketed form, which the checker treats as external.
+- **Routing §1.2.2 step 5 (observed in the relay/DPoP cycle, not fixed):** the SHOULD
+  that `T_e2e` be sender-constrained with DPoP has no RTM row; the cycle rewrote the
+  sentence without adding one.
+- **Migration guide (observed in the relay/DPoP cycle, not fixed):**
+  docs/draft-02-migration-guide.md does not describe the changes of the A-79,
+  retention-axis and relay/DPoP cycles (generations, `retention_override`, conditional
+  forwarding fields, the DPoP checks).
+- **Propagation impact (relay/DPoP cycle):** brokers emit a `broker_relay` record for
+  every message received for relay, with the forwarding fields only when forwarding
+  was initiated and `relay_latency_ms` computed from the two instants; return a
+  recipient nonce challenge as a `recipient_dpop_nonce` relay error and never re-send
+  or produce a proof. Receiving agents implement the Identity §3.3 list, the nonce
+  challenge and an atomic, shared single-use `jti` store held until `iat` + S. Senders
+  retry with a new proof. The SDK migration track carries this.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

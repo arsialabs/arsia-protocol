@@ -304,8 +304,9 @@ recipient, even if direct connectivity is available.
      recipient = `message.to`, scope covering the envelope's `capabilities`. This
      is the same token the sender would use for direct routing. Its lifetime MUST
      be short — 300 seconds or less is RECOMMENDED for residency flows — and it
-     SHOULD be sender-constrained with DPoP [RFC 9449] (with `jti`, a short
-     acceptance window, and server nonce where required).
+     SHOULD be sender-constrained with DPoP [RFC 9449] under the checks of
+     ARSIA-Identity.md §3.3 (a single-use `jti`, the acceptance window of check 11,
+     and the recipient's nonce when the recipient requires one, §2.3.3).
 
    Before signing, the sender binds the envelope to `T_e2e` by setting the
    envelope's `authorization` field (ARSIA-Core.md §4.3.9):
@@ -330,7 +331,8 @@ recipient, even if direct connectivity is available.
    The `ARSIA-Recipient-DPoP` proof, when used, is precomputed by the sender against
    the recipient's inbox URL (`htu`, known from discovery) and `htm: POST`; the
    broker's forwarding deadline (§2.3.4, 10 seconds) fits within the DPoP `iat`
-   acceptance window.
+   acceptance window. The proof is single-use: a retry requires a new proof
+   (§2.3.2).
 
 6. **Broker validation.** The broker receives the message and performs the following
    checks, rejecting with the indicated error on failure:
@@ -390,7 +392,8 @@ recipient, even if direct connectivity is available.
    `ArsiaAuditRecord` per §7.4 — to its own audit trail, recording the attestation
    identifier, the message `id`, `from`, `to`, and `ts`, the residency zone, the
    relay timestamps, and the envelope hash. The broker MUST NOT log the payload
-   contents.
+   contents. Messages the broker does not forward are recorded as well, without the
+   forwarding fields (§7.3 Rule 7, §7.4.2).
 
 10. **Response relay.** The broker returns the recipient's response to the sender:
 
@@ -399,7 +402,8 @@ recipient, even if direct connectivity is available.
     - If the recipient responds asynchronously (HTTP 202): the broker returns a relay
       receipt to the sender (§2.3).
     - If forwarding fails: the broker returns a standard ARSIA error envelope to the
-      sender with details indicating the relay failure.
+      sender with details indicating the relay failure; a DPoP nonce challenge from
+      the recipient is returned per §2.3.3.
 
 **No eligible broker available:**
 
@@ -1064,6 +1068,9 @@ The broker forwards the message to the recipient's inbox using direct routing (�
 3. The message envelope is forwarded byte-identical — the broker does NOT re-sign
    the message, and the recipient's token validation (ARSIA-Core.md §6.4) runs
    unchanged (`sub` == `from`, `aud` == `to`).
+4. The forwarded `DPoP` proof is single-use (ARSIA-Identity.md §3.3): the broker
+   forwards it once and MUST NOT re-send it, including on a transport retry; a new
+   attempt requires a new proof from the sender.
 
 ##### 2.3.2.1 Token Exchange Profile (OPTIONAL)
 
@@ -1115,8 +1122,10 @@ relay asynchronously, the broker returns a relay receipt to the sender:
 
 **Relay error:**
 
-If the broker cannot forward the message to the recipient (network failure, recipient
-error, timeout), the broker returns a standard ARSIA error envelope to the sender:
+If the broker cannot forward the message to the recipient (network failure, a
+transport-level response from the recipient that is not an ARSIA envelope —
+ARSIA-Core.md §11.1.1 — or timeout), the broker returns a standard ARSIA error
+envelope to the sender:
 
 ```json
 {
@@ -1145,6 +1154,41 @@ error, timeout), the broker returns a standard ARSIA error envelope to the sende
   }
 }
 ```
+
+**Recipient DPoP nonce challenge:**
+
+When the recipient answers the forwarded request with a DPoP nonce challenge
+(ARSIA-Identity.md §3.3: HTTP 401 with `WWW-Authenticate: DPoP error="use_dpop_nonce"`
+and a `DPoP-Nonce` header), the broker cannot answer it: the proof is the sender's,
+made with the sender's key. The broker:
+
+1. MUST NOT produce, modify or re-send a DPoP proof on the sender's behalf;
+2. MUST return to the sender, in place of the generic relay error, a relay error
+   (`service_unavailable`) whose details carry the challenge:
+
+   ```json
+   {
+     "relay_failed": true,
+     "relay_id": "{uuid}",
+     "reason": "recipient_dpop_nonce",
+     "dpop_nonce": "{the recipient's DPoP-Nonce value, unmodified}",
+     "dpop_nonce_htu": "{the recipient inbox URL to which the broker forwarded}"
+   }
+   ```
+
+3. MUST copy the recipient's `DPoP-Nonce` value unmodified, and MUST NOT present it in
+   its own `DPoP-Nonce` response header, which carries only nonces the broker issues
+   for proofs presented to it ([RFC 9449] §9: a nonce is accepted only by the server
+   that issued it);
+4. records the attempt with `forwarding_result: "failure"` and the forwarding fields
+   (§7.4.2).
+
+`dpop_nonce_htu` identifies the server that issued the nonce: the recipient's inbox
+URL, which is the `htu` the sender's proof was computed for (§2.3.1). The sender
+retries by sending the envelope again — unchanged if it chooses, with the same `id`
+and `idempotency.key` — with a new `ARSIA-Recipient-DPoP` proof that carries
+`dpop_nonce` and a new `jti` (ARSIA-Identity.md §3.3). The broker relays the retry as
+a new relay operation, with a new relay attestation.
 
 #### 2.3.4 Broker Timeout
 
@@ -2098,21 +2142,32 @@ forwards that envelope to the sender without alteration. If the recipient return
 error, the broker forwards the error to the sender without alteration.
 
 **Rule 7: Audit obligation.** The broker MUST append a `broker_relay` audit record for
-every message it relays, including messages that result in errors. The audit record
-format is defined in §7.4.2. The audit record MUST contain:
+every message it receives for relay, whether or not it forwards it — including
+messages it rejects before forwarding (Rule 1, Rule 2, the checks of §1.2.2 step 6,
+and Rule 9), messages whose forwarding fails or times out, and messages whose relay
+results in an error. A request whose body cannot be parsed as an ARSIA envelope
+carries no message to record and is outside this rule. The audit record format is
+defined in §7.4.2. The audit record MUST contain:
 
-- `attestation_id`: UUID v4, unique per relay operation (the `attestation_id` of the
-  relay attestation, §7.4.1).
 - `message_id`: The `id` field from the relayed message.
 - `from_agent`: The `from` field from the relayed message.
 - `to_agent`: The `to` field from the relayed message.
 - `message_ts`: The `ts` field from the relayed message.
 - `broker_agent_id`: The broker's own agent-id.
-- `residency_zone`: The data residency zone this relay satisfies.
-- `received_at` and `forwarded_at`: RFC 3339 timestamps with millisecond precision —
-  when the broker received the envelope and when it initiated forwarding.
-- `relay_latency_ms` and `forwarding_result`: as defined in §7.4.2.
+- `residency_zone`: The zone declared in the message's `compliance.data_residency` —
+  the zone a forwarded relay satisfies.
+- `received_at`: RFC 3339 timestamp with millisecond precision — when the broker
+  received the envelope.
+- `forwarding_result`: as defined in §7.4.2.
 - `payload_hash`: SHA-256 hash of the message payload, hex-encoded.
+
+and, when the broker initiated forwarding (§7.4.2):
+
+- `attestation_id`: UUID v4, unique per relay operation — the `attestation_id` of the
+  relay attestation attached to the forwarded message (§7.4.1).
+- `forwarded_at`: RFC 3339 timestamp with millisecond precision — when the broker
+  initiated forwarding.
+- `relay_latency_ms`: as defined in §7.4.2.
 
 **Rule 8: No message storage.** The broker MUST NOT cache or store message envelopes
 beyond the audit record defined in Rule 7. After forwarding the message and receiving
@@ -2123,8 +2178,9 @@ contain the message payload.
 **Rule 9: Expiration compliance.** The broker MUST respect the message's `expires_at`
 field. If forwarding the message would cause the response to arrive after `expires_at`
 (with a 5-second safety margin per §2.3.4), the broker MUST return
-`service_unavailable` to the sender and MUST NOT forward the message. The broker SHOULD
-log this event in its audit trail with `forwarding_result: "timeout"`.
+`service_unavailable` to the sender and MUST NOT forward the message. The broker MUST
+record this event under Rule 7 with `forwarding_result: "timeout"` and without the
+forwarding fields (§7.4.2).
 
 ### 7.4 Relay Attestation and Broker Audit Record
 
@@ -2200,7 +2256,37 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
 `message_ts` (the relayed message's `ts`, required by ARSIA-Core.md §9.2),
 `broker_agent_id` (the broker's own agent-id, required by ARSIA-Core.md §9.2),
 `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, and
-`forwarding_result` (`"success"` | `"failure"` | `"timeout"`).
+`forwarding_result` (`"success"` | `"failure"` | `"timeout"`) — `attestation_id`,
+`forwarded_at` and `relay_latency_ms` only when forwarding was initiated (below).
+
+**Relay timing and outcome.** In every `broker_relay` record:
+
+- `received_at` is the instant the broker received the envelope; `forwarded_at` is the
+  instant the broker initiated the forwarding attempt (the HTTP POST to the
+  recipient's inbox, §2.3.2).
+- `relay_latency_ms` is `forwarded_at` − `received_at`, expressed exactly in whole
+  milliseconds; it is non-negative. It measures the interval until forwarding was
+  initiated, not the time until the recipient's response.
+- `attestation_id`, `forwarded_at` and `relay_latency_ms` MUST be present together when
+  the broker initiated forwarding, and MUST be absent when it did not (Rules 1, 2 and
+  9; §1.2.2 step 6). No relay attestation is produced for a message that is not
+  forwarded (ARSIA-Core.md §9.2).
+- `forwarding_result` MUST be:
+  - `"success"` when forwarding was initiated and the recipient's inbox answered with
+    an ARSIA envelope — of any intent, including an error envelope — or with HTTP 202,
+    which the broker relays to the sender (§7.3 Rule 6, §2.3.3). It records delivery,
+    not the outcome of the requested operation;
+  - `"timeout"` when the relay was refused or abandoned for time: the broker did not
+    forward under Rule 9, or abandoned the relay under §2.3.4 after initiating it;
+  - `"failure"` in every other case, before forwarding (Rules 1 and 2, §1.2.2 step 6)
+    or after it (a transport failure, or a transport-level response from the
+    recipient that is not an ARSIA envelope, ARSIA-Core.md §11.1.1, including a DPoP
+    nonce challenge, §2.3.3).
+
+A `"success"` record therefore carries the three forwarding fields; a `"failure"` or
+`"timeout"` record carries all three or none. The schema checks this structure; that
+the timestamps and the result correspond to what occurred is an obligation of the
+broker at runtime.
 
 **Example audit record (extension fields shown):**
 
@@ -2360,6 +2446,28 @@ tests at the applicable conformance level.
 | **preconditions** | Agent B supports the WebSocket binding (§2.2). Agent A has an invalid or expired access token. |
 | **action**        | Agent A opens a WebSocket connection to `wss://{B-host}/v1/arsia/stream` with `Sec-WebSocket-Protocol: arsia-v1`. After the upgrade succeeds, Agent A sends: `{ "type": "auth", "token": "Bearer {invalid_or_expired_token}" }`. |
 | **expected**      | Agent B responds with: `{ "type": "auth_error", "code": "unauthorized", "description": "..." }`. Agent B closes the WebSocket connection with close code 4001 (Authentication Failed) within 5 seconds (per ARSIA-Core.md §8.2). Agent A can no longer send frames on this connection. |
+
+### ROUTING-11: Relay rejected before forwarding is audited
+
+| Field             | Value                                                          |
+|-------------------|----------------------------------------------------------------|
+| **test_id**       | `ROUTING-11`                                                   |
+| **description**   | Verify that a message rejected before forwarding is audited without forwarding fields |
+| **conformance**   | Compliance                                                     |
+| **preconditions** | A Compliance Broker with `jurisdiction: "US"` receives a message with `compliance.data_residency: "EU"`. |
+| **action**        | Agent A sends the signed message to the broker's inbox. |
+| **expected**      | The broker answers with `service_unavailable` and the Rule 2 details (§7.3). The broker's audit trail contains a `broker_relay` record with `forwarding_result: "failure"` and `received_at`, and without `attestation_id`, `forwarded_at` or `relay_latency_ms` (§7.4.2). No relay attestation is issued. |
+
+### ROUTING-12: Recipient DPoP nonce challenge relayed to the sender
+
+| Field             | Value                                                          |
+|-------------------|----------------------------------------------------------------|
+| **test_id**       | `ROUTING-12`                                                   |
+| **description**   | Verify that a recipient DPoP nonce challenge reaches the sender through the broker |
+| **conformance**   | Compliance                                                     |
+| **preconditions** | Recipient B requires a nonce in DPoP proofs (ARSIA-Identity.md §3.3). Agent A sends a brokered message whose `authorization.proof_type` is `"dpop"`. |
+| **action**        | The broker forwards the message with A's proof; B answers with a DPoP nonce challenge. A retries with a new `ARSIA-Recipient-DPoP` proof carrying the nonce. |
+| **expected**      | A receives `service_unavailable` whose details carry `reason: "recipient_dpop_nonce"`, `dpop_nonce` equal to B's `DPoP-Nonce` value and `dpop_nonce_htu` equal to B's inbox URL (§2.3.3). The broker's `broker_relay` record for the first attempt has `forwarding_result: "failure"` and the three forwarding fields. The retry is delivered, and its record has `forwarding_result: "success"` with a new `attestation_id`. |
 
 ---
 

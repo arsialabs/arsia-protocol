@@ -131,7 +131,12 @@
 | ROUTE-§2.2.3-01 | 2.2.3 | MAY | deployment | informational | Implementations MAY use additional standard WebSocket close codes per RFC 6455 §7.4.1 | — | — |
 | ROUTE-§2.3.1-01 | 2.3.1 | MUST | sdk | behavioural_positive | The envelope to field MUST contain the final recipient's agent-id, not the broker's | arsia-message | — |
 | ROUTE-§2.3.1-02 | 2.3.1 | MUST | sdk | behavioural_positive | Authorization header MUST contain a token for the broker's relay capability | arsia-jwt-claims | — |
+| ROUTE-§2.3.2-01 | 2.3.2 | MUST_NOT | external | behavioural_negative | Broker MUST NOT re-send a forwarded DPoP proof, including on a transport retry | — | — |
 | ROUTE-§2.3.3-01 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST forward the recipient's synchronous response to sender without alteration | — | ITV-81, ITV-497 |
+| ROUTE-§2.3.3-02 | 2.3.3 | MUST_NOT | external | behavioural_negative | On a recipient DPoP nonce challenge the broker MUST NOT produce, modify or re-send a DPoP proof on the sender's behalf | — | — |
+| ROUTE-§2.3.3-03 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST return a recipient DPoP nonce challenge to the sender as a service_unavailable relay error with reason recipient_dpop_nonce, dpop_nonce and dpop_nonce_htu | arsia-message | ITV-690, INV-108, INV-109, INV-110 |
+| ROUTE-§2.3.3-04 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST copy the recipient's DPoP-Nonce value unmodified into dpop_nonce | arsia-message | ITV-690 |
+| ROUTE-§2.3.3-05 | 2.3.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT present a recipient's nonce in its own DPoP-Nonce response header | — | — |
 | ROUTE-§2.3.4-01 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST forward the message to recipient within 10 seconds of receipt | arsia-audit-record | RTV-01 |
 | ROUTE-§2.3.4-02 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST respect the message's expires_at field during relay | arsia-message | — |
 | ROUTE-§2.3.4-03 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST abandon relay and return service_unavailable if expires_at minus 5 seconds is exceeded | arsia-message | — |
@@ -241,30 +246,34 @@
 | ROUTE-§7.3-20 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT store, inspect, index, or transmit payload contents to any party other than the recipient | — | — |
 | ROUTE-§7.3-21 | 7.3 | MUST | external | behavioural_positive | Broker MUST forward the message to the recipient inbox as specified in §1.2.2 step 7 (sender's T_e2e and relay attestation; no broker token of its own) | arsia-audit-record | RTV-01 |
 | ROUTE-§7.3-22 | 7.3 | MUST | external | behavioural_positive | Broker MUST return the recipient response to the sender unmodified | — | ITV-516 |
-| ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every relayed message, including errors | arsia-audit-record, arsia-audit-record | RTV-02 |
-| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain attestation_id, message_id, from_agent, to_agent, message_ts, broker_agent_id, residency_zone, received_at, forwarded_at, relay_latency_ms, forwarding_result, and payload_hash | arsia-audit-record | RTV-02, ITV-43, INV-48 |
+| ROUTE-§7.3-23 | 7.3 | MUST | external | behavioural_positive | Broker MUST append a broker_relay audit record for every message received for relay, whether or not forwarded: messages rejected before forwarding (Rules 1, 2, §1.2.2 step 6, Rule 9), failed or timed-out forwarding, and relays resulting in errors | arsia-audit-record | RTV-02, ITV-508, ITV-688, ITV-689 |
+| ROUTE-§7.3-24 | 7.3 | MUST | external | structural | Broker audit record MUST contain message_id, from_agent, to_agent, message_ts, broker_agent_id, residency_zone, received_at, forwarding_result and payload_hash, and attestation_id, forwarded_at and relay_latency_ms when forwarding was initiated | arsia-audit-record | RTV-02, ITV-43, ITV-688, INV-48 |
 | ROUTE-§7.3-25 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT cache or store message envelopes beyond the audit record | — | — |
 | ROUTE-§7.3-26 | 7.3 | MUST | external | behavioural_positive | Broker MUST discard the message envelope from memory and temporary storage after forwarding | — | — |
 | ROUTE-§7.3-27 | 7.3 | MUST | external | behavioural_positive | Broker MUST respect the message expires_at field during relay | arsia-message | — |
 | ROUTE-§7.3-28 | 7.3 | MUST | external | behavioural_positive | Broker MUST return service_unavailable if forwarding would exceed expires_at minus 5 seconds | arsia-message | ITV-517 |
 | ROUTE-§7.3-29 | 7.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT forward a message when the expiration safety margin would be exceeded | — | ITV-517 |
-| ROUTE-§7.3-30 | 7.3 | SHOULD | external | behavioural_positive | Broker SHOULD log expiration-related relay failures with forwarding_result "timeout" in the audit trail | arsia-audit-record | ITV-147 |
+| ROUTE-§7.3-30 | 7.3 | MUST | external | behavioural_positive | Broker MUST record a Rule 9 expiration refusal with forwarding_result "timeout" and without the forwarding fields | arsia-audit-record | ITV-689 |
 | ROUTE-§7.4-01 | 7.4 | MUST | deployment | behavioural_positive | Broker relay audit records MUST be stored within the declared data residency zone | arsia-audit-record | RTV-02 |
 | ROUTE-§7.4-02 | 7.4 | MUST | deployment | behavioural_positive | Broker relay audit records MUST be stored in append-only manner | — | — |
 | ROUTE-§7.4-03 | 7.4 | MUST_NOT | deployment | behavioural_negative | Broker audit records MUST NOT be modified or deleted until the applicable retention period expires | — | — |
 | ROUTE-§7.4-04 | 7.4 | MUST | deployment | behavioural_positive | Broker audit records MUST survive broker restarts and infrastructure failures | — | — |
 | ROUTE-§7.4-05 | 7.4 | MUST | deployment | behavioural_positive | Broker audit storage MUST use durable storage such as PostgreSQL or append-only replicated files | — | — |
 | ROUTE-§7.4-06 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord event_type (string) is REQUIRED — fixed value "broker_relay" | arsia-audit-record | ITV-43 |
-| ROUTE-§7.4-07 | 7.4 | REQUIRED | external | structural | broker_relay record attestation_id (string) is REQUIRED — UUID v4, unique per relay operation | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-07 | 7.4 | REQUIRED | external | structural | broker_relay record attestation_id (string) — UUID v4, unique per relay operation; present when forwarding was initiated, REQUIRED when forwarding_result is success | arsia-audit-record | ITV-43, ITV-688, INV-101, INV-103 |
 | ROUTE-§7.4-08 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).message_id (string) is REQUIRED — the id of the relayed message | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-09 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).from_agent (string) is REQUIRED — the from field of the relayed message | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-10 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).to_agent (string) is REQUIRED — the to field of the relayed message | arsia-audit-record | ITV-43 |
 | ROUTE-§7.4-11 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).broker_agent_id (string) is REQUIRED — the broker own agent-id | arsia-audit-record | ITV-43, INV-48 |
 | ROUTE-§7.4-12 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).residency_zone (string) is REQUIRED — the zone this relay satisfies | arsia-audit-record | ITV-43 |
-| ROUTE-§7.4-13 | 7.4 | REQUIRED | external | structural | broker_relay record forwarded_at (string) is REQUIRED — RFC 3339 timestamp with millisecond precision | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-13 | 7.4 | REQUIRED | external | structural | broker_relay record forwarded_at (string) — RFC 3339 timestamp with millisecond precision of the forwarding attempt; present when forwarding was initiated, REQUIRED when forwarding_result is success | arsia-audit-record | ITV-43, ITV-688, INV-101, INV-102 |
 | ROUTE-§7.4-14 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).payload_hash (string) is REQUIRED — SHA-256 hash of payload, hex-encoded | arsia-audit-record | ITV-43 |
-| ROUTE-§7.4-15 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).relay_latency_ms (integer) is REQUIRED — milliseconds from receipt to forward initiation | arsia-audit-record | ITV-43 |
+| ROUTE-§7.4-15 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).relay_latency_ms (integer) — forwarded_at − received_at in whole milliseconds; present when forwarding was initiated, REQUIRED when forwarding_result is success | arsia-audit-record | ITV-43, ITV-688, INV-101 |
 | ROUTE-§7.4-16 | 7.4 | REQUIRED | external | structural | ArsiaAuditRecord (event_type broker_relay).forwarding_result (string) is REQUIRED — one of "success", "failure", "timeout" | arsia-audit-record | ITV-43, ITV-44, ITV-146, ITV-147 |
+| ROUTE-§7.4-17 | 7.4 | MUST | external | behavioural_positive | relay_latency_ms MUST be forwarded_at − received_at exactly, in whole non-negative milliseconds, measured to the initiation of forwarding | — | ITV-43, ITV-146, ITV-147, ITV-490, ITV-492, ITV-511, ITV-515, ITV-691 |
+| ROUTE-§7.4-18 | 7.4 | MUST | external | structural | attestation_id, forwarded_at and relay_latency_ms MUST be present together when the broker initiated forwarding | arsia-audit-record | ITV-691, INV-102, INV-103 |
+| ROUTE-§7.4-19 | 7.4 | MUST | external | structural | attestation_id, forwarded_at and relay_latency_ms MUST be absent when the broker did not initiate forwarding | arsia-audit-record | ITV-508, ITV-688, ITV-689 |
+| ROUTE-§7.4-20 | 7.4 | MUST | external | behavioural_positive | forwarding_result MUST be success (ARSIA envelope or HTTP 202 relayed), timeout (Rule 9 refusal or §2.3.4 abandonment) or failure (every other case, before or after forwarding) | arsia-audit-record | ITV-43, ITV-146, ITV-147, ITV-508, ITV-688, ITV-689, ITV-691, INV-101 |
 | ROUTE-§8-01 | 8 | MUST | external | procedural | Conformant implementations MUST pass all routing conformance tests at the applicable level | — | — |
 | ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 |
 | ROUTE-§8-03 | 8 | MUST | external | procedural | Conformance test framework MUST synchronise clocks between agents for timing-sensitive tests | — | — |
@@ -279,23 +288,23 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 264 |
-| Schema ≠ — | 107 |
-| Vector ≠ — | 78 |
-| Both ≠ — | 50 |
-| Both = — (gaps) | 129 |
+| Total requirements | 273 |
+| Schema ≠ — | 112 |
+| Vector ≠ — | 85 |
+| Both ≠ — | 55 |
+| Both = — (gaps) | 131 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 50 | 21 | 17 | 9 | 21 |
-| 2 | 81 | 20 | 6 | 5 | 60 |
+| 2 | 86 | 22 | 8 | 7 | 63 |
 | 3 | 6 | 2 | 0 | 0 | 4 |
 | 4 | 9 | 4 | 3 | 1 | 3 |
-| 5 | 24 | 11 | 3 | 2 | 12 |
+| 5 | 24 | 11 | 4 | 2 | 11 |
 | 6 | 16 | 6 | 2 | 0 | 8 |
-| 7 | 75 | 43 | 46 | 33 | 19 |
+| 7 | 79 | 46 | 50 | 36 | 19 |
 | 8 | 3 | 0 | 1 | 0 | 2 |
 
 ## Draft-02 Delta (normative changes traced)
@@ -312,3 +321,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | approval_decision never a sync inbox response | §2.1.2 | — | — |
 | at-least-once = retries; idempotency = dedup | §1, §3 | — | — |
 | DSA-VLOP storage floor P1096D | §7.4 | catalog | consistency check |
+| broker_relay timing and outcome defined: relay_latency_ms = forwarded_at − received_at; forwarding fields present together only when forwarding was initiated; audit of messages not forwarded (Rule 7, Rule 9 MUST); recipient DPoP nonce challenge relayed to the sender; forwarded proof single-use (A-89, A-49) | §1.2.2, §2.3.2, §2.3.3, §7.3, §7.4.2 | audit-record, message | ITV-43, ITV-44, ITV-146, ITV-147, ITV-490, ITV-492, ITV-508, ITV-511, ITV-515, INV-48 migrated; ITV-688..691, INV-101..103, INV-108..110; harness R19, R20 |

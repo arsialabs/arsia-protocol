@@ -2319,15 +2319,15 @@ Authorization: DPoP eyJhbGciOiJFZERTQSIs...
 DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs...
 ```
 
-4. The receiving agent verifies:
-   - The DPoP proof JWT signature.
-   - The `jkt` in the token's `cnf` claim matches the DPoP proof's signing key.
-   - The `htm` and `htu` claims in the DPoP proof match the HTTP method and URL.
-   - The `ath` claim equals the base64url-encoded SHA-256 hash of the access token
-     presented with the proof ([RFC 9449] §4.3).
-   - The `iat` claim is within the clock skew tolerance of §8.3 (±300 seconds by
-     default, or the applicable compliance profile's `clock_skew_seconds`).
-   - The `jti` claim has not been seen before (replay protection).
+4. The receiving agent MUST verify the DPoP proof as specified in ARSIA-Identity.md
+   §3.3 — the checks of [RFC 9449] §4.3, among them that `ath` equals the
+   base64url-encoded SHA-256 hash of the presented access token and that the key
+   bound by the token's `cnf.jkt` is the proof's key, together with the restrictions
+   of the ARSIA profile (EdDSA, `htm: POST`, the acceptance window of §8.3,
+   single-use `jti`) — and MUST reject a request whose proof fails verification as
+   specified there: with error code `unauthorized`, or, under its nonce-challenge
+   exception, with the nonce challenge. A receiving agent MAY require a
+   server-provided nonce (ARSIA-Identity.md §3.3).
 
 Implementations SHOULD use DPoP for proof-of-possession security, especially when
 the compliance profile requires high-risk controls.
@@ -3212,8 +3212,9 @@ When a message envelope contains a `compliance.data_residency` value:
 
 4. **Audit and attestation obligation.** Brokers MUST attach a signed relay
    attestation to every forwarded message and MUST append an `ArsiaAuditRecord`
-   with `event_type: "broker_relay"` for every message they relay, including at
-   minimum: the message `id`, `from`, `to`, `ts`, the broker's own agent
+   with `event_type: "broker_relay"` for every message they receive for relay,
+   including messages they do not forward (ARSIA-Routing.md §7.3 Rule 7), including
+   at minimum: the message `id`, `from`, `to`, `ts`, the broker's own agent
    identifier, the relay timestamps, and the data residency zone
    (ARSIA-Routing.md §7.4; ARSIA-State.md §7). Recipients of residency-constrained
    messages MUST require and verify the attestation (ARSIA-Routing.md §7.4.1).
@@ -3942,8 +3943,10 @@ ARSIA provides multiple defences against replay attacks:
 - **Token expiration.** Access tokens have limited lifetimes (§6.1). A replayed
   message with an expired token will be rejected at the authorization stage.
 
-- **DPoP proof.** When DPoP is used (§6.3), the proof JWT includes a unique `jti`
-  claim that prevents proof replay.
+- **DPoP proof.** When DPoP is used (§6.3), the receiving agent accepts each proof
+  `jti` only once for the same target URI within the proof's acceptance window
+  (ARSIA-Identity.md §3.3). This single-use rule is an ARSIA requirement;
+  [RFC 9449] §11.1 leaves `jti` tracking to deployments.
 
 #### 13.2.3 Capability Escalation
 

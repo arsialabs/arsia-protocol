@@ -2356,7 +2356,8 @@ using a knowledge factor (password, PIN) before issuing the token.
 **Factor 2 — Possession.** The DPoP (Demonstrating Proof-of-Possession) mechanism
 defined in ARSIA-Identity.md §3.3 proves that the presenter of the token possesses the
 hardware-bound key referenced in the `cnf` claim. The DPoP proof is a signed JWT that
-includes the HTTP method, URL, and a nonce, preventing token replay.
+includes the HTTP method, the URL, a single-use `jti` and, when the receiver requires
+one, a server-provided nonce (ARSIA-Identity.md §3.3), preventing proof replay.
 
 **Token structure (informative):**
 

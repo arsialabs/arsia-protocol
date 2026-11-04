@@ -443,3 +443,41 @@ canonicalization text corrected) in the same or an earlier cycle.
   live and absent branches are selected by any concurrency member and by
   `entry_live`, and the absent branch admits only `entry_live` and the stated
   preconditions.
+
+**Addendum — 2026-11-04 (owner decisions for the relay/DPoP cycle, under D3).**
+- **P1 — A-89: conditional forwarding fields.** `forwarded_at` is the instant the
+  broker initiated the forwarding attempt; `relay_latency_ms` is `forwarded_at` −
+  `received_at`, exactly, in whole non-negative milliseconds, measured to the
+  initiation of forwarding, not to the recipient's response. `attestation_id`,
+  `forwarded_at` and `relay_latency_ms` are present together when forwarding was
+  initiated and absent when the message was stopped before it: a `forwarded_at` that
+  records a decision not to forward, or an `attestation_id` with no attestation, would
+  be misleading evidence. `success` records delivery under the Routing criterion (an
+  ARSIA envelope or HTTP 202 relayed), not the outcome of the operation; `failure` is
+  any failure that is not a timeout, and `timeout` a deadline that prevented or ended
+  the relay — both before or after forwarding was initiated. The schema checks the
+  structure; the timestamps and their correspondence to what occurred are a runtime
+  obligation. Auditing messages rejected before forwarding (Rules 1, 2 and 9) is a
+  normative decision of this cycle: the previous Rule 7 covered relayed messages
+  without unambiguously requiring a record of every rejection, and Rule 9 used SHOULD.
+  The migration keeps the declared cause of every negative vector.
+- **P2 — A-49: one normative list in Identity §3.3.** Core §6.3 item 4 becomes a
+  normative reference. The list keeps the conditions of RFC 9449 §4.3 — the nonce
+  check is conditional, check 12 holds both `ath` and the key binding of the token,
+  `htu` is compared without query and fragment — and marks apart the restrictions of
+  the ARSIA profile (EdDSA/Ed25519, `POST` inbox delivery, the Core §8.3 window,
+  single-use `jti`), so that protocol choices are not presented as requirements of
+  the RFC. No duplicate list and no guard for one.
+- **P3 — Nonce per RFC 9449 §9; single-use `jti` as an ARSIA requirement.** A
+  receiving agent MAY require a nonce and provides it with the HTTP 401
+  `use_dpop_nonce` challenge; a nonce is valid only at its issuer, and a request
+  lacking an acceptable nonce — the first one included, whichever check detects it —
+  is answered with the challenge rather than a generic `unauthorized`. The `jti` is
+  accepted once per target URI (query and fragment excluded), by one atomic operation
+  shared across the instances of the endpoint, and kept for as long as the proof could
+  still be accepted (`iat` + S, not a fixed period from first receipt). A
+  retransmission presents a new proof and may keep the envelope and its idempotency
+  key; a nonce does not replace the `jti` check. In brokered delivery the broker
+  returns the recipient's challenge to the sender in a relay error that preserves the
+  nonce and identifies its issuer (`dpop_nonce`, `dpop_nonce_htu`), never as a generic
+  error, and never re-sends or produces a proof.

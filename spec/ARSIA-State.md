@@ -3367,7 +3367,7 @@ by the schema.
 | `sub_type` = `escrow_released` | `payment_reference`, `released_by`, `release_trigger`, `original_audit_id` | — | ARSIA-Assets.md §4.3.2 |
 | `sub_type` = `escrow_returned` | `payment_reference`, `timeout_at`, `original_audit_id` | exactly as applicable: `actual_timeout` (timeout) or `cancellation_reason` (cancellation) | ARSIA-Assets.md §4.3.3, §4.2.4 |
 | `sub_type` = `escrow_disputed` | `payment_reference`, `disputed_by`, `dispute_reason`, `arbitration_agent`, `original_audit_id` | — | ARSIA-Assets.md §4.3.4 |
-| `event_type` = `broker_relay` | `attestation_id`, `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, `forwarding_result` | — | ARSIA-Routing.md §7.4.2; ARSIA-Core.md §9.2 |
+| `event_type` = `broker_relay` | `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarding_result` | `attestation_id`, `forwarded_at`, `relay_latency_ms` (present together when the broker initiated forwarding; REQUIRED when `forwarding_result` is `success`; ARSIA-Routing.md §7.4.2) | ARSIA-Routing.md §7.3 Rule 7, §7.4.2; ARSIA-Core.md §9.2 |
 | `event_type` = `key_rotation` | — | `reason` (`"revocation"` for a key revocation) | ARSIA-Identity.md §2.5 |
 | `event_type` = `rollback` | `original_message_id`, `action_id`, `partial_rollback` | — | ARSIA-Actions.md §4.2 (Rollback Audit) |
 | `event_type` = `review_pending` | `correlation_id`, `root_request_id`, `execution_message_id`, `result_hash`, `review_deadline` | — | ARSIA-Actions.md §3.9.5 |

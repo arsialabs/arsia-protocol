@@ -14,7 +14,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-discovery-response.schema.json](arsia-discovery-response.schema.json) | Core §7.1 | Agent metadata from discovery endpoint |
 | [arsia-capability-descriptor.schema.json](arsia-capability-descriptor.schema.json) | Core §7.2 | Single capability exposed by an agent |
 | [arsia-jwt-claims.schema.json](arsia-jwt-claims.schema.json) | Core §6.1 | Access token JWT claims (including `arsia_oversight`) and OAuth 2.0 token response |
-| [arsia-dpop-proof.schema.json](arsia-dpop-proof.schema.json) | Core §6.3 | DPoP proof JWT payload per RFC 9449 |
+| [arsia-dpop-proof.schema.json](arsia-dpop-proof.schema.json) | Identity §3.3, Core §6.3 | DPoP proof JWT payload per RFC 9449 |
 | [arsia-jwk-entry.schema.json](arsia-jwk-entry.schema.json) | Core §7.3 | JWK entry in an agent's JWKS |
 | [arsia-websocket-frame.schema.json](arsia-websocket-frame.schema.json) | Core §8.2 | WebSocket control frames (auth, ping, pong) |
 | [arsia-compliance-profiles.schema.json](arsia-compliance-profiles.schema.json) | Core | Compliance profiles registry structure |

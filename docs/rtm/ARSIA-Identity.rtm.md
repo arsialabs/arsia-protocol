@@ -84,7 +84,30 @@
 | IDENT-§3.2-05 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token iat claim MUST NOT be in the future beyond the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-447, ITV-448 |
 | IDENT-§3.2-06 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token MUST NOT be used before the nbf (not-before) claim time | — | ITV-449, ITV-450 |
 | IDENT-§3.3-01 | 3.3 | RECOMMENDED | sdk_enabled | interoperability | DPoP (RFC 9449) is RECOMMENDED for all token presentations to prevent theft and replay | arsia-dpop-proof | — |
-| IDENT-§3.3-02 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST reject requests with error unauthorized when any DPoP verification check fails | — | ITV-451 |
+| IDENT-§3.3-02 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify the DPoP proof per §3.3 and reject with error unauthorized when any check fails, except the nonce cases answered with the nonce challenge | — | ITV-451 |
+| IDENT-§3.3-03 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST find exactly one DPoP header field whose value is a single well-formed JWT (checks 1-2) | — | — |
+| IDENT-§3.3-04 | 3.3 | MUST | sdk | structural | DPoP proof MUST contain jti, htm, htu, iat and ath, and nonce when the receiving agent requires one (check 3) | arsia-dpop-proof | ITV-33, INV-107 |
+| IDENT-§3.3-05 | 3.3 | MUST | sdk | structural | DPoP proof typ header MUST be dpop+jwt (check 4) | arsia-dpop-proof | ITV-126, INV-105 |
+| IDENT-§3.3-06 | 3.3 | MUST | sdk | structural | DPoP proof alg MUST be a registered asymmetric algorithm other than none; ARSIA profile: EdDSA with an Ed25519 jwk (check 5) | arsia-dpop-proof | ITV-126, INV-106 |
+| IDENT-§3.3-07 | 3.3 | MUST | sdk | behavioural_negative | DPoP proof signature MUST verify with the public key of its jwk header (check 6) | — | — |
+| IDENT-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | DPoP proof jwk header MUST NOT contain a private key (check 7) | arsia-dpop-proof | INV-104 |
+| IDENT-§3.3-09 | 3.3 | MUST | sdk | structural | DPoP htm MUST match the request method; ARSIA inbox delivery uses POST (check 8) | arsia-dpop-proof | ITV-33, ITV-34 |
+| IDENT-§3.3-10 | 3.3 | MUST | sdk | behavioural_negative | DPoP htu MUST match the request URI, ignoring query and fragment (check 9) | — | — |
+| IDENT-§3.3-11 | 3.3 | SHOULD | sdk | interoperability | Receiving agent SHOULD apply RFC 3986 syntax-based and scheme-based normalisation before comparing htu | — | — |
+| IDENT-§3.3-12 | 3.3 | MUST | sdk | behavioural_negative | When the receiving agent provided a nonce, the DPoP nonce claim MUST match it (check 10) | arsia-dpop-proof | ITV-580, INV-45 |
+| IDENT-§3.3-13 | 3.3 | MUST | sdk | behavioural_negative | DPoP iat MUST be within the Core §8.3 clock skew tolerance of the receiving agent (check 11) | — | — |
+| IDENT-§3.3-14 | 3.3 | MAY | sdk | informational | A receiving agent that provides nonces MAY bound proof lifetime by the server time its nonce encodes | — | — |
+| IDENT-§3.3-15 | 3.3 | MUST | sdk | behavioural_negative | DPoP ath MUST equal the hash of the presented token, and the token's cnf.jkt MUST be the thumbprint of the proof key (check 12) | — | ITV-451 |
+| IDENT-§3.3-16 | 3.3 | MUST | sdk | behavioural_negative | A receiving agent requiring a nonce MUST answer a request lacking an acceptable nonce, the first included, with the nonce challenge rather than a generic unauthorized | — | — |
+| IDENT-§3.3-17 | 3.3 | MUST_NOT | sdk | behavioural_negative | A DPoP jti already accepted for the same target URI (query and fragment excluded) MUST NOT be accepted again (check 13, ARSIA requirement) | — | — |
+| IDENT-§3.3-18 | 3.3 | MUST | deployment | behavioural_negative | jti check and recording MUST be one atomic operation shared by every instance serving the endpoint | — | — |
+| IDENT-§3.3-19 | 3.3 | MUST | sdk | behavioural_positive | A jti MUST remain recorded at least until iat plus the clock skew tolerance, not for a fixed period from first receipt | — | — |
+| IDENT-§3.3-20 | 3.3 | MAY | sdk | informational | Receiving agent MAY record a hash of the jti instead of its value | — | — |
+| IDENT-§3.3-21 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY require a nonce, provided by HTTP 401 with WWW-Authenticate DPoP error use_dpop_nonce and a DPoP-Nonce header | — | — |
+| IDENT-§3.3-22 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY provide a new nonce in DPoP-Nonce on any later response | — | — |
+| IDENT-§3.3-23 | 3.3 | MUST_NOT | sdk | behavioural_negative | Once a nonce was provided for a DPoP key, a proof made with that key without nonce MUST NOT be accepted | — | — |
+| IDENT-§3.3-24 | 3.3 | MUST | sdk | behavioural_positive | A sender retransmitting a request MUST present a new DPoP proof with a new jti and a current iat | — | — |
+| IDENT-§3.3-25 | 3.3 | MAY | sdk | informational | A retransmitting sender MAY resend the envelope unchanged, keeping its id and idempotency.key | — | — |
 | IDENT-§4.1-01 | 4.1 | MUST | deployment | behavioural_positive | Both sender and receiver owner_id MUST be retrievable via /.well-known/arsia/identity when audit_required is true | — | — |
 | IDENT-§4.1-02 | 4.1 | MUST | sdk | behavioural_positive | Both parties' owner_id MUST be included in the corresponding audit record | arsia-audit-record | — |
 | IDENT-§4.1-03 | 4.1 | SHOULD | sdk | behavioural_positive | Implementations SHOULD cache identity records for up to 1 hour, same policy as JWKS | — | — |
@@ -265,7 +288,7 @@
 | IDENT-§9.1-09 | 9.1 | MUST | sdk | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 |
 | IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — |
 | IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — |
-| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof before accepting the request | — | — |
+| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request | — | — |
 | IDENT-§9.2-04 | 9.2 | MUST | sdk | behavioural_positive | DPoP-bound token MUST contain a cnf claim binding it to the agent's Ed25519 key | arsia-jwt-claims | — |
 | IDENT-§9.2-05 | 9.2 | SHOULD | sdk_enabled | behavioural_positive | High-security organizations SHOULD mandate DPoP for all external agents | — | — |
 | IDENT-§9.3-01 | 9.3 | MUST | sdk | procedural | All onboarding events MUST be recorded as ArsiaAuditRecord entries | arsia-audit-record | — |
@@ -287,25 +310,25 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 263 |
-| Schema ≠ — | 119 |
-| Vector ≠ — | 82 |
-| Both ≠ — | 41 |
-| Both = — (gaps) | 103 |
+| Total requirements | 297 |
+| Schema ≠ — | 130 |
+| Vector ≠ — | 106 |
+| Both ≠ — | 57 |
+| Both = — (gaps) | 118 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
-| 1 | 38 | 20 | 11 | 8 | 15 |
+| 1 | 38 | 19 | 13 | 9 | 15 |
 | 2 | 27 | 7 | 5 | 4 | 19 |
-| 3 | 16 | 4 | 5 | 0 | 7 |
-| 4 | 11 | 4 | 3 | 2 | 6 |
+| 3 | 39 | 10 | 12 | 6 | 23 |
+| 4 | 9 | 4 | 2 | 2 | 5 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |
-| 7 | 80 | 49 | 29 | 18 | 20 |
-| 8 | 16 | 13 | 4 | 3 | 2 |
-| 9 | 21 | 14 | 3 | 1 | 5 |
+| 7 | 90 | 53 | 43 | 25 | 19 |
+| 8 | 17 | 13 | 4 | 3 | 3 |
+| 9 | 23 | 16 | 5 | 3 | 5 |
 | 10 | 1 | 0 | 0 | 0 | 1 |
 
 ## Draft-02 Delta (normative changes traced)
@@ -322,3 +345,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | wildcard audience removed; router-as-recipient pattern | §9.1 | jwt-claims | — |
 | certificate codes registered in Core §11.2 | §6.4.3 | — | — |
 | key revocation under cache: 3600 s ceiling, revocation event | §2.5 | — | integration |
+| DPoP verification complete: RFC 9449 §4.3 checks 1-12 with ARSIA profile restrictions, nonce challenge precedence, single-use jti (atomic, per target URI, held until iat + S), retransmission with a new proof (A-49) | §3.3, §9.2 | dpop-proof | INV-104..107; harness R20 |

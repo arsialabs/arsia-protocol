@@ -615,3 +615,167 @@ DORA's (A-96).
 - Regulatory register 34 → 37 rows (X-1..X-3).
 - Coverage register 20 → 22 rows: open 14, closed 6 → 8.
 - Named conformance tests 85 → 86 (STATE-18).
+
+## 20. Relay/DPoP cycle closure evidence
+
+Execution baseline `24b32ed`. Owner decisions P1–P3 are in the design record (DR-5
+addendum, relay/DPoP cycle). Line references are to the files after the cycle. RFC 9449
+was read on rfc-editor.org (`rfc9449.txt`) on 2026-11-04; the points relied on are
+summarised below by section, not quoted. Mutations ran on a scratch copy: `git archive
+24b32ed` with the full candidate diff applied, the unmutated copy first passing the whole
+battery, and the candidate restored between cases; the repository was not touched and
+no early commit was made.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-89 | `relay_latency_ms` derivation stated in Routing §7.4.2 | Routing §7.4.2 "Relay timing and outcome" (l.2262): `forwarded_at` the start of the forwarding attempt; `relay_latency_ms` = `forwarded_at` − `received_at`, exact whole non-negative milliseconds, to the initiation of forwarding; `attestation_id`, `forwarded_at` and `relay_latency_ms` present together when forwarding was initiated, absent otherwise; `forwarding_result` defined (`success` = delivery, `timeout`, `failure`). §7.3 Rule 7 (l.2144): a record for every message received for relay, including messages rejected before forwarding (a normative decision of the cycle); Rule 9 (l.2178) MUST record the timeout without forwarding fields. Echoes: §1.2.2 step 9 (l.395), §2.3.3 "Relay error" (l.1125), Core §9.2 item 4 (l.3214), State §7.1 extension row (l.3370). Schema: `broker_relay` conditional with the five unconditional fields and `dependentRequired` over the three forwarding fields; `success` requires them. ROUTING-11 (l.2450). R19 (a)–(e); 10 vectors migrated, ITV-688, ITV-689, ITV-691, INV-101..103 | (a)–(d), (l) | yes |
+| A-49 | Receiver-check lists aligned with RFC 9449 §4.3; DPoP schema accepts nonce (remaining gap: Identity §3.3 checks 1-3, 7 and 10; Core §6.3 `typ`/`alg`) | Identity §3.3 (l.534): one normative list, checks 1–12 of RFC 9449 §4.3 with the ARSIA profile marked apart (EdDSA/Ed25519, `POST`, the Core §8.3 window) and check 13 (single-use `jti`, an ARSIA requirement); nonce precedence (a request lacking an acceptable nonce, the first included, gets the challenge whichever check detects it); "Single-use `jti`" (l.583: per target URI without query and fragment, atomic and shared across instances, held until `iat` + S); "Server-provided nonce" (l.603: RFC 9449 §9 challenge, §8.2, §11.3); "Retransmission" (l.614). Core §6.3 item 4 (l.2322) a normative reference; Core §13.2.2 (l.3945). Routing §2.3.3 "Recipient DPoP nonce challenge" (l.1158), §2.3.2 item 4 (l.1071), §1.2.2 (l.307, l.334, l.405); Identity §9.2 (l.2011); Assets (l.2359). Schemas: message `error-details-relay-failed` gains `dpop_nonce` and `dpop_nonce_htu` with both conditionals; dpop-proof descriptions point to Identity §3.3. IDENTITY-23 (l.805), ROUTING-12 (l.2461). R20 (a)–(k); INV-104..107, ITV-690, INV-108..110 | (e)–(k), (m)–(z) | yes |
+
+**RFC 9449 points relied on (summary, by section).**
+- §4.3: the twelve checks of a DPoP proof (one header field; a single well-formed JWT;
+  the §4.2 claims; `typ`; an asymmetric registered `alg`; the signature under `jwk`; no
+  private key in `jwk`; `htm`; `htu` ignoring query and fragment; the nonce when one was
+  provided; the creation-time window; `ath` and the key binding of the token), in any
+  order, with normalisation of `htu` recommended.
+- §7.3: a unique proof is recommended even when retrying.
+- §8.2 and §9: a resource server provides a nonce with HTTP 401, `WWW-Authenticate: DPoP
+  error="use_dpop_nonce"` and `DPoP-Nonce`, and may provide a new one later; a nonce is
+  accepted only by its issuer.
+- §11.1: `jti` tracking per target URI is described as strong but optional; nonces may be
+  reused while `jti` values are not.
+- §11.3: once a nonce has been provided, proofs without the nonce claim are not accepted.
+
+**R19 and R20 cases.**
+- R19: (a) every valid `broker_relay` record of the corpus; (b) no invalid one carries a
+  timing defect besides its declared cause; (c) the Routing §7.4.2 example (47 ms);
+  (d) latency off by one, forwarding before receipt, `success` without the fields,
+  partial fields detected, a record of a message not forwarded clean; (e) the schema
+  accepts exactly the structurally sound records.
+- R20 (real Ed25519 proofs, `ath`, RFC 7638 `jkt`): (a) valid proof accepted; (b) checks
+  1–9, 11, 12 (both halves) and 13 each rejected by that check with a generic
+  `unauthorized` and no challenge headers, zero header fields included; validly signed
+  proofs with malformed members (`jwk` null, `iat` a string, `htu` null, `jti` a list,
+  `htu` with an invalid port) rejected by checks 5, 3, 3, 3 and 9 with a controlled
+  response, never an exception; (c) query and
+  fragment ignored; (d) replay rejected for the same target URI, also through a query or
+  fragment variant, and accepted for another URI; (e) a proof with `iat` = t0 + S still
+  rejected as a replay at t0 + S + 1; (f) after `iat` + S check 11 fails; (g) a receiver
+  requiring a nonce answers the first request, a missing nonce and an unaccepted nonce
+  with the 401 challenge (both headers), accepts the provided nonce (and its reuse with a
+  new `jti`), and answers a correct nonce with another failure with a generic
+  `unauthorized`; a `jti` already accepted with an unaccepted nonce is rejected by check 13,
+  not challenged; a challenge to a new `jti` records nothing, so the retry with the
+  nonce and that `jti` is accepted; a nonce claim of the wrong type is challenged;
+  (h) a retransmission with a new proof accepted, the re-sent proof
+  rejected; (i) generated header and payload valid against arsia-dpop-proof; (j) the
+  brokered flow — challenge returned to the sender with the recipient's nonce and inbox
+  URL (valid against arsia-message), not in the broker's own `DPoP-Nonce`, attempt
+  recorded as `failure` with the forwarding fields, the old proof delivered once, the
+  retry with a new proof delivered and recorded as `success` with a new
+  `attestation_id`; the broker parses `WWW-Authenticate` (RFC 9110 §11.3, §11.6.1)
+  instead of matching one string: a DPoP challenge with `error_description` (RFC 9449
+  Figure 24), or after another challenge — with auth-params, with no parameters, or with
+  a token68 — with lower-case header names, keeps reason, nonce and URI in the relay
+  error, and a challenge without a
+  `DPoP-Nonce`, another DPoP error or an unparseable header gives the generic relay
+  error without an exception; (k) two concurrent verifications of one proof on the shared reference
+  store, interleaved after the lookup: exactly one accepted.
+- Limit: R20 demonstrates the atomic claim of the reference store and the key and
+  retention contract; it does not demonstrate the distributed infrastructure of a
+  deployment, which remains a runtime obligation.
+
+**Owner review findings (2026-11-04), fixed before commit.** The first candidate's
+harness (a) recognised a recipient challenge only as the literal string
+`DPoP error="use_dpop_nonce"`, so a valid challenge with `error_description` fell to
+the generic relay error and lost the nonce, and the minimal challenge without
+`DPoP-Nonce` raised `KeyError`; (b) used `jwk`, `iat`, `htu` and `jti` before checking
+their type, so validly signed proofs with those members malformed raised exceptions
+(the schemas already rejected the four inputs; the verifier did not apply equivalent
+checks); (c) returned the nonce challenge before check 13, so a `jti` already accepted
+with an unaccepted nonce was challenged instead of rejected (no replay was accepted).
+The battery did not cover these cases. Fixes: a `WWW-Authenticate` parser and the
+complete-challenge condition (`recipient_nonce`); type checks before use (checks 3 and 5;
+an invalid `htu` port fails check 9); a non-recording `accepted` lookup before the
+challenge, the atomic `claim` unchanged. Regressions: R20 (b) malformed proofs, R20 (g)
+6–8, R20 (j) 6; mutations (t)–(x) restore each pre-fix behaviour. Core §6.3 item 4
+(l.2322) now states the nonce-challenge exception, and CORE-§6.3-03 follows it.
+
+**Second owner review (2026-11-04), fixed before commit.** The parser required a space or
+the end of the field after a scheme and had no token68 alternative, so
+`Negotiate, DPoP error="use_dpop_nonce"` and `Negotiate YWJjZA==, DPoP
+error="use_dpop_nonce"` (both valid under RFC 9110 §11.3 and §11.6.1) did not parse and
+the broker returned the generic relay error, losing the DPoP challenge. The parser now
+follows `challenge = auth-scheme [ 1*SP ( token68 / #auth-param ) ]` in a `#challenge`
+list (empty elements skipped; after a comma, an element that is not an auth-param starts
+the next challenge). Regressions: the two forms in R20 (j) 6, which now also requires
+`dpop_nonce_htu`; mutations (y) and (z).
+
+**Mutations.** 26/26 detected:
+
+```
+(a) a valid vector's latency +1: DETECTED (R19 (a))
+(b) relay_record_problems ignores partial presence: DETECTED (R19 (d))
+(c) dependentRequired removed: DETECTED (INV-102)
+(d) success conditional removed: DETECTED (INV-101)
+(e) JtiStore with a fixed TTL from first receipt: DETECTED (R20 (e))
+(f) jti scope without the target URI: DETECTED (R20 (d), another URI)
+(g) proof without nonce accepted after one was provided: DETECTED (R20 (g) 2)
+(h) htu compared with query and fragment: DETECTED (R20 (c))
+(i) ath check skipped: DETECTED (R20 (b) check 12)
+(j) jwk additionalProperties removed: DETECTED (INV-104)
+(k) recipient_dpop_nonce conditional removed: DETECTED (INV-108)
+(l) State broker_relay row back to the old REQUIRED list: DETECTED (A-59 guard)
+(m) broker turns the challenge into the generic relay error: DETECTED (R20 (j) 1)
+(n) broker re-sends the old proof: DETECTED (R20 (j) 4)
+(o) broker presents the recipient nonce as its own DPoP-Nonce: DETECTED (R20 (j) 2)
+(p) JtiStore splits lookup and recording: DETECTED (R20 (k))
+(q) store key uses the raw request URI: DETECTED (R20 (d), query variant)
+(r) first request without nonce gets a generic unauthorized: DETECTED (R20 (g) 1)
+(s) missing nonce detected by check 3 gets a generic unauthorized: DETECTED (R20 (g) 2)
+(t) broker matches the challenge as one literal string (pre-fix): DETECTED (R20 (j) 6)
+(u) claim types not checked before use (pre-fix): DETECTED (R20 (b) malformed)
+(v) jwk shape not checked before use (pre-fix): DETECTED (R20 (b) malformed)
+(w) nonce challenge before the jti check (pre-fix): DETECTED (R20 (g) 6)
+(x) the challenge consumes the jti: DETECTED (R20 (g) 7)
+(y) parser rejects a challenge without parameters before a comma (pre-fix): DETECTED (R20 (j) 6)
+(z) parser does not accept token68 (pre-fix): DETECTED (R20 (j) 6)
+```
+
+R20 (k) passed in five consecutive runs of the harness.
+
+**Vector migration (by ID).**
+- `relay_latency_ms` 12 → 50 (timestamps kept): ITV-43, ITV-44 (still invalid only by
+  `forwarding_result: "dropped"`), INV-48 (still invalid only by the missing
+  `broker_agent_id`).
+- `forwarded_at` = `received_at` + `relay_latency_ms` (it had been set to
+  `processed_at`, days later): ITV-146 (245 ms), ITV-147 (5000 ms), ITV-490 (35),
+  ITV-492 (47), ITV-511 (23), ITV-515 (15).
+- ITV-508 (Rule 1, not forwarded): `attestation_id`, `forwarded_at` and
+  `relay_latency_ms` removed; still valid.
+- Descriptions: ITV-43, ITV-146, ITV-147, ITV-508; ITV-451 ("§3.3 steps 1-6" →
+  "checks 1-13").
+- New: ITV-688..691, INV-101..110 (14); no `crypto` block (the relay errors follow
+  ITV-517, unsigned). Each new schema negative has exactly one cause (INV-101: the three
+  forwarding fields required; INV-102/103: `dependentRequired`); INV-108..110 have one
+  leaf error under `payload.error.details`.
+
+**Sweeps.** The two "as defined in §7.4.2" references of Rule 7 resolve to the new
+definition. No DPoP verification list remains outside Identity §3.3 (Core §6.3 refers to
+it). No "§3.3 step" reference remains. RFC section citations in the new text use the
+`[RFC NNNN] §N` form on one line, so that `check_links.py` treats them as external
+instead of resolving them, by coincidence, to sections of the citing document.
+
+**Counts before → after.**
+- Vectors 815 → 829 (validator 469 / 198 / 148 → 473 / 208 / 148; formats message-only
+  323 → 327, schema-ref 488 → 498, hybrid 4); crypto-checked 124 → 124; 0 failures in
+  all four modes.
+- RTM 1986 / 1189 → 2020 / 1217 (34 rows added: Routing 9, Identity 23, Core 2; 9
+  rewritten: Routing 6, Identity 2, Core 1; ROUTE-§7.3-30 SHOULD → MUST). Coverage summaries of the Routing, Identity
+  and Core RTMs recomputed from their tables (273 / 297 / 404 rows).
+- Consistency checks 124 → 124; harness R1-R18 → R1-R20; example blocks 80 → 81.
+- Findings register 99 rows: open 13 → 12, IPC 2 → 1, closed 84 → 86 (6 by
+  disposition); disposition per DR or cycle addendum 24 → 26, recorded 18 → 17, pending
+  57 → 56.
+- Regulatory register 37 → 40 rows (T-10..T-12).
+- Coverage register 22 → 24 rows: open 14, closed 8 → 10.
+- Named conformance tests 86 → 89 (ROUTING-11, ROUTING-12, IDENTITY-23).

@@ -3576,7 +3576,7 @@
     },
     {
       "id": "ITV-43",
-      "description": "Valid broker relay audit record — successful relay with all 11 required fields. Captures relay metadata for compliance purposes without storing payload content. Per Routing §7.4, §7.3 Rule 7. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
+      "description": "Valid broker relay audit record — successful relay with the forwarding fields (forwarding initiated; relay_latency_ms = forwarded_at − received_at, Routing §7.4.2). Captures relay metadata for compliance purposes without storing payload content. Per Routing §7.4, §7.3 Rule 7. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -3600,7 +3600,7 @@
         "residency_zone": "IE",
         "received_at": "2026-04-10T14:30:00.950Z",
         "forwarded_at": "2026-04-10T14:30:01.000Z",
-        "relay_latency_ms": 12,
+        "relay_latency_ms": 50,
         "forwarding_result": "success",
         "declared_retention": null
       },
@@ -3632,7 +3632,7 @@
         "residency_zone": "IE",
         "received_at": "2026-04-10T14:30:00.950Z",
         "forwarded_at": "2026-04-10T14:30:01.000Z",
-        "relay_latency_ms": 12,
+        "relay_latency_ms": 50,
         "forwarding_result": "dropped",
         "declared_retention": null
       },
@@ -7874,7 +7874,7 @@
     },
     {
       "id": "ITV-146",
-      "description": "Valid broker relay audit with forwarding_result='failure' — exercises untested forwarding_result enum value. ITV-43 covers 'success'; ITV-44 tests invalid 'dropped'. Per ARSIA-Routing.md §7.4. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
+      "description": "Valid broker relay audit with forwarding_result='failure' after forwarding was initiated (forwarding fields present; Routing §7.4.2) — exercises untested forwarding_result enum value. ITV-43 covers 'success'; ITV-44 tests invalid 'dropped'. Per ARSIA-Routing.md §7.4. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -7897,7 +7897,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-15T14:00:00.000Z",
+        "forwarded_at": "2026-04-10T14:30:01.195Z",
         "relay_latency_ms": 245,
         "forwarding_result": "failure",
         "declared_retention": null
@@ -7906,7 +7906,7 @@
     },
     {
       "id": "ITV-147",
-      "description": "Valid broker relay audit with forwarding_result='timeout' — exercises the last untested forwarding_result enum value. Relay latency of 5000ms indicates the relay timed out before delivery confirmation. Per ARSIA-Routing.md §7.4. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
+      "description": "Valid broker relay audit with forwarding_result='timeout' after forwarding was initiated (§2.3.4; forwarding fields present) — exercises the last untested forwarding_result enum value. Relay latency of 5000ms indicates the relay timed out before delivery confirmation. Per ARSIA-Routing.md §7.4. (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -7929,7 +7929,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-15T14:05:00.000Z",
+        "forwarded_at": "2026-04-10T14:30:05.950Z",
         "relay_latency_ms": 5000,
         "forwarding_result": "timeout",
         "declared_retention": null
@@ -18762,7 +18762,7 @@
     },
     {
       "id": "ITV-451",
-      "description": "Identity §3.3: Valid error response — unauthorized due to invalid DPoP proof. When any DPoP verification check fails (§3.3 steps 1-6), the receiving agent MUST reject with 'unauthorized'. Per ARSIA-Identity.md §3.3.",
+      "description": "Identity §3.3: Valid error response — unauthorized due to invalid DPoP proof. When any DPoP verification check fails (§3.3 checks 1-13), the receiving agent MUST reject with 'unauthorized'. Per ARSIA-Identity.md §3.3.",
       "category": "identity",
       "valid": true,
       "message": {
@@ -20302,7 +20302,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-30T10:00:01.000Z",
+        "forwarded_at": "2026-04-10T14:30:00.985Z",
         "relay_latency_ms": 35,
         "forwarding_result": "success",
         "declared_retention": null
@@ -20372,7 +20372,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-30T10:02:00.500Z",
+        "forwarded_at": "2026-04-10T14:30:00.997Z",
         "relay_latency_ms": 47,
         "forwarding_result": "success",
         "declared_retention": null
@@ -20810,7 +20810,7 @@
     },
     {
       "id": "ITV-508",
-      "description": "Routing §7.3 Rule 1: Broker MUST NOT forward message with invalid signature — relay audit with forwarding_result failure confirms message was blocked (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.)",
+      "description": "Routing §7.3 Rule 1: Broker MUST NOT forward message with invalid signature — relay audit with forwarding_result failure confirms message was blocked (Draft-02: converted from the retired BrokerRelayAuditRecord to ArsiaAuditRecord event_type=broker_relay per Routing §7.4.2, M-05.) The message is not forwarded (Rule 1): the record carries no attestation_id, forwarded_at or relay_latency_ms (Routing §7.4.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -20828,13 +20828,10 @@
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
         "retention_source": "platform-default",
-        "attestation_id": "d0a00508-aaaa-4a3d-8e4f-567890abcdef",
         "broker_agent_id": "agent:arsialabs.broker.eu-west",
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-30T10:19:00.000Z",
-        "relay_latency_ms": 3,
         "forwarding_result": "failure",
         "declared_retention": null
       },
@@ -20939,7 +20936,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-30T10:22:00.250Z",
+        "forwarded_at": "2026-04-10T14:30:00.973Z",
         "relay_latency_ms": 23,
         "forwarding_result": "success",
         "declared_retention": null
@@ -21088,7 +21085,7 @@
         "message_ts": "2026-04-10T14:30:00.500Z",
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
-        "forwarded_at": "2026-04-30T10:26:00.750Z",
+        "forwarded_at": "2026-04-10T14:30:00.965Z",
         "relay_latency_ms": 15,
         "forwarding_result": "success",
         "declared_retention": null
@@ -25967,7 +25964,7 @@
         "residency_zone": "IE",
         "received_at": "2026-04-10T14:30:00.950Z",
         "forwarded_at": "2026-04-10T14:30:01.000Z",
-        "relay_latency_ms": 12,
+        "relay_latency_ms": 50,
         "forwarding_result": "success",
         "declared_retention": null
       },
@@ -35324,6 +35321,370 @@
         "retention_anchor": "2026-04-27T14:00:00.000Z"
       },
       "expected_error": "type — entry_retained_until None is not of type 'string'"
+    },
+    {
+      "id": "ITV-688",
+      "description": "Valid broker_relay audit record of a message rejected before forwarding under Routing §7.3 Rule 2 (broker jurisdiction does not satisfy the zone): forwarding_result 'failure', no attestation_id, forwarded_at or relay_latency_ms. Per Routing §7.3 Rule 7, §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "d0b00688-0000-4000-8000-000000000688",
+        "message_id": "d0b00688-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.120Z",
+        "retained_until": "2027-02-02T10:00:00.120Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.650Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.100Z",
+        "forwarding_result": "failure",
+        "declared_retention": null
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-689",
+      "description": "Valid broker_relay audit record of a message not forwarded under Routing §7.3 Rule 9 (expiration safety margin): forwarding_result 'timeout', no forwarding fields. Per Routing §7.3 Rules 7 and 9, §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "d0b00689-0000-4000-8000-000000000689",
+        "message_id": "d0b00689-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.120Z",
+        "retained_until": "2027-02-02T10:00:00.120Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.650Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.100Z",
+        "forwarding_result": "timeout",
+        "declared_retention": null
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-690",
+      "description": "Routing §2.3.3: relay error carrying a recipient DPoP nonce challenge — reason 'recipient_dpop_nonce', the recipient's DPoP-Nonce value unmodified (RFC 9449 Figure 24) and dpop_nonce_htu identifying the issuing server (the recipient inbox URL).",
+      "category": "routing",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00690-b1c2-4a3d-8e4f-567890abcdef",
+        "ts": "2026-11-04T10:00:00.120Z",
+        "from": "agent:arsialabs.broker.eu-west",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef",
+        "payload": {
+          "type": "arsiaprotocol.broker/relay-error",
+          "error": {
+            "code": "service_unavailable",
+            "description": "The recipient requires a nonce in DPoP proofs; retry with a new proof carrying it.",
+            "details": {
+              "relay_failed": true,
+              "relay_id": "d0b00690-aaaa-4a3d-8e4f-567890abcdef",
+              "reason": "recipient_dpop_nonce",
+              "dpop_nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v",
+              "dpop_nonce_htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox"
+            }
+          }
+        },
+        "root_request_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-691",
+      "description": "Valid broker_relay audit record of the forwarding attempt answered by a recipient DPoP nonce challenge: forwarding_result 'failure' with the forwarding fields (forwarding was initiated). Per Routing §2.3.3 item 4, §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "d0b00691-0000-4000-8000-000000000691",
+        "message_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.068Z",
+        "retained_until": "2027-02-02T10:00:00.068Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "attestation_id": "d0b00691-aaaa-4a3d-8e4f-567890abcdef",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.560Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.010Z",
+        "forwarded_at": "2026-11-04T10:00:00.048Z",
+        "relay_latency_ms": 38,
+        "forwarding_result": "failure",
+        "declared_retention": null
+      },
+      "expected_error": null
+    },
+    {
+      "id": "INV-101",
+      "description": "INVALID — broker_relay record with forwarding_result 'success' but without attestation_id, forwarded_at and relay_latency_ms; a success record carries the forwarding fields. Per Routing §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "d0b00101-0000-4000-8000-000000000101",
+        "message_id": "d0b00101-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.120Z",
+        "retained_until": "2027-02-02T10:00:00.120Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.650Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.100Z",
+        "forwarding_result": "success",
+        "declared_retention": null
+      },
+      "expected_error": "attestation_id is required when forwarding_result is success — Routing §7.4.2"
+    },
+    {
+      "id": "INV-102",
+      "description": "INVALID — broker_relay record with forwarded_at but without attestation_id and relay_latency_ms; the three forwarding fields are present together. Per Routing §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "d0b00102-0000-4000-8000-000000000102",
+        "message_id": "d0b00102-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.120Z",
+        "retained_until": "2027-02-02T10:00:00.120Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.650Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.100Z",
+        "forwarding_result": "failure",
+        "declared_retention": null,
+        "forwarded_at": "2026-11-04T10:00:00.140Z"
+      },
+      "expected_error": "attestation_id and relay_latency_ms are required with forwarded_at (dependentRequired) — Routing §7.4.2"
+    },
+    {
+      "id": "INV-103",
+      "description": "INVALID — broker_relay record with attestation_id but without forwarded_at and relay_latency_ms; no attestation without forwarding. Per Routing §7.4.2.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "d0b00103-0000-4000-8000-000000000103",
+        "message_id": "d0b00103-ffff-4a3d-8e4f-567890abcdef",
+        "event_type": "broker_relay",
+        "from_agent": "agent:acme.echo-client",
+        "to_agent": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "payload_type": "com.acme.notes/list",
+        "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+        "processed_at": "2026-11-04T10:00:00.120Z",
+        "retained_until": "2027-02-02T10:00:00.120Z",
+        "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
+        "compliance_profile_declared": null,
+        "compliance_profile_resolved": "none",
+        "retention_source": "platform-default",
+        "broker_agent_id": "agent:arsialabs.broker.eu-west",
+        "message_ts": "2026-11-04T09:59:59.650Z",
+        "residency_zone": "EU",
+        "received_at": "2026-11-04T10:00:00.100Z",
+        "forwarding_result": "timeout",
+        "declared_retention": null,
+        "attestation_id": "d0b00103-aaaa-4a3d-8e4f-567890abcdef"
+      },
+      "expected_error": "forwarded_at and relay_latency_ms are required with attestation_id (dependentRequired) — Routing §7.4.2"
+    },
+    {
+      "id": "INV-104",
+      "description": "INVALID — DPoP proof header whose jwk carries a private key member (d). RFC 9449 §4.3 check 7; ARSIA-Identity.md §3.3 check 7.",
+      "schema_ref": "arsia-dpop-proof.schema.json#/$defs/dpop-header",
+      "expected": "invalid",
+      "data": {
+        "typ": "dpop+jwt",
+        "alg": "EdDSA",
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "2yBga3e_Y0iNdj9COkzKERySw6VMuEXvJI1pHcjHIL0",
+          "d": "XVm5J69N3STOdQEkBell4khaUr2nhO9upKiNhvK0mtg"
+        }
+      },
+      "expected_error": "jwk must not contain d (additionalProperties) — ARSIA-Identity.md §3.3 check 7"
+    },
+    {
+      "id": "INV-105",
+      "description": "INVALID — DPoP proof header with typ 'JWT' instead of 'dpop+jwt'. RFC 9449 §4.3 check 4; ARSIA-Identity.md §3.3 check 4.",
+      "schema_ref": "arsia-dpop-proof.schema.json#/$defs/dpop-header",
+      "expected": "invalid",
+      "data": {
+        "typ": "JWT",
+        "alg": "EdDSA",
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "2yBga3e_Y0iNdj9COkzKERySw6VMuEXvJI1pHcjHIL0"
+        }
+      },
+      "expected_error": "typ must be dpop+jwt — ARSIA-Identity.md §3.3 check 4"
+    },
+    {
+      "id": "INV-106",
+      "description": "INVALID — DPoP proof header with alg 'none'. RFC 9449 §4.3 check 5; the ARSIA profile requires EdDSA (ARSIA-Identity.md §3.3 check 5).",
+      "schema_ref": "arsia-dpop-proof.schema.json#/$defs/dpop-header",
+      "expected": "invalid",
+      "data": {
+        "typ": "dpop+jwt",
+        "alg": "none",
+        "jwk": {
+          "kty": "OKP",
+          "crv": "Ed25519",
+          "x": "2yBga3e_Y0iNdj9COkzKERySw6VMuEXvJI1pHcjHIL0"
+        }
+      },
+      "expected_error": "alg must be EdDSA — ARSIA-Identity.md §3.3 check 5"
+    },
+    {
+      "id": "INV-107",
+      "description": "INVALID — DPoP proof payload without ath; a proof presented with an access token carries ath (RFC 9449 §4.2, §4.3 checks 3 and 12; ARSIA-Identity.md §3.3).",
+      "schema_ref": "arsia-dpop-proof.schema.json",
+      "expected": "invalid",
+      "data": {
+        "jti": "d0b00107-c1d2-4e3f-8a4b-5c6d7e8f9a0b",
+        "htm": "POST",
+        "htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox",
+        "iat": 1711285200
+      },
+      "expected_error": "ath is required — ARSIA-Identity.md §3.3 check 3"
+    },
+    {
+      "id": "INV-108",
+      "description": "INVALID — relay error with reason 'recipient_dpop_nonce' but without dpop_nonce; the challenge must reach the sender with the recipient's nonce. Per Routing §2.3.3.",
+      "category": "routing",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00108-b1c2-4a3d-8e4f-567890abcdef",
+        "ts": "2026-11-04T10:00:00.120Z",
+        "from": "agent:arsialabs.broker.eu-west",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef",
+        "payload": {
+          "type": "arsiaprotocol.broker/relay-error",
+          "error": {
+            "code": "service_unavailable",
+            "description": "The recipient requires a nonce in DPoP proofs; retry with a new proof carrying it.",
+            "details": {
+              "relay_failed": true,
+              "relay_id": "d0b00690-aaaa-4a3d-8e4f-567890abcdef",
+              "reason": "recipient_dpop_nonce",
+              "dpop_nonce_htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox"
+            }
+          }
+        },
+        "root_request_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef"
+      },
+      "expected_error": "dpop_nonce is required when reason is recipient_dpop_nonce — Routing §2.3.3"
+    },
+    {
+      "id": "INV-109",
+      "description": "INVALID — relay error whose dpop_nonce is empty; nonce = 1*NQCHAR (RFC 9449 §8.1). Per Routing §2.3.3.",
+      "category": "routing",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00109-b1c2-4a3d-8e4f-567890abcdef",
+        "ts": "2026-11-04T10:00:00.120Z",
+        "from": "agent:arsialabs.broker.eu-west",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef",
+        "payload": {
+          "type": "arsiaprotocol.broker/relay-error",
+          "error": {
+            "code": "service_unavailable",
+            "description": "The recipient requires a nonce in DPoP proofs; retry with a new proof carrying it.",
+            "details": {
+              "relay_failed": true,
+              "relay_id": "d0b00690-aaaa-4a3d-8e4f-567890abcdef",
+              "reason": "recipient_dpop_nonce",
+              "dpop_nonce": "",
+              "dpop_nonce_htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox"
+            }
+          }
+        },
+        "root_request_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef"
+      },
+      "expected_error": "dpop_nonce must match 1*NQCHAR — Routing §2.3.3, RFC 9449 §8.1"
+    },
+    {
+      "id": "INV-110",
+      "description": "INVALID — relay error carrying dpop_nonce with reason 'relay_timeout'; dpop_nonce belongs only to a recipient_dpop_nonce relay error. Per Routing §2.3.3.",
+      "category": "routing",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00110-b1c2-4a3d-8e4f-567890abcdef",
+        "ts": "2026-11-04T10:00:00.120Z",
+        "from": "agent:arsialabs.broker.eu-west",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef",
+        "payload": {
+          "type": "arsiaprotocol.broker/relay-error",
+          "error": {
+            "code": "service_unavailable",
+            "description": "The recipient requires a nonce in DPoP proofs; retry with a new proof carrying it.",
+            "details": {
+              "relay_failed": true,
+              "relay_id": "d0b00690-aaaa-4a3d-8e4f-567890abcdef",
+              "reason": "relay_timeout",
+              "dpop_nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v",
+              "dpop_nonce_htu": "https://agent.arsiaprotocol.org/v1/arsia/inbox"
+            }
+          }
+        },
+        "root_request_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef"
+      },
+      "expected_error": "reason must be recipient_dpop_nonce when dpop_nonce is present — Routing §2.3.3"
     }
   ]
 }
