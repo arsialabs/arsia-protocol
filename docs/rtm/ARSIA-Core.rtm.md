@@ -134,6 +134,7 @@
 | CORE-§4.3.8-16 | 4.3.8 | SHOULD | sdk | behavioural_positive | Rule 7: when audit_required is overridden, agent SHOULD log a compliance_warning event | — | ITV-553 |
 | CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations | ITV-555, INV-20 |
 | CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | — | INV-20 |
+| CORE-§4.3.9-01 | 4.3.9 | MUST | sdk | behavioural_negative | When authorization is present, the receiving agent MUST compute SHA-256 over the exact octets of the presented access token and reject with unauthorized when it differs from authorization.token_hash | arsia-message | ITV-692, INV-113, INV-114 (and the 40 corpus bindings, synthetic-token:<ID>) |
 | CORE-§4.3.10-01 | 4.3.10.4 | MUST | sdk | procedural | Receiving agent MUST resolve a message's obligations in order: fill, collect, compose, evaluate, record (sufficiency evaluated on the composed result) | arsia-obligation-rules | ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 |
 | CORE-§4.3.10-02 | 4.3.10.2 | MUST | sdk | behavioural_positive | Receiving agent MUST retain the raw signed IdentityRecord body bytes, retrievable by signed_body_sha256, while any referencing audit record is retained | — | — |
 | CORE-§4.3.10-03 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of a profile catalog and of arsia-obligation-rules.json MUST keep every published revision retrievable by its digest | arsia-obligation-rules | — |
@@ -182,7 +183,7 @@
 | CORE-§5.2-04 | 5.2 | MUST | sdk | procedural | Signature verification MUST follow the normative 6-step procedure (extract, resolve key, clone-strip, JCS, verify, accept/reject) | — | ITV-551, ITV-552 |
 | CORE-§5.2-05 | 5.2 | MUST | sdk | behavioural_positive | Ed25519 signature decoding MUST produce exactly 64 bytes | — | ITV-426 |
 | CORE-§5.2-06 | 5.2 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD cache JWKS responses per Cache-Control headers | — | — |
-| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112 |
+| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112, INV-37, INV-38, INV-39 |
 | CORE-§5.2-08 | 5.2 | SHOULD_NOT | sdk | behavioural_negative | Signature failure error SHOULD NOT include verification failure details | — | — |
 | CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — |
 | CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — |
@@ -420,10 +421,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 405 |
-| Schema ≠ — | 180 |
-| Vector ≠ — | 150 |
-| Both ≠ — | 87 |
+| Total requirements | 406 |
+| Schema ≠ — | 181 |
+| Vector ≠ — | 151 |
+| Both ≠ — | 88 |
 | Both = — (gaps) | 162 |
 
 ### Per-section breakdown
@@ -433,7 +434,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 141 | 78 | 77 | 45 | 31 |
+| 4 | 142 | 79 | 78 | 46 | 31 |
 | 5 | 36 | 8 | 21 | 5 | 12 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |

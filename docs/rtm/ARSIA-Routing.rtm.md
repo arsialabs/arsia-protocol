@@ -274,6 +274,12 @@
 | ROUTE-§7.4-18 | 7.4 | MUST | external | structural | attestation_id, forwarded_at and relay_latency_ms MUST be present together when the broker initiated forwarding | arsia-audit-record | ITV-691, INV-102, INV-103 |
 | ROUTE-§7.4-19 | 7.4 | MUST | external | structural | attestation_id, forwarded_at and relay_latency_ms MUST be absent when the broker did not initiate forwarding | arsia-audit-record | ITV-508, ITV-688, ITV-689 |
 | ROUTE-§7.4-20 | 7.4 | MUST | external | behavioural_positive | forwarding_result MUST be success (ARSIA envelope or HTTP 202 relayed), timeout (Rule 9 refusal or §2.3.4 abandonment) or failure (every other case, before or after forwarding) | arsia-audit-record | ITV-43, ITV-146, ITV-147, ITV-508, ITV-688, ITV-689, ITV-691, INV-101 |
+| ROUTE-§7.4-21 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify the relay attestation signature against the broker's JWKS; the kid must belong to broker_id | arsia-relay-attestation | ITV-569, INV-124, INV-125 |
+| ROUTE-§7.4-22 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify that the broker is an authorised Compliance Broker for the declared zone (jurisdiction satisfies the zone; declares arsiaprotocol.broker.relay) | arsia-relay-attestation | INV-121, INV-122 |
+| ROUTE-§7.4-23 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify envelope_hash against the received complete signed envelope and authorization_token_hash against the envelope's authorization.token_hash and the presented token | arsia-relay-attestation | ITV-569, INV-115, INV-116, INV-117 |
+| ROUTE-§7.4-24 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify message_id, sender and recipient against the envelope and reject attestations outside [issued_at, valid_until] with the applicable clock skew | arsia-relay-attestation | INV-118, INV-119, INV-120 |
+| ROUTE-§7.4-25 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST treat an attestation_id repeated for a different envelope_hash as invalid (a repetition with the same envelope_hash is not rejected by this rule) | arsia-relay-attestation | INV-123, ITV-693 |
+| ROUTE-§7.4-26 | 7.4 | MUST | sdk | behavioural_negative | A failure in attestation verification steps 2-5 MUST be rejected with unauthorized | arsia-relay-attestation | INV-115, INV-116, INV-117, INV-118, INV-119, INV-120, INV-121, INV-122, INV-123, INV-124, INV-125 |
 | ROUTE-§8-01 | 8 | MUST | external | procedural | Conformant implementations MUST pass all routing conformance tests at the applicable level | — | — |
 | ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 |
 | ROUTE-§8-03 | 8 | MUST | external | procedural | Conformance test framework MUST synchronise clocks between agents for timing-sensitive tests | — | — |
@@ -288,10 +294,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 273 |
-| Schema ≠ — | 112 |
-| Vector ≠ — | 85 |
-| Both ≠ — | 55 |
+| Total requirements | 279 |
+| Schema ≠ — | 118 |
+| Vector ≠ — | 91 |
+| Both ≠ — | 61 |
 | Both = — (gaps) | 131 |
 
 ### Per-section breakdown
@@ -304,7 +310,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 9 | 4 | 3 | 1 | 3 |
 | 5 | 24 | 11 | 4 | 2 | 11 |
 | 6 | 16 | 6 | 2 | 0 | 8 |
-| 7 | 79 | 46 | 50 | 36 | 19 |
+| 7 | 85 | 52 | 56 | 42 | 19 |
 | 8 | 3 | 0 | 1 | 0 | 2 |
 
 ## Draft-02 Delta (normative changes traced)

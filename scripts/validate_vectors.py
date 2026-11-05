@@ -262,6 +262,20 @@ def _verify_signature(alg: str | None, pub_bytes: bytes, sig_bytes: bytes, data_
         key.verify(sig_bytes, data_bytes, PKCS1v15(), SHA256())
 
 
+CRYPTO_DATA_SCHEMAS = ("arsia-message.schema.json", "arsia-relay-attestation.schema.json")
+
+
+def crypto_envelope(vector: dict) -> dict | None:
+    """The signed object a crypto block refers to: the message, or the data of a schema-ref vector whose
+    schema is a signed object (an envelope or a relay attestation, Routing §7.4.1). Any other data is not
+    an envelope."""
+    if isinstance(vector.get("message"), dict):
+        return vector["message"]
+    if vector.get("schema_ref") in CRYPTO_DATA_SCHEMAS and isinstance(vector.get("data"), dict):
+        return vector["data"]
+    return None
+
+
 def run_crypto_checks(args: argparse.Namespace) -> int:
     try:
         import rfc8785
@@ -298,7 +312,12 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             continue
 
         checked += 1
-        msg = vector.get("message", {})
+        msg = crypto_envelope(vector)
+        if msg is None:
+            failed += 1
+            failures.append(f"  FAIL {vid}: crypto block without an envelope (message, or data of "
+                            f"{', '.join(CRYPTO_DATA_SCHEMAS)})")
+            continue
         # The expected signature outcome is declared, never inferred from valid/expected or
         # expected_error: a vector rejected for authorization or compliance still carries a
         # signature that MUST verify (A-34).
@@ -341,6 +360,28 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             failed += 1
             failures.append(f"  FAIL {vid}: expect_signature {expectation!r} without a security object")
             continue
+        # CHECK 3 — sig field consistency, before verification so that it binds the signature
+        # negatives too: the signature asserted here is the one the envelope carries.
+        security = msg["security"]
+        embedded_sig = None
+        if "sig" in security:
+            embedded_sig = security["sig"]
+        elif "signatures" in security:
+            sigs = security["signatures"]
+            if sigs and isinstance(sigs, list):
+                embedded_sig = sigs[0].get("signature")
+        if embedded_sig is None:
+            failed += 1
+            failures.append(f"  FAIL {vid}: expect_signature {expectation!r} without an embedded signature")
+            continue
+        if embedded_sig != crypto["signature_base64url"]:
+            failed += 1
+            failures.append(
+                f"  FAIL {vid}: sig field mismatch\n"
+                f"    message.security.sig: {embedded_sig[:40]}...\n"
+                f"    crypto.signature:     {crypto['signature_base64url'][:40]}..."
+            )
+            continue
         alg = msg["security"].get("alg")
         pub_bytes = bytes.fromhex(crypto["public_key_hex"])
         sig_bytes = _base64url_decode(crypto["signature_base64url"])
@@ -361,25 +402,6 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             failed += 1
             failures.append(f"  FAIL {vid}: signature verification failed — {reason}")
             continue
-
-        # CHECK 3 — sig field consistency
-        security = msg.get("security", {})
-        embedded_sig = None
-        if "sig" in security:
-            embedded_sig = security["sig"]
-        elif "signatures" in security:
-            sigs = security["signatures"]
-            if sigs and isinstance(sigs, list):
-                embedded_sig = sigs[0].get("signature")
-        if embedded_sig is not None:
-            if embedded_sig != crypto["signature_base64url"]:
-                failed += 1
-                failures.append(
-                    f"  FAIL {vid}: sig field mismatch\n"
-                    f"    message.security.sig: {embedded_sig[:40]}...\n"
-                    f"    crypto.signature:     {crypto['signature_base64url'][:40]}..."
-                )
-                continue
         verified_count += 1
 
     passed = checked - failed

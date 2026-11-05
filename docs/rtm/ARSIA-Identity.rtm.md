@@ -76,7 +76,7 @@
 | IDENT-§3.1-05 | 3.1 | MAY | sdk | behavioural_positive | Sandbox/development implementations MAY relax EdDSA verification for non-production environments | — | — |
 | IDENT-§3.1-06 | 3.1 | MUST | sdk | behavioural_positive | Relaxed-verification implementations MUST log a warning for each unverified request | — | — |
 | IDENT-§3.1-07 | 3.1 | MUST_NOT | deployment | behavioural_negative | Production deployments MUST NOT use open registration mode | — | — |
-| IDENT-§3.1-08 | 3.1 | MUST | sdk | behavioural_negative | Step 9: security.alg MUST be allowlisted and compatible with the key's kty/crv; unknown, disallowed or mismatched alg rejected with unauthorized | — | ITV-551, INV-37, INV-111, INV-112 |
+| IDENT-§3.1-08 | 3.1 | MUST | sdk | behavioural_negative | Step 9: security.alg MUST be allowlisted and compatible with the key's kty/crv; unknown, disallowed or mismatched alg rejected with unauthorized | — | ITV-551, INV-37, INV-38, INV-39, INV-111, INV-112 |
 | IDENT-§3.2-01 | 3.2 | MUST | sdk | behavioural_positive | Request-intent messages MUST include a Bearer or DPoP-bound access token per ARSIA-Core §6 | arsia-jwt-claims | — |
 | IDENT-§3.2-02 | 3.2 | MUST | sdk | procedural | Receiving agent MUST verify access tokens using the 7-step OAuth 2.0 verification procedure | — | — |
 | IDENT-§3.2-03 | 3.2 | MUST | external | behavioural_positive | Access token MUST be issued by a trusted Authorization Server | — | — |

@@ -110,6 +110,39 @@ Apply to every record below.
   algorithm, and are rejected for the alg/key incompatibility; a verifier that selects
   the algorithm from the key material accepts them.
 
+**Addendum — 2026-11-05 (owner decisions for coverage SC1, under DR-0).**
+- **Programme split.** The ten open coverage findings run in four sub-cycles, each
+  with its own plan, review and commit: SC1 signatures and bindings (A-54, A-55,
+  A-56); SC2 approval and revocation (A-57, A-58); SC3 parsing, examples and timing
+  (A-61, A-63, A-62); SC4 traceability (A-53, A-64), last, consuming the evidence of
+  the others. The historical counts in the descriptions of A-53 and A-64 are not the
+  current inventory.
+- **K1 — Mechanism.** `--check-crypto` also reads `data` of the two signed-object
+  schemas (message, relay attestation) and of no other; harness R21 (`token_binding`)
+  compares the hash of the presented token's exact octets with
+  `authorization.token_hash` — it does not test the token's validity, authorization or
+  DPoP; harness R22 (`attestation`) verifies the broker's authorisation for the zone,
+  the binding to the complete signed envelope and to the token, the identities, the
+  window and the replay rule of Routing §7.4.1, with the attestation signature inside
+  its acceptance path (reusing the validator's verifier). Binding and replay negatives
+  keep a valid signature. The replay rule rejects only an `attestation_id` reused for
+  a different `envelope_hash`.
+- **K2 — A-54.** Discriminating guards prove how each negative was built, including the
+  correspondence between the kid and the key actually used; INV-39 is rebuilt as a
+  Draft-01 signature presented to a Draft-02 verifier.
+- **K3 — Keys.** Two test keys in `keypairs.json` (15 → 17), with the identifiers the
+  fixtures already use (`agent:arsialabs.broker.eu-west#2026q1`,
+  `agent:acme.echo-client#other-key`); an additional key of an agent is indexed by its
+  kid, so the existing entries and their consumers are unchanged.
+- **K4 — A-55.** The `synthetic-token:<ID>` convention of the 40 existing bindings is
+  documented and executed; they show that the binding holds, not that the message is
+  accepted. New scenarios state the presented token explicitly, including the mismatch
+  that must yield `unauthorized`.
+- **Review adjustments.** R22's clock skew is the envelope profile's (Core §8.3; 120 s
+  for CTV-02), with window negatives that separate 120 s from 300 s; INV-125's
+  adversarial JWKS publishes the foreign key so that only the kid's membership rejects
+  it.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

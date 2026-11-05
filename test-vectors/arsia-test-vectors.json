@@ -24450,31 +24450,117 @@
     },
     {
       "id": "ITV-569",
-      "description": "Valid relay attestation — full field set per Routing §7.4.1: broker-signed relay evidence binding envelope_hash and authorization_token_hash, with relay acceptance window (issued_at/valid_until) and policy_ref.",
+      "description": "Valid relay attestation — full field set per Routing §7.4.1, bound to the signed envelope of CTV-02: envelope_hash over the complete signed envelope (security.sig included), authorization_token_hash equal to the envelope's authorization.token_hash and to the hash of the presented token, signed by the broker key agent:arsialabs.broker.eu-west#2026q1 over the attestation minus only security.sig. The recipient accepts it (Routing §7.4.1 steps 2-5).",
       "schema_ref": "arsia-relay-attestation.schema.json",
       "expected": "valid",
       "data": {
         "v": "1.0",
         "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
         "broker_id": "agent:arsialabs.broker.eu-west",
-        "message_id": "550e8400-e29b-41d4-a716-446655440000",
-        "sender": "agent:acme.billing",
-        "recipient": "agent:contoso.risk-assessor",
-        "envelope_hash": "sha-256:abababababababababababababababababababababababababababababababab",
-        "authorization_token_hash": "sha-256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
         "residency_zone": "EU",
-        "received_at": "2026-03-24T14:30:01.187Z",
-        "forwarded_at": "2026-03-24T14:30:01.234Z",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
         "policy_ref": "broker-policy-2026q1:sha256:9f1c",
-        "issued_at": "2026-03-24T14:30:01.240Z",
-        "valid_until": "2026-03-24T14:35:01.240Z",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#2026q1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
         }
       },
-      "expected_error": null
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "accept"
+        }
+      }
     },
     {
       "id": "INV-31",
@@ -24803,7 +24889,7 @@
     },
     {
       "id": "INV-37",
-      "description": "Runtime — signed envelope whose security.alg was flipped EdDSA→ES256 AFTER signing MUST fail verification with unauthorized: alg is inside the Draft-02 signing input (Core §5.1 Step 2), and algorithm coherence (Core §5.2 Step 5) independently rejects the alg/key-type mismatch (A-16).",
+      "description": "Runtime — signed envelope whose security.alg was flipped EdDSA→ES256 AFTER signing MUST fail verification with unauthorized: alg is inside the Draft-02 signing input (Core §5.1 Step 2), and algorithm coherence (Core §5.2 Step 5) independently rejects the alg/key-type mismatch (A-16) (signature over the pre-tamper bytes; Core §5.2).",
       "schema_ref": "arsia-message.schema.json",
       "expected": "valid",
       "skip_schema": true,
@@ -24831,11 +24917,18 @@
           "sig": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag"
         }
       },
-      "expected_error": null
+      "expected_error": null,
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2261316232633364342d653566362d346137622d386339642d306531663261336234633564222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224553323536222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag",
+        "expect_signature": "invalid"
+      }
     },
     {
       "id": "INV-38",
-      "description": "Runtime — signed envelope whose security.kid was swapped to another published key of the same sender AFTER signing MUST fail verification with unauthorized: kid is inside the Draft-02 signing input (Core §5.1 Step 2) (A-16).",
+      "description": "Runtime — signed envelope whose security.kid was swapped to another published key of the same sender AFTER signing MUST fail verification with unauthorized: kid is inside the Draft-02 signing input (Core §5.1 Step 2) (A-16) (signature over the pre-tamper bytes; Core §5.2).",
       "schema_ref": "arsia-message.schema.json",
       "expected": "valid",
       "skip_schema": true,
@@ -24863,7 +24956,14 @@
           "sig": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag"
         }
       },
-      "expected_error": null
+      "expected_error": null,
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2261316232633364342d653566362d346137622d386339642d306531663261336234633564222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag",
+        "expect_signature": "invalid"
+      }
     },
     {
       "id": "INV-39",
@@ -24892,10 +24992,17 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag"
+          "sig": "HkBMOakR5KO1c_7e5LUgNq3NMDAtPUTvdns2VxvtS1DTRPGxninuyM8kOUnxf-5IOAErB_LonsoxAFy0BAqLDw"
         }
       },
-      "expected_error": null
+      "expected_error": null,
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2261316232633364342d653566362d346137622d386339642d306531663261336234633564222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "HkBMOakR5KO1c_7e5LUgNq3NMDAtPUTvdns2VxvtS1DTRPGxninuyM8kOUnxf-5IOAErB_LonsoxAFy0BAqLDw",
+        "expect_signature": "invalid"
+      }
     },
     {
       "id": "ITV-579",
@@ -35764,6 +35871,1659 @@
       "expected_error": "unauthorized",
       "skip_schema": true,
       "skip_reason": "Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with the key type"
+    },
+    {
+      "id": "ITV-692",
+      "description": "Core §4.3.9: the receiving agent computes SHA-256 over the exact octets of the presented access token and finds authorization.token_hash: the binding holds (accept). The token is stated in test_metadata.input.presented_token; this checks the binding only, not the token's validity, authorization or DPoP.",
+      "category": "core",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00692-0000-4000-8000-000000000692",
+        "ts": "2026-03-24T14:30:00.000Z",
+        "from": "agent:arsialabs.demo.risk-assessor",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "expires_at": "2026-03-24T14:30:30.000Z",
+        "min_v": "1.0",
+        "capabilities": [
+          "compliance.check",
+          "risk.assess"
+        ],
+        "idempotency": {
+          "key": "risk-check-2026-03-24-001",
+          "expires_at": "2026-03-24T15:30:00.000Z"
+        },
+        "context": {
+          "trace_id": "0af7651916cd43dd8448eb211c80319c",
+          "span_id": "b7ad6b7169203331",
+          "flags": 1,
+          "locale": "pt-PT",
+          "priority": 8
+        },
+        "payload": {
+          "type": "arsiaprotocol.compliance/check",
+          "version": "1.0",
+          "args": {
+            "client_id": "C-2026-0042",
+            "instrument": "equity",
+            "amount": "50000",
+            "currency": "EUR"
+          }
+        },
+        "compliance": {
+          "profile": "EU-AI-ACT-HIGH-RISK",
+          "data_residency": "EU",
+          "audit_required": true,
+          "human_oversight": "required_before_execution",
+          "explainability_required": true,
+          "pii_involved": true,
+          "legal_basis": "contract",
+          "ai_system_classification": "high-risk",
+          "retention": "P6M"
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.risk-assessor#key1",
+          "sig": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw"
+        },
+        "authorization": {
+          "token_hash": "sha-256:5561b3a2e3d05c3e1932e664e6f36d4971b2c1712a2133b74ac5a62d21da8334",
+          "proof_type": "bearer"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "2f8fc328a104c098d22cae1605ebc76c26d1e201759247e7978da802a6dfc9ad",
+        "public_key_hex": "0c5c624e4cf8e2f607003286184e2a0fbbcb0b1df9fb88cccf4973e4d012c8b9",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a35353631623361326533643035633365313933326536363465366633366434393731623263313731326132313333623734616335613632643231646138333334227d2c226361706162696c6974696573223a5b22636f6d706c69616e63652e636865636b222c227269736b2e617373657373225d2c22636f6d706c69616e6365223a7b2261695f73797374656d5f636c617373696669636174696f6e223a22686967682d7269736b222c2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c226578706c61696e6162696c6974795f7265717569726564223a747275652c2268756d616e5f6f7665727369676874223a2272657175697265645f6265666f72655f657865637574696f6e222c226c6567616c5f6261736973223a22636f6e7472616374222c227069695f696e766f6c766564223a747275652c2270726f66696c65223a2245552d41492d4143542d484947482d5249534b222c22726574656e74696f6e223a2250364d227d2c22636f6e74657874223a7b22666c616773223a312c226c6f63616c65223a2270742d5054222c227072696f72697479223a382c227370616e5f6964223a2262376164366237313639323033333331222c2274726163655f6964223a223061663736353139313663643433646438343438656232313163383033313963227d2c22657870697265735f6174223a22323032362d30332d32345431343a33303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2264306230303639322d303030302d343030302d383030302d303030303030303030363932222c226964656d706f74656e6379223a7b22657870697265735f6174223a22323032362d30332d32345431353a33303a30302e3030305a222c226b6579223a227269736b2d636865636b2d323032362d30332d32342d303031227d2c22696e74656e74223a2272657175657374222c226d696e5f76223a22312e30222c227061796c6f6164223a7b2261726773223a7b22616d6f756e74223a223530303030222c22636c69656e745f6964223a22432d323032362d30303432222c2263757272656e6379223a22455552222c22696e737472756d656e74223a22657175697479227d2c2274797065223a22617273696170726f746f636f6c2e636f6d706c69616e63652f636865636b222c2276657273696f6e223a22312e30227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a33303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "token_binding",
+        "input": {
+          "presented_token": "eyJhbGciOiJFZERTQSJ9.ITV-692-recipient-token.Sig"
+        },
+        "expect": {
+          "result": "accept"
+        }
+      }
+    },
+    {
+      "id": "INV-113",
+      "description": "Core §4.3.9: INVALID (runtime) — the envelope of ITV-692 presented with ANOTHER access token: SHA-256 of the presented token differs from authorization.token_hash, so the message MUST be rejected with unauthorized (token swap). The envelope signature is valid.",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00692-0000-4000-8000-000000000692",
+        "ts": "2026-03-24T14:30:00.000Z",
+        "from": "agent:arsialabs.demo.risk-assessor",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "expires_at": "2026-03-24T14:30:30.000Z",
+        "min_v": "1.0",
+        "capabilities": [
+          "compliance.check",
+          "risk.assess"
+        ],
+        "idempotency": {
+          "key": "risk-check-2026-03-24-001",
+          "expires_at": "2026-03-24T15:30:00.000Z"
+        },
+        "context": {
+          "trace_id": "0af7651916cd43dd8448eb211c80319c",
+          "span_id": "b7ad6b7169203331",
+          "flags": 1,
+          "locale": "pt-PT",
+          "priority": 8
+        },
+        "payload": {
+          "type": "arsiaprotocol.compliance/check",
+          "version": "1.0",
+          "args": {
+            "client_id": "C-2026-0042",
+            "instrument": "equity",
+            "amount": "50000",
+            "currency": "EUR"
+          }
+        },
+        "compliance": {
+          "profile": "EU-AI-ACT-HIGH-RISK",
+          "data_residency": "EU",
+          "audit_required": true,
+          "human_oversight": "required_before_execution",
+          "explainability_required": true,
+          "pii_involved": true,
+          "legal_basis": "contract",
+          "ai_system_classification": "high-risk",
+          "retention": "P6M"
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.risk-assessor#key1",
+          "sig": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw"
+        },
+        "authorization": {
+          "token_hash": "sha-256:5561b3a2e3d05c3e1932e664e6f36d4971b2c1712a2133b74ac5a62d21da8334",
+          "proof_type": "bearer"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "2f8fc328a104c098d22cae1605ebc76c26d1e201759247e7978da802a6dfc9ad",
+        "public_key_hex": "0c5c624e4cf8e2f607003286184e2a0fbbcb0b1df9fb88cccf4973e4d012c8b9",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a35353631623361326533643035633365313933326536363465366633366434393731623263313731326132313333623734616335613632643231646138333334227d2c226361706162696c6974696573223a5b22636f6d706c69616e63652e636865636b222c227269736b2e617373657373225d2c22636f6d706c69616e6365223a7b2261695f73797374656d5f636c617373696669636174696f6e223a22686967682d7269736b222c2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c226578706c61696e6162696c6974795f7265717569726564223a747275652c2268756d616e5f6f7665727369676874223a2272657175697265645f6265666f72655f657865637574696f6e222c226c6567616c5f6261736973223a22636f6e7472616374222c227069695f696e766f6c766564223a747275652c2270726f66696c65223a2245552d41492d4143542d484947482d5249534b222c22726574656e74696f6e223a2250364d227d2c22636f6e74657874223a7b22666c616773223a312c226c6f63616c65223a2270742d5054222c227072696f72697479223a382c227370616e5f6964223a2262376164366237313639323033333331222c2274726163655f6964223a223061663736353139313663643433646438343438656232313163383033313963227d2c22657870697265735f6174223a22323032362d30332d32345431343a33303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2264306230303639322d303030302d343030302d383030302d303030303030303030363932222c226964656d706f74656e6379223a7b22657870697265735f6174223a22323032362d30332d32345431353a33303a30302e3030305a222c226b6579223a227269736b2d636865636b2d323032362d30332d32342d303031227d2c22696e74656e74223a2272657175657374222c226d696e5f76223a22312e30222c227061796c6f6164223a7b2261726773223a7b22616d6f756e74223a223530303030222c22636c69656e745f6964223a22432d323032362d30303432222c2263757272656e6379223a22455552222c22696e737472756d656e74223a22657175697479227d2c2274797065223a22617273696170726f746f636f6c2e636f6d706c69616e63652f636865636b222c2276657273696f6e223a22312e30227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a33303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — token binding: SHA-256 of the presented token against authorization.token_hash (Core §4.3.9)",
+      "test_metadata": {
+        "scenario": "token_binding",
+        "input": {
+          "presented_token": "eyJhbGciOiJFZERTQSJ9.another-recipient-token.Sig"
+        },
+        "expect": {
+          "result": "unauthorized"
+        }
+      }
+    },
+    {
+      "id": "INV-114",
+      "description": "Core §4.3.9: INVALID (runtime) — the envelope of ITV-692 presented with its token plus one trailing space: the hash is over the exact octets, so the binding fails and the message MUST be rejected with unauthorized. The envelope signature is valid.",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00692-0000-4000-8000-000000000692",
+        "ts": "2026-03-24T14:30:00.000Z",
+        "from": "agent:arsialabs.demo.risk-assessor",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "request",
+        "expires_at": "2026-03-24T14:30:30.000Z",
+        "min_v": "1.0",
+        "capabilities": [
+          "compliance.check",
+          "risk.assess"
+        ],
+        "idempotency": {
+          "key": "risk-check-2026-03-24-001",
+          "expires_at": "2026-03-24T15:30:00.000Z"
+        },
+        "context": {
+          "trace_id": "0af7651916cd43dd8448eb211c80319c",
+          "span_id": "b7ad6b7169203331",
+          "flags": 1,
+          "locale": "pt-PT",
+          "priority": 8
+        },
+        "payload": {
+          "type": "arsiaprotocol.compliance/check",
+          "version": "1.0",
+          "args": {
+            "client_id": "C-2026-0042",
+            "instrument": "equity",
+            "amount": "50000",
+            "currency": "EUR"
+          }
+        },
+        "compliance": {
+          "profile": "EU-AI-ACT-HIGH-RISK",
+          "data_residency": "EU",
+          "audit_required": true,
+          "human_oversight": "required_before_execution",
+          "explainability_required": true,
+          "pii_involved": true,
+          "legal_basis": "contract",
+          "ai_system_classification": "high-risk",
+          "retention": "P6M"
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.risk-assessor#key1",
+          "sig": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw"
+        },
+        "authorization": {
+          "token_hash": "sha-256:5561b3a2e3d05c3e1932e664e6f36d4971b2c1712a2133b74ac5a62d21da8334",
+          "proof_type": "bearer"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "2f8fc328a104c098d22cae1605ebc76c26d1e201759247e7978da802a6dfc9ad",
+        "public_key_hex": "0c5c624e4cf8e2f607003286184e2a0fbbcb0b1df9fb88cccf4973e4d012c8b9",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a35353631623361326533643035633365313933326536363465366633366434393731623263313731326132313333623734616335613632643231646138333334227d2c226361706162696c6974696573223a5b22636f6d706c69616e63652e636865636b222c227269736b2e617373657373225d2c22636f6d706c69616e6365223a7b2261695f73797374656d5f636c617373696669636174696f6e223a22686967682d7269736b222c2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c226578706c61696e6162696c6974795f7265717569726564223a747275652c2268756d616e5f6f7665727369676874223a2272657175697265645f6265666f72655f657865637574696f6e222c226c6567616c5f6261736973223a22636f6e7472616374222c227069695f696e766f6c766564223a747275652c2270726f66696c65223a2245552d41492d4143542d484947482d5249534b222c22726574656e74696f6e223a2250364d227d2c22636f6e74657874223a7b22666c616773223a312c226c6f63616c65223a2270742d5054222c227072696f72697479223a382c227370616e5f6964223a2262376164366237313639323033333331222c2274726163655f6964223a223061663736353139313663643433646438343438656232313163383033313963227d2c22657870697265735f6174223a22323032362d30332d32345431343a33303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2264306230303639322d303030302d343030302d383030302d303030303030303030363932222c226964656d706f74656e6379223a7b22657870697265735f6174223a22323032362d30332d32345431353a33303a30302e3030305a222c226b6579223a227269736b2d636865636b2d323032362d30332d32342d303031227d2c22696e74656e74223a2272657175657374222c226d696e5f76223a22312e30222c227061796c6f6164223a7b2261726773223a7b22616d6f756e74223a223530303030222c22636c69656e745f6964223a22432d323032362d30303432222c2263757272656e6379223a22455552222c22696e737472756d656e74223a22657175697479227d2c2274797065223a22617273696170726f746f636f6c2e636f6d706c69616e63652f636865636b222c2276657273696f6e223a22312e30227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a33303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "N9Czh8sAcrvwlLtgYjcH6ZcAU2vnZ1zQ3f4GIe9BJUnwp948Ze9PklbyeaGu58xGPBYXy_spxxmaDrlz80ltBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — token binding: SHA-256 of the presented token against authorization.token_hash (Core §4.3.9)",
+      "test_metadata": {
+        "scenario": "token_binding",
+        "input": {
+          "presented_token": "eyJhbGciOiJFZERTQSJ9.ITV-692-recipient-token.Sig "
+        },
+        "expect": {
+          "result": "unauthorized"
+        }
+      }
+    },
+    {
+      "id": "ITV-693",
+      "description": "Routing §7.4.1 replay rule: an attestation_id already seen WITH THE SAME envelope_hash (redelivery of the same relay) is not rejected by the replay rule, which rejects only an attestation_id repeated for a different envelope_hash. Accept.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": [
+            {
+              "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+              "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953"
+            }
+          ]
+        },
+        "expect": {
+          "result": "accept"
+        }
+      }
+    },
+    {
+      "id": "INV-115",
+      "description": "Routing §7.4.1: INVALID (runtime) — the delivered envelope differs from the one the attestation covers (one field altered): envelope_hash does not match the received envelope (step 4). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "90000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 4
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-116",
+      "description": "Routing §7.4.1: INVALID (runtime) — authorization_token_hash differs from the envelope's authorization.token_hash (step 4). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:3654efb45cc6f83ca5ecb0c500878c3b0ba6aa7a9f8347c40fff3c4d873fee89",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "DbTTmQTWKf_99TfmWKtAP1ZUkQVtuNxx8uerf4JgAErqV2wLHjAy5FtKsJRkVY4Kt8zjHR3qUsc5AbrTcuc6Bw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a33363534656662343563633666383363613565636230633530303837386333623062613661613761396638333437633430666666336334643837336665653839222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "DbTTmQTWKf_99TfmWKtAP1ZUkQVtuNxx8uerf4JgAErqV2wLHjAy5FtKsJRkVY4Kt8zjHR3qUsc5AbrTcuc6Bw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 4
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-117",
+      "description": "Routing §7.4.1: INVALID (runtime) — attestation and envelope agree, but the presented access token is another one: its hash differs from authorization_token_hash (step 4). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:OTHER",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 4
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-118",
+      "description": "Routing §7.4.1: INVALID (runtime) — message_id names another message (step 5). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "d0b00118-0000-4000-8000-000000000118",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "0n5R5AbVCuD-PX9MXWLdPbgFZ3V8y4OHYwPyczu1fj9BY6ZGJuIAk0mUhwherqG_IG5kyhn_ZckmqiQt1zlkAA"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2264306230303131382d303030302d343030302d383030302d303030303030303030313138222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "0n5R5AbVCuD-PX9MXWLdPbgFZ3V8y4OHYwPyczu1fj9BY6ZGJuIAk0mUhwherqG_IG5kyhn_ZckmqiQt1zlkAA",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 5
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-119",
+      "description": "Routing §7.4.1: INVALID (runtime) — delivered 180 s after valid_until: outside the acceptance window with the envelope profile's clock skew (EU-AI-ACT-HIGH-RISK, 120 s); it would be inside with the 300 s default (step 5). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:38:00.345Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 5
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-120",
+      "description": "Routing §7.4.1: INVALID (runtime) — issued_at 180 s ahead of the recipient's clock: outside the window with the profile's 120 s skew, inside with the 300 s default (step 5). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:33:10.300Z",
+        "valid_until": "2026-03-24T14:38:10.300Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "8qZFpTvEU6u24mr3lMmQE_GVHXOqXrMY04Fni4puX59olo4w5pBXZEniyY9MefeAIfewPQbeq9MTYVxO9HLiAg"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33333a31302e3330305a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33383a31302e3330305a227d",
+        "signature_base64url": "8qZFpTvEU6u24mr3lMmQE_GVHXOqXrMY04Fni4puX59olo4w5pBXZEniyY9MefeAIfewPQbeq9MTYVxO9HLiAg",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 5
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-121",
+      "description": "Routing §7.4.1: INVALID (runtime) — the broker's jurisdiction (US) does not satisfy the envelope's data_residency EU (step 3). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "US",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 3
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-122",
+      "description": "Routing §7.4.1: INVALID (runtime) — the broker does not declare arsiaprotocol.broker.relay (step 3). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.use"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 3
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-123",
+      "description": "Routing §7.4.1: INVALID (runtime) — the attestation_id was already seen for a DIFFERENT envelope_hash: replay (step 5). The attestation signature is valid.",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": [
+            {
+              "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+              "envelope_hash": "sha-256:0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          ]
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 5
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-124",
+      "description": "Routing §7.4.1: INVALID (runtime) — policy_ref altered after signing: the attestation signature does not verify (step 2).",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q2:sha256:0000",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.broker.eu-west#2026q1",
+          "sig": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+        "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671323a7368613235363a30303030222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d7765737423323032367131227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "xtf0gfK8E-ryP3wGTMpOAimRT5tTiHhVoGNHsWq5zo6bNCVeQ8y5x4fWuZUJ7MQKkXH0aXZPoCmJrbeu12M_Aw",
+        "expect_signature": "invalid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 2
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-125",
+      "description": "Routing §7.4.1: INVALID (runtime) — signed with a key of agent:acme.echo-client whose kid does not belong to broker_id; the adversarial JWKS of this vector publishes that key, so the signature verifies and only the kid's membership rejects it (step 2).",
+      "schema_ref": "arsia-relay-attestation.schema.json",
+      "expected": "valid",
+      "data": {
+        "v": "1.0",
+        "attestation_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "broker_id": "agent:arsialabs.broker.eu-west",
+        "message_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+        "sender": "agent:arsialabs.demo.risk-assessor",
+        "recipient": "agent:arsialabs.demo.compliance-checker",
+        "envelope_hash": "sha-256:661d34f7cec2d84317b94e6478374febf7249c3c55043c8f0001d240cf4ea953",
+        "authorization_token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+        "residency_zone": "EU",
+        "received_at": "2026-03-24T14:30:00.300Z",
+        "forwarded_at": "2026-03-24T14:30:00.340Z",
+        "policy_ref": "broker-policy-2026q1:sha256:9f1c",
+        "issued_at": "2026-03-24T14:30:00.345Z",
+        "valid_until": "2026-03-24T14:35:00.345Z",
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "ZLn9hZBHXrKe4uL7z6rNwEwxgyPox2v8e-LHr7VgVx28dYr-t-5KE8nAwCzP52UJ5qnDr3AWgiFmWTg4PWYWBQ"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226174746573746174696f6e5f6964223a2266343761633130622d353863632d343337322d613536372d306530326232633364343739222c22617574686f72697a6174696f6e5f746f6b656e5f68617368223a227368612d3235363a61316531333334333031643336356661363936623666366566653633663634313461383830313134616532643630343864656437396562633133663639613038222c2262726f6b65725f6964223a226167656e743a61727369616c6162732e62726f6b65722e65752d77657374222c22656e76656c6f70655f68617368223a227368612d3235363a36363164333466376365633264383433313762393465363437383337346665626637323439633363353530343363386630303031643234306366346561393533222c22666f727761726465645f6174223a22323032362d30332d32345431343a33303a30302e3334305a222c226973737565645f6174223a22323032362d30332d32345431343a33303a30302e3334355a222c226d6573736167655f6964223a2237633965363637392d373432352d343064652d393434622d653037666331663930616537222c22706f6c6963795f726566223a2262726f6b65722d706f6c6963792d3230323671313a7368613235363a39663163222c2272656365697665645f6174223a22323032362d30332d32345431343a33303a30302e3330305a222c22726563697069656e74223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227265736964656e63795f7a6f6e65223a224555222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2273656e646572223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c2276223a22312e30222c2276616c69645f756e74696c223a22323032362d30332d32345431343a33353a30302e3334355a227d",
+        "signature_base64url": "ZLn9hZBHXrKe4uL7z6rNwEwxgyPox2v8e-LHr7VgVx28dYr-t-5KE8nAwCzP52UJ5qnDr3AWgiFmWTg4PWYWBQ",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "test_metadata": {
+        "scenario": "attestation",
+        "input": {
+          "envelope": {
+            "v": "2.0",
+            "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+            "ts": "2026-03-24T14:30:00.000Z",
+            "from": "agent:arsialabs.demo.risk-assessor",
+            "to": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "expires_at": "2026-03-24T14:30:30.000Z",
+            "min_v": "1.0",
+            "capabilities": [
+              "compliance.check",
+              "risk.assess"
+            ],
+            "idempotency": {
+              "key": "risk-check-2026-03-24-001",
+              "expires_at": "2026-03-24T15:30:00.000Z"
+            },
+            "context": {
+              "trace_id": "0af7651916cd43dd8448eb211c80319c",
+              "span_id": "b7ad6b7169203331",
+              "flags": 1,
+              "locale": "pt-PT",
+              "priority": 8
+            },
+            "payload": {
+              "type": "arsiaprotocol.compliance/check",
+              "version": "1.0",
+              "args": {
+                "client_id": "C-2026-0042",
+                "instrument": "equity",
+                "amount": "50000",
+                "currency": "EUR"
+              }
+            },
+            "compliance": {
+              "profile": "EU-AI-ACT-HIGH-RISK",
+              "data_residency": "EU",
+              "audit_required": true,
+              "human_oversight": "required_before_execution",
+              "explainability_required": true,
+              "pii_involved": true,
+              "legal_basis": "contract",
+              "ai_system_classification": "high-risk",
+              "retention": "P6M"
+            },
+            "security": {
+              "alg": "EdDSA",
+              "kid": "agent:arsialabs.demo.risk-assessor#key1",
+              "sig": "6DLPsYtf2OK0QQ8axs1wJi0cPJBvSfSccXoUtIl7cQrzYQ5h_22kcpp_JXN9OZ3m2MHXOsheAQ8FRybLt2zTBQ"
+            },
+            "authorization": {
+              "token_hash": "sha-256:a1e1334301d365fa696b6f6efe63f6414a880114ae2d6048ded79ebc13f69a08",
+              "proof_type": "bearer"
+            }
+          },
+          "presented_token": "synthetic-token:CTV-02",
+          "broker_entry": {
+            "agent_id": "agent:arsialabs.broker.eu-west",
+            "jurisdiction": "IE",
+            "capabilities": [
+              "arsiaprotocol.broker.relay"
+            ]
+          },
+          "jwks": [
+            {
+              "kid": "agent:arsialabs.broker.eu-west#2026q1",
+              "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696"
+            },
+            {
+              "kid": "agent:acme.echo-client#key1",
+              "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd"
+            }
+          ],
+          "now": "2026-03-24T14:30:10.300Z",
+          "seen": []
+        },
+        "expect": {
+          "result": "unauthorized",
+          "step": 2
+        }
+      },
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
     }
   ]
 }

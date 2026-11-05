@@ -44,6 +44,11 @@ Schema cannot express, executed as tests — including against the runtime
   R20 DPoP proof verification: RFC 9449 §4.3 checks and   (Identity §3.3, Routing §2.3.3; A-49)
       the ARSIA profile, nonce challenge, single-use jti
       (atomic reference store), brokered nonce challenge
+  R21 Token binding: SHA-256 of the presented token's     (Core §4.3.9; A-55)
+      exact octets against authorization.token_hash
+  R22 Relay attestation verification: signature, broker  (Routing §7.4.1; A-56)
+      authorisation, envelope and token binding, identities,
+      window (profile skew), replay
 
 Exit code 0 = all green.
 """
@@ -2914,10 +2919,142 @@ def r20(vectors):
           sorted(results) == [200, 401], str(results))
 
 
+# ---------------------------------------------------------------- R21 token binding
+def token_binding(envelope, presented_token):
+    """Core §4.3.9: SHA-256 over the exact octets of the presented access token against
+    authorization.token_hash. Checks the binding only — not the token's validity, authorization or DPoP."""
+    import hashlib
+    auth = envelope.get("authorization")
+    if not auth:
+        return "accept"
+    digest = "sha-256:" + hashlib.sha256(presented_token.encode("utf-8")).hexdigest()
+    return "accept" if digest == auth.get("token_hash") else "unauthorized"
+
+
+def r21(vectors):
+    envelope = lambda v: v.get("message") if isinstance(v.get("message"), dict) else v.get("data")
+    # (a) every corpus vector with authorization and no explicit token: the synthetic-token convention binds
+    bound = [v for v in vectors if isinstance(envelope(v), dict) and "authorization" in envelope(v)
+             and "presented_token" not in v.get("test_metadata", {}).get("input", {})]
+    bad = [v["id"] for v in bound if token_binding(envelope(v), f"synthetic-token:{v['id']}") != "accept"]
+    check("R21 (a) every authorization binding of the corpus matches its synthetic-token:<ID> (binding only)",
+          len(bound) >= 40 and not bad, f"{len(bound)} bound, mismatches {bad[:4]}")
+    # (b) token_binding scenarios reproduce their declared result
+    sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "token_binding"]
+    check("R21 token_binding scenario vectors present (accept and unauthorized)",
+          {v["test_metadata"]["expect"]["result"] for v in sc} == {"accept", "unauthorized"}, str(len(sc)))
+    for v in sc:
+        got = token_binding(envelope(v), v["test_metadata"]["input"]["presented_token"])
+        check(f"R21 (b) {v['id']} binding result is {v['test_metadata']['expect']['result']}",
+              got == v["test_metadata"]["expect"]["result"], got)
+    # (c) synthetic: exact octets
+    token = "eyJhbGciOiJFZERTQSJ9.MixedCase-Token.Sig"
+    env = {"authorization": {"token_hash": "sha-256:" + __import__("hashlib").sha256(token.encode()).hexdigest(),
+                             "proof_type": "bearer"}}
+    check("R21 (c) a correct token containing upper-case letters is accepted", token_binding(env, token) == "accept")
+    check("R21 (c) the same token with a trailing space is rejected", token_binding(env, token + " ") == "unauthorized")
+    check("R21 (c) the same token with its case changed is rejected", token_binding(env, token.lower()) == "unauthorized")
+    check("R21 (c) another encoding of the token's characters is rejected",
+          token_binding(env, token.replace("-", "‐")) == "unauthorized")
+    check("R21 (c) an envelope without authorization requires no binding", token_binding({}, "anything") == "accept")
+
+
+# ---------------------------------------------------------------- R22 relay attestation
+def verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, seen):
+    """Routing §7.4.1 recipient verification, steps 2-5 and the replay rule. Returns (result, step).
+
+    The clock skew is the envelope profile's (Core §8.3, skew_tolerance); a repeated attestation_id is
+    rejected only for a different envelope_hash."""
+    import hashlib
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    from regen_v2 import envelope_hash, signing_input_v2
+    fail = lambda step: ("unauthorized", step)
+    # step 2: the key belongs to the broker and is published; the signature verifies (envelope signing profile)
+    sec = att.get("security") or {}
+    kid = sec.get("kid", "")
+    published = {k["kid"]: k["public_key_hex"] for k in jwks}
+    if kid.split("#", 1)[0] != att.get("broker_id") or kid not in published:
+        return fail(2)
+    try:
+        vv._verify_signature(sec.get("alg"), bytes.fromhex(published[kid]), vv._base64url_decode(sec.get("sig", "")),
+                             signing_input_v2(att))
+    except Exception:
+        return fail(2)
+    # step 3: an authorised Compliance Broker for the declared zone
+    zone = (envelope.get("compliance") or {}).get("data_residency")
+    if "arsiaprotocol.broker.relay" not in broker_entry.get("capabilities", []) or broker_entry.get("agent_id") != att["broker_id"]:
+        return fail(3)
+    if broker_entry.get("jurisdiction") not in normalize_residency(zone)[0]:
+        return fail(3)
+    # step 4: bound to the complete signed envelope and to the token
+    token_digest = "sha-256:" + hashlib.sha256(presented_token.encode("utf-8")).hexdigest()
+    if att.get("envelope_hash") != envelope_hash(envelope):
+        return fail(4)
+    if not (att.get("authorization_token_hash") == (envelope.get("authorization") or {}).get("token_hash") == token_digest):
+        return fail(4)
+    # step 5: identities, acceptance window, replay
+    if (att.get("message_id"), att.get("sender"), att.get("recipient")) != (envelope["id"], envelope["from"], envelope["to"]):
+        return fail(5)
+    skew = dt.timedelta(seconds=skew_tolerance(envelope)[0])
+    if not iso(att["issued_at"]) - skew <= iso(now) <= iso(att["valid_until"]) + skew:
+        return fail(5)
+    if any(s["attestation_id"] == att["attestation_id"] and s["envelope_hash"] != att["envelope_hash"] for s in seen):
+        return fail(5)
+    return ("accept", None)
+
+
+def r22(vectors):
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    from regen_v2 import signing_input_v2
+    sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "attestation"]
+    check("R22 attestation scenario vectors present (accept and unauthorized)",
+          {v["test_metadata"]["expect"]["result"] for v in sc} == {"accept", "unauthorized"}, str(len(sc)))
+    run = lambda v, **over: verify_attestation(
+        over.get("att", v["data"]), **{k: over.get(k, v["test_metadata"]["input"][k])
+                                       for k in ("envelope", "presented_token", "broker_entry", "jwks", "now", "seen")})
+    for v in sc:
+        exp = v["test_metadata"]["expect"]
+        got = run(v)
+        check(f"R22 (a) {v['id']} is {exp['result']}" + (f" at step {exp['step']}" if exp.get("step") else ""),
+              got == (exp["result"], exp.get("step")), str(got))
+    # (b) negatives of binding, window, authorisation and replay keep a valid signature: their cause is the intended one
+    for v in sc:
+        exp = v["test_metadata"]["expect"]
+        if exp["result"] == "unauthorized" and exp.get("step") in (3, 4, 5):
+            a, keys = v["data"], {k["kid"]: k["public_key_hex"] for k in v["test_metadata"]["input"]["jwks"]}
+            try:
+                vv._verify_signature(a["security"]["alg"], bytes.fromhex(keys[a["security"]["kid"]]),
+                                     vv._base64url_decode(a["security"]["sig"]), signing_input_v2(a))
+                ok = True
+            except Exception:
+                ok = False
+            check(f"R22 (b) {v['id']} keeps a valid attestation signature", ok)
+    good = next((v for v in sc if v["id"] == "ITV-569"), None)
+    check("R22 the accepted reference attestation (ITV-569) is present", good is not None)
+    if good is None:
+        return
+    # (c) the signature is verified inside R22: one byte of the signature changed, everything else correct
+    a = json.loads(json.dumps(good["data"]))
+    s = a["security"]["sig"]
+    a["security"]["sig"] = ("B" if s[0] != "B" else "C") + s[1:]
+    check("R22 (c) an attestation whose signature does not verify is rejected at step 2, all else correct",
+          run(good, att=a) == ("unauthorized", 2))
+    # (d) envelope_hash covers the complete signed envelope: computed without sig it does not match
+    import hashlib
+    import rfc8785
+    env = good["test_metadata"]["input"]["envelope"]
+    without_sig = json.loads(json.dumps(env)); without_sig["security"].pop("sig")
+    check("R22 (d) envelope_hash is over the complete signed envelope (security.sig included), not the signing input",
+          good["data"]["envelope_hash"] != "sha-256:" + hashlib.sha256(rfc8785.dumps(without_sig)).hexdigest()
+          and run(good) == ("accept", None))
+
+
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
-    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors)
+    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

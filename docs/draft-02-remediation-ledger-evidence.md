@@ -961,3 +961,80 @@ schemas and RTMs. The current DORA catalog digest appears in no vector.
 - Findings register 99 rows: open 11 → 10, closed 88 → 89 (6 by disposition);
   disposition per DR or cycle addendum 28 → 29, recorded 17 → 16, pending 54.
 - Regulatory register 40 → 43 rows (X-4, X-5 defects; X-6 correct).
+
+## 23. Coverage SC1 closure evidence
+
+Execution baseline `ad871ac`. Owner decisions (programme split, K1–K4) are in the
+design record (DR-0 addendum, coverage SC1). Line references are to the files after
+the cycle. No key material was printed. Mutations ran on a scratch copy: `git archive
+ad871ac` with the full candidate diff applied, the unmutated copy first passing the
+whole battery, and the candidate restored between cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-54 | INV-37/38/39 with crypto blocks executed and asserted to fail | `--check-crypto` reads the `data` of the message and relay-attestation schemas (`crypto_envelope`, `validate_vectors.py` l.268) and fails a crypto block whose envelope it cannot locate. INV-37 (alg flipped EdDSA → ES256 after signing), INV-38 (kid swapped `#key1` → `#other-key` after signing; `#other-key` now published) and INV-39 (rebuilt: Ed25519 signature over the Draft-01 input, the envelope without its whole `security`) carry `expect_signature: "invalid"` and are asserted. Guard `tamper_negative_problems` (`check_consistency.py` l.653): each signature verifies over the pre-tamper bytes with the key really used and not over the presented envelope; `crypto.public_key_hex` is the catalog key of the envelope's kid; both signature copies agree. `kid_key_problems` (l.700): every crypto block with a published kid uses the catalog key; signature negatives and attestations name a published kid. Every signature negative carries the asserted signature: `--check-crypto` compares `security.sig` with `crypto.signature_base64url` before verifying, on the negative path too (`validate_vectors.py` l.363), and the guard compares them for every negative; self-test `negative_copy_selftest` (l.603) replaces only one copy of INV-124 and requires the mismatch to be reported | (a)–(d), (p), (q) | yes |
+| A-55 | Executed (token, token_hash) match/mismatch vectors | Harness R21 (`token_binding` l.2923, `r21` l.2934): SHA-256 of the presented token's exact UTF-8 octets against `authorization.token_hash` — binding only, not token validity, authorization or DPoP. (a) the 40 corpus vectors with `authorization` bind their documented `synthetic-token:<ID>` (the binding holds; their messages may be invalid for another reason); (b) ITV-692 accept, INV-113 (another token) and INV-114 (trailing space) unauthorized, the token stated in `test_metadata.input.presented_token`; (c) exact octets: upper-case token accepted, trailing space, case change and another encoding rejected, no `authorization` → no binding. RTM CORE-§4.3.9-01 | (e1), (e2), (f) | yes |
+| A-56 | Executed attestation vectors with tampered variants | Harness R22 (`verify_attestation` l.2963, `r22` l.3007): Routing §7.4.1 steps 2-5 and the replay rule; the attestation signature is verified inside the acceptance path with the validator's verifier; the clock skew is the envelope profile's (`skew_tolerance`; CTV-02 → EU-AI-ACT-HIGH-RISK, 120 s). ITV-569 rebuilt as a real attestation of CTV-02 (envelope_hash over the complete signed envelope, authorization_token_hash = the envelope's token_hash = hash of the presented token), signed with the published broker key `#2026q1`. ITV-693 redelivery (same attestation_id, same envelope_hash) accepted; INV-115 altered envelope, INV-116 attestation token hash, INV-117 presented token, INV-118 message_id, INV-119 valid_until + 180 s, INV-120 now = issued_at − 180 s, i.e. issued_at 180 s ahead of the recipient's clock (both outside with 120 s, inside with 300 s), INV-121 jurisdiction US, INV-122 no relay capability, INV-123 attestation_id reused for another envelope_hash, INV-124 policy_ref altered after signing (signature negative), INV-125 a foreign agent's key published in an adversarial JWKS of that vector only. R22 (b): binding, window, authorisation and replay negatives keep a valid signature; (c) a corrupted signature is rejected at step 2 with all else correct; (d) envelope_hash differs from a hash of the signing input. RTM ROUTE-§7.4-21..26 | (g)–(o) | yes |
+
+**Keys.** `test-vectors/keypairs.json` 15 → 17: `agent:arsialabs.broker.eu-west`
+(kid `#2026q1`, the kid the six broker fixtures ITV-569, INV-31, INV-32, ITV-570,
+ITV-571, ITV-572 already used) and `agent:acme.echo-client#other-key` (the kid of
+INV-38), both Ed25519, private key = SHA-256 of `"arsia-test-vectors keypair " + kid`.
+An additional key of an agent is indexed by its kid; the 15 existing entries are
+unchanged. At the baseline `ad871ac` no script in this repository read the file; from this
+cycle `check_consistency.py` reads it (`_catalog_keys`, for the kid → catalog key guard).
+
+**Mutations.** 19/19 detected:
+
+```
+(a) --check-crypto reads only message: DETECTED (FAIL crypto block without an envelope)
+(b) INV-39 back to a Draft-02 signature: DETECTED (tamper guard: no verification over the Draft-01 input)
+(c) INV-38 crypto.public_key_hex is the #key1 key: DETECTED (kid -> catalog key)
+(d) INV-37 signed after the alg flip: DETECTED (tamper guard: no verification over the pre-tamper bytes)
+(e1) R21 strips the presented token: DETECTED (R21 (b) INV-114; R21 (c) trailing space)
+(e2) R21 lower-cases the presented token: DETECTED (R21 (c) upper-case token accepted)
+(f) R21 always accepts: DETECTED (R21 (b) INV-113)
+(g) R22 skips envelope_hash: DETECTED (R22 (a) INV-115)
+(h) R22 checks the token hash against the envelope only: DETECTED (R22 (a) INV-117)
+(i) R22 replay rejects any repetition: DETECTED (R22 (a) ITV-693)
+(j) R22 replay ignores repetitions: DETECTED (R22 (a) INV-123)
+(k1) R22 does not check the relay capability: DETECTED (R22 (a) INV-122)
+(k2) R22 does not check the jurisdiction: DETECTED (R22 (a) INV-121)
+(l) R22 does not verify the signature: DETECTED (R22 (a) INV-124; R22 (c))
+(m) R22 no longer checks that the kid belongs to broker_id: DETECTED (R22 (a) INV-125)
+(o) R22 uses the 300 s default skew: DETECTED (R22 (a) INV-119, INV-120)
+(p) --check-crypto compares the signature copies only on the valid path: DETECTED (negative copy self-test)
+(q) the negatives guard no longer compares the signature copies: DETECTED (negative copy self-test)
+(n) envelope_hash computed without sig: DETECTED (R22 (a) ITV-569; R22 (d))
+```
+
+**Owner review correction.** The first implementation compared the two signature copies only
+after a signature had verified, so a negative whose `crypto.signature_base64url` differed
+from `security.sig` still passed `--check-crypto` (owner reproduction on INV-124: only the
+crypto copy replaced by another invalid 64-byte signature; 145/145, guard silent, R22
+passing). The comparison now runs before verification for every vector with an envelope
+signature, an expected signature without an embedded one fails, and the negatives guard
+repeats the comparison; mutations (p) and (q) reopen each side. The corpus already had
+equal copies, so no vector changed.
+
+**Inventory.** ITV-569 carries no placeholder signature or hash. The 40 bindings match.
+The six `#2026q1` fixtures resolve to the published key. The signature negatives are
+exactly INV-18, INV-19, INV-37, INV-38, INV-39, INV-111, INV-112 and INV-124. 24 crypto
+blocks name a kid outside the catalog (pre-existing, e.g. INV-04 with a malformed kid,
+ITV-134..137 for agents without a published key); among the blocks whose kid is
+published, none differs from the catalog key.
+
+**Counts before → after.**
+- Vectors 831 → 846 (validator 473 / 208 / 150 → 475 / 208 / 163); crypto-checked 126 →
+  145 (119 → 134 verified, 4 → 8 negatives, 3 canonical only); 0 failures in all four
+  modes.
+- Skip classification 150 → 163 rows (cross-object 5 → 12, crypto-behaviour 9 → 11,
+  temporal 11 → 13, token 15 → 17); INV-37/38/39 coverage `none` → `executed:
+  --check-crypto`; INV-113/114 `executed: R21`; INV-115..125 `executed: R22`.
+- RTM 2021 / 1218 → 2028 / 1225 (CORE-§4.3.9-01; ROUTE-§7.4-21..26; CORE-§5.2-07 and
+  IDENT-§3.1-08 gain INV-37/38/39); Core and Routing coverage summaries recomputed.
+- Consistency checks 127 → 127 (the guards extend existing checks); harness R1-R20 →
+  R1-R22; keypairs 15 → 17.
+- Findings register 99 rows: open 10 → 7, closed 89 → 92; disposition per DR or cycle
+  addendum 29 → 32, recorded 16, pending 54 → 51. Coverage register 24 rows: open 13 →
+  10, closed 11 → 14.

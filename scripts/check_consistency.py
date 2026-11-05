@@ -562,7 +562,7 @@ def replaced_rule_echoes():
 
 
 # ------------------------------------------- VC: runtime vectors and coverage claims
-def expect_signature_problems(vectors):
+def expect_signature_problems(vectors, selftest=True):
     """A-34: every crypto block declares its signature expectation; `absent` exactly when the message
     has no security object; the signature negatives are the declared ones, never inferred."""
     out, negatives = [], []
@@ -578,6 +578,9 @@ def expect_signature_problems(vectors):
             out.append(f"{v['id']}: expect_signature {e!r} but security object {'present' if has_sec else 'absent'}")
         if e == "invalid":
             negatives.append(v["id"])
+            # the negative asserted by --check-crypto is the signature the envelope carries
+            if (_envelope(v).get("security") or {}).get("sig") != c.get("signature_base64url"):
+                out.append(f"{v['id']}: security.sig differs from crypto.signature_base64url")
     if sorted(negatives) != sorted(SIGNATURE_NEGATIVES):
         out.append(f"signature negatives {sorted(negatives)} != {sorted(SIGNATURE_NEGATIVES)}")
     by_id = {v["id"]: v for v in vectors}
@@ -586,11 +589,132 @@ def expect_signature_problems(vectors):
             out += alg_mismatch_problems(by_id[vid])
         else:
             out.append(f"{vid}: missing")
+    for vid, construction in TAMPER_NEGATIVES.items():
+        if vid in by_id:
+            out += tamper_negative_problems(by_id[vid], construction)
+        else:
+            out.append(f"{vid}: missing")
+    out += kid_key_problems(vectors)
+    if selftest:
+        out += negative_copy_selftest(vectors)
     return out
 
 
-SIGNATURE_NEGATIVES = ("INV-18", "INV-19", "INV-111", "INV-112")
+def negative_copy_selftest(vectors):
+    """A-54 self-test: --check-crypto binds a signature negative to the signature its envelope carries. INV-124
+    with only one of its two signature copies replaced by another invalid 64-byte signature must fail, and the
+    unaltered vector must pass (a negative path that skips the copy comparison goes dead)."""
+    import base64, subprocess, tempfile
+    base = next((v for v in vectors if v["id"] == "INV-124"), None)
+    if base is None:
+        return ["INV-124: missing (negative copy self-test)"]
+    other = base64.urlsafe_b64encode(bytes(range(64))).rstrip(b"=").decode()
+
+    def run(probe):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"vectors": [probe]}, f)
+        r = subprocess.run([sys.executable, "scripts/validate_vectors.py", "--vectors", f.name, "--check-crypto",
+                            "--format", "summary"], capture_output=True, text=True)
+        os.unlink(f.name)
+        return r.returncode, r.stdout + r.stderr
+
+    out = []
+    code, _ = run(json.loads(json.dumps(base)))
+    if code != 0:
+        out.append("INV-124 unaltered: --check-crypto fails (self-test control)")
+    for where in ("crypto.signature_base64url", "security.sig"):
+        probe = json.loads(json.dumps(base))
+        if where == "security.sig":
+            probe["data"]["security"]["sig"] = other
+        else:
+            probe["crypto"]["signature_base64url"] = other
+        code, text = run(probe)
+        if code == 0 or "sig field mismatch" not in text:
+            out.append(f"INV-124 with only {where} replaced: --check-crypto does not report the copy mismatch")
+        if where == "crypto.signature_base64url" and not [
+                p for p in expect_signature_problems([probe], selftest=False) if "differs from" in p]:
+            out.append("INV-124 with only crypto.signature_base64url replaced: the negatives guard does not report it")
+    return out
+
+
+SIGNATURE_NEGATIVES = ("INV-18", "INV-19", "INV-111", "INV-112", "INV-37", "INV-38", "INV-39", "INV-124")
 ALG_MISMATCH_NEGATIVES = ("INV-111", "INV-112")  # A-33: discriminate a key-selected verifier
+# A-54: how each Draft-02 malleability negative was built (the bytes the signature was really made over)
+TAMPER_NEGATIVES = {"INV-37": "alg flipped EdDSA -> ES256 after signing",
+                    "INV-38": "kid swapped #key1 -> #other-key after signing",
+                    "INV-39": "Draft-01 signature (whole security removed)"}
+
+
+def _catalog_keys():
+    kp = json.load(open("test-vectors/keypairs.json", encoding="utf-8"))["keypairs"]
+    return {e["kid"]: e for e in kp.values()}
+
+
+def tamper_negative_problems(v, construction):
+    """A-54 (K2): the negative fails for the stated tamper only. Its signature verifies over the bytes it was really
+    made over, with the key really used; it does not verify over the Draft-02 signing input of the presented
+    envelope; crypto.public_key_hex is the catalog key of the envelope's kid; both signature copies agree."""
+    sys.path.insert(0, "scripts")
+    import copy
+    import rfc8785
+    from regen_v2 import signing_input_v2
+    import validate_vectors as vv
+    out, env, c = [], vv.crypto_envelope(v), v["crypto"]
+    keys = _catalog_keys()
+    kid = env["security"]["kid"]
+    sig = vv._base64url_decode(c["signature_base64url"])
+    ok = lambda alg, pub, data: _verifies(vv, alg, pub, sig, data)
+    if env["security"].get("sig") != c["signature_base64url"]:
+        out.append(f"{v['id']}: security.sig != crypto.signature_base64url")
+    if bytes.fromhex(c["canonical_bytes_hex"]) != signing_input_v2(env):
+        out.append(f"{v['id']}: canonical bytes are not the Draft-02 signing input of the presented envelope")
+    if kid not in keys or keys[kid]["public_key_hex"] != c["public_key_hex"]:
+        out.append(f"{v['id']}: crypto.public_key_hex is not the catalog key of kid {kid}")
+    signer = keys.get("agent:acme.echo-client#key1", {}).get("public_key_hex")
+    pre = copy.deepcopy(env)
+    if v["id"] == "INV-37":
+        pre["security"]["alg"] = "EdDSA"
+        made, really = signing_input_v2(pre), bytes.fromhex(signer)
+    elif v["id"] == "INV-38":
+        pre["security"]["kid"] = "agent:acme.echo-client#key1"
+        made, really = signing_input_v2(pre), bytes.fromhex(signer)
+        if ok("EdDSA", bytes.fromhex(c["public_key_hex"]), signing_input_v2(env)):
+            out.append(f"{v['id']}: verifies with the swapped kid's key")
+    else:
+        made, really = rfc8785.dumps({k: x for k, x in env.items() if k != "security"}), bytes.fromhex(signer)
+    if not ok("EdDSA", really, made):
+        out.append(f"{v['id']}: signature does not verify over the pre-tamper bytes ({construction})")
+    if ok("EdDSA", really, signing_input_v2(env)):
+        out.append(f"{v['id']}: signature verifies over the presented envelope; nothing was tampered")
+    return out
+
+
+def _verifies(vv, alg, pub, sig, data):
+    try:
+        vv._verify_signature(alg, pub, sig, data)
+        return True
+    except Exception:
+        return False
+
+
+def kid_key_problems(vectors):
+    """K2: a crypto block whose kid is published uses the catalog key for it; signature negatives and relay
+    attestations name a published kid."""
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    keys, out = _catalog_keys(), []
+    for v in vectors:
+        c = v.get("crypto")
+        env = vv.crypto_envelope(v) if c else None
+        kid = ((env or {}).get("security") or {}).get("kid")
+        if kid is None:
+            continue
+        if kid in keys and keys[kid]["public_key_hex"] != c["public_key_hex"]:
+            out.append(f"{v['id']}: crypto.public_key_hex differs from the catalog key of {kid}")
+        must = v["id"] in SIGNATURE_NEGATIVES or v.get("schema_ref") == "arsia-relay-attestation.schema.json"
+        if must and kid not in keys:
+            out.append(f"{v['id']}: kid {kid} is not published in keypairs.json")
+    return out
 
 
 def alg_mismatch_problems(v):
@@ -754,7 +878,8 @@ def policy_identity_problems(vectors):
     return out
 
 
-COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16"}
+COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16",
+                 "token_binding": "R21", "attestation": "R22"}
 
 
 def coverage_claim_problems(skip_doc, vectors, passing=None):
@@ -1505,7 +1630,7 @@ def main() -> int:
 
     # VC: runtime vectors and coverage claims
     probs = expect_signature_problems(vectors)
-    check("crypto.expect_signature declared and coherent; signature negatives INV-18/19, INV-111/112 (A-34, A-33)", not probs,
+    check("crypto.expect_signature declared and coherent; signature negatives carry the asserted signature and discriminate their construction (self-test); kid -> catalog key (A-34, A-33, A-54)", not probs,
           "; ".join(probs[:4]))
     probs = posture_problems(vectors, rh)
     check("vector postures quote their section verbatim; MAY-based ts rejections declare it (DR-0.3)", not probs,

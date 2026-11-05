@@ -1,6 +1,6 @@
 {
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
-  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'.",
+  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged.",
   "keypairs": {
     "agent:acme.echo-client": {
       "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
@@ -76,6 +76,16 @@
       "private_key_hex": "d4d60c7e69bb4f4ecfc646f0ae745dabd7c9f0cd0513dff2f9f85895d39b9231",
       "public_key_hex": "1851b19764541639ebe5b60492d249b6d44a856fef90daad107772efb156213f",
       "kid": "agent:acme.oversight-panel#key1"
+    },
+    "agent:arsialabs.broker.eu-west": {
+      "private_key_hex": "991dc03c5472db3fb65dd42a2662e814f8ee5eab39cb7100f142b42fa46f5f23",
+      "public_key_hex": "60904844bf1034e6f25f57a1e5f58b85f352e150559b10f809298778dd7e3696",
+      "kid": "agent:arsialabs.broker.eu-west#2026q1"
+    },
+    "agent:acme.echo-client#other-key": {
+      "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+      "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+      "kid": "agent:acme.echo-client#other-key"
     }
   }
 }

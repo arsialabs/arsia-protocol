@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 9, executor-oversight: 35, numeric: 2, other: 16, retention-floor: 6, temporal: 11, token: 15, transport: 5, x509: 7 — total 150.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 11, executor-oversight: 35, numeric: 2, other: 16, retention-floor: 6, temporal: 13, token: 17, transport: 5, x509: 7 — total 163.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -121,11 +121,24 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-576 | Assets §3.1.1 | Runtime constraint — per-currency fixed scale requires the ISO 4217 catalog (Assets §3.1.1) | amount-scale | behavioural-runtime | — | equivalent: R5 "R5 JPY 1500.00 rejected (ITV-576)" |
 | ITV-577 | State §2.1.2 | Runtime constraint — I-JSON number-range rule (State §2.1.2); JSON Schema cannot distinguish 2^53+1 reliably | numeric | behavioural-runtime | — | equivalent: R8 "R8 2^53+1 rejected (ITV-577)" |
 | ITV-578 | State §2.1.2 | Runtime constraint — value-semantics round-trip behaviour (State §2.1.2) | numeric | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-37 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2); tamper cannot be expressed as a schema outc | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-38 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2) | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-39 | Core §5.2 Step 3 | Runtime constraint — signing-profile downgrade prohibition (Core §5.2 Step 3) | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
+| INV-37 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2); tamper cannot be expressed as a schema outc | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
+| INV-38 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2) | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
+| INV-39 | Core §5.2 Step 3 | Runtime constraint — signing-profile downgrade prohibition (Core §5.2 Step 3) | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
 | INV-111 | Core §5.2 Step 5 | Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
 | INV-112 | Core §5.2 Step 5 | Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
+| INV-113 | Core §4.3.9 | Runtime constraint — token binding: SHA-256 of the presented token against authorization.token_hash (Core §4.3 | token | behavioural-runtime | — | executed: R21 |
+| INV-114 | Core §4.3.9 | Runtime constraint — token binding: SHA-256 of the presented token against authorization.token_hash (Core §4.3 | token | behavioural-runtime | — | executed: R21 |
+| INV-115 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-116 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-117 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-118 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-119 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | temporal | behavioural-runtime | — | executed: R22 |
+| INV-120 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | temporal | behavioural-runtime | — | executed: R22 |
+| INV-121 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-122 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-123 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-124 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | crypto-behaviour | behavioural-runtime | — | executed: R22 |
+| INV-125 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | crypto-behaviour | behavioural-runtime | — | executed: R22 |
 | ITV-579 | Core §4.3.7/§4.3.8 Rule 3 | Runtime constraint — effective-oversight resolution across profile defaults (Core §4.3.7/§4.3.8 Rule 3) | compliance-resolution | behavioural-runtime | yes | partial: R10 "R10 A-32 absent profile: rejected high_risk_missing_oversight" — classification declared in the message is not exercised |
 | ITV-603 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | ITV-604 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | — | executed: R10 |

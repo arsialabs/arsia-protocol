@@ -449,6 +449,27 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   retention rules. The DORA classification and the DORA catalog digest change; no need
   to migrate existing vectors was identified (the current DORA digest appears in no
   vector).
+- **Published counts after coverage SC1:** 846 vectors (475/208/163), 17 keypairs, RTM
+  2028 / 1225, 127 consistency checks, harness R1-R22; README.md, CLAUDE.md,
+  docs/FAQ.md, docs/getting-started.md and test-vectors/README.md (ITV 693, INV 125,
+  next ITV-694 / INV-126) updated.
+- **Keypair catalog (coverage SC1, for the SDKs):** two entries added, derived from the
+  kid; an additional key of an agent is indexed by its kid
+  (`agent:acme.echo-client#other-key`), so consumers that look up an agent's first key
+  by agent-id are unaffected.
+- **Presented-token convention (coverage SC1):** the 40 vectors with `authorization` and
+  no explicit token bind `synthetic-token:<ID>`; the convention, introduced by the
+  Draft-02 migration, is now stated in test-vectors/README.md and executed by R21.
+- **Routing §7.4.1 step 1 (coverage SC1, not covered):** a residency-constrained message
+  arriving without an attestation → `service_unavailable` (ITV-570) is not executed; it
+  belongs to SC4.
+- **Crypto blocks with an unpublished kid (observed in coverage SC1, not fixed):** 24
+  pre-existing blocks name a kid absent from keypairs.json (e.g. INV-04, ITV-134..137);
+  their signatures verify against the key in the block. The kid ↔ catalog guard applies
+  to published kids and requires one for signature negatives and attestations.
+- **Attestation zone (observed in coverage SC1, not fixed):** Routing §7.4.1 checks the
+  broker's jurisdiction against the message's declared zone; it states no check that the
+  attestation's own `residency_zone` equals that zone. R22 follows the text.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
