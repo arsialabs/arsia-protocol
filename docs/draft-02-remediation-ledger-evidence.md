@@ -888,3 +888,76 @@ removed) where it said "minus its `security` field".
   disposition); disposition per DR or cycle addendum 26 → 28, recorded 17, pending
   56 → 54.
 - Coverage register 24 rows: open 14 → 13, closed 10 → 11.
+
+## 22. DORA floor cycle closure evidence
+
+Execution baseline `edf92c3`. Owner decisions D1–D2 are in the design record (DR-4
+addendum, DORA floor cycle). Line references are to the files after the cycle.
+Official texts are EUR-Lex files in the sources folder (`manifest.md`, batches of
+2026-11-05); currency was read on each act's EUR-Lex page on 2026-11-05. Mutations ran
+on a scratch copy: `git archive edf92c3` with the full candidate diff applied, the
+unmutated copy first passing the whole battery, and the candidate restored between
+cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-96 | DORA floor rationale verified against the official texts, or the floor and its attributions corrected; all echoes aligned | **Verified:** DORA Art. 6(5) provides for the ICT risk management framework to be documented and reviewed at least once a year (periodically for microenterprises), after major ICT-related incidents and after supervisory instructions or testing and audit conclusions, and for continuous improvement; it does not establish a retention period for the records covered by the profile. The CRD IV, CRR, Solvency II and IORP II consolidations read do not support a common financial-sector floor of five years (X-5). Delegated Regulation (EU) 2024/1774 Art. 12(2) and Art. 22(d), the latter as corrected by 32024R1774R(02), tie log and incident-evidence retention to purpose, criticality and risk assessment (X-6). **Corrected:** catalog DORA `retention_basis` `profile_floor` → `conservative_policy` (`retention_reference` "DORA:6(5)" kept as context); State §6.7 defaults row (l.2850), Art. 6 paragraph (l.2864), retention block (l.2899: Art. 6(5) sets no retention period for the records covered, `P1827D` a technical ARSIA policy, motivation, arithmetic margin and the 2024/1774 qualification apart); §4.1.2 DORA rows (l.1896); §7.2 (l.3567, the generic DORA mention withdrawn); §7.3 (l.3588); Core §4.3.8 Rule 4 (l.1364); Routing §7.4.2 (l.2321); README, profiles/README; RTM STATE-§4.1.2-06, STATE-§6.7-02. `P1827D` unchanged (D2). Guard `retention_parity_problems` (`check_consistency.py` l.819) | (a)–(d) | yes |
+
+**Correction to the A-96 description.** The description registered in the
+retention-axis cycle says the sources were not in the local folder. That was wrong for
+DORA: `32022R2554.pdf` has been in the folder since 2026-09-25 (manifest row 4). CRD IV,
+CRR, Solvency II, IORP II and Delegated Regulation 2024/1774 were downloaded on
+2026-11-05. The description is kept as registered.
+
+**Sources and currency.**
+- DORA 2022/2554: original OJ text (L 333, 27.12.2022); EUR-Lex lists a consolidation
+  that cannot be retrieved. On 2026-11-05: in force, no amending act, corrigenda
+  R(01)–R(09) each listed for languages other than English, so the English text of
+  Art. 6(5) is the OJ text; completed by delegated acts including 2024/1772 and
+  2024/1774 (OD-4).
+- CRD IV 2013/36 (consolidation 11.07.2026), CRR 575/2013 (26.06.2026), Solvency II
+  2009/138 (17.01.2025; a consolidation dated 30.01.2027 is also listed) and IORP II
+  2016/2341 (17.01.2025): the current consolidations on 2026-11-05.
+- Delegated Regulation 2024/1774: original and consolidation 02024R1774-20240625,
+  version 000.002, which incorporates corrigendum 32024R1774R(02) (OJ L 2025/90420,
+  15.5.2025) as C1 (page 1 lists it; on page 23 Art. 22(d), marked ▼C1, already refers
+  to Art. 8(2) of Delegated Regulation 2024/1772). The corrigendum replaces, in
+  Art. 22(d), "in accordance with Article 15 of Commission Delegated Regulation (EU)
+  2024/1772" by "in accordance with Article 8(2) of …"; Delegated Regulation 2024/1772
+  has 13 articles, and its Art. 8(2) concerns recurring incidents considered together as
+  one major incident.
+
+**Excerpts relied on (2024/1774, short).** Art. 12(2)(a): "the identification of the
+events to be logged, the retention period of the logs, and the measures to secure and
+handle the log data, considering the purpose for which the logs are created". Checked
+in the downloaded PDF together with the final subparagraph of Art. 12(2) and Art. 22(d)
+(corrected text).
+
+**Reading method.** The acts were read by text extraction from the PDFs, searching for
+retention, record-keeping and period wording with a spacing-robust search; every
+passage relied on was checked in context. In CRD IV the "five years" mentions concern
+how long published sanctions stay on the authority's website and a retention period of
+remuneration instruments; in CRR, the 10-year time window of the operational-risk loss
+data set (Arts. 317–318); in Solvency II, Art. 162 requires a branch to keep its
+records, with no period; in IORP II, the depositary keeps records of assets, with no
+period.
+
+**Mutations.** 4/4 detected:
+
+```
+(a) catalog DORA back to profile_floor: DETECTED (parity guard)
+(b) State §6.7 retention_basis row back to the old text: DETECTED (parity guard)
+(c) a profile's retention_minimum changed only in the catalog (DSA-VLOP P1096D -> P1095D): DETECTED (parity guard)
+(d) a §6.x table loses its retention_basis row (DSA-VLOP): DETECTED (parity guard: no retention_basis row)
+```
+
+**Sweeps.** No remaining "CRD IV", "Solvency II" or "IORP II" as a retention ground,
+"(5 years)" next to DORA, or "5-year DORA minimum" in spec/, profiles/, README, FAQ,
+schemas and RTMs. The current DORA catalog digest appears in no vector.
+
+**Counts before → after.**
+- Vectors 831 → 831 (0 failures in all four modes); RTM 2021 / 1218 unchanged (2 rows
+  rewritten); consistency checks 126 → 127; harness R1-R20 unchanged.
+- Findings register 99 rows: open 11 → 10, closed 88 → 89 (6 by disposition);
+  disposition per DR or cycle addendum 28 → 29, recorded 17 → 16, pending 54.
+- Regulatory register 40 → 43 rows (X-4, X-5 defects; X-6 correct).

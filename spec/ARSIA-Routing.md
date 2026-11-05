@@ -2318,7 +2318,7 @@ broker at runtime.
   - `MIFID-II`: `"P1827D"` (profile floor, ARSIA-State.md §6.3) minimum.
   - `PAC-AGRICULTURE`: `"P1096D"` (3 years) minimum.
   - `DSA-VLOP`: `"P1096D"` (3 years, leap-safe) minimum.
-  - `DORA`: `"P1827D"` (5 years) minimum.
+  - `DORA`: `"P1827D"` (conservative policy, ARSIA-State.md §6.7) minimum.
   - Default (no profile, GDPR-STANDARD, or EU-AI-ACT-LIMITED-RISK): `"P90D"` minimum.
 - Records MUST survive broker restarts and infrastructure failures. Implementations
   MUST use durable storage (e.g., PostgreSQL, append-only files on replicated storage).

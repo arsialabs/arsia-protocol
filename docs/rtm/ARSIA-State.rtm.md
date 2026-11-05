@@ -239,7 +239,7 @@
 | STATE-§4.1.2-03 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | MIFID-II entries MUST NOT be physically removed before 1827 days from creation (profile floor) | arsia-compliance-field | — |
 | STATE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | PAC-AGRICULTURE entries MUST NOT be physically removed before 1096 days (3 years) from creation | arsia-compliance-field | ITV-252 |
 | STATE-§4.1.2-05 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DSA-VLOP entries MUST NOT be physically removed before created_at + P1096D | arsia-compliance-field | — |
-| STATE-§4.1.2-06 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DORA entries MUST NOT be physically removed before 1827 days (5 years) from creation | arsia-compliance-field | — |
+| STATE-§4.1.2-06 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | DORA entries MUST NOT be physically removed before 1827 days from creation (conservative policy floor) | arsia-compliance-field | — |
 | STATE-§4.1.3-01 | 4.1.3 | MAY | sdk_enabled | behavioural_positive | Post-retention entries MAY be handled by archival (cold storage) or permanent deletion | — | — |
 | STATE-§4.1.3-02 | 4.1.3 | MUST | deployment | behavioural_positive | Archived entries MUST remain SNAPSHOT-accessible for 12 months after archival | — | — |
 | STATE-§4.1.3-03 | 4.1.3 | MAY | sdk_enabled | behavioural_positive | After the 12-month archival period, the entry MAY be permanently deleted. | — | — |
@@ -318,7 +318,7 @@
 | STATE-§6.6-01 | 6.6 | MUST | sdk | behavioural_positive | DSA-VLOP profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-559 |
 | STATE-§6.6-02 | 6.6 | MUST | sdk | behavioural_negative | DSA-VLOP: retention MUST NOT be less than 730 (2-year DSA minimum) | arsia-compliance-field | — |
 | STATE-§6.7-01 | 6.7 | MUST | sdk | behavioural_positive | DORA profile name MUST be accepted without error (active profile) | arsia-compliance-profiles | ITV-560 |
-| STATE-§6.7-02 | 6.7 | MUST | sdk | behavioural_negative | DORA: retention MUST NOT be less than 1827 (5-year DORA minimum) | arsia-compliance-field | — |
+| STATE-§6.7-02 | 6.7 | MUST | sdk | behavioural_negative | DORA: retention MUST NOT be less than 1827 days (profile conservative policy, not a DORA period) | arsia-compliance-field | — |
 | STATE-§7.1-01 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord fields are REQUIRED unless explicitly marked OPTIONAL | arsia-audit-record | — |
 | STATE-§7.1-02 | 7.1 | OPTIONAL | sdk | structural | Some ArsiaAuditRecord fields are marked OPTIONAL per individual field definitions | arsia-audit-record | — |
 | STATE-§7.1-03 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.record_id field is REQUIRED (string, UUID v4) | arsia-audit-record | — |

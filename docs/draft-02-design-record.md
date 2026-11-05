@@ -379,6 +379,25 @@ definitions expose their axes.
   without changing the floor; the absence of its sources from the local folder neither
   confirms nor refutes it.
 
+**Addendum — 2026-11-05 (owner decisions for the DORA floor cycle, under D4).**
+- **D1 — `conservative_policy`.** The DORA floor is classified like
+  EU-AI-ACT-LIMITED-RISK: the period is an ARSIA choice, not the transcription of a
+  legal period. `retention_reference: "DORA:6(5)"` stays as a contextual reference to
+  the review of the ICT risk management framework, stating that the article does not
+  set the period: it provides for a review at least once a year, periodically for
+  microenterprises, and after incidents and other events, and it does not require
+  keeping five cycles. Wording: "Art. 6(5) does not establish a retention period for the
+  records covered by the profile. P1827D is a technical policy defined by ARSIA" — not
+  "DORA prescribes no retention period", which is broader than shown. The claim of a
+  common financial-sector floor (CRD IV, Solvency II, IORP II) is withdrawn without
+  replacing it by another general negative about those acts.
+- **D2 — `P1827D` kept.** The comparison with `P5Y` (R18 (a)) supports the zero-to-two
+  day arithmetic margin, not that five years are necessary or appropriate. "Five annual
+  cycles" may appear as an ARSIA motivation, neither as an obligation nor as a
+  guarantee of review coverage. Commission Delegated Regulation (EU) 2024/1774
+  Arts. 12(2) and 22(d) accompany the rationale: a longer retention is not by itself
+  more appropriate in law.
+
 ---
 
 ## DR-5 — Audit hash chain (A-8 → option a)

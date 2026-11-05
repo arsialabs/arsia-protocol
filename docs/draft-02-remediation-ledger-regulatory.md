@@ -61,14 +61,17 @@ those of any other register.
 | A-70 | X-1 | MiFIR, Reg. (EU) No 600/2014, Art. 25(1): investment firms keep "for five years, the relevant data relating to all orders and all transactions in financial instruments"; basis of the MIFID-II floor for the records it covers | CORRECT | EUR-Lex `consolidated/02014R0600-20251123.pdf` | `02014R0600-20251123` | closed (retention-axis cycle) |
 | A-90 | X-2 | MiFID II Art. 72 cited for retention precedence over erasure (State §7.1); Art. 72 is "Exercise of supervisory powers and powers to impose sanctions" | DEFECT | EUR-Lex `consolidated/02014L0065-20260606.pdf` | `02014L0065-20260606` | closed (retention-axis cycle) |
 | A-70, A-44 | X-3 | Del. Reg. (EU) 2017/565 Art. 72 presented as implementing MiFID II Art. 16(7) and as a source of the five-year period; its heading is "Retention of records (Article 16(6) of Directive 2014/65/EU)" and it sets no period | DEFECT | EUR-Lex `consolidated/02017R0565-20220802.pdf` | `02017R0565-20220802` | closed (retention-axis cycle) |
+| A-96 | X-4 | DORA, Reg. (EU) 2022/2554, Art. 6(5) described as a review "on the basis of lessons learnt" that five years of records cover; the article provides for review at least once a year (periodically for microenterprises), after major ICT-related incidents and after supervisory instructions or testing and audit conclusions, and for continuous improvement, and does not establish a retention period for the records covered by the profile | DEFECT | EUR-Lex `32022R2554.pdf` | `32022R2554 original (no consolidation retrievable); no amending act; corrigenda R(01)-R(09) not EN (EUR-Lex 2026-11-05)` | closed (DORA floor cycle) |
+| A-96 | X-5 | Five years presented as aligned with "European financial sector retention floors (CRD IV, Solvency II, IORP II)"; the consolidations read do not support a common floor of that kind | DEFECT | EUR-Lex `consolidated/02013L0036-20260711.pdf`, `02013R0575-20260626.pdf`, `02009L0138-20250117.pdf`, `02016L2341-20250117.pdf` | `consolidations of 11.07.2026, 26.06.2026, 17.01.2025, 17.01.2025 (current on EUR-Lex 2026-11-05)` | closed (DORA floor cycle) |
+| A-96 | X-6 | Delegated Regulation (EU) 2024/1774 Art. 12(2): log retention set considering purpose, business and information security objectives, the reason for recording and the ICT risk assessment; Art. 22(d) as corrected: incident evidence retained no longer than necessary, commensurate with criticality, in accordance with Art. 8(2) of Delegated Regulation (EU) 2024/1772 and applicable Union-law retention requirements — basis of the qualification in State §6.7 | CORRECT | EUR-Lex `32024R1774.pdf`, `corrigenda/32024R1774R(02)-EN.pdf` | `32024R1774 original; consolidation 02024R1774-20240625 v000.002 incorporates corrigendum R(02) of 15.05.2025 as C1 ("Article 15" replaced by "Article 8(2)" in Art. 22(d))` | closed (DORA floor cycle) |
 | A-48 | O-2 | eIDAS 2.0 described as a "Proposal … anticipated"; it is Reg. (EU) 2024/1183, in force | DEFECT | EUR-Lex web page (orchestrator) | `32024R1183 original; manifest status "In force"` | closed (C2); currency confirmed 2026-09-28 |
 
-**Totals (this register only, 40 rows).**
-- Defects: 31 (19 V + 8 T + 2 O + 2 X).
-- Correct: 9 (4 V + 4 T + 1 X).
+**Totals (this register only, 43 rows).**
+- Defects: 33 (19 V + 8 T + 2 O + 4 X).
+- Correct: 10 (4 V + 4 T + 2 X).
 - Unverified: 0.
-- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass); closed 3 (X-1..X-3, retention-axis cycle); closed 3 (T-10..T-12, relay/DPoP cycle).
-- X items (retention-axis cycle, 3): closed 3; not part of the 2026-09-28 currency pass.
+- State: closed 27 (C2 corrections; currency confirmed 2026-09-28 for the V and O items); reopened 2 (V-5 → A-71; V-21, CORRECT at C0, → A-72); CORRECT with currency confirmed 3 (V-20, V-22, V-23); CORRECT (C0), no remediation 2 (T-2, T-6; out of scope of the OD-4 pass); closed 3 (X-1..X-3, retention-axis cycle); closed 3 (T-10..T-12, relay/DPoP cycle); closed 3 (X-4..X-6, DORA floor cycle).
+- X items (retention-axis cycle, 3; DORA floor cycle, 3): closed 6; not part of the 2026-09-28 currency pass.
 - T-10..T-12 (relay/DPoP cycle, 3): closed 3; verified on the RFC text, not part of the 2026-09-28 currency pass.
 - Currency totals (26 items): CONFIRMADO 24 / REABERTO 2 / PENDENTE 0; A-70 apart: evidence complete, finding closed in the retention-axis cycle ([§19][ev19]).
 
@@ -191,3 +194,4 @@ stay at 1903 / 1114.
 
 [ev19]: draft-02-remediation-ledger-evidence.md#19-retention-axis-cycle-closure-evidence
 [ev20]: draft-02-remediation-ledger-evidence.md#20-relaydpop-cycle-closure-evidence
+[ev22]: draft-02-remediation-ledger-evidence.md#22-dora-floor-cycle-closure-evidence

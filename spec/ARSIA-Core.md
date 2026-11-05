@@ -1361,7 +1361,7 @@ minimum and this rule does not reject (`resolution_source: "profile-minimum"` in
 the audit record). This rule applies uniformly to every profile that declares a
 retention minimum — for example MIFID-II (`P1827D`, a profile floor grounded on
 MiFIR Art. 25(1) and MiFID II Art. 16(7) for the records they cover, ARSIA-State.md
-§6.3), DORA (`P1827D`), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
+§6.3), DORA (`P1827D`, a conservative policy, ARSIA-State.md §6.7), PAC-AGRICULTURE (`P1096D`), DSA-VLOP,
 EU-AI-ACT-HIGH-RISK (`P6M`, a calendar period), and EU-AI-ACT-LIMITED-RISK. A
 profile's retention minimum is a **profile floor**; whether it is also a legal
 minimum is recorded per profile in the catalog (`retention_basis`,

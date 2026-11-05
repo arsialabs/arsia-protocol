@@ -20,7 +20,7 @@ python3 scripts/validate_vectors.py
 python3 scripts/validate_vectors.py --check-meta --format summary
 python3 scripts/validate_vectors.py --check-errors --format summary
 python3 scripts/validate_vectors.py --check-crypto --format summary
-python3 scripts/check_consistency.py   # 126 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
+python3 scripts/check_consistency.py   # 127 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
 python3 scripts/runtime_harness.py     # R1-R20: deterministic spec algorithms (calendar arithmetic, floors, matching, precedence)
 python3 scripts/extract_examples.py    # every ```json block in spec/ parses; envelope examples validate
 python3 scripts/check_links.py         # every §N.N reference resolves (specs + schema descriptions)

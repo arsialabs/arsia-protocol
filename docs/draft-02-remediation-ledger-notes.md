@@ -432,6 +432,23 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Propagation impact (tools cycle):** none on the wire. Implementations can use
   INV-111 and INV-112 to check that their verifier selects the algorithm from the
   declared `alg` and the key type together (Core §5.2 Step 5).
+- **Published counts after the DORA floor cycle:** unchanged (831 vectors, RTM 2021 /
+  1218) except 127 consistency checks (CLAUDE.md).
+- **Delegated Regulation 2024/1774 Art. 22(d) cross-reference (DORA floor cycle):** the
+  original refers to "Article 15" of Delegated Regulation 2024/1772, which has 13
+  articles; corrigendum 32024R1774R(02) (OJ L 2025/90420, 15.5.2025) officially
+  replaces it by "Article 8(2)". The consolidation 02024R1774-20240625, version
+  000.002, incorporates that corrigendum as C1: its Art. 22(d) already refers to
+  Art. 8(2) of Delegated Regulation 2024/1772.
+- **CRR loss data window (DORA floor cycle, out of scope):** CRR Arts. 317–318 use a
+  10-year time window for the operational-risk loss data set; it is a different purpose
+  and period and does not ground the DORA floor.
+- **Reading method (DORA floor cycle):** the acts were read by PDF text extraction;
+  every passage relied on was checked in context.
+- **Impact (DORA floor cycle):** no change to the wire structure, the floor value or the
+  retention rules. The DORA classification and the DORA catalog digest change; no need
+  to migrate existing vectors was identified (the current DORA digest appears in no
+  vector).
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

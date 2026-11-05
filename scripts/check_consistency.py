@@ -816,6 +816,35 @@ def coverage_claim_problems(skip_doc, vectors, passing=None):
     return out
 
 
+def retention_parity_problems(state_text, catalog):
+    """A-96: every profile's State §6.x defaults table states the catalog's retention_minimum (the literal,
+    `null` for none) and retention_basis (the first quoted value of the row)."""
+    profiles = catalog["profiles"]
+    entries = profiles.items() if isinstance(profiles, dict) else [(p["name"], p) for p in profiles]
+    sections = {}
+    for m in re.finditer(r"^### (6\.\d+) ([A-Z0-9-]+)[^\n]*\n(.*?)(?=^### |\Z)", state_text, re.M | re.S):
+        sections[m.group(2)] = m.group(3)
+    out = []
+    for name, entry in entries:
+        body, d = sections.get(name), entry["defaults"]
+        if body is None:
+            out.append(f"{name}: no State §6 section")
+            continue
+        mm = re.search(r"^\| `retention_minimum`\s*\| `(null|\"[^\"]*\")`", body, re.M)
+        mb = re.search(r"^\| `retention_basis`\s*\| `\"([a-z_]+)\"`", body, re.M)
+        if not mm:
+            out.append(f"{name}: State §6 table has no retention_minimum row")
+        else:
+            prose = None if mm.group(1) == "null" else mm.group(1).strip('"')
+            if prose != d.get("retention_minimum"):
+                out.append(f"{name}: retention_minimum prose {prose!r} != catalog {d.get('retention_minimum')!r}")
+        if not mb:
+            out.append(f"{name}: State §6 table has no retention_basis row")
+        elif mb.group(1) != d.get("retention_basis"):
+            out.append(f"{name}: retention_basis prose {mb.group(1)!r} != catalog {d.get('retention_basis')!r}")
+    return out
+
+
 def resigner_contract_problems():
     """A-40: scripts/regen_v2.py re-signs only the named valid vectors, writes nothing on any refusal (observed
     by mtime and hash, so an identical rewrite also counts), changes only the signature fields, preserves the
@@ -1050,6 +1079,9 @@ def main() -> int:
         Draft202012Validator(schemas["arsia-compliance-profiles.schema.json"]).iter_errors(catalog)
     )
     check("profiles catalog valid", not errs, "; ".join(e.message[:60] for e in errs[:3]))
+    probs = retention_parity_problems(open("spec/ARSIA-State.md", encoding="utf-8").read(), catalog)
+    check("State §6 retention_minimum and retention_basis == catalog for every profile (A-96)", not probs,
+          "; ".join(probs[:4]))
 
     # constant anti-regression: no 1825 in normative artifacts (B-03)
     hits = []

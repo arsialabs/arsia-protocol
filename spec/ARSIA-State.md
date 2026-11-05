@@ -1893,9 +1893,9 @@ defined in §6:
 
 | Parameter              | Value                                  |
 |------------------------|----------------------------------------|
-| `retention_minimum`    | `"P1827D"` (5 years, accounts for leap years) |
+| `retention_minimum`    | `"P1827D"` (conservative policy; never shorter than five calendar years, §6.7) |
 | Behaviour              | Entry data MUST NOT be physically removed before 1827 days from creation. Logical deletion is permitted — data is retained in temporal store. |
-| Rationale              | DORA Art. 6(5) — annual ICT risk management review. 5 years aligns with European financial sector retention floors (CRD IV, Solvency II, IORP II) and covers at least 5 review cycles. |
+| Rationale              | Conservative policy (§6.7): DORA Art. 6(5) does not establish a retention period for the records covered by the profile; `P1827D` is a technical policy defined by ARSIA, motivated by five annual reviews of the ICT risk management framework. Delegated Regulation (EU) 2024/1774 Arts. 12(2) and 22(d) tie log and incident-evidence retention to purpose, criticality and risk assessment. |
 | Exception              | PURGE within retention requires a recorded retention override (§3.2.2); whether erasure prevails is the operator's determination (§5.3.2). The `state_purge` record is retained for the full 1827-day period; the override does not shorten it. |
 
 #### 4.1.3 Post-Retention Lifecycle
@@ -2847,7 +2847,7 @@ Resilience Act (EU 2022/2554).
 |---------------------------|------------------------|
 | `audit_required`          | `true`                 |
 | `retention_minimum`       | `"P1827D"`             |
-| `retention_basis`         | `"profile_floor"` — aligns with EU financial-sector retention floors |
+| `retention_basis`         | `"conservative_policy"` — DORA Art. 6(5) does not establish a retention period for the records covered by the profile |
 | `human_oversight`         | `"required_within_24h"`|
 | `explainability_required` | `false`                |
 | `pii_involved`            | `false`                |
@@ -2862,10 +2862,12 @@ ICT risk management framework. `audit_required` defaults to `true` — all ICT i
 management actions produce audit records for governance review.
 
 **DORA Art. 6 — ICT risk management framework.** Financial entities must establish and
-maintain an ICT risk management framework that is reviewed at least annually.
-Art. 6(5) requires that the framework be reviewed on the basis of lessons learnt from
-the implementation and monitoring — 5 years of incident records ensures coverage of at
-least 5 review cycles.
+maintain an ICT risk management framework. Art. 6(5) requires the framework to be
+documented and reviewed at least once a year (periodically in the case of
+microenterprises), upon the occurrence of major ICT-related incidents, and following
+supervisory instructions or conclusions derived from digital operational resilience
+testing or audit processes, and to be continuously improved on the basis of lessons
+derived from implementation and monitoring.
 
 **DORA Art. 11 — Response and recovery.** Financial entities must put in place an ICT
 business continuity policy and ICT response and recovery plans. Agent actions within
@@ -2894,12 +2896,34 @@ manage ICT third-party risk as an integral component of their ICT risk managemen
 framework. Agent interactions with third-party services produce audit records for the
 third-party risk register.
 
-**Retention — 1827 days (5 years).** DORA entities are financial entities subject to
-European financial sector retention floors (CRD IV for banks, Solvency II for insurers,
-IORP II for pensions). 5 years aligns with the sector baseline and ensures coverage of
-at least 5 annual ICT risk management review cycles per Art. 6(5). The value 1827
-accounts for the worst case of two leap years within any five consecutive calendar
-years, ensuring the retention floor is never shorter than five calendar years.
+**Retention — conservative policy `"P1827D"`.** The DORA `retention_minimum` is a
+conservative policy of the profile (`retention_basis: "conservative_policy"`), not the
+transcription of a legal period. Art. 6(5) does not establish a retention period for
+the records covered by the profile. P1827D is a technical policy defined by ARSIA. The
+catalog's `retention_reference` (`"DORA:6(5)"`) names the review obligation the policy
+is chosen against, not a source of the period.
+
+- **Motivation (ARSIA choice):** five annual reviews of the ICT risk management
+  framework. It is a chosen motivation, not a legal obligation and not a guarantee that
+  every review the regulation requires is covered: reviews also follow major
+  ICT-related incidents and supervisory findings, and microenterprises review
+  periodically.
+- **Value:** `P1827D` is a fixed day count. Under the calendar arithmetic of
+  ARSIA-Core.md §4.3.6.4.1 it is never shorter than `P5Y` from the same anchor and
+  exceeds it by zero to two days (§6.3). That margin is arithmetic; it does not show
+  that five years are necessary or appropriate for any record.
+- **Not automatically more appropriate:** Commission Delegated Regulation (EU)
+  2024/1774 requires financial entities to set the retention period of logs taking into
+  account the business and information security objectives, the reason for recording
+  the event in the logs and the results of the ICT risk assessment (Art. 12(2)(a) and
+  the final subparagraph of Art. 12(2)), and to retain evidence relating to ICT-related
+  incidents for no longer than necessary for the purposes for which the data are
+  collected, commensurate with the criticality of the affected functions and assets and
+  with any applicable retention requirement under Union law (Art. 22(d)). A longer
+  retention is therefore not by itself more appropriate. Where those requirements, or
+  the GDPR storage-limitation principle, lead to a shorter period for a record, the
+  profile floor can be longer than they allow; the operator assesses this before
+  adopting the profile (§5.3).
 
 **Human oversight — `"required_within_24h"`.** Delegated Regulation (EU) 2025/301,
 Art. 5(1)(a), requires the initial notification of a major incident within four hours
@@ -3540,8 +3564,9 @@ that, together with context, MAY relate to identifiable natural persons (see the
 - Records that do contain or link to personal data are in GDPR scope; erasure
   requests are then assessed under Article 17(3)(b), which exempts processing
   necessary for compliance with a legal obligation — the usual outcome for records
-  mandated by the EU AI Act, MiFID II, or DORA is retention under that exemption,
-  documented case by case, not a blanket immunity.
+  whose retention Union law requires (for example EU AI Act Art. 26(6), MiFIR
+  Art. 25(1)) is retention under that exemption, documented case by case, not a blanket
+  immunity.
 - Operators MUST assess linkability in context, record the assessment in their
   Article 30 register, and apply §5.3 (erasure-vs-retention conflict rules) when a
   data-subject request arrives.
@@ -3560,7 +3585,7 @@ record was created (§6):
 | MIFID-II             | `P1827D` (profile floor, §6.3) |
 | PAC-AGRICULTURE      | `P1096D` (3 years)         |
 | DSA-VLOP             | `P1096D` (3 years)         |
-| DORA                 | `P1827D` (5 years)         |
+| DORA                 | `P1827D` (conservative policy, §6.7) |
 | Default              | `P90D` (platform default)  |
 
 The **Default** row applies when no profile is active, or when the active profile is

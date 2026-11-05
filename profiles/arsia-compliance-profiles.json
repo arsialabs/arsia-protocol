@@ -11,7 +11,7 @@
         "explainability_required": false,
         "human_oversight": "required_within_24h",
         "pii_involved": false,
-        "retention_basis": "profile_floor",
+        "retention_basis": "conservative_policy",
         "retention_interpretation": "day-count",
         "retention_minimum": "P1827D",
         "retention_reference": "DORA:6(5)"

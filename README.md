@@ -96,7 +96,7 @@ Seven normative profiles map EU regulation directly to protocol fields:
 | `MIFID-II`               | MiFIR Art. 25(1), MiFID II Art. 16(7), DORA, PSD2 | `P1827D` (profile floor) | Required before execution | Required |
 | `PAC-AGRICULTURE`        | CAP Reg. 2021/2116              | `P1096D` (3 years)       | Required post-execution   | Required |
 | `DSA-VLOP`               | DSA Art. 15, 34, 37, 40, 42     | `P1096D` (3 years)       | Required within 24h       | Required |
-| `DORA`                   | DORA Art. 5, 17, 19, 28         | `P1827D` (5 years)       | Required within 24h       | Required |
+| `DORA`                   | DORA Art. 5, 17, 19, 28         | `P1827D` (conservative policy) | Required within 24h       | Required |
 
 Source: [arsia-compliance-profiles.json](profiles/arsia-compliance-profiles.json) — defined normatively in [ARSIA-State §6](spec/ARSIA-State.md).
 
