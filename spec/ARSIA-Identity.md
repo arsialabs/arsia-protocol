@@ -364,6 +364,7 @@ Each Ed25519 key entry MUST contain the following fields:
 
 Example JWKS:
 
+<!-- example: arsia-jwk-entry.schema.json @/keys/* -->
 ```json
 {
   "keys": [
@@ -419,6 +420,7 @@ Implementations SHOULD achieve revocation through the following approach:
 
 **Key-revocation event.** The `event` of item 3 carries:
 
+<!-- example: arsia-key-revocation.schema.json @/data -->
 ```json
 {
   "type": "arsiaprotocol.identity/key-revocation",
@@ -550,6 +552,7 @@ to the sender's cryptographic key.
 **DPoP proof JWT structure:**
 
 Header:
+<!-- example: arsia-dpop-proof.schema.json#/$defs/dpop-header -->
 ```json
 {
   "typ": "dpop+jwt",
@@ -559,6 +562,7 @@ Header:
 ```
 
 Payload:
+<!-- example: arsia-dpop-proof.schema.json; template=/jti,/htu,/ath -->
 ```json
 {
   "jti": "{UUID v4 — unique identifier for this proof}",
@@ -1440,6 +1444,7 @@ The gateway runs five conformance checks against the external agent to verify th
 correctly implements ARSIA Protocol compliance semantics. Each check produces a result
 object with the following structure:
 
+<!-- example: arsia-onboarding-decision.schema.json#/$defs/conformance-check -->
 ```json
 {
   "test_id": "CHECK-01",
@@ -1653,6 +1658,7 @@ The decision message MUST conform to the following structure:
 
 **Payload structure:**
 
+<!-- example: arsia-onboarding-decision.schema.json -->
 ```json
 {
   "type": "arsiaprotocol.onboarding/decision",
@@ -1854,6 +1860,7 @@ the reserved `arsiaprotocol.` namespace.
 against its CapabilityPolicy (§8). A policy that grants audit access to agents with
 institutional attestation looks like:
 
+<!-- example: arsia-capability-policy.schema.json -->
 ```json
 {
   "policy_version": "regulated-entity-2026-q2",
@@ -1902,6 +1909,7 @@ The CapabilityPolicy is a JSON document maintained by the receiving organization
 defines which capabilities are available to external agents and under what conditions.
 The policy is an input to Phase 3 of the onboarding flow.
 
+<!-- example: arsia-capability-policy.schema.json -->
 ```json
 {
   "policy_version": "finco-2026-q1",

@@ -177,11 +177,30 @@
               "description": "The option the vector's expectation takes."
             }
           }
+        },
+        "raw_hex": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2})+$",
+          "description": "Exact received bytes, lowercase hex with an even number of digits. Raw vectors exercise only the Core §5.2 pipeline steps 2-4 (parse, I-JSON, duplicate member names): accepting them establishes well-formed I-JSON text, not a valid, authenticated or authorized message. A test-corpus format, not an ARSIA envelope."
+        },
+        "expected_parse": {
+          "type": "string",
+          "enum": [
+            "accept",
+            "reject"
+          ],
+          "description": "Expected outcome of Core §5.2 steps 2-4 on raw_hex; a rejection is invalid_request (expected_error)."
         }
       },
       "dependentRequired": {
         "skip_schema": [
           "skip_reason"
+        ],
+        "raw_hex": [
+          "expected_parse"
+        ],
+        "expected_parse": [
+          "raw_hex"
         ]
       },
       "oneOf": [
@@ -208,6 +227,16 @@
                 "required": [
                   "expected"
                 ]
+              },
+              {
+                "required": [
+                  "raw_hex"
+                ]
+              },
+              {
+                "required": [
+                  "expected_parse"
+                ]
               }
             ]
           }
@@ -230,6 +259,16 @@
               {
                 "required": [
                   "valid"
+                ]
+              },
+              {
+                "required": [
+                  "raw_hex"
+                ]
+              },
+              {
+                "required": [
+                  "expected_parse"
                 ]
               }
             ]
@@ -254,8 +293,100 @@
                 "required": [
                   "valid"
                 ]
+              },
+              {
+                "required": [
+                  "raw_hex"
+                ]
+              },
+              {
+                "required": [
+                  "expected_parse"
+                ]
               }
             ]
+          }
+        },
+        {
+          "title": "raw",
+          "description": "Exact received bytes, checked by the Core §5.2 pipeline steps 2-4 only (parse, I-JSON, duplicate names). A test-corpus format, not an ARSIA envelope.",
+          "required": [
+            "raw_hex",
+            "expected_parse"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "message"
+                ]
+              },
+              {
+                "required": [
+                  "data"
+                ]
+              },
+              {
+                "required": [
+                  "schema_ref"
+                ]
+              },
+              {
+                "required": [
+                  "valid"
+                ]
+              },
+              {
+                "required": [
+                  "expected"
+                ]
+              },
+              {
+                "required": [
+                  "crypto"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "expected_parse": {
+                "const": "reject"
+              }
+            },
+            "required": [
+              "expected_parse"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expected_error": {
+                "const": "invalid_request"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expected_parse": {
+                "const": "accept"
+              }
+            },
+            "required": [
+              "expected_parse"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expected_error": {
+                "const": null
+              }
+            }
           }
         }
       ]

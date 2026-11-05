@@ -11,16 +11,16 @@ Current release: **Draft-02** (all six specs), wire version `2.0`. The protocol 
 ## Commands
 
 ```bash
-pip install -r scripts/requirements.txt   # jsonschema, referencing, rfc8785, cryptography (Python >= 3.12)
+pip install -r scripts/requirements.txt   # jsonschema[format-nongpl], referencing, rfc8785, cryptography (Python >= 3.12)
 
-# Validate all 893 test vectors against schemas. Target: 0 failures.
+# Validate all 915 test vectors against schemas. Target: 0 failures.
 python3 scripts/validate_vectors.py
 
 # Full verification battery — what CI runs (.github/workflows/validate-vectors.yml)
 python3 scripts/validate_vectors.py --check-meta --format summary
 python3 scripts/validate_vectors.py --check-errors --format summary
 python3 scripts/validate_vectors.py --check-crypto --format summary
-python3 scripts/check_consistency.py   # 129 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
+python3 scripts/check_consistency.py   # 131 repo invariants: schema meta/$id/$ref, prose↔schema enum parity, constant anti-regression, RTM drift linter
 python3 scripts/runtime_harness.py     # R1-R22: deterministic spec algorithms (calendar arithmetic, floors, matching, precedence)
 python3 scripts/extract_examples.py    # every ```json block in spec/ parses; envelope examples validate
 python3 scripts/check_links.py         # every §N.N reference resolves (specs + schema descriptions)
@@ -29,7 +29,7 @@ python3 scripts/check_links.py         # every §N.N reference resolves (specs +
 python3 scripts/validate_vectors.py --filter 'STV-*'          # by vector ID glob
 python3 scripts/validate_vectors.py --schema arsia-message    # by schema name substring
 
-# Reproducible RTM counts (2045 rows / 1241 MUST+MUST_NOT)
+# Reproducible RTM counts (2049 rows / 1245 MUST+MUST_NOT)
 python3 scripts/rtm_counts.py
 
 # Output formats: tap (default), summary, junit
@@ -43,7 +43,7 @@ The repository is a set of artifacts that must stay mutually consistent. A norma
 
 1. **`spec/`** — six normative documents in a "5+1" architecture: `ARSIA-Core.md` (envelope, EdDSA signing, discovery, authorization, transport) plus five primitives that spell ARSIA: **A**ctions, **R**outing, **S**tate, **I**dentity, **A**ssets. Specs cross-reference each other by `ARSIA-X §N.N` — renumbering a section breaks references in other documents.
 2. **`schemas/`** — 34 JSON Schemas (Draft 2020-12), each mapped to a specific spec section (see `schemas/README.md` for the mapping). `arsia-common.schema.json` holds shared definitions; `arsia-test-vectors.meta.json` is the meta-schema for the vector file itself.
-3. **`test-vectors/arsia-test-vectors.json`** — 893 vectors in three discriminated formats: `message-only` (`message` + `valid`), `schema-ref` (`schema_ref` + `data` + `expected`), and `hybrid` (`schema_ref` + `message` + `expected`). 195 vectors have `skip_schema: true` for runtime-only constraints, individually classified (with the coverage actually executed) in `docs/draft-02-skip-classification.md`; a skip vector is still validated structurally. Messages are validated under the Core §4.1.1 procedure their own `v` selects. Each `crypto` block declares `expect_signature` (`valid`/`invalid`/`absent`); a vector whose expectation rests on a MAY or an optional configuration declares its `posture`. Signed vectors use the Draft-02 signing profile (envelope minus only `security.sig`); re-sign an edited valid vector with `scripts/regen_v2.py --ids <ID,…>` (dry run unless `--apply`). `keypairs.json` holds the 17 test keypairs — committed intentionally, not secrets.
+3. **`test-vectors/arsia-test-vectors.json`** — 915 vectors in four discriminated formats: `message-only` (`message` + `valid`), `schema-ref` (`schema_ref` + `data` + `expected`), `hybrid` (`schema_ref` + `message` + `expected`), and `raw` (`raw_hex` + `expected_parse`: exact bytes checked only by the Core §5.2 pipeline steps 2–4). Every artifact is loaded through those steps (`strict_load`); a duplicate member name in the corpus stops the tools. 196 vectors have `skip_schema: true` for runtime-only constraints, individually classified (with the coverage actually executed) in `docs/draft-02-skip-classification.md`; a skip vector is still validated structurally. Messages are validated under the Core §4.1.1 procedure their own `v` selects. Each `crypto` block declares `expect_signature` (`valid`/`invalid`/`absent`); a vector whose expectation rests on a MAY or an optional configuration declares its `posture`. Signed vectors use the Draft-02 signing profile (envelope minus only `security.sig`); re-sign an edited valid vector with `scripts/regen_v2.py --ids <ID,…>` (dry run unless `--apply`). `keypairs.json` holds the 17 test keypairs — committed intentionally, not secrets.
 4. **`profiles/arsia-compliance-profiles.json`** — the 7 compliance profiles (GDPR, EU AI Act ×2, MiFID II, PAC, DSA, DORA), defined normatively in ARSIA-State §6 and referenced by Core §4.3.6. Profile names, retention floors, and oversight modes must match between prose, this catalog, and schemas.
 5. **`docs/rtm/`** — six Requirements Traceability Matrices tracing every MUST/SHOULD/MAY to schema and test vector.
 

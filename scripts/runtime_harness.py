@@ -63,6 +63,9 @@ import json
 import re
 import sys
 
+sys.path.insert(0, "scripts")
+from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
+
 FAIL = []
 
 
@@ -337,8 +340,8 @@ def r9():
 
 
 # ------------------------------------------- R10 effective obligation resolution
-PROFILES = json.load(open("profiles/arsia-compliance-profiles.json"))["profiles"]
-OBLIGATION_RULES = json.load(open("profiles/arsia-obligation-rules.json"))
+PROFILES = strict_load("profiles/arsia-compliance-profiles.json")["profiles"]
+OBLIGATION_RULES = strict_load("profiles/arsia-obligation-rules.json")
 AXES = ("oversight", "audit", "explainability", "retention", "residency")
 SUBFIELD = {"oversight": "human_oversight", "audit": "audit_required", "explainability": "explainability_required",
             "retention": "retention", "residency": "data_residency"}
@@ -692,10 +695,10 @@ def schema_errors(instance, schema_file, defs=None):
     from jsonschema import Draft202012Validator
     from referencing import Registry, Resource
     if not _REGISTRY:
-        docs = [json.load(open(f)) for f in sorted(glob.glob("schemas/*.json"))]
+        docs = [strict_load(f) for f in sorted(glob.glob("schemas/*.json"))]
         _REGISTRY.append(Registry().with_resources([(d["$id"], Resource.from_contents(d)) for d in docs if "$id" in d]))
     reg = _REGISTRY[0]
-    sid = json.load(open(f"schemas/{schema_file}"))["$id"]
+    sid = strict_load(f"schemas/{schema_file}")["$id"]
     schema = {"$ref": f"{sid}#/$defs/{defs}"} if defs else {"$ref": sid}
     return [e.message for e in Draft202012Validator(schema, registry=reg).iter_errors(instance)]
 
@@ -1517,10 +1520,9 @@ def approval_decision_msg(run, at, decision="approved", approver=REVIEWER_ID, pa
            "to": EXECUTOR_ID, "intent": "approval_decision", "correlation_id": correlation_id or p["id"],
            "root_request_id": root_request_id or p["root_request_id"], "capabilities": list(capabilities),
            "payload": {"type": "arsiaprotocol.oversight/decision",
-                       "result": {"decision": decision, "approver_id": approver_id or approver, "reason": None,
-                                  "conditions": None,
+                       "result": {"decision": decision, "approver_id": approver_id or approver,
                                   "request_payload_hash": payload_hash_override
-                                  or p["payload"]["args"]["request_payload_hash"]}}}
+                                  or p["payload"]["args"]["request_payload_hash"]}}}  # optional members omitted
     sign(msg, approver, alg)
     if tamper:
         msg["payload"]["result"]["reason"] = "altered after signing"
@@ -1561,6 +1563,14 @@ def make_descriptor(action_id, oversight=False, risk=5, period=None):
 
 TEST_CLAIM_POLICY = {"issuer": "agent:corp.gateway", "version": "finco-2026-q1",
                      "sha256": "6b8c702884af67342d1aff9949d3474599aa3f84aae9f92a6e3fa0a78f59c698"}
+
+
+def fixture_check(out, decision):
+    """Fixture quality (not the normative flow): a decision the scenario builds is schema-valid, so that the code
+    its vector expects from Actions §3.4 / §3.9.3 is not pre-empted by the full schema validation of the Core
+    §5.2 pipeline (step 11). The executing agent's verification order is unchanged."""
+    out.setdefault("fixture_errors", []).extend(f"{decision['id']}: {e}"
+                                                 for e in schema_errors(decision, "arsia-message.schema.json"))
 
 
 def execution_case(inp):
@@ -1627,6 +1637,7 @@ def execution_case(inp):
                                             step.get("approver_id"), step.get("correlation_id"),
                                             step.get("root_request_id"), step.get("tamper", False),
                                             step.get("alg", "EdDSA"))
+                fixture_check(out, dec)
                 tok = reviewer_token(step["at"], step.get("issuer", "https://as.acme.example"),
                                      step.get("scope", APPROVE), step.get("sub", approver),
                                      step.get("aud", EXECUTOR_ID), step.get("token_lifetime", 600),
@@ -1676,6 +1687,7 @@ def execution_case(inp):
                                           ev.get("result_hash"), tuple(ev.get("capabilities",
                                                                               ["arsiaprotocol.oversight.approve"])),
                                           ev.get("tamper", False))
+                fixture_check(out, dec)
                 tok = reviewer_token(ev["at"], ev.get("issuer", "https://as.acme.example"),
                                      ev.get("scope", "arsiaprotocol.oversight.approve"), ev.get("reviewer", REVIEWER_ID))
                 err, _ = rv.receive(dec, ev["at"], tok, ev.get("verify_at"))
@@ -1778,6 +1790,8 @@ def r15(vectors):
         errs += [e for m in got["messages"] for e in schema_errors(m, "arsia-message.schema.json")]
         check(f"R15 {v['id']} emitted messages and records are schema-valid", not errs, "; ".join(errs[:3]))
         check(f"R15 {v['id']} no record modified after emission", got.get("records_unmodified", True))
+        check(f"R15 {v['id']} constructed decisions are schema-valid fixtures", not got.get("fixture_errors"),
+              "; ".join(got.get("fixture_errors", [])[:2]))
         # A-58 (Core §5.2, State §7.1): the verification evidence is on the records of received messages whose
         # signature verified, with the sender's kid and a fetch not later than the processing; never on records
         # of messages the executor emitted
@@ -2187,8 +2201,9 @@ def timing(message, recipient_time, posture=None):
 
 def r16(vectors):
     timed = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "timing"]
-    check("R16 timing vectors present (ITV-408/411/440/545/546/547)",
-          sorted(v["id"] for v in timed) == ["ITV-408", "ITV-411", "ITV-440", "ITV-545", "ITV-546", "ITV-547"])
+    check("R16 timing vectors present (ITV-408/411/440/545/546/547; clean profile case ITV-709/710, INV-171, A-62)",
+          sorted(v["id"] for v in timed) == ["INV-171", "ITV-408", "ITV-411", "ITV-440", "ITV-545", "ITV-546", "ITV-547",
+                                             "ITV-709", "ITV-710"])
     for v in timed:
         got = timing(v["message"], v["test_metadata"]["input"]["recipient_time"], v.get("posture"))
         miss = subset_match(v["test_metadata"]["expect"], got)
@@ -3339,7 +3354,7 @@ def r22(vectors):
 
 
 def main() -> int:
-    vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
+    vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
     r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors)

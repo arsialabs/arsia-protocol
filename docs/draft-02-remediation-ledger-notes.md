@@ -507,6 +507,33 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   IDENT-§2.5-04 and IDENT-§3.1-03 (a RECOMMENDED or SHOULD 1-hour cache TTL; the rule is
   the Core §5.2 3600 s MUST ceiling) and IDENT-§2.5-05 (a MAY about future revocation
   mechanisms that §2.5 no longer states) belong to SC4.
+- **Published counts after coverage SC3:** 34 schemas (incl. meta), 915 vectors
+  (485 schema-valid / 215 expected-invalid / 196 runtime-only / 19 raw), 17 keypairs,
+  RTM 2049 / 1245, 131 consistency checks, harness R1-R22; spec examples 82 blocks (77
+  full: 75 schema-validated, 2 no-schema; 5 fragments); README.md, CLAUDE.md,
+  docs/FAQ.md, docs/getting-started.md and test-vectors/README.md (ITV 710, INV 171, CTV
+  16; next ITV-711 / INV-172 / CTV-17) updated.
+- **Raw vector format for consumers (coverage SC3):** a fourth test-corpus format
+  (`raw_hex` + `expected_parse`, documented in test-vectors/README.md) exercises only the
+  Core §5.2 pipeline steps 2–4; a consumer that iterates the corpus expecting
+  `message`/`data` must recognize it. Updating the SDK repositories is outside the cycle.
+- **Normative change for the Issue (coverage SC3, CONTRIBUTING §4):** Core §5.2 steps 3–4
+  state their content (UTF-8, surrogates and noncharacters literal or escaped at any
+  depth, duplicates after escape processing) and a document failing steps 2–4 is
+  rejected with `invalid_request`; steps 2–4 add no limit on JSON numbers. [RFC 7493] is
+  added to the Core normative references.
+- **Details objects without schema (coverage SC3, not changed):** the `invalid_request`
+  details of Core §4.3.8 Rule 4 (insufficient retention) and of State §5.2 (missing
+  legal basis) are required by the text but `arsia-message.schema.json` defines no
+  `$def` for them; their examples are annotated `no-schema`. A candidate for a schema
+  addition, which would be normative.
+- **Example annotations (coverage SC3):** every full ```json block in `spec/` carries
+  `<!-- example: … -->` on the line above (vocabulary in `scripts/extract_examples.py`);
+  a new example without one fails the extractor.
+- **Fixture quality (coverage SC3):** R15 validates against the message schema every
+  approval and review decision it builds; this exposed INV-134 (`capabilities: []`
+  fails `minItems`, so pipeline step 11 would have pre-empted its `forbidden`), now
+  `["test.unit"]`.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

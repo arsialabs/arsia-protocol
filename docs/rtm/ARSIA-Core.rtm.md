@@ -40,7 +40,7 @@
 | CORE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | Message identifiers MUST NOT be sequential or predictable | — | — |
 | CORE-§4.1.3-01 | 4.1.3 | MUST | sdk | structural | Timestamp ts MUST be RFC 3339 UTC with exactly millisecond precision (Z suffix) | arsia-message | INV-03 |
 | CORE-§4.1.3-02 | 4.1.3 | MUST_NOT | sdk | behavioural_negative | Timestamp ts MUST NOT use local timezone offsets | arsia-message | — |
-| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408 |
+| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408, INV-171 |
 | CORE-§4.1.4-01 | 4.1.4 | MUST | sdk | structural | The from field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — |
 | CORE-§4.1.4-02 | 4.1.4 | MUST | sdk | behavioural_positive | The from field MUST match the access token sub claim | — | ITV-409 |
 | CORE-§4.1.4-03 | 4.1.4 | MUST | sdk | behavioural_negative | Mismatched from vs. token sub MUST cause rejection with error unauthorized | — | ITV-409 |
@@ -194,6 +194,10 @@
 | CORE-§5.2-14 | 5.2 | MUST | sdk | behavioural_negative | After a refresh no longer finds a kid, signatures by that key MUST be rejected, including messages already queued but not yet verified | — | ITV-703, ITV-704, INV-154 |
 | CORE-§5.2-15 | 5.2 | MUST | sdk | behavioural_positive | Recipients that authenticate a key-revocation event MUST invalidate the cached key at once rather than waiting for the next refresh | — | ITV-700, ITV-701, ITV-702 |
 | CORE-§5.2-16 | 5.2 | MUST | sdk | structural | The audit record of a compliance-relevant message whose signature was verified MUST carry verified_kid and jwks_fetched_at (the fetch instant, also when served from the cache); a record of an unverified or failed signature carries neither | arsia-audit-record | ITV-694, ITV-697, INV-127, INV-141, INV-142, ITV-708 |
+| CORE-§5.2-17 | 5.2 | MUST | sdk | behavioural_negative | A document that is not UTF-8, or not JSON (NaN and Infinity included), MUST be rejected with invalid_request (pipeline step 2) | — | INV-161, INV-162, INV-163, INV-169, INV-170 |
+| CORE-§5.2-18 | 5.2 | MUST | sdk | behavioural_negative | A document whose member names or strings, literal or escaped, at any depth, contain a surrogate outside a valid pair or a noncharacter MUST be rejected with invalid_request (pipeline step 3, [RFC 7493] §2.1); a valid escaped or literal pair is accepted | — | INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 |
+| CORE-§5.2-19 | 5.2 | MUST | sdk | behavioural_negative | A document with duplicate member names at any depth, compared after escape processing, MUST be rejected with invalid_request (pipeline step 4, [RFC 7493] §2.3) | — | INV-158, INV-159, INV-160, CTV-14 |
+| CORE-§5.2-20 | 5.2 | MUST | sdk | procedural | Pipeline steps 2-4 run in order and establish only well-formed I-JSON text, not a valid, authenticated or authorized message; they add no limit on JSON numbers beyond RFC 8785 and field constraints | — | CTV-11, CTV-15, CTV-16 |
 | CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — |
 | CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — |
 | CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 |
@@ -335,7 +339,7 @@
 | CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected; a terminal result retrieved from result_url is not compared with the current time (Actions §4.3) | — | ITV-440, ITV-665 |
 | CORE-§8.3-07 | 8.3 | SHOULD | deployment | behavioural_positive | Implementations SHOULD synchronise clocks using NTP or equivalent time protocol | — | — |
 | CORE-§8.3-08 | 8.3 | SHOULD | deployment | behavioural_positive | Compliance-sensitive agents SHOULD use multiple NTP sources and log drift exceeding 10 seconds | — | — |
-| CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547 |
+| CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171 |
 | CORE-§8.3-10 | 8.3 | MUST_NOT | schema | constraint | Profile clock_skew_seconds MUST NOT exceed 300 seconds (maximum: 300 in schema enforces this) | arsia-compliance-profiles | — |
 | CORE-§9.1-01 | 9.1 | MUST | sdk | interoperability | Direct routing alone MUST be sufficient for Core conformance (§12.1) | — | — |
 | CORE-§9.1-02 | 9.1 | MUST | sdk_enabled | procedural | Sender MUST resolve the recipient's inbox URL via the discovery endpoint (§7.1) | — | — |
@@ -425,9 +429,9 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 410 |
+| Total requirements | 414 |
 | Schema ≠ — | 183 |
-| Vector ≠ — | 156 |
+| Vector ≠ — | 160 |
 | Both ≠ — | 90 |
 | Both = — (gaps) | 161 |
 
@@ -439,7 +443,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
 | 4 | 143 | 80 | 79 | 47 | 31 |
-| 5 | 39 | 9 | 25 | 6 | 11 |
+| 5 | 43 | 9 | 29 | 6 | 11 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
@@ -478,3 +482,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | DPoP receiver checks delegated to Identity §3.3; single-use jti stated as an ARSIA requirement; broker audit covers messages not forwarded (A-49, A-89) | §6.3, §9.2, §13.2.2 | dpop-proof, audit-record | INV-104..107, ITV-688, ITV-689; harness R19, R20 |
 | algorithm coherence traced to discriminating negatives: declared alg incompatible with the key type, signature valid for the key's own algorithm (A-33); no normative change | §5.2 Step 5 | — | INV-111, INV-112; validate_vectors --check-crypto |
 | decision_rejected is the log of correlation rules 1–3 for decisions; stale-key evidence verified_kid + jwks_fetched_at; key-revocation event authenticated before invalidation (A-57, A-58) | §4.2.1, §5.2 | audit-record, key-revocation | ITV-694, ITV-697, ITV-700..704; harness R13, R15 |
+| pipeline steps 2-4: UTF-8, I-JSON (surrogates, noncharacters, literal or escaped, any depth) and duplicate names after escape processing, in order, rejected with invalid_request; numbers left to RFC 8785 and field constraints (A-61) | §5.2 | test-vectors meta (raw format) | CTV-11..16, INV-158..170 |

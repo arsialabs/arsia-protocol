@@ -718,6 +718,7 @@ every field is REQUIRED.
 The following example shows a complete AssetTransferRequest for a MiFID II regulated
 currency transfer:
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -775,6 +776,7 @@ currency transfer:
 
 The following example shows an AssetTransferRequest for a token transfer (API credits):
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -993,6 +995,7 @@ every field is REQUIRED.
 The following example shows a complete AssetTransferReceipt for a completed currency
 transfer:
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -1034,6 +1037,7 @@ transfer:
 
 #### 3.2.3 Failed Transfer Receipt Example
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -1153,6 +1157,7 @@ disputes and service delivery adjustments that are common in B2B transactions.
 window has expired, the receiving agent MUST respond with error code `conflict`
 (ARSIA-Core.md §11.2) with the following error details:
 
+<!-- example: arsia-message.schema.json; partial=/v,/id,/ts,/from,/to,/intent,/idempotency,/security -->
 ```json
 {
   "payload": {
@@ -1195,6 +1200,7 @@ The reversal audit record MUST reference the original transfer's `audit_id` and
 
 #### 3.3.3 Complete AssetTransferReversal Example
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -1343,6 +1349,7 @@ every field is REQUIRED.
 
 #### 4.1.1 Complete EscrowConditions Example
 
+<!-- example: arsia-escrow-conditions.schema.json -->
 ```json
 {
   "release_condition": "Delivery of dataset DS-2026-0053 confirmed by independent quality assurance agent",
@@ -1823,6 +1830,7 @@ transfer.
 
 The receiving agent responds with a `pending_approval` message (ARSIA-Actions.md §3.2):
 
+<!-- example: arsia-message.schema.json; template=/correlation_id,/root_request_id,/expires_at,/payload/args/original_request_id,/payload/args/approval_deadline,/payload/args/request_payload_hash,/payload/obligation_resolution; partial=/v,/id,/ts,/from,/to,/security -->
 ```json
 {
   "intent": "pending_approval",
@@ -1840,7 +1848,7 @@ The receiving agent responds with a `pending_approval` message (ARSIA-Actions.md
       "risk_level": 8,
       "request_payload_hash": "<SHA-256 of the AssetTransferRequest payload>"
     },
-    "obligation_resolution": { "<effective obligation resolution, with the risk-assessment source>": "…" }
+    "obligation_resolution": "<effective obligation resolution, with the risk-assessment source>"
   }
 }
 ```
@@ -1856,6 +1864,7 @@ request.
 An agent with BOTH `arsiaprotocol.assets.transfer.approve` AND `arsiaprotocol.oversight.approve`
 capabilities sends an `approval_decision` message (ARSIA-Actions.md §3.3):
 
+<!-- example: arsia-message.schema.json; template=/correlation_id,/root_request_id,/payload/result/request_payload_hash; partial=/v,/id,/ts,/from,/to,/security -->
 ```json
 {
   "intent": "approval_decision",
@@ -1868,7 +1877,6 @@ capabilities sends an `approval_decision` message (ARSIA-Actions.md §3.3):
       "decision": "approved",
       "approver_id": "agent:acme.senior-compliance",
       "reason": "Transfer approved — within MiFID II client suitability parameters",
-      "conditions": null,
       "request_payload_hash": "<request_payload_hash of the pending_approval>"
     }
   }
@@ -2253,6 +2261,7 @@ scope (number of affected clients, duration, economic impact, etc.).
 
 #### 6.2.5 Complete DORA Incident Event Example
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -2361,6 +2370,7 @@ one, a server-provided nonce (ARSIA-Identity.md §3.3), preventing proof replay.
 
 **Token structure (informative):**
 
+<!-- example: arsia-jwt-claims.schema.json -->
 ```json
 {
   "iss": "https://as.acme.example.com",
@@ -2541,6 +2551,7 @@ completion.
 
 Phase 1: Agent A sends an AssetTransferRequest with `escrow_conditions`:
 
+<!-- example: arsia-escrow-conditions.schema.json -->
 ```json
 {
   "release_condition": "Test delivery confirmed",

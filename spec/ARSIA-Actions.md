@@ -331,6 +331,7 @@ agent to accept a request with reduced permissions rather than rejecting it outr
 
 **Example.** Agent A sends a request with:
 
+<!-- example: arsia-message.schema.json; partial=/v,/id,/ts,/from,/to,/intent -->
 ```json
 {
   "capabilities": ["notes.read", "notes.write", "notes.delete"]
@@ -922,6 +923,7 @@ semantics.
 The following example shows a complete ActionDescriptor for a MiFID II risk assessment
 action:
 
+<!-- example: arsia-action-descriptor.schema.json -->
 ```json
 {
   "action_id": "eu.mifid.risk/assess",
@@ -1157,6 +1159,7 @@ receiving agent does not support that version, it MUST respond with error code
 `not_implemented` (ARSIA-Core.md §11.2) and include the supported version range in the
 error details:
 
+<!-- example: arsia-message.schema.json; partial=/v,/id,/ts,/from,/to,/intent -->
 ```json
 {
   "payload": {
@@ -1407,14 +1410,13 @@ the human oversight decision: approve or deny.
 
 The `payload` object MUST have the following structure:
 
+<!-- example: arsia-message.schema.json#/$defs/approval-decision-result @/result; template=/request_payload_hash -->
 ```json
 {
   "type": "arsiaprotocol.oversight/decision",
   "result": {
     "decision": "approved",
     "approver_id": "agent:acme.oversight-dashboard",
-    "reason": null,
-    "conditions": null,
     "request_payload_hash": "<request_payload_hash of the pending_approval>"
   }
 }
@@ -1589,6 +1591,7 @@ The executing agent MUST NOT execute the action. No side effects may occur.
 The executing agent MUST send an error message to the original requester with the
 following structure:
 
+<!-- example: arsia-message.schema.json; template=/correlation_id,/root_request_id; partial=/v,/id,/ts,/from,/to -->
 ```json
 {
   "intent": "error",
@@ -1637,6 +1640,7 @@ expired.
 The executing agent MUST send an error message to the original requester with the
 following structure:
 
+<!-- example: arsia-message.schema.json; template=/correlation_id,/root_request_id,/payload/type,/payload/error/details/deadline; partial=/v,/id,/ts,/from,/to -->
 ```json
 {
   "intent": "error",
@@ -2015,6 +2019,7 @@ with payload type `arsiaprotocol.oversight/review-pending` to its review endpoin
 MAY send it to the original requester. Its `correlation_id` is the `id` of the
 terminal result and its `root_request_id` the `id` of the original request.
 
+<!-- example: arsia-message.schema.json#/$defs/review-pending-data @/data; template=/original_request_id,/execution_message_id,/executed_at,/result_hash,/obligations/0/deadline,/review_deadline -->
 ```json
 {
   "type": "arsiaprotocol.oversight/review-pending",
@@ -2063,6 +2068,7 @@ review by sending to the executing agent an `event` with payload type
 `id`, its `root_request_id` the original request's `id`, its `capabilities`
 `["arsiaprotocol.oversight.approve"]`, and it is signed with the reviewer's key.
 
+<!-- example: arsia-message.schema.json#/$defs/review-decision-data @/data; template=/execution_message_id,/result_hash -->
 ```json
 {
   "type": "arsiaprotocol.oversight/review-decision",
@@ -2456,6 +2462,7 @@ pattern:
    `status_url` is also present the two URLs MUST be identical; over transports
    without HTTP status semantics the envelope surface is the only one.
 
+   <!-- example: arsia-message.schema.json; template=/correlation_id,/payload/type; partial=/v,/id,/ts,/from,/to,/root_request_id,/security -->
    ```json
    {
      "intent": "response",
@@ -2474,6 +2481,7 @@ pattern:
 2. **Status polling.** The requesting agent polls the `status_url` via HTTP GET. The
    response is a JSON object:
 
+   <!-- example: arsia-message.schema.json#/$defs/long-running-status -->
    ```json
    {
      "status": "running",
@@ -2488,6 +2496,7 @@ pattern:
 3. **Result retrieval.** When `status` is `"completed"`, the response includes a
    `result_url`:
 
+   <!-- example: arsia-message.schema.json#/$defs/long-running-status -->
    ```json
    {
      "status": "completed",
@@ -2513,6 +2522,7 @@ pattern:
 
 4. **Failure.** When `status` is `"failed"`, the response includes error details:
 
+   <!-- example: arsia-message.schema.json#/$defs/long-running-status -->
    ```json
    {
      "status": "failed",
@@ -2718,6 +2728,7 @@ included in the `payload` object of response messages as `payload.explanation`.
 
 #### Complete Explanation Example
 
+<!-- example: arsia-explanation.schema.json -->
 ```json
 {
   "reasoning": "The client's risk profile (conservative, score 3/10) is incompatible with the proposed instrument (high-yield emerging market bond, risk score 8/10). MiFID II suitability rules require that the instrument's risk level does not exceed the client's declared risk tolerance by more than 2 points. The gap of 5 points exceeds this threshold. Recommendation: unsuitable.",

@@ -411,6 +411,7 @@ If no eligible broker is available for the required residency zone, the sender M
 NOT send the message. The sender MUST return an error to its caller with the following
 structure:
 
+<!-- example: arsia-message.schema.json; template=/id,/ts,/from,/to,/correlation_id,/root_request_id,/payload/error/details/required_zone -->
 ```json
 {
   "v": "2.0",
@@ -849,6 +850,7 @@ sending any ARSIA message envelopes.
 
 The client sends a JSON text frame containing the authentication request:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth",
@@ -858,6 +860,7 @@ The client sends a JSON text frame containing the authentication request:
 
 For DPoP-bound tokens, the authentication request includes the DPoP proof:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth",
@@ -874,6 +877,7 @@ The server validates the token and responds with one of:
 
 **Authentication success:**
 
+<!-- example: arsia-websocket-frame.schema.json; template=/agent_id,/session_id -->
 ```json
 {
   "type": "auth_ok",
@@ -888,6 +892,7 @@ for correlation in audit logs and debugging.
 
 **Authentication failure:**
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth_error",
@@ -927,6 +932,7 @@ The client MUST send a heartbeat frame every 30 seconds to maintain the connecti
 (ARSIA-Core.md §8.2 — Draft-01 stated SHOULD here and MUST there; the MUST governs)
 and detect network failures:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "ping"
@@ -935,6 +941,7 @@ and detect network failures:
 
 The server MUST respond with a heartbeat response within 5 seconds:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "pong"
@@ -946,6 +953,7 @@ client SHOULD consider the connection dead and initiate reconnection (Phase 5).
 
 The server MAY send unsolicited heartbeat requests:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "ping"
@@ -1099,6 +1107,7 @@ the broker without alteration.
 If the recipient responds asynchronously (HTTP 202) or the broker itself processes the
 relay asynchronously, the broker returns a relay receipt to the sender:
 
+<!-- example: arsia-message.schema.json; template=/id,/ts,/from,/to,/correlation_id,/root_request_id; partial=/security -->
 ```json
 {
   "v": "2.0",
@@ -1127,6 +1136,7 @@ transport-level response from the recipient that is not an ARSIA envelope —
 ARSIA-Core.md §11.1.1 — or timeout), the broker returns a standard ARSIA error
 envelope to the sender:
 
+<!-- example: arsia-message.schema.json; template=/id,/ts,/from,/to,/correlation_id,/root_request_id,/payload/error/details/relay_id -->
 ```json
 {
   "v": "2.0",
@@ -1166,6 +1176,7 @@ made with the sender's key. The broker:
 2. MUST return to the sender, in place of the generic relay error, a relay error
    (`service_unavailable`) whose details carry the challenge:
 
+   <!-- example: arsia-message.schema.json#/$defs/error-details-relay-failed; template=/relay_id,/dpop_nonce,/dpop_nonce_htu -->
    ```json
    {
      "relay_failed": true,
@@ -1201,6 +1212,7 @@ recipient does not respond before `expires_at` minus 5 seconds (a safety margin 
 account for network latency on the return path), the broker MUST abandon the relay and
 return a `service_unavailable` error to the sender with details:
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-relay-failed; template=/relay_id -->
 ```json
 {
   "relay_failed": true,
@@ -1813,6 +1825,7 @@ handle priority-based message scheduling.
 Agents advertise their rate limits in the discovery response (ARSIA-Core.md §7.1)
 via the `rate_limits` object:
 
+<!-- example: arsia-discovery-response.schema.json; partial=/agent_id,/name,/version,/protocol_version,/server_min,/server_max,/inbox,/jwks,/capabilities_supported,/max_message_bytes,/request_timeout_ms -->
 ```json
 {
   "rate_limits": {
@@ -2007,6 +2020,7 @@ GET /.well-known/arsia/brokers?residency={zone}
 The response is a JSON array of `BrokerEntry` objects. Each object represents one
 eligible broker:
 
+<!-- example: arsia-broker-entry.schema.json @/* -->
 ```json
 [
   {
@@ -2101,6 +2115,7 @@ If the broker's jurisdiction does not match the required zone, the broker MUST r
 the message with error code `service_unavailable` (ARSIA-Core.md §11.2) and MUST NOT
 forward it. The error details MUST include:
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-service-unavailable-residency; template=/broker_jurisdiction,/required_zone -->
 ```json
 {
   "data_residency_violation": true,
@@ -2290,6 +2305,7 @@ broker at runtime.
 
 **Example audit record (extension fields shown):**
 
+<!-- example: arsia-audit-record.schema.json; partial=/record_id,/intent,/payload_type,/payload_hash,/processed_at,/retained_until,/operator_id,/compliance_profile_declared,/compliance_profile_resolved,/declared_retention,/retention_source -->
 ```json
 {
   "event_type": "broker_relay",

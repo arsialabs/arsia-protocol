@@ -23,6 +23,107 @@ ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS_DIR = ROOT / "schemas"
 VECTORS_FILE = ROOT / "test-vectors" / "arsia-test-vectors.json"
 META_SCHEMA_FILE = ROOT / "schemas" / "arsia-test-vectors.meta.json"
+RAW_ROW = "(raw: Core §5.2 steps 2-4)"
+
+
+# --------------------------------------------------------------------------- strict JSON (A-61)
+# Core §5.2 Message Processing Pipeline, steps 2-4, in their normative order: 2 parse (UTF-8, JSON,
+# no NaN/Infinity); 3 I-JSON ([RFC 7493] §2.1: no surrogate outside a valid pair, no noncharacter, in any
+# member name or string at any depth, literal or escaped); 4 no duplicate member names at any depth,
+# compared after escape processing ([RFC 7493] §2.3). Duplicates are kept through steps 2 and 3, so that
+# step 3 also checks every occurrence, and only then is the document built.
+class JsonRejected(ValueError):
+    """A document rejected by the Core §5.2 pipeline step `step` (invalid_request)."""
+
+    def __init__(self, step: int, reason: str):
+        super().__init__(f"step {step}: {reason}")
+        self.step, self.reason = step, reason
+
+
+class _Pairs(list):
+    """The ordered (name, value) pairs of one JSON object, duplicates included."""
+
+
+def _reject_constant(token: str):
+    raise JsonRejected(2, f"{token} is not JSON")
+
+
+def _bad_code_point(s: str) -> str | None:
+    for ch in s:
+        c = ord(ch)
+        if 0xD800 <= c <= 0xDFFF:
+            return f"unpaired surrogate U+{c:04X}"
+        if 0xFDD0 <= c <= 0xFDEF or (c & 0xFFFE) == 0xFFFE:
+            return f"noncharacter U+{c:04X}"
+    return None
+
+
+def _check_ijson(node, path: str = "") -> None:
+    if isinstance(node, _Pairs):
+        for name, value in node:
+            bad = _bad_code_point(name)
+            if bad:
+                raise JsonRejected(3, f"{bad} in a member name at {path or '/'}")
+            _check_ijson(value, f"{path}/{name}")
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            _check_ijson(value, f"{path}/{i}")
+    elif isinstance(node, str):
+        bad = _bad_code_point(node)
+        if bad:
+            raise JsonRejected(3, f"{bad} in a string at {path or '/'}")
+
+
+def _check_unique(node, path: str = "") -> None:
+    if isinstance(node, _Pairs):
+        seen = set()
+        for name, value in node:
+            if name in seen:
+                raise JsonRejected(4, f"duplicate member name {name!r} at {path or '/'}")
+            seen.add(name)
+            _check_unique(value, f"{path}/{name}")
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            _check_unique(value, f"{path}/{i}")
+
+
+def _build(node):
+    if isinstance(node, _Pairs):
+        return {name: _build(value) for name, value in node}
+    if isinstance(node, list):
+        return [_build(value) for value in node]
+    return node
+
+
+def strict_json(raw: bytes):
+    """Core §5.2 steps 2-4 over the exact received bytes; returns the document or raises JsonRejected."""
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise JsonRejected(2, f"not UTF-8: {exc.reason} at byte {exc.start}") from None
+    # Steps 2-4 add no limit on JSON numbers: Python's int-from-string digit limit (4300 by default) is
+    # lifted for the parse, so a long integer stays an integer and is left to RFC 8785 and field constraints.
+    digits = sys.get_int_max_str_digits()
+    sys.set_int_max_str_digits(0)
+    try:
+        tree = json.loads(text, object_pairs_hook=_Pairs, parse_constant=_reject_constant)
+    except JsonRejected:
+        raise
+    except ValueError as exc:
+        raise JsonRejected(2, f"not JSON: {exc}") from None
+    finally:
+        sys.set_int_max_str_digits(digits)
+    _check_ijson(tree)
+    _check_unique(tree)
+    return _build(tree)
+
+
+def strict_load(path):
+    """Loads a repository artifact through strict_json; a rejected artifact stops the tool."""
+    try:
+        return strict_json(Path(path).read_bytes())
+    except JsonRejected as exc:
+        sys.exit(f"ERROR: {path}: rejected at Core §5.2 {exc}")
 
 _ERROR_CODE_RE = re.compile(r"^[a-z]+(_[a-z]+)*$")
 _IDENT_RE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*")
@@ -83,8 +184,7 @@ def build_registry() -> Registry:
     resources: list[tuple[str, Resource]] = []
 
     for schema_path in sorted(SCHEMAS_DIR.glob("*.json")):
-        with open(schema_path) as f:
-            schema = json.load(f)
+        schema = strict_load(schema_path)
         schemas_by_name[schema_path.name] = schema
         resource = Resource.from_contents(schema, default_specification=DRAFT202012)
         schema_id = schema.get("$id", "")
@@ -176,6 +276,8 @@ def determine_expected(vector: dict) -> bool:
 
 
 def classify_vector(vector: dict) -> tuple[str, str, dict]:
+    if "raw_hex" in vector:
+        return "raw", RAW_ROW, vector["raw_hex"]
     has_schema_ref = "schema_ref" in vector
     has_data = "data" in vector
     has_message = "message" in vector
@@ -191,8 +293,7 @@ def classify_vector(vector: dict) -> tuple[str, str, dict]:
 
 
 def check_meta_schema(data: dict) -> bool:
-    with open(META_SCHEMA_FILE) as f:
-        meta = json.load(f)
+    meta = strict_load(META_SCHEMA_FILE)
     validator = Draft202012Validator(meta)
     errors = list(validator.iter_errors(data))
     if errors:
@@ -291,8 +392,7 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
         sys.exit(1)
 
     vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
-    with open(vectors_file) as f:
-        data = json.load(f)
+    data = strict_load(vectors_file)
 
     vectors = data["vectors"]
     checked = 0
@@ -416,8 +516,7 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
 
 def run_validation(args: argparse.Namespace) -> int:
     vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
-    with open(vectors_file) as f:
-        data = json.load(f)
+    data = strict_load(vectors_file)
 
     if args.check_meta:
         if not check_meta_schema(data):
@@ -435,6 +534,24 @@ def run_validation(args: argparse.Namespace) -> int:
             continue
 
         fmt, schema_ref, payload = classify_vector(vector)
+
+        if fmt == "raw":
+            # Core §5.2 steps 2-4 only: accepting means well-formed I-JSON text, nothing more
+            if args.schema and args.schema not in schema_ref:
+                continue
+            expected_valid = vector["expected_parse"] == "accept"
+            try:
+                strict_json(bytes.fromhex(payload))
+                actual_valid, err = True, None
+            except JsonRejected as exc:
+                actual_valid, err = False, str(exc)
+            results.append({
+                "id": vid, "schema": schema_ref, "format": fmt, "expected_valid": expected_valid,
+                "actual_valid": actual_valid, "passed": actual_valid == expected_valid, "error": err,
+                "description": vector.get("description", ""), "skipped": False, "error_path": None,
+                "procedure": "exact",
+            })
+            continue
 
         if vector.get("skip_schema"):
             # A skip exempts only the runtime expectation the schema cannot express.

@@ -1994,6 +1994,7 @@ If an implementation cannot honour a data residency constraint (because it does 
 have storage infrastructure in the declared zone), it MUST reject the SET operation
 with error code `"invalid_request"` and the following details:
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-service-unavailable-residency -->
 ```json
 {
   "data_residency_violation": true,
@@ -2120,6 +2121,7 @@ special category data and MUST be rejected (Core §4.3.8, Rule 8).
 the message envelope. The error response MUST use error code `"invalid_request"` with
 details:
 
+<!-- example: no-schema — an invalid_request details object required by State §5.2 (missing legal basis); arsia-message.schema.json defines no $def for it -->
 ```json
 {
   "missing_legal_basis": true,
@@ -3785,6 +3787,7 @@ enforcement procedure is:
 5. If the required capability is missing, reject the request with error code
    `"forbidden"` and details:
 
+   <!-- example: arsia-message.schema.json#/$defs/error-details-forbidden -->
    ```json
    {
      "required_capabilities": ["arsiaprotocol.state.purge"],
@@ -3849,6 +3852,7 @@ and `current_version`, each precondition the request stated (`expected_generatio
 `expected_version`), and the live entry's `updated_at` and `updated_by` (the agent of
 its last write):
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-conflict-version -->
 ```json
 {
   "current_generation": 2,
@@ -3864,6 +3868,7 @@ When the key has no live entry, the details MUST consist of `"entry_live": false
 each precondition the request stated, and MUST NOT include `current_generation`,
 `current_version`, `updated_at` or `updated_by`:
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-conflict-absent -->
 ```json
 {
   "entry_live": false,
@@ -3879,6 +3884,7 @@ it (e.g., by re-reading the entry and merging the changes).
 and carries no `retention_override` (§3.2.2), the error details MUST consist of
 `within_retention` (`true`) and `entry_retained_until`:
 
+<!-- example: arsia-message.schema.json#/$defs/error-details-retention-override -->
 ```json
 { "within_retention": true, "entry_retained_until": "2031-04-27T14:00:00.000Z" }
 ```

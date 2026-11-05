@@ -187,8 +187,14 @@ def main(argv=None) -> int:
         print("ERROR: --ids names no vector", file=sys.stderr)
         return 2
     raw_bytes = open(args.vectors, "rb").read()
+    sys.path.insert(0, "scripts")
+    from validate_vectors import JsonRejected, strict_json
+    try:  # A-61: the corpus is read through the Core §5.2 steps 2-4; a rejected corpus stops the tool
+        doc = strict_json(raw_bytes)
+    except JsonRejected as exc:
+        print(f"ERROR: {args.vectors}: rejected at Core §5.2 {exc}; nothing written", file=sys.stderr)
+        return 1
     raw = raw_bytes.decode("utf-8")
-    doc = json.loads(raw)
     if serialize(doc, raw) != raw_bytes:
         # rewriting would change bytes of vectors nobody selected (escapes, line endings, spacing)
         print(f"ERROR: {args.vectors} is not in the format this tool reproduces byte for byte "

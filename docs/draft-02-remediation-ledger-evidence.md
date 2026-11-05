@@ -1180,3 +1180,220 @@ and not over the presented event. No key was added to the catalog.
 - Findings register 99 rows: open 7 → 5, closed 92 → 94; disposition per DR or cycle
   addendum 32 → 34, recorded 16, pending 51 → 49. Coverage register 24 rows: open 10 →
   6, closed 14 → 18.
+
+## 25. Coverage SC3 closure evidence
+
+Execution baseline `0af14ea`. Owner decisions P1–P4 and the plan-review adjustments
+R1–R4 are in the design record (DR-0 addendum, coverage SC3). Line references are to
+the files after the cycle. No key material was printed. Mutations ran on a scratch
+copy: `git archive 0af14ea` with the full candidate diff applied, the unmutated copy
+first passing the whole battery, and the candidate restored between cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-61 | Executed duplicate-member and non-I-JSON vectors, strict parser | Core §5.2 steps 3–4 state their content and a new paragraph fixes `invalid_request` (P2); [RFC 7493] added to the normative references. `strict_json` (`validate_vectors.py` l.98) parses with `_Pairs` (l.43), a typed list that keeps every occurrence, then runs `_check_ijson` (l.61, step 3) and `_check_unique` (l.77, step 4) in that order, and only then builds the document; Python's integer digit limit is lifted for the parse (steps 2–4 add no numeric limit) and restored after it; `strict_load` (l.121) is used for every artifact in validate_vectors, check_consistency, runtime_harness, extract_examples and regen_v2. The `raw` format (meta-schema, exclusive both ways) runs 18 vectors in the validator. Guard `strict_parsing_problems` (`check_consistency.py` l.1224): a corpus with a duplicate stops validate_vectors.py at step 4 before any vector; `{"x":"\ud800","a":1,"a":2}` is rejected at step 3; every raw vector at its stated step; mixed-format and incomplete raw vectors fail the meta-schema; `{}`, `[]`, `[["a", 1]]` preserved; a 5000-digit integer kept as an integer, with the global limit unchanged afterwards; no `json.load` on files | (a)–(k), (n2), (n3), (n5), (t) | yes |
+| A-62 | Harness rule + ITV-545/546/547 with profile tolerances; clean "90 s under 120 s" case | R16 (`timing` scenario) executes the six earlier vectors and the clean case: EU-AI-ACT-HIGH-RISK message with complete compliance (`legal_basis`, retention P6M at the floor), signed with the catalog key, `token_hash` per the `synthetic-token:<ID>` convention: ITV-709 (−90 s) and ITV-710 (+90 s) accepted with tolerance 120 (`profile:EU-AI-ACT-HIGH-RISK`), INV-171 (−150 s) rejected only for `ts_outside_tolerance` under the MAY posture of ITV-545, and accepted without it | (q) | yes |
+| A-63 | Extraction rule validating every non-envelope normative example | `extract_examples.py` requires an annotation on every full block and validates it (`residual` l.133, `check_example` l.167, `scan` l.199), with formats asserted (`format_checker`) and `@…/*` selectors accepted only over a JSON array (`select` l.118): 82 blocks = 77 full (53 complete, 10 template, 12 partial, 2 no-schema) + 5 fragments; 75 validated against a schema (9 before). Template exemptions only at the declared placeholder pointer and for the keywords a placeholder prevents; partial only for the declared omitted member; oneOf/anyOf re-evaluated on all branches, two valid oneOf branches still failing; no heuristic decides an exemption. Format assertion required two more declared placeholders: Identity §3.3 DPoP claims `/htu`, Routing §2.3.3 relay error `/dpop_nonce_htu`. Self-test `example_annotation_problems` (`check_consistency.py` l.1160). Examples corrected: Actions §3.3 and Assets §5.2 approval_decision (null `reason`/`conditions` omitted), Assets §5.2 `pending_approval` (`obligation_resolution` placeholder written as a value). R15 checks every decision it builds against the message schema (`fixture_check`, `runtime_harness.py` l.1568), outside the normative order | (l)–(n), (n4), (o), (p), (p2), (r), (s) | yes |
+
+**Raw vectors (19).** Bytes as written (escapes are the ASCII bytes of the escape; the
+hex segment is the decisive part of `raw_hex`). Minimal envelopes
+`{"v":"2.0","id":…,"intent":"request","payload":{"type":"com.acme.test/run","args":{…}}}`
+unless stated.
+
+| ID | Bytes | Expected |
+|---|---|---|
+| CTV-11 | the CTV-01 envelope in RFC 8785 form | accept |
+| CTV-12 | value `"\ud83d\ude00"` (escaped valid pair), hex `225c75643833645c756465303022` | accept |
+| CTV-13 | value U+1F600 literal, hex `22f09f988022` | accept |
+| CTV-14 | names `"a"`, `"A"`, and `"a"` again in a nested object | accept |
+| CTV-15 | `"count":1152921504606846976` (2^60) | accept |
+| CTV-16 | `"count":` followed by 5000 digits `7` (5131 bytes), beyond the 4300-digit default of Python's integer conversion | accept |
+| INV-158 | `"id"` twice at the top | reject, step 4 |
+| INV-159 | `"intent"` and `"\u0069ntent"` (hex `5c7530303639`) | reject, step 4 |
+| INV-160 | `"k"` twice in `payload.args` | reject, step 4 |
+| INV-161 | byte `ff` in a string | reject, step 2 |
+| INV-162 | overlong `c0 af` in a string | reject, step 2 |
+| INV-163 | CESU surrogate `ed a0 80` in a string | reject, step 2 |
+| INV-164 | `"\ud800"` alone in `payload.args.note` (nested), hex `5c7564383030` | reject, step 3 |
+| INV-165 | `"\udc00"` alone as a top-level member name | reject, step 3 |
+| INV-166 | value `"\uffff"`, hex `225c756666666622` | reject, step 3 |
+| INV-167 | literal U+FDD0 (`ef b7 90`) | reject, step 3 |
+| INV-168 | value `"\ud83f\udffe"` (U+1FFFE), hex `225c75643833665c756466666522` | reject, step 3 |
+| INV-169 | `NaN` as a value | reject, step 2 |
+| INV-170 | `Infinity` as a value | reject, step 2 |
+
+**Example inventory (82 blocks, by file:line after the cycle).**
+
+```
+Actions:336    partial   arsia-message.schema.json
+Actions:344    fragment
+Actions:928    complete  arsia-action-descriptor.schema.json
+Actions:1062   fragment
+Actions:1164   partial   arsia-message.schema.json
+Actions:1274   fragment
+Actions:1415   template  arsia-message.schema.json#/$defs/approval-decision-result @/result
+Actions:1596   partial   arsia-message.schema.json
+Actions:1645   partial   arsia-message.schema.json
+Actions:2024   template  arsia-message.schema.json#/$defs/review-pending-data @/data
+Actions:2073   template  arsia-message.schema.json#/$defs/review-decision-data @/data
+Actions:2467   partial   arsia-message.schema.json
+Actions:2486   complete  arsia-message.schema.json#/$defs/long-running-status
+Actions:2501   complete  arsia-message.schema.json#/$defs/long-running-status
+Actions:2527   complete  arsia-message.schema.json#/$defs/long-running-status
+Actions:2733   complete  arsia-explanation.schema.json
+Assets:723     complete  arsia-message.schema.json
+Assets:781     complete  arsia-message.schema.json
+Assets:1000    complete  arsia-message.schema.json
+Assets:1042    complete  arsia-message.schema.json
+Assets:1162    partial   arsia-message.schema.json
+Assets:1205    complete  arsia-message.schema.json
+Assets:1354    complete  arsia-escrow-conditions.schema.json
+Assets:1835    partial   arsia-message.schema.json
+Assets:1869    partial   arsia-message.schema.json
+Assets:2266    complete  arsia-message.schema.json
+Assets:2375    complete  arsia-jwt-claims.schema.json
+Assets:2556    complete  arsia-escrow-conditions.schema.json
+Core:1352      no-schema an invalid_request details object required by Core §4.3.8 Rule 4; arsia-message.schema.json defines no $def for it
+Core:2402      complete  arsia-message.schema.json#/$defs/error-details-forbidden
+Core:2574      complete  arsia-discovery-response.schema.json
+Core:2650      complete  arsia-capability-descriptor.schema.json @/*
+Core:2759      complete  arsia-jwk-entry.schema.json @/keys/*
+Core:2822      complete  arsia-message.schema.json#/$defs/error-details-not-implemented
+Core:3005      complete  arsia-websocket-frame.schema.json
+Core:3020      complete  arsia-websocket-frame.schema.json
+Core:3030      complete  arsia-websocket-frame.schema.json
+Core:3049      complete  arsia-websocket-frame.schema.json
+Core:3058      complete  arsia-websocket-frame.schema.json
+Core:3266      complete  arsia-broker-entry.schema.json @/*
+Core:3289      complete  arsia-message.schema.json#/$defs/error-details-service-unavailable-residency
+Core:3568      complete  arsia-message.schema.json#/$defs/error-details-forbidden
+Core:3577      complete  arsia-message.schema.json#/$defs/error-details-not-implemented
+Core:3587      partial   arsia-message.schema.json#/$defs/error-details-not-implemented
+Core:3595      complete  arsia-message.schema.json#/$defs/error-details-rate-limited
+Core:3606      complete  arsia-message.schema.json#/$defs/error-details-payload-too-large
+Core:3616      complete  arsia-message.schema.json#/$defs/error-details-service-unavailable-residency
+Core:4287      complete  arsia-message.schema.json
+Core:4340      complete  arsia-message.schema.json
+Core:4447      complete  arsia-message.schema.json
+Identity:369   complete  arsia-jwk-entry.schema.json @/keys/*
+Identity:425   complete  arsia-key-revocation.schema.json @/data
+Identity:557   complete  arsia-dpop-proof.schema.json#/$defs/dpop-header
+Identity:567   template  arsia-dpop-proof.schema.json
+Identity:1131  fragment
+Identity:1449  complete  arsia-onboarding-decision.schema.json#/$defs/conformance-check
+Identity:1663  complete  arsia-onboarding-decision.schema.json
+Identity:1865  complete  arsia-capability-policy.schema.json
+Identity:1914  complete  arsia-capability-policy.schema.json
+Routing:416    template  arsia-message.schema.json
+Routing:855    complete  arsia-websocket-frame.schema.json
+Routing:865    complete  arsia-websocket-frame.schema.json
+Routing:882    template  arsia-websocket-frame.schema.json
+Routing:897    complete  arsia-websocket-frame.schema.json
+Routing:937    complete  arsia-websocket-frame.schema.json
+Routing:946    complete  arsia-websocket-frame.schema.json
+Routing:958    complete  arsia-websocket-frame.schema.json
+Routing:1112   partial   arsia-message.schema.json
+Routing:1141   template  arsia-message.schema.json
+Routing:1181   template  arsia-message.schema.json#/$defs/error-details-relay-failed
+Routing:1217   template  arsia-message.schema.json#/$defs/error-details-relay-failed
+Routing:1830   partial   arsia-discovery-response.schema.json
+Routing:2025   complete  arsia-broker-entry.schema.json @/*
+Routing:2120   template  arsia-message.schema.json#/$defs/error-details-service-unavailable-residency
+Routing:2310   partial   arsia-audit-record.schema.json
+State:1999     complete  arsia-message.schema.json#/$defs/error-details-service-unavailable-residency
+State:2126     no-schema an invalid_request details object required by State §5.2 (missing legal basis); arsia-message.schema.json defines no $def for it
+State:3686     fragment
+State:3792     complete  arsia-message.schema.json#/$defs/error-details-forbidden
+State:3857     complete  arsia-message.schema.json#/$defs/error-details-conflict-version
+State:3873     complete  arsia-message.schema.json#/$defs/error-details-conflict-absent
+State:3889     complete  arsia-message.schema.json#/$defs/error-details-retention-override
+```
+
+The two `no-schema` blocks (Core §4.3.8 Rule 4 retention details; State §5.2 missing
+legal basis details) are `invalid_request` details objects that
+`arsia-message.schema.json` does not define; they are listed in the notes.
+
+**Mutations.** 26/26 detected:
+
+```
+(a) object_pairs_hook builds dict again (last duplicate wins): DETECTED (validator INV-158..160; A-61 guard)
+(b) duplicate names compared on the raw text, before escape processing: DETECTED (validator INV-159)
+(c) Unicode scan only at the top level: DETECTED (validator INV-164, nested surrogate)
+(d) UTF-8 decoded with errors='replace': DETECTED (validator INV-161..163)
+(e) surrogates not checked: DETECTED (validator INV-164, INV-165)
+(f) only BMP noncharacters: DETECTED (validator INV-168)
+(g) only U+FFFE/U+FFFF (FDD0-FDEF missed): DETECTED (validator INV-167)
+(h) parse_constant accepts NaN/Infinity: DETECTED (validator INV-169, INV-170)
+(i) any escaped surrogate rejected in the raw text, valid pairs included: DETECTED (validator CTV-12; CTV-13, literal, still passes)
+(j) the raw parser rejects everything: DETECTED (validator CTV-11..15)
+(k) the vectors are loaded with json.load again: DETECTED (A-61 guard: corpus duplicate no longer stops the tool; json.load on a file)
+(l) template exempts any error of the object: DETECTED (A-63 self-test: template error outside the pointer accepted)
+(l2) combinator decided by best_match: DETECTED (A-63 self-test: the composite control, whose only branch error is the exempt placeholder, rejected)
+(m) partial exempts any missing required member: DETECTED (A-63 self-test: nested required accepted)
+(n) a full block without annotation is tolerated: DETECTED (A-63 self-test: unannotated block accepted)
+(n2) duplicates checked before the I-JSON scan: DETECTED (A-61 guard, step order)
+(n3) the existing meta-schema branches no longer exclude the raw fields: DETECTED (A-61 guard, mixed format)
+(n4) a oneOf with an empty error context taken as passing: DETECTED (A-63 self-test, two valid branches)
+(n5) an array of pairs taken for an object when the tree is built: DETECTED (A-61 guard, [["a", 1]])
+(o) the Actions §3.3 example has "reason": null again: DETECTED (extractor)
+(p) the harness emits null optional members again: DETECTED (R15 fixture check)
+(p2) INV-134 back to capabilities []: DETECTED (R15 INV-134 fixture check)
+(q) R16 uses the 300 s default for a profile that defines clock_skew_seconds: DETECTED (R16 INV-171)
+(r) the array selector accepts an object or a string: DETECTED (A-63 self-test: {"keys": {}} and {"keys": ""} accepted)
+(s) the extractor validates without a format checker: DETECTED (A-63 self-test: Core discovery example with inbox 'not a URI' accepted)
+(t) the parser keeps Python's integer digit limit: DETECTED (validator CTV-16)
+```
+
+The first runs of (i) and (n5) were too coarse: the regex of (i) also matched the
+corpus's own descriptions and stopped the tool before CTV-12 was reported, and the
+first (n5) collapsed empty objects and broke every schema load. Both were narrowed to
+the defect they name (an escape not preceded by a backslash; an array of pairs read as
+an object) and are detected by the intended check. With the installed jsonschema,
+best_match picks the shortest-path branch error (`/` is not an array), not `/x/id`: (l2)
+is therefore caught by the composite control (a block whose only branch error is the
+exempt placeholder is rejected), while the composite defect case stays rejected under
+that mutant by chance. The self-test keeps both cases, so a best_match that picked
+`/x/id` would be caught by the defect case.
+
+**Existing vectors changed.** INV-134 only: `capabilities` `[]` → `["test.unit"]`
+(the empty array failed the schema's `minItems`, so a conforming implementation would
+have rejected it at pipeline step 11 with `invalid_request` before the authority check),
+expectation `forbidden` kept, description updated. No other vector changed result.
+
+**Published-count correction.** The format table of `test-vectors/README.md` was stale
+at the baseline (323 message-only / 488 schema-ref stated; 341 / 548 in the corpus); it
+now states the corpus counts.
+
+**Owner review correction.** The owner's double check reproduced three verifier gaps
+that the battery and the first 23 mutations did not cover: (1) `select` enumerated the
+target of `@…/*` without checking its type, so `{"keys": {}}` or `{"keys": ""}` was
+counted as complete while validating nothing; (2) the extractor's validator had no
+format checker, so a discovery example with `"inbox": "not a URI"` passed; (3) the
+parser inherited Python's 4300-digit integer conversion limit, rejecting a valid JSON
+integer of 5000 digits at step 2, contrary to P2. Fixed respectively by requiring a JSON
+array for `@…/*`, by asserting formats (with `/htu` and `/dpop_nonce_htu` declared as
+the placeholders they are), and by lifting the digit limit for the parse only.
+Regressions: self-test cases (object and string under `@/keys/*`, the discovery example
+with a non-URI `inbox` next to its unmodified control, a 5000-digit integer with the
+limit restored), raw vector CTV-16; mutations (r), (s), (t). No decision changed.
+Format assertion needs the format checkers' own packages: without them `jsonschema` skips
+`uri`, `date-time` and the other formats silently. `scripts/requirements.txt` therefore
+declares `jsonschema[format-nongpl]>=4.18.0`, which is what CI installs. Checked in two
+fresh virtual environments: with the declared requirements, the whole battery passes;
+with plain `jsonschema`, `check_consistency.py` fails on the extractor self-test
+(discovery example with a non-URI `inbox` accepted), so a missing format dependency is
+reported, never passed over.
+
+**Counts before → after.**
+- Vectors 893 → 915 (validator 483 / 215 / 195 → 485 / 215 / 196, and 19 raw: 6 accepted,
+  13 rejected); crypto-checked 154 → 157 (142 → 145 verified, 9 negatives, 3 canonical
+  only); 0 failures in all four modes.
+- Skip classification 195 → 196 rows (temporal 13 → 14; INV-171 `executed: R16`).
+- Spec examples: 82 blocks = 77 full (53 complete, 10 template, 12 partial, 2
+  no-schema) + 5 fragments; schema-validated 9 → 75.
+- RTM 2045 / 1241 → 2049 / 1245 (CORE-§5.2-17..20; CORE-§8.3-09 and CORE-§4.1.3-03 gain
+  the A-62 vectors); Core coverage summary recomputed; Draft-02 Delta row added.
+- Consistency checks 129 → 131; harness R1-R22, 676 → 746 assertions.
+- Findings register 99 rows: open 5 → 2, closed 94 → 97; disposition per DR or cycle
+  addendum 34 → 37, recorded 16, pending 49 → 46. Coverage register 24 rows: open 6 →
+  2, closed 18 → 22.

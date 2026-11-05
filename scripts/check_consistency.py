@@ -14,6 +14,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, "scripts")
+from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
+
 FAIL = []
 
 
@@ -662,7 +665,7 @@ INV150_SIGNED_EFFECTIVE_AT = "2026-03-24T13:55:00.000Z"  # the effective_at the 
 
 
 def _catalog_keys():
-    kp = json.load(open("test-vectors/keypairs.json", encoding="utf-8"))["keypairs"]
+    kp = strict_load("test-vectors/keypairs.json")["keypairs"]
     return {e["kid"]: e for e in kp.values()}
 
 
@@ -1025,7 +1028,7 @@ def resigner_contract_problems():
         return p.returncode, p.stdout + p.stderr
 
     def vec(path, vid):
-        return next(v for v in json.load(open(path, encoding="utf-8"))["vectors"] if v["id"] == vid)
+        return next(v for v in strict_load(path)["vectors"] if v["id"] == vid)
 
     def edit_ctv02(by):
         by["CTV-02"]["message"]["payload"]["args"] = {"edited": "re-sign me"}
@@ -1154,6 +1157,141 @@ def unresolved_refs(schemas):
     return out
 
 
+def example_annotation_problems():
+    """A-63: the example extractor applies only the declared exemptions. Synthetic spec blocks that MUST fail:
+    a template error outside the declared pointer; the composite case (a oneOf with a placeholder at /x/id AND
+    a real defect at /count); a partial that would hide an undeclared nested required member; a full block
+    without annotation; a template pointer whose value is no placeholder. A control block MUST pass."""
+    import tempfile
+    sys.path.insert(0, "scripts")
+    import extract_examples as ee
+    from referencing import Resource
+    schemas, registry = ee.load_registry()
+    syn = {"$schema": "https://json-schema.org/draft/2020-12/schema",
+           "$id": "https://arsiaprotocol.org/schemas/v2.0/syn-composite.schema.json",
+           "oneOf": [{"type": "object", "required": ["x", "count"],
+                      "properties": {"x": {"type": "object", "properties": {"id": {"type": "string", "pattern": "^[0-9]+$"}}},
+                                     "count": {"type": "integer"}}},
+                     {"type": "array"}]}
+    amb = {"$schema": "https://json-schema.org/draft/2020-12/schema",
+           "$id": "https://arsiaprotocol.org/schemas/v2.0/syn-ambiguous.schema.json",
+           "oneOf": [{"type": "object"}, {"required": ["a"]}]}  # {"a": 1} is valid under BOTH branches
+    schemas = dict(schemas, **{"syn-composite.schema.json": syn, "syn-ambiguous.schema.json": amb})
+    registry = registry.with_resources([(syn["$id"], Resource.from_contents(syn)),
+                                        (amb["$id"], Resource.from_contents(amb))])
+    D = "arsia-message.schema.json#/$defs/error-details-forbidden"
+    err = '{"intent": "error", "correlation_id": "7a000000-0000-4000-8000-000000000001", "root_request_id": "7a000000-0000-4000-8000-000000000001", "payload": {"type": "com.acme.test/run", "error": {"description": "d"}}}'
+    cases = {  # name -> (annotation line or None, body, must_fail)
+        "template error outside the pointer": (f"<!-- example: {D}; template=/required_capabilities -->",
+                                               '{"required_capabilities": "<caps>", "provided_capabilities": 5}', True),
+        "composite /x/id placeholder + /count defect": ("<!-- example: syn-composite.schema.json; template=/x/id -->",
+                                                        '{"x": {"id": "<id>"}, "count": "three"}', True),
+        "composite control (placeholder only)": ("<!-- example: syn-composite.schema.json; template=/x/id -->",
+                                                 '{"x": {"id": "<id>"}, "count": 3}', False),
+        "oneOf valid under two branches (empty error context)": ("<!-- example: syn-ambiguous.schema.json -->",
+                                                                 '{"a": 1}', True),
+        "partial hiding a nested required member": ("<!-- example: arsia-message.schema.json; partial=/v,/id,/ts,/from,/to,/security -->",
+                                                    err, True),
+        "full block without annotation": (None, '{"required_capabilities": ["a.b"], "provided_capabilities": []}', True),
+        "template pointer that is no placeholder": (f"<!-- example: {D}; template=/required_capabilities -->",
+                                                    '{"required_capabilities": ["a.b"], "provided_capabilities": []}', True),
+        "control (complete)": (f"<!-- example: {D} -->", '{"required_capabilities": ["a.b"], "provided_capabilities": []}', False),
+        "array selector over an object": ("<!-- example: arsia-jwk-entry.schema.json @/keys/* -->", '{"keys": {}}', True),
+        "array selector over a string": ("<!-- example: arsia-jwk-entry.schema.json @/keys/* -->", '{"keys": ""}', True),
+    }
+    # formats are asserted: the Core discovery example, with only `inbox` changed to a non-URI, fails
+    core = open("spec/ARSIA-Core.md", encoding="utf-8").read()
+    m = re.search(r"<!-- example: arsia-discovery-response\.schema\.json -->\n```json\n(.*?)```", core, re.S)
+    if m is None:
+        out_pre = ["Core discovery example not found for the format control"]
+    else:
+        out_pre = []
+        disc = json.loads(m.group(1))
+        cases["discovery example (control)"] = ("<!-- example: arsia-discovery-response.schema.json -->", json.dumps(disc), False)
+        cases["discovery example with inbox 'not a URI'"] = ("<!-- example: arsia-discovery-response.schema.json -->",
+                                                             json.dumps(dict(disc, inbox="not a URI")), True)
+    out = list(out_pre)
+    for name, (ann, body, must_fail) in cases.items():
+        with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+            f.write("# synthetic\n\n" + (ann + "\n" if ann else "") + "```json\n" + body + "\n```\n")
+        _counts, failures, _inv = ee.scan([f.name], schemas, registry)
+        os.unlink(f.name)
+        if bool(failures) != must_fail:
+            out.append(f"{name}: {'accepted' if must_fail else 'rejected: ' + '; '.join(failures)[:120]}")
+    return out
+
+
+def strict_parsing_problems(vectors):
+    """A-61: the Core §5.2 steps 2-4 as the repository executes them.
+    (1) a corpus with a duplicate member name stops validate_vectors.py (exit != 0, step 4) before any vector
+    is reported; (2) the steps run in order: a document with both an unpaired surrogate and a duplicate is
+    rejected at step 3; (3) every raw vector is accepted, or rejected at the step its description states;
+    (4) the meta-schema keeps the raw format exclusive both ways; (5) the scripts load artifacts only through
+    strict_load (no json.load on a file)."""
+    import subprocess, tempfile
+    from jsonschema import Draft202012Validator
+    from validate_vectors import JsonRejected
+    out = []
+    with tempfile.NamedTemporaryFile("wb", suffix=".json", delete=False) as f:
+        f.write(b'{"vectors": [], "vectors": []}')
+    r = subprocess.run([sys.executable, "scripts/validate_vectors.py", "--vectors", f.name, "--format", "summary"],
+                       capture_output=True, text=True)
+    os.unlink(f.name)
+    if r.returncode == 0 or "step 4" not in r.stderr or "TOTAL" in r.stdout:
+        out.append("a corpus with a duplicate member name does not stop validate_vectors.py at step 4")
+    try:
+        strict_json(b'{"x":"\\ud800","a":1,"a":2}')
+        out.append("unpaired surrogate + duplicate accepted")
+    except JsonRejected as exc:
+        if exc.step != 3:
+            out.append(f"unpaired surrogate + duplicate rejected at step {exc.step}, not 3 (order 2 -> 3 -> 4)")
+    for doc in (b'{}', b'[]', b'[["a", 1]]', b'{"a": []}', b'[{}]'):  # objects and arrays stay distinct
+        if strict_json(doc) != json.loads(doc):
+            out.append(f"{doc.decode()} not preserved: {strict_json(doc)!r}")
+    limit = sys.get_int_max_str_digits()
+    try:  # steps 2-4 add no limit on numbers: an integer beyond Python's default digit limit stays an integer
+        big = strict_json(b'{"n":' + b"7" * 5000 + b"}")["n"]
+        if not isinstance(big, int):
+            out.append("a 5000-digit integer is not kept as an integer")
+    except JsonRejected as exc:
+        out.append(f"a 5000-digit integer rejected ({exc})")
+    if sys.get_int_max_str_digits() != limit:
+        out.append("strict_json leaves Python's int digit limit changed")
+    try:
+        strict_json(b'{"a":1,"a":2}')
+        out.append("duplicate-only document accepted")
+    except JsonRejected as exc:
+        if exc.step != 4:
+            out.append(f"duplicate-only document rejected at step {exc.step}, not 4")
+    raw = [v for v in vectors if "raw_hex" in v]
+    if {v["expected_parse"] for v in raw} != {"accept", "reject"}:
+        out.append("raw vectors lack accepted controls or rejections")
+    for v in raw:
+        stated = re.search(r"\(step (\d)", v["description"])
+        try:
+            strict_json(bytes.fromhex(v["raw_hex"]))
+            got = ("accept", None)
+        except JsonRejected as exc:
+            got = ("reject", exc.step)
+        want = (v["expected_parse"], int(stated.group(1)) if stated and v["expected_parse"] == "reject" else None)
+        if got != want:
+            out.append(f"{v['id']}: {got} != stated {want}")
+    meta = strict_load("schemas/arsia-test-vectors.meta.json")
+    mv = Draft202012Validator(meta["$defs"]["test-vector"])
+    base = {"id": "SYN-1", "description": "synthetic", "expected_error": None}
+    if mv.is_valid(dict(base, message={}, valid=True, raw_hex="7b7d", expected_parse="accept")):
+        out.append("meta-schema accepts a vector mixing message-only and raw")
+    if mv.is_valid(dict(base, raw_hex="7b7d")):
+        out.append("meta-schema accepts raw_hex without expected_parse")
+    if not mv.is_valid(dict(base, raw_hex="7b7d", expected_parse="accept")):
+        out.append("meta-schema rejects a well-formed raw vector")
+    for script in ("validate_vectors.py", "check_consistency.py", "runtime_harness.py", "extract_examples.py", "regen_v2.py"):
+        text = open(f"scripts/{script}", encoding="utf-8").read()
+        if re.search(r"json\.load\(", text):
+            out.append(f"scripts/{script} loads a file with json.load, not strict_load")
+    return out
+
+
 def skip_structure_selftest(vectors):
     """A-42 self-test: the validator still validates runtime-only vectors structurally. A synthetic skip vector
     missing a required envelope field must make validate_vectors.py fail (a restored skip bypass goes dead)."""
@@ -1177,7 +1315,7 @@ def main() -> int:
     ]
     schemas = {}
     for f in schema_files:
-        j = json.load(open(f))
+        j = strict_load(f)
         schemas[f.split("/")[-1]] = j
         try:
             Draft202012Validator.check_schema(j)
@@ -1202,7 +1340,7 @@ def main() -> int:
             [(j["$id"], Resource.from_contents(j)) for j in schemas.values()]
         )
         v = Draft202012Validator(schemas["arsia-message.schema.json"], registry=reg)
-        doc = json.load(open("test-vectors/arsia-test-vectors.json"))
+        doc = strict_load("test-vectors/arsia-test-vectors.json")
         sample = next(x for x in doc["vectors"] if x["id"] == "CTV-01")["message"]
         check("strict $ref resolution (CTV-01)", not list(v.iter_errors(sample)))
         dead = unresolved_refs(schemas)
@@ -1218,7 +1356,7 @@ def main() -> int:
         print("skip strict-resolution check (referencing not installed)")
 
     # profiles catalog validates against its own schema (N-02)
-    catalog = json.load(open("profiles/arsia-compliance-profiles.json"))
+    catalog = strict_load("profiles/arsia-compliance-profiles.json")
     errs = list(
         Draft202012Validator(schemas["arsia-compliance-profiles.schema.json"]).iter_errors(catalog)
     )
@@ -1268,7 +1406,7 @@ def main() -> int:
     check("no retention_days in schema descriptions (D1)", not hits3, ",".join(hits3[:5]))
 
     # vector descriptions must not narrate removed Draft-01 retention_days semantics (D1)
-    vec_doc = json.load(open("test-vectors/arsia-test-vectors.json"))
+    vec_doc = strict_load("test-vectors/arsia-test-vectors.json")
     hits4 = []
     for v in vec_doc["vectors"]:
         desc = v.get("description", "")
@@ -1579,8 +1717,8 @@ def main() -> int:
     import runtime_harness as rh
     from referencing import Registry, Resource
     reg = Registry().with_resources([(j["$id"], Resource.from_contents(j)) for j in schemas.values()])
-    rules = json.load(open("profiles/arsia-obligation-rules.json"))
-    vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
+    rules = strict_load("profiles/arsia-obligation-rules.json")
+    vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     identity_text = open("spec/ARSIA-Identity.md", encoding="utf-8").read()
     routing_text = open("spec/ARSIA-Routing.md", encoding="utf-8").read()
     errs = list(Draft202012Validator(schemas["arsia-obligation-rules.schema.json"]).iter_errors(rules))
@@ -1617,6 +1755,12 @@ def main() -> int:
           f" total {total.group(1) if total else None} vs {len(skipped)}")
 
     check("validator self-test: a structurally invalid runtime-only vector fails (A-42)", skip_structure_selftest(vectors))
+    probs = example_annotation_problems()
+    check("example extractor self-test: only declared template/partial exemptions, combinators on all branches, "
+          "annotation required (A-63)", not probs, "; ".join(probs[:4]))
+    probs = strict_parsing_problems(vectors)
+    check("strict JSON (Core §5.2 steps 2-4): corpus duplicate stops the tools, step order, raw vectors at their "
+          "stated step, raw format exclusive, artifacts loaded strictly (A-61)", not probs, "; ".join(probs[:4]))
     probs = coverage_claim_problems(skip_doc, vectors)
     check("skip classification coverage column == harness evidence; totals computed (A-65)", not probs,
           "; ".join(probs[:4]))

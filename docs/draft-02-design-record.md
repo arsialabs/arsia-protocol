@@ -187,6 +187,34 @@ alignments, listed for the GitHub Issue (CONTRIBUTING §4).
   instant decides only the deadline, signature, key resolution and token are evaluated
   at the verification instant.
 
+**Addendum — 2026-11-05 (owner decisions for coverage SC3, under DR-0).**
+- **P1 — Raw vectors.** Parsing vectors carry the exact received bytes (`raw_hex`) in a
+  fourth test-corpus format, exclusive of the other three both ways; they exercise only
+  the Core §5.2 pipeline steps 2–4, with accepted controls as well as rejections. The
+  tools load every artifact through the same strict parser; a duplicate in the corpus
+  stops them. The new contract is documented for consumers; changing the SDK
+  repositories is outside the cycle.
+- **P2 — Scope and code (normative).** Rejected with `invalid_request`: invalid UTF-8,
+  an unpaired surrogate, a noncharacter (member names and strings, literal or escaped,
+  any depth), a duplicate member name after escape processing; a valid surrogate pair
+  stays accepted ([RFC 7493] §§2.1–2.3). No general ban on integers beyond ±(2^53−1);
+  RFC 8785 canonicalization and ARSIA-State §2.1.2 still apply; `NaN`/`Infinity` are
+  not JSON.
+- **P3 — Example annotations.** Every full example in `spec/` carries an annotation:
+  complete validation, `template` (only the declared placeholder values and the
+  constraints they prevent), `partial` (only the declared omissions; shown members,
+  nested `required` included, still constrained) or `no-schema` with a reason;
+  annotations never make malformed JSON valid.
+- **P4 — null optionals.** The approval_decision examples omit `reason`/`conditions`
+  without a value; the harness stops emitting `null`; R15 validates the decisions it
+  builds as fixture quality, outside the normative order; the schema is unchanged.
+- **Plan-review adjustments.** R1 no heuristic (best_match) decides an exemption;
+  combinators are re-evaluated on all branches, two valid oneOf branches remain a
+  failure; R2 the raw format is exclusive both ways; R3 escaped bytes are explicit, the
+  detectors of the parser mutations are fixed; R4 duplicates are preserved through the
+  parse and the checks run 2 → 3 → 4; objects and arrays stay distinct in the
+  intermediate tree.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

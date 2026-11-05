@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 13, token: 17, transport: 5, x509: 7 — total 195.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 14, token: 17, transport: 5, x509: 7 — total 196.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -232,6 +232,7 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-155 | Actions §3.4; Core §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-156 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-157 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-171 | Core §8.3 | Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance | temporal | behavioural-runtime | — | executed: R16 |
 
 ## Residual risk statement
 

@@ -1347,6 +1347,7 @@ declares** a `retention` value, the receiving agent MUST compare the two per
 `declared_until < minimum_until`, the message MUST be rejected with error code
 `"invalid_request"` and details:
 
+<!-- example: no-schema — an invalid_request details object required by Core §4.3.8 Rule 4; arsia-message.schema.json defines no $def for it -->
 ```json
 {
   "insufficient_retention": true,
@@ -1959,8 +1960,12 @@ and ensures profile resolution never runs over unauthenticated input. The order 
 
 1. Enforce transport size limits (§8.1, `payload_too_large`).
 2. Parse the JSON document.
-3. Enforce I-JSON conformance (RFC 7493).
-4. Reject documents containing duplicate object member names.
+3. Enforce I-JSON conformance ([RFC 7493] §2.1): the document is UTF-8, and no
+   member name or string value — written literally or as an escape, at any depth —
+   contains a surrogate code point outside a valid surrogate pair, or a
+   noncharacter.
+4. Reject documents containing duplicate object member names at any depth, compared
+   after escape processing ([RFC 7493] §2.3).
 5. Check the minimal presence and shape of the fields required to verify: `v`,
    `from`, and the `security` object (`alg`, `kid`, `sig`) when required by the
    intent.
@@ -1973,6 +1978,14 @@ and ensures profile resolution never runs over unauthenticated input. The order 
 11. Only then: full schema and semantic validation of the envelope and payload.
 12. Token, capability, and compliance validation (§6.4, §4.3.8).
 13. Payload processing.
+
+A document that fails step 2, 3 or 4 MUST be rejected with error code
+`invalid_request` (§11.2). `NaN` and `Infinity` are not JSON and fail step 2. Passing
+steps 2–4 establishes only that the document is well-formed I-JSON text: it does not
+make the message valid, authenticated or authorized. Steps 2–4 add no limit on the
+magnitude or precision of JSON numbers; numbers remain subject to the RFC 8785
+canonicalization of step 7 and to the constraints of the fields that carry them
+(e.g. ARSIA-State.md §2.1.2).
 
 #### Verification Procedure (Normative)
 
@@ -2384,6 +2397,7 @@ message. The enforcement procedure is as follows:
      `forbidden` (§11.2). The error response MUST include the following fields in
      `payload.error.details`:
 
+     <!-- example: arsia-message.schema.json#/$defs/error-details-forbidden -->
      ```json
      {
        "required_capabilities": ["com.example.notes.read", "com.example.notes.write"],
@@ -2555,6 +2569,7 @@ The discovery endpoint SHOULD set the following HTTP response headers:
 
 #### Example Discovery Response
 
+<!-- example: arsia-discovery-response.schema.json -->
 ```json
 {
   "agent_id": "agent:acme.billing",
@@ -2630,6 +2645,7 @@ sending agent SHOULD be prepared to handle a `pending_approval` response.
 
 #### Example Capability Discovery Response
 
+<!-- example: arsia-capability-descriptor.schema.json @/* -->
 ```json
 [
   {
@@ -2738,6 +2754,7 @@ rules govern key rotation:
 
 #### Example JWKS Response
 
+<!-- example: arsia-jwk-entry.schema.json @/keys/* -->
 ```json
 {
   "keys": [
@@ -2800,6 +2817,7 @@ envelope and the `server_min` and `server_max` fields in the discovery response.
    with error code `not_implemented` (§11.2) and MUST include the following fields in
    `payload.error.details`:
 
+   <!-- example: arsia-message.schema.json#/$defs/error-details-not-implemented -->
    ```json
    {
      "supported_versions": {
@@ -2982,6 +3000,7 @@ sending any ARSIA messages:
 
 **Step 1:** Client sends an authentication frame:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth",
@@ -2996,6 +3015,7 @@ prefix).
 
 On success:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth_ok",
@@ -3005,6 +3025,7 @@ On success:
 
 On failure:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "auth_error",
@@ -3023,6 +3044,7 @@ envelopes as JSON text frames. Binary frames MUST NOT be used for ARSIA messages
 
 The client MUST send a heartbeat frame every 30 seconds to maintain the connection:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "ping"
@@ -3031,6 +3053,7 @@ The client MUST send a heartbeat frame every 30 seconds to maintain the connecti
 
 The server MUST respond within 5 seconds:
 
+<!-- example: arsia-websocket-frame.schema.json -->
 ```json
 {
   "type": "pong"
@@ -3238,6 +3261,7 @@ When a message envelope contains a `compliance.data_residency` value:
    registry, the sender's own organisation, or a third-party broker directory). The
    response is a JSON array of `BrokerEntry` objects (ARSIA-Routing.md §7.2):
 
+   <!-- example: arsia-broker-entry.schema.json @/* -->
    ```json
    [
      {
@@ -3260,6 +3284,7 @@ When a message envelope contains a `compliance.data_residency` value:
    agent MUST return an error to its caller with error code `service_unavailable`
    (§11.2) and the following details:
 
+   <!-- example: arsia-message.schema.json#/$defs/error-details-service-unavailable-residency -->
    ```json
    {
      "data_residency_violation": true,
@@ -3538,6 +3563,7 @@ identity verification flows of ARSIA-Identity.md §6.4; they follow the standard
 The following error codes have specific requirements for the `details` object:
 
 **`forbidden`:** The `details` object MUST include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-forbidden -->
 ```json
 {
   "required_capabilities": ["cap.one", "cap.two"],
@@ -3546,6 +3572,7 @@ The following error codes have specific requirements for the `details` object:
 ```
 
 **`not_implemented`:** The `details` object MUST include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-not-implemented -->
 ```json
 {
   "supported_versions": {
@@ -3555,6 +3582,7 @@ The following error codes have specific requirements for the `details` object:
 }
 ```
 When the error is due to an unsupported payload type, `details` SHOULD also include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-not-implemented; partial=/supported_versions -->
 ```json
 {
   "unsupported_type": "com.example.unknown/action"
@@ -3562,6 +3590,7 @@ When the error is due to an unsupported payload type, `details` SHOULD also incl
 ```
 
 **`rate_limited`:** The `details` object SHOULD include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-rate-limited -->
 ```json
 {
   "retry_after_seconds": 30,
@@ -3572,6 +3601,7 @@ When the error is due to an unsupported payload type, `details` SHOULD also incl
 ```
 
 **`payload_too_large`:** The `details` object SHOULD include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-payload-too-large -->
 ```json
 {
   "max_message_bytes": 1048576,
@@ -3581,6 +3611,7 @@ When the error is due to an unsupported payload type, `details` SHOULD also incl
 
 **`service_unavailable`:** When caused by a data residency violation (§9.2), the
 `details` object MUST include:
+<!-- example: arsia-message.schema.json#/$defs/error-details-service-unavailable-residency -->
 ```json
 {
   "data_residency_violation": true,
@@ -4161,6 +4192,9 @@ Registration Procedures", BCP 13, RFC 6838, DOI 10.17487/RFC6838, January 2013.
 **[RFC 6901]** Bryan, P., Ed., Zyp, K., and M. Nottingham, Ed., "JavaScript Object
 Notation (JSON) Pointer", RFC 6901, DOI 10.17487/RFC6901, April 2013.
 
+**[RFC 7493]** Bray, T., Ed., "The I-JSON Message Format", RFC 7493,
+DOI 10.17487/RFC7493, March 2015.
+
 **[RFC 7515]** Jones, M., Bradley, J., and N. Sakimura, "JSON Web Signature (JWS)",
 RFC 7515, DOI 10.17487/RFC7515, May 2015.
 
@@ -4248,6 +4282,7 @@ This example shows a minimal ARSIA request message containing only required fiel
 the `payload` with a simple echo action, and the `security` object with an EdDSA
 signature.
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -4300,6 +4335,7 @@ This example shows a complete ARSIA request message using all optional fields,
 including the compliance object with the `EU-AI-ACT-HIGH-RISK` profile, distributed
 tracing context, and idempotency configuration.
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",
@@ -4406,6 +4442,7 @@ assessment.
 This example shows an error response to the minimal request in §A.1. The error
 indicates that the sender's access token does not include sufficient capabilities.
 
+<!-- example: arsia-message.schema.json -->
 ```json
 {
   "v": "2.0",

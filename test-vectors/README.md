@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-893 test vectors (483 schema-valid, 215 expected-invalid, 195 runtime-only — validator classification) for
+915 test vectors (485 schema-valid, 215 expected-invalid, 196 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -11,33 +11,51 @@ verification outcome (`crypto.expect_signature`).
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 893 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 915 test vectors |
 | [keypairs.json](keypairs.json) | 17 test keypairs: 15 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle and the two added in coverage SC1 is stated in the file) |
 
 ## Vector Formats
 
-Each vector matches one of three discriminated formats defined by the
-meta-schema (`schemas/arsia-test-vectors.meta.json`):
+Each vector matches exactly one of four discriminated formats defined by the
+meta-schema (`schemas/arsia-test-vectors.meta.json`); the meta-schema excludes the
+fields of every other format, both ways:
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 323 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 488 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `message-only` | 344 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `schema-ref` | 548 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
+| `raw` | 19 | Exact received bytes, checked only by the Core §5.2 pipeline steps 2–4. Uses `raw_hex` + `expected_parse` fields. |
+
+**Raw parse vectors (Core §5.2 steps 2–4).** `raw_hex` holds the exact received bytes
+(lowercase hex, an even number of digits); `expected_parse` is `accept` or `reject`,
+and a rejection carries `expected_error: "invalid_request"`. A consumer decodes the
+bytes as UTF-8 (step 2: UTF-8 and JSON, `NaN`/`Infinity` rejected), checks I-JSON
+(step 3: no surrogate outside a valid pair and no noncharacter, in any member name or
+string, literal or escaped, at any depth — [RFC 7493] §2.1) and then duplicate member
+names at any depth after escape processing (step 4, [RFC 7493] §2.3), in that order.
+Accepting a raw vector establishes only well-formed I-JSON text: it is not a valid,
+authenticated or authorized message, and the steps add no limit on JSON numbers (an
+integer beyond a library's default digit limit is still a number, CTV-16). This
+is a test-corpus format, not an ARSIA envelope. The descriptions write escapes as they
+are in the bytes (`\ud83d` is the six ASCII characters of the escape); `raw_hex` is
+authoritative. The repository tools also load every artifact through these steps
+(`strict_load` in `scripts/validate_vectors.py`): a duplicate member name in the corpus
+itself stops the tools.
 
 ## ID Prefixes
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 708 |
-| `INV-` | Invalid (all specs) | 157 |
-| `CTV-` | Core (envelope, intents, compliance) | 10 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 710 |
+| `INV-` | Invalid (all specs) | 171 |
+| `CTV-` | Core (envelope, intents, compliance, raw parsing) | 16 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-709** / **INV-158**
+Next available ID: **ITV-711** / **INV-172** / **CTV-17**
 
 ## Runtime-Only Vectors
 
@@ -55,7 +73,7 @@ shows that the binding holds, not that the vector's message is accepted (the vec
 be invalid for another reason). `token_binding` and `attestation` scenarios state the
 presented token explicitly.
 
-195 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+196 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally
