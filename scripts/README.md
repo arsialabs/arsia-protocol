@@ -14,8 +14,7 @@ Utility scripts for the ARSIA Protocol specification repository.
 | `extract_examples.py` | Extracts every ```json block from spec prose; full examples must parse, envelope-shaped ones must validate against the message schema |
 | `check_links.py` | Cross-reference link checker (M-14): every `§N.N` reference in specs and artifact descriptions must resolve to an existing heading |
 | `rtm_counts.py` | Header-driven RTM parser — reproducible row/modal counts for the six traceability matrices |
-| `regen_v2.py` | v2 signer/generator — re-signs affected vectors under the Draft-02 signing profile and logs the affected set |
-| `gen_state_vec2.py` | Generator for state operation test vectors (development utility) |
+| `regen_v2.py` | Draft-02 signing helpers and selective re-signer of valid signed vectors (Core §5.1 profile) |
 
 ## Usage
 
@@ -41,6 +40,30 @@ Expected output: pass/skip/fail counts, with 0 failures. The CI workflow (`.gith
   `absent` marks a message deliberately without `security`, for which only the
   canonical bytes are checked. The output reports verified signatures, asserted
   negatives and canonical-only blocks separately.
+
+### regen_v2.py
+
+Re-signs the vectors named with `--ids` after an edit to a signed envelope, under the
+Draft-02 signing profile (envelope with `security` present, only `security.sig` removed).
+
+```bash
+python3 scripts/regen_v2.py --ids CTV-02,ITV-03            # dry run: reports, per ID, what would change
+python3 scripts/regen_v2.py --ids CTV-02 --apply           # write
+```
+
+- Only vectors whose `crypto.expect_signature` is `valid` are eligible; signature
+  negatives and `absent` blocks are fixtures and are refused.
+- Every ID is checked first: an unknown or ineligible ID aborts the run and nothing is
+  written.
+- Before signing, the declared `alg` must be allowlisted and compatible with the public
+  key, and the private key must derive `public_key_hex`; the produced signature is
+  verified with the validator's verifier before writing.
+- Only `security.sig`, `crypto.canonical_bytes_hex` and `crypto.signature_base64url`
+  change; other vectors and the file format are preserved byte for byte. A file the
+  serializer would not reproduce exactly (other escapes, CRLF line endings, other
+  spacing) is refused with nothing written. ES256 signatures differ from run to run.
+- The tool never migrates or edits an envelope. `check_consistency.py` verifies this
+  contract on temporary copies.
 
 ### Dependencies
 

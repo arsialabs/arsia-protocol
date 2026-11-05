@@ -45,7 +45,7 @@ ARSIA Protocol embeds compliance into the message envelope — the same way TLS 
 
 ### For Developers
 
-**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [33 JSON Schemas](schemas/) (Draft 2020-12) and [815 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
+**New here?** Start with the [Getting Started guide](docs/getting-started.md) — zero to a validated, signed message in 15 minutes. Then explore the [specifications table](#specifications) below for the full protocol design. Validate your implementation against [33 JSON Schemas](schemas/) (Draft 2020-12) and [831 test vectors](test-vectors/) — including real Ed25519, ES256, and RS256 cryptography. Use the [validation scripts](scripts/) to check envelopes and crypto locally.
 
 ARSIA defines three [conformance levels](spec/ARSIA-Core.md#12-conformance-levels) — pick the one that fits your deployment:
 
@@ -65,9 +65,9 @@ Key protocol sections for regulatory review: human oversight workflow ([Actions 
 
 ### For Regulators
 
-Six [Requirements Traceability Matrices](docs/rtm/) (1,986 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
+Six [Requirements Traceability Matrices](docs/rtm/) (2,021 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
 
-All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [829 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
+All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [831 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
 
 ---
 
@@ -109,8 +109,8 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 33 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 829 test vectors (473 schema-valid, 208 expected-invalid, 148 runtime-only) |
-| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (1,986 rows) |
+| [`test-vectors/`](test-vectors/) | 831 test vectors (473 schema-valid, 208 expected-invalid, 150 runtime-only) |
+| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,021 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
 15 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.

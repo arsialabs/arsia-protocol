@@ -779,3 +779,112 @@ instead of resolving them, by coincidence, to sections of the citing document.
 - Regulatory register 37 → 40 rows (T-10..T-12).
 - Coverage register 22 → 24 rows: open 14, closed 8 → 10.
 - Named conformance tests 86 → 89 (ROUTING-11, ROUTING-12, IDENTITY-23).
+
+## 21. Tools cycle closure evidence
+
+Execution baseline `f618891`. Owner decisions F1–F4 are in the design record (DR-0
+addendum, tools cycle). Line references are to the files after the cycle. Mutations
+ran on a scratch copy: `git archive f618891` with the full candidate diff applied, the
+unmutated copy first passing the whole battery, and the candidate restored between
+cases; the repository was not touched and no early commit was made. No key material
+was printed.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-33 | Executed alg/key-mismatch vector asserted to fail | INV-111 (Ed25519 key, `alg: "ES256"`) and INV-112 (P-256 key, `alg: "RS256"`), message-only, `skip_schema`, `expect_signature: "invalid"`. The wrong alg is in the envelope before the signing input is computed; each signature is valid for the key's own algorithm (Ed25519, ES256) over those bytes. `validate_vectors.py --check-crypto` asserts both negatives (126 checked: 119 verified, 4 negatives, 3 canonical only); `_verify_signature` (l.230) rejects them with "incompatible with". Guard `alg_mismatch_problems` (`check_consistency.py` l.596): bytes == signing input with the declared alg, `security.sig` == `crypto.signature_base64url`, verification under the key's algorithm, rejection for incompatibility. Coverage `executed: --check-crypto` for INV-18, INV-19, INV-111, INV-112, admitted by the A-65 guard only for signature negatives (l.785), with a synthetic negative control (l.1435). RTM CORE-§5.2-13 (new), CORE-§5.2-07, IDENT-§3.1-08 | (a)–(d) | yes |
+| A-40 | Generator dry-run validated against v2 schemas; envelope_hash used or documented | Disposition: `scripts/gen_state_vec2.py` retired (removed with its scripts/README entry). It was not ported and no dry run of it passed; the criterion's dry run no longer applies because the generator no longer exists and the corpus is the maintained source of ITV-215..277. Before removal: 63 vectors; 18 gave an outcome different from their declared expectation under the current schemas; 19 differed from the corpus in `message`/`data` (all 63 differ as whole objects, by `req_ids`). `stringify_amounts` (two decimals for every currency) removed with the one-shot migration of `scripts/regen_v2.py`, now a selective re-signer (`eligibility` l.110, `resign` l.125, `main` l.171; `_sign` l.92 the only signing function). `envelope_hash` (l.55) documented: purpose (Routing §7.4.1), no consumer, does not verify an attestation on its own, coverage with A-56 — not A-56 evidence. Contract guard `resigner_contract_problems` (l.819) | (e)–(n) | yes |
+
+**The removed `--apply` migration, simulated in memory at `f618891`.** It would have
+changed three vectors and the file format: INV-41 (adding `root_request_id`, the very
+field whose absence makes it a negative), ITV-551 and INV-18 (re-signed in ES256, a
+different signature each run), and a final newline the corpus does not have. Its dry
+run reported "migrated envelopes: 1" (INV-41) and "re-signed: 124".
+
+**Re-signer contract (guard cases).** Run on temporary copies; "nothing written" is
+observed by `st_mtime_ns` and hash, so an identical rewrite also counts.
+- (a) dry run on CTV-02: exit 0, nothing written.
+- (b) `--apply` on CTV-02 (EdDSA, deterministic): file identical byte for byte (format
+  and the absent final newline kept).
+- (c) `--apply` on ITV-551 (ES256): only its three signature fields change, the new
+  signature verifies, the other vectors are identical.
+- (d) unknown ID and (e) INV-18 (`invalid`), INV-15 (`absent`) with `--apply`: refused,
+  nothing written.
+- (f) mixed batch `CTV-02,INV-18` on a copy where CTV-02 was edited (so re-signing it
+  would change the file): refused, nothing written.
+- (g) a `public_key_hex` the private key does not derive: refused with "refused before
+  signing", nothing written.
+- (h) edited CTV-02 (`payload.args` changed, old crypto fields kept): the dry run writes
+  nothing; `--apply` keeps the edit, recomputes the canonical bytes from the edited
+  envelope, produces a verifying signature, changes only the three signature fields,
+  and leaves every other vector identical.
+- (i) in process, `_sign` replaced by a version that flips one byte, correct key pair:
+  refused with "signature does not verify", nothing written.
+- (j) a file the serializer would normalise — the `id` of the unselected CTV-01 written
+  as `"\u0043TV-01"` (semantically identical), or CRLF line endings: `--apply --ids
+  CTV-02` is refused ("byte for byte"), nothing written.
+
+In (c) and (h) the other vectors are compared as objects and both files must be in the
+one byte format the serializer reproduces; together, the other vectors are equal byte
+for byte.
+
+**Owner review (2026-11-05), fixed before commit.** The first candidate read the corpus
+as text and re-serialised the whole document, so a semantically identical input in
+another format (an escaped `id` of an unselected vector, CRLF) was rewritten: CTV-01's
+representation changed while CTV-02 was reported "unchanged", and CRLF became LF. The
+guard compared the other vectors only as objects. Fix: `main` reads bytes and refuses,
+before any write, a file whose serialisation does not reproduce its bytes; it writes
+bytes (`serialize`). Regressions: contract case (j) and the byte-format condition in
+(c) and (h); mutation (n). Four published counts left behind are corrected: README.md
+"815 test vectors" (now 831) and "1,986 rows" (twice), docs/getting-started.md "1,986
+rows" (now 2,021).
+
+The prior check (key pair and compatibility) and the final verification have distinct
+purposes and are tested separately: (g) and mutation (i) for the first, (i) and
+mutation (m) for the second. For a mismatched key pair the final verification is
+redundant, which does not make it dispensable.
+
+All 119 valid signed vectors re-sign under the new tool (dry run on a copy): 118
+unchanged, ITV-551 re-signed (ES256). The real dry run `regen_v2.py --ids CTV-02` left
+the corpus bytes, `git status --porcelain` and `git diff` as they were.
+
+**Mutations.** 14/14 detected:
+
+```
+(a) the verifier selects the algorithm from the key type again: DETECTED (--check-crypto: INV-111, INV-112 verified)
+(b) INV-111 signed before the alg was set to ES256: DETECTED (alg_mismatch_problems: no verification under the key's algorithm)
+(c) INV-112 security.sig differs from crypto.signature_base64url: DETECTED (alg_mismatch_problems)
+(d) coverage guard accepts executed: --check-crypto for any vector: DETECTED (coverage guard self-test)
+(e) re-signer writes (identical content) despite an unknown ID: DETECTED (contract (d), mtime)
+(f) re-signer accepts expect_signature 'invalid': DETECTED (contract (e))
+(g) re-signer appends a final newline: DETECTED (contract (b))
+(h) re-signer writes the valid IDs of a mixed batch before refusing the invalid one: DETECTED (contract (f))
+(i) re-signer without the prior key-pair check: DETECTED (contract (g): reason becomes the final verification)
+(j) re-signer also changes another envelope field (ts): DETECTED (contract (b), (c), (h))
+(k) re-signer reuses the stored canonical bytes: DETECTED (contract (h))
+(l) re-signer keeps the old security.sig in the envelope: DETECTED (contract (c), (h))
+(m) re-signer without the final verification of the produced signature: DETECTED (contract (i))
+(n) re-signer without the byte-format pre-check: DETECTED (contract (j): escaped id of CTV-01 rewritten)
+```
+
+**Sweeps.** No reference to `gen_state_vec2.py` remains in `scripts/`, `.github/`,
+CLAUDE.md, README.md, CONTRIBUTING.md or `test-vectors/` (historical documents and
+`docs/generated/` unchanged). `regen_v2.py` has no `migrate_message` or
+`stringify_amounts`. The only signature negatives are INV-18, INV-19, INV-111 and
+INV-112. CLAUDE.md now states the Draft-02 signing profile (only `security.sig`
+removed) where it said "minus its `security` field".
+
+**Counts before → after.**
+- Vectors 829 → 831 (validator 473 / 208 / 148 → 473 / 208 / 150; message-only 327 →
+  329); crypto-checked 124 → 126 (119 verified, 2 → 4 negatives, 3 canonical only); 0
+  failures in all four modes.
+- Skip classification 148 → 150 rows (crypto-behaviour 7 → 9); INV-18 and INV-19
+  coverage `none — conformance test` → `executed: --check-crypto`, automation candidate
+  `yes` → `—`.
+- RTM 2020 / 1217 → 2021 / 1218 (CORE-§5.2-13 added; CORE-§5.2-07, IDENT-§3.1-08 gain
+  INV-111/112); Core coverage summary recomputed (405 rows).
+- Consistency checks 124 → 126 (re-signer contract; coverage guard self-test); harness
+  R1-R20 unchanged.
+- Findings register 99 rows: open 12 → 11, IPC 1 → 0, closed 86 → 88 (6 by
+  disposition); disposition per DR or cycle addendum 26 → 28, recorded 17, pending
+  56 → 54.
+- Coverage register 24 rows: open 14 → 13, closed 10 → 11.

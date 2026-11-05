@@ -19,6 +19,10 @@ actually executes for the vector (evidence at the vector cycle, VC):
   vector's decisive inputs, without reading the vector;
 - `partial: Rn "<check>" — <not exercised>` — the named check exercises the rule
   with other inputs, or only part of the expectation;
+- `executed: --check-crypto` — a signature negative (`crypto.expect_signature:
+  "invalid"`) whose decisive expectation is the signature failure, asserted by
+  `scripts/validate_vectors.py --check-crypto`; it covers no other runtime
+  expectation of the vector;
 - `none — <method>` — no automation here; the method is a conformance test against
   an implementation, or `integration` (two communicating implementations, through
   the conformance tests CORE-*/ACTIONS-*/IDENTITY-*/STATE-*/ROUTING-*/ASSETS-* of the
@@ -29,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 7, executor-oversight: 35, numeric: 2, other: 16, retention-floor: 6, temporal: 11, token: 15, transport: 5, x509: 7 — total 148.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 5, crypto-behaviour: 9, executor-oversight: 35, numeric: 2, other: 16, retention-floor: 6, temporal: 11, token: 15, transport: 5, x509: 7 — total 150.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -94,8 +98,8 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-544 | — | Runtime duplicate detection — requires multi-message context and transport state | transport | integration | yes | none — integration (two communicating implementations) |
 | ITV-545 | — | Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance | temporal | behavioural-runtime | — | executed: R16 |
 | ITV-547 | — | Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance | temporal | behavioural-runtime | — | executed: R16 |
-| INV-18 | — | Runtime signature verification — schema cannot validate cryptographic correctness of ECDSA signatures | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-19 | — | Runtime signature verification — schema cannot validate cryptographic correctness of RSA signatures | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
+| INV-18 | — | Runtime signature verification — schema cannot validate cryptographic correctness of ECDSA signatures | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
+| INV-19 | — | Runtime signature verification — schema cannot validate cryptographic correctness of RSA signatures | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
 | ITV-553 | — | Runtime constraint — audit_required override is runtime behaviour not enforceable by JSON Schema | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-554 | — | Runtime constraint — audit_required override is runtime behaviour not enforceable by JSON Schema | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-555 | — | Runtime constraint — cross-object validation between payload.args.pii_classification and compliance.legal_basi | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
@@ -120,6 +124,8 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-37 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2); tamper cannot be expressed as a schema outc | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
 | INV-38 | Core §5.2 | Runtime constraint — signature verification behaviour (Core §5.2) | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
 | INV-39 | Core §5.2 Step 3 | Runtime constraint — signing-profile downgrade prohibition (Core §5.2 Step 3) | crypto-behaviour | behavioural-runtime | yes | none — conformance test against an implementation |
+| INV-111 | Core §5.2 Step 5 | Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
+| INV-112 | Core §5.2 Step 5 | Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
 | ITV-579 | Core §4.3.7/§4.3.8 Rule 3 | Runtime constraint — effective-oversight resolution across profile defaults (Core §4.3.7/§4.3.8 Rule 3) | compliance-resolution | behavioural-runtime | yes | partial: R10 "R10 A-32 absent profile: rejected high_risk_missing_oversight" — classification declared in the message is not exercised |
 | ITV-603 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | ITV-604 | Core §4.3.10 | Runtime constraint — effective obligation resolution (Core §4.3.10); input and expected result in test_metadat | compliance-resolution | behavioural-runtime | — | executed: R10 |

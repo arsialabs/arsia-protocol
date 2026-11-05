@@ -35685,6 +35685,85 @@
         "root_request_id": "d0b00690-ffff-4a3d-8e4f-567890abcdef"
       },
       "expected_error": "reason must be recipient_dpop_nonce when dpop_nonce is present — Routing §2.3.3"
+    },
+    {
+      "id": "INV-111",
+      "description": "Core §5.2 Step 5: security.alg 'ES256' declared for the sender's Ed25519 (OKP) key. The signature is a valid Ed25519 signature over the canonical bytes that already carry alg ES256, so only algorithm coherence rejects it: the declared alg MUST be compatible with the resolved key type, and the mismatch MUST be rejected with 'unauthorized'. A verifier that selects the algorithm from the key material would accept it (A-33).",
+      "valid": false,
+      "category": "core",
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303131312d303030302d343030302d383030302d303030303030303030313131222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224553323536222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "scoorxcu-Tn7UUGy0YMkarhSpP_8zkwUkMDmIVfdHhEwbL6hr_Ejk5VvLoVRfaKSlapasPHU5ENCziB0eXh1Bg",
+        "expect_signature": "invalid"
+      },
+      "message": {
+        "v": "2.0",
+        "id": "d0b00111-0000-4000-8000-000000000111",
+        "ts": "2026-03-24T10:00:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:acme.echo-server",
+        "intent": "request",
+        "expires_at": "2026-03-24T10:00:30.000Z",
+        "capabilities": [
+          "echo.ping"
+        ],
+        "payload": {
+          "type": "com.acme.echo/ping",
+          "args": {
+            "message": "hello"
+          }
+        },
+        "security": {
+          "alg": "ES256",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "scoorxcu-Tn7UUGy0YMkarhSpP_8zkwUkMDmIVfdHhEwbL6hr_Ejk5VvLoVRfaKSlapasPHU5ENCziB0eXh1Bg"
+        }
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with the key type"
+    },
+    {
+      "id": "INV-112",
+      "description": "Core §5.2 Step 5: security.alg 'RS256' declared for the sender's EC P-256 key. The signature is a valid ES256 signature over the canonical bytes that already carry alg RS256, so only algorithm coherence rejects it: the declared alg MUST be compatible with the resolved key type, and the mismatch MUST be rejected with 'unauthorized'. A verifier that selects the algorithm from the key material would accept it (A-33).",
+      "valid": false,
+      "category": "core",
+      "crypto": {
+        "private_key_hex": "1818d266231b2bae568b7388073557c2ebe8b32c1b5f7cf5150d83b462ef24b1",
+        "public_key_hex": "045a4fe750530371067da97e7f84c44a3382f4eb197f21c7c504c232a7bf604dc01dac10ac51f5fa7323140337d950f634cbb5f0aa3cf9f489850f83cd86708e05",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22636f6d706c69616e63652e636865636b225d2c22657870697265735f6174223a22323032362d30352d30345430383a30303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e65733235362d7369676e6572222c226964223a2264306230303131322d303030302d343030302d383030302d303030303030303030313132222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22656e746974795f6964223a224c45493a353239393030484e4f4141314b58514a55513237222c2270726f66696c65223a224d494649442d5354414e44415244227d2c2274797065223a22617273696170726f746f636f6c2e636f6d706c69616e63652f636865636b227d2c227365637572697479223a7b22616c67223a225253323536222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e65733235362d7369676e6572236b65792d6573323536227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e7265636569766572222c227473223a22323032362d30352d30345430383a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "H4lhGliLBI-tM_6NMwWD10MHxTE7E5fzX7GBs6_h221bxmz6ayZvc0ZEepF3dMiWvba104TbVmRz7ilo3e8PkA",
+        "expect_signature": "invalid"
+      },
+      "message": {
+        "v": "2.0",
+        "id": "d0b00112-0000-4000-8000-000000000112",
+        "ts": "2026-05-04T08:00:00.000Z",
+        "from": "agent:arsialabs.demo.es256-signer",
+        "to": "agent:arsialabs.demo.receiver",
+        "intent": "request",
+        "expires_at": "2026-05-04T08:00:30.000Z",
+        "capabilities": [
+          "compliance.check"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.compliance/check",
+          "args": {
+            "profile": "MIFID-STANDARD",
+            "entity_id": "LEI:529900HNOAA1KXQJUQ27"
+          }
+        },
+        "security": {
+          "alg": "RS256",
+          "kid": "agent:arsialabs.demo.es256-signer#key-es256",
+          "sig": "H4lhGliLBI-tM_6NMwWD10MHxTE7E5fzX7GBs6_h221bxmz6ayZvc0ZEepF3dMiWvba104TbVmRz7ilo3e8PkA"
+        }
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime signature verification — algorithm coherence (Core §5.2 Step 5): the declared alg is incompatible with the key type"
     }
   ]
 }

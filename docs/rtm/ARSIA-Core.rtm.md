@@ -182,12 +182,13 @@
 | CORE-§5.2-04 | 5.2 | MUST | sdk | procedural | Signature verification MUST follow the normative 6-step procedure (extract, resolve key, clone-strip, JCS, verify, accept/reject) | — | ITV-551, ITV-552 |
 | CORE-§5.2-05 | 5.2 | MUST | sdk | behavioural_positive | Ed25519 signature decoding MUST produce exactly 64 bytes | — | ITV-426 |
 | CORE-§5.2-06 | 5.2 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD cache JWKS responses per Cache-Control headers | — | — |
-| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19 |
+| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112 |
 | CORE-§5.2-08 | 5.2 | SHOULD_NOT | sdk | behavioural_negative | Signature failure error SHOULD NOT include verification failure details | — | — |
 | CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — |
 | CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — |
 | CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on unknown kid, expired max-age, or every 24 hours | — | — |
 | CORE-§5.2-12 | 5.2 | REQUIRED | sdk | behavioural_positive | Signature verification is REQUIRED for an error carrying obligation_resolution and for the post-execution review events | arsia-message | ITV-657 |
+| CORE-§5.2-13 | 5.2 | MUST | sdk | behavioural_negative | security.alg MUST be compatible with the resolved key type (EdDSA–OKP/Ed25519, ES256–EC/P-256, RS256–RSA); a mismatch MUST be rejected with unauthorized (Step 5) | — | INV-111, INV-112 |
 | CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — |
 | CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — |
 | CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 |
@@ -419,9 +420,9 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 404 |
+| Total requirements | 405 |
 | Schema ≠ — | 180 |
-| Vector ≠ — | 149 |
+| Vector ≠ — | 150 |
 | Both ≠ — | 87 |
 | Both = — (gaps) | 162 |
 
@@ -433,7 +434,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
 | 4 | 141 | 78 | 77 | 45 | 31 |
-| 5 | 35 | 8 | 20 | 5 | 12 |
+| 5 | 36 | 8 | 21 | 5 | 12 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
@@ -470,3 +471,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | Threat model +6 adversaries | §13.1 | — | — |
 | CORE-COMPLIANCE-04..09 added; in-repo runner | §12.3, §12.4 | — | as listed per test |
 | DPoP receiver checks delegated to Identity §3.3; single-use jti stated as an ARSIA requirement; broker audit covers messages not forwarded (A-49, A-89) | §6.3, §9.2, §13.2.2 | dpop-proof, audit-record | INV-104..107, ITV-688, ITV-689; harness R19, R20 |
+| algorithm coherence traced to discriminating negatives: declared alg incompatible with the key type, signature valid for the key's own algorithm (A-33); no normative change | §5.2 Step 5 | — | INV-111, INV-112; validate_vectors --check-crypto |

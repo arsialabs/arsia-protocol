@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-829 test vectors (473 schema-valid, 208 expected-invalid, 148 runtime-only — validator classification) for
+831 test vectors (473 schema-valid, 208 expected-invalid, 150 runtime-only — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -11,7 +11,7 @@ verification outcome (`crypto.expect_signature`).
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 829 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 831 test vectors |
 | [keypairs.json](keypairs.json) | 15 test keypairs: 13 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle is stated in the file) |
 
 ## Vector Formats
@@ -30,23 +30,24 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 | Prefix | Category | Count |
 |--------|----------|-------|
 | `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 691 |
-| `INV-` | Invalid (all specs) | 110 |
+| `INV-` | Invalid (all specs) | 112 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-692** / **INV-111**
+Next available ID: **ITV-692** / **INV-113**
 
 ## Runtime-Only Vectors
 
 All signed vectors use the **Draft-02 (wire 2.0) signing profile**: the signing input
 is the RFC 8785 canonical form of the envelope with `security` present and only the
-`security.sig` property removed (Core §5.1). Vectors are regenerated with
-`scripts/regen_v2.py`; verify with `--check-crypto`.
+`security.sig` property removed (Core §5.1). After editing a signed valid vector,
+re-sign it with `scripts/regen_v2.py --ids <ID,…>` (dry run unless `--apply`); verify
+with `--check-crypto`.
 
-148 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+150 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally

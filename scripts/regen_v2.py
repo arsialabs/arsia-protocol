@@ -1,26 +1,36 @@
 # SPDX-License-Identifier: BUSL-1.1
 # Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda)
-"""Draft-02 v2 signer/generator and one-shot vector regeneration.
+"""Draft-02 signing helpers and selective re-signer of valid signed vectors.
 
-Implements the v2 signing profile (DR-D3): the signing input is the RFC 8785
-canonical form of the envelope with `security` PRESENT and only the
-`security.sig` property removed. Also performs the selective v2 wire migration
-of the vector corpus (DR-D5): message-envelope vectors move to v="2.0",
-root_request_id, duration retention, string amounts, and authorization binding;
-schema-ref vectors are touched only when their target schema changed.
+Implements the v2 signing profile (Core §5.1): the signing input is the RFC 8785
+canonical form of the envelope with `security` PRESENT and only the `security.sig`
+property removed.
+
+The re-signer updates the signature of vectors named explicitly, typically after an
+edit to a signed envelope. It never migrates or edits an envelope: only
+`security.sig`, `crypto.canonical_bytes_hex` and `crypto.signature_base64url` change.
 
 Usage:
-  python3 scripts/regen_v2.py --check     # dry run, print affected-vector counts
-  python3 scripts/regen_v2.py --apply     # rewrite test-vectors/arsia-test-vectors.json
+  python3 scripts/regen_v2.py --ids ITV-03,CTV-02             # dry run: what would change, per ID
+  python3 scripts/regen_v2.py --ids ITV-03 --apply            # write
+  python3 scripts/regen_v2.py --ids ... --vectors PATH        # another corpus file
 
-The affected-vector set is always logged (IDs), per the no-silent-caps rule.
+Rules: every ID is checked before anything is written, and one unknown or ineligible
+ID aborts the run with nothing written. Only vectors whose `crypto.expect_signature`
+is "valid" are eligible (signature negatives and "absent" blocks are fixtures, never
+re-signed). Before signing, the declared alg must be allowlisted and compatible with
+the public key, and the private key must derive exactly `public_key_hex`; the
+produced signature is verified with the validator's own verifier before writing.
+Unselected vectors and the file format (including the presence or absence of a final
+newline) are preserved byte for byte: a file the tool's serializer would not reproduce
+exactly (other escapes, CRLF line endings, other spacing) is refused with nothing
+written. ES256 signatures differ from run to run.
 """
 import argparse
 import copy
 import hashlib
 import json
 import sys
-import uuid
 
 try:
     import rfc8785
@@ -28,14 +38,7 @@ except ImportError:  # pragma: no cover
     # No fallback: code-point key order (json.dumps sort_keys) is not RFC 8785 (Core §5.1).
     sys.exit("ERROR: rfc8785 library required (scripts/requirements.txt)")
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey,
-    Ed25519PublicKey,
-)
-
 VECTORS = "test-vectors/arsia-test-vectors.json"
-
-REPLY_INTENTS = {"response", "error", "pending_approval", "approval_decision"}
 
 
 def jcs(obj) -> bytes:
@@ -52,7 +55,11 @@ def signing_input_v2(message: dict) -> bytes:
 
 
 def envelope_hash(message: dict) -> str:
-    """sha-256:<hex> over JCS of the COMPLETE signed envelope (Routing §7.4.1)."""
+    """sha-256:<hex> over the RFC 8785 form of the COMPLETE signed envelope, `security.sig`
+    included — the `envelope_hash` of a relay attestation (Routing §7.4.1).
+
+    Reference helper: no tool calls it yet. On its own it does not verify an attestation
+    (signature, `envelope_hash` and `token_hash` checks); that coverage is tracked as A-56."""
     return "sha-256:" + hashlib.sha256(jcs(message)).hexdigest()
 
 
@@ -62,170 +69,160 @@ def b64url(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).rstrip(b"=").decode()
 
 
-def det_uuid4(seed: str) -> str:
-    """Deterministic v4-shaped UUID from a seed (for synthetic root ids)."""
-    h = hashlib.sha256(seed.encode()).hexdigest()
-    return f"{h[0:8]}-{h[8:12]}-4{h[13:16]}-a{h[17:20]}-{h[20:32]}"
+class Refused(Exception):
+    """A vector the re-signer will not write; the message states the reason."""
 
 
-def migrate_message(msg: dict, vid: str) -> bool:
-    """In-place v2 migration of one message envelope. Returns True if changed."""
-    changed = False
-    if msg.get("v") == "1.0":
-        msg["v"] = "2.0"
-        changed = True
-    # root_request_id (Core §4.2.4)
-    if msg.get("intent") in REPLY_INTENTS and "root_request_id" not in msg:
-        if msg.get("intent") == "approval_decision":
-            msg["root_request_id"] = det_uuid4(vid + ":root")
-        else:
-            msg["root_request_id"] = msg.get("correlation_id", det_uuid4(vid + ":root"))
-        changed = True
-    # retention_days -> retention (Core §4.3.6.4)
-    comp = msg.get("compliance")
-    if isinstance(comp, dict) and "retention_days" in comp:
-        rd = comp.pop("retention_days")
-        if rd is not None:
-            comp["retention"] = f"P{int(rd)}D"
-        changed = True
-    # authorization binding required when data_residency set (Core §4.3.9)
-    if isinstance(comp, dict) and comp.get("data_residency") and "authorization" not in msg:
-        token_seed = f"synthetic-token:{vid}"
-        msg["authorization"] = {
-            "token_hash": "sha-256:" + hashlib.sha256(token_seed.encode()).hexdigest(),
-            "proof_type": "bearer",
-        }
-        changed = True
-    # amounts (payload subtrees) — string form
-    changed |= stringify_amounts(msg.get("payload"))
-    return changed
+def _public_bytes(alg: str, private_key_hex: str) -> bytes:
+    """The public key derived from the private key, in the encoding of `crypto.public_key_hex`."""
+    from cryptography.hazmat.primitives import serialization
 
-
-def stringify_amounts(o, in_currency=False) -> bool:
-    import re
-
-    changed = False
-    if isinstance(o, dict):
-        cur = in_currency or (
-            isinstance(o.get("currency_or_unit"), str)
-            and re.fullmatch(r"[A-Z]{3}", o["currency_or_unit"]) is not None
-        )
-        for k, v in list(o.items()):
-            if k in ("amount", "actual_amount", "reversal_amount") and isinstance(v, (int, float)) and not isinstance(v, bool):
-                o[k] = f"{v:.2f}" if cur else (repr(float(v))[:-2] if repr(float(v)).endswith(".0") else repr(float(v)))
-                changed = True
-            else:
-                changed |= stringify_amounts(v, cur)
-    elif isinstance(o, list):
-        for x in o:
-            changed |= stringify_amounts(x, in_currency)
-    return changed
-
-
-def resign(vec: dict) -> bool:
-    """Re-sign a vector carrying a crypto block under the v2 profile.
-
-    Handles EdDSA (raw 32-byte keys), ES256 (raw scalar / uncompressed point),
-    RS256 (DER), and security-less negatives (canonical == whole message)."""
-    crypto = vec.get("crypto")
-    msg = vec.get("message") or vec.get("data")
-    if not crypto or not isinstance(msg, dict):
-        return False
-    alg = (msg.get("security") or {}).get("alg", "EdDSA")
-    canon = signing_input_v2(msg)
-    priv_hex = crypto["private_key_hex"]
     if alg == "EdDSA":
-        priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_hex))
-        sig = priv.sign(canon)
-        pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(crypto["public_key_hex"]))
-        pub.verify(sig, canon)
-    elif alg == "ES256":
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(private_key_hex))
+        return key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    if alg == "ES256":
+        from cryptography.hazmat.primitives.asymmetric import ec
+        key = ec.derive_private_key(int(private_key_hex, 16), ec.SECP256R1())
+        return key.public_key().public_bytes(serialization.Encoding.X962,
+                                             serialization.PublicFormat.UncompressedPoint)
+    key = serialization.load_der_private_key(bytes.fromhex(private_key_hex), password=None)
+    return key.public_key().public_bytes(serialization.Encoding.DER,
+                                         serialization.PublicFormat.SubjectPublicKeyInfo)
+
+
+def _sign(alg: str, private_key_hex: str, data: bytes) -> bytes:
+    """The one function that produces a signature (JWS encodings: Ed25519 raw, ES256 r||s, RS256 PKCS#1 v1.5)."""
+    if alg == "EdDSA":
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(private_key_hex)).sign(data)
+    if alg == "ES256":
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import ec
         from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
-
-        key = ec.derive_private_key(int(priv_hex, 16), ec.SECP256R1())
-        der = key.sign(canon, ec.ECDSA(hashes.SHA256()))
-        r, s_ = decode_dss_signature(der)
-        sig = r.to_bytes(32, "big") + s_.to_bytes(32, "big")
-    elif alg == "RS256":
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-
-        key = serialization.load_der_private_key(bytes.fromhex(priv_hex), password=None)
-        sig = key.sign(canon, padding.PKCS1v15(), hashes.SHA256())
-    else:
-        return False
-    if isinstance(msg.get("security"), dict):
-        msg["security"]["sig"] = b64url(sig)
-    crypto["canonical_bytes_hex"] = canon.hex()
-    crypto["signature_base64url"] = b64url(sig)
-    return True
+        key = ec.derive_private_key(int(private_key_hex, 16), ec.SECP256R1())
+        r, s = decode_dss_signature(key.sign(data, ec.ECDSA(hashes.SHA256())))
+        return r.to_bytes(32, "big") + s.to_bytes(32, "big")
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    key = serialization.load_der_private_key(bytes.fromhex(private_key_hex), password=None)
+    return key.sign(data, padding.PKCS1v15(), hashes.SHA256())
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--apply", action="store_true",
-                    help="write the migrated corpus back to disk (default: dry run)")
-    args = ap.parse_args()
+def eligibility(vec: dict | None, vid: str) -> None:
+    """Raises Refused unless the vector is a valid signed vector the re-signer may update."""
+    if vec is None:
+        raise Refused(f"{vid}: no such vector")
+    crypto = vec.get("crypto")
+    if not isinstance(crypto, dict):
+        raise Refused(f"{vid}: no crypto block")
+    if crypto.get("expect_signature") != "valid":
+        raise Refused(f"{vid}: crypto.expect_signature is {crypto.get('expect_signature')!r}, "
+                      "only 'valid' vectors are re-signed (negatives and 'absent' blocks are fixtures)")
+    env = vec.get("message") if isinstance(vec.get("message"), dict) else vec.get("data")
+    if not isinstance(env, dict) or not isinstance(env.get("security"), dict) or not env["security"].get("alg"):
+        raise Refused(f"{vid}: no security object with alg")
 
-    doc = json.load(open(VECTORS))
-    migrated, resigned, skipped_es256 = [], [], []
-    for vec in doc["vectors"]:
-        msg = vec.get("message")
-        changed = False
-        if isinstance(msg, dict) and "v" in msg:
-            changed = migrate_message(msg, vec["id"])
-        data = vec.get("data")
-        if (
-            isinstance(data, dict)
-            and vec.get("schema_ref") == "arsia-message.schema.json"
-            and "v" in data
-        ):
-            changed = migrate_message(data, vec["id"]) or changed
-        if changed:
-            migrated.append(vec["id"])
-        # purpose-preserving special cases (before signing)
-        if vec["id"] == "INV-09" and isinstance(vec.get("message"), dict):
-            # currency precision negative: keep it a grammar/scale violation as a string
-            vec["message"]["payload"]["args"]["amount"] = "10.5055"
-        if vec["id"] == "INV-08":
-            # retention floor is a runtime rule in Draft-02 (DR-D1): schema-valid, runtime-reject
-            vec["skip_schema"] = True
-            vec["skip_reason"] = ("Runtime constraint — calendar retention-floor comparison "
-                                  "(Core §4.3.8 Rule 4); Draft-02 moved floors from schema to runtime")
-        if vec.get("crypto"):
-            if resign(vec):
-                if vec["id"] in ("INV-18", "INV-19"):
-                    # deliberately corrupt the first signature byte to preserve the negative
-                    import base64 as _b64
-                    raw = _b64.urlsafe_b64decode(vec["crypto"]["signature_base64url"] + "==")
-                    bad = bytes([raw[0] ^ 0xFF]) + raw[1:]
-                    b = b64url(bad)
-                    vec["crypto"]["signature_base64url"] = b
-                    m2 = vec.get("message") or vec.get("data")
-                    if isinstance(m2.get("security"), dict):
-                        m2["security"]["sig"] = b
-                resigned.append(vec["id"])
-            else:
-                skipped_es256.append(vec["id"])
-        # INV-36 activation
-        if vec["id"] == "INV-36" and args.apply:
-            vec.pop("skip_schema", None)
-            vec.pop("skip_reason", None)
-            vec["expected"] = "invalid"
-            vec["expected_error"] = "amount must be a canonical decimal string, not a JSON number — Assets §3.1.1"
 
-    print(f"migrated envelopes: {len(migrated)}")
-    print(f"re-signed: {len(resigned)}  {resigned}")
-    if skipped_es256:
-        print(f"SKIPPED (no key material): {skipped_es256}")
-    print("migrated ids:", ",".join(migrated))
+def resign(vec: dict) -> tuple[bytes, bytes]:
+    """(signature, canonical bytes) for the vector's current envelope; writes nothing.
 
-    if args.apply:
-        json.dump(doc, open(VECTORS, "w"), ensure_ascii=False, indent=2)
-        open(VECTORS, "a").write("\n")
-        print("written")
+    Refused before signing when the declared alg is not allowlisted, does not match the
+    public key, or the private key does not derive `public_key_hex`; refused after signing
+    when the produced signature does not verify (Core §5.2 Step 5, the validator's verifier)."""
+    from validate_vectors import ALLOWED_ALGS, _key_type, _verify_signature
+
+    vid, crypto = vec["id"], vec["crypto"]
+    env = vec.get("message") if isinstance(vec.get("message"), dict) else vec.get("data")
+    alg = env["security"]["alg"]
+    pub = bytes.fromhex(crypto["public_key_hex"])
+    required = {"EdDSA": "Ed25519", "ES256": "P-256", "RS256": "RSA"}.get(alg)
+    if alg not in ALLOWED_ALGS or required is None:
+        raise Refused(f"refused before signing: {vid}: alg {alg!r} not in the allowlist")
+    try:
+        key_type = _key_type(pub)
+    except Exception as exc:
+        raise Refused(f"refused before signing: {vid}: public key not recognised ({exc})")
+    if key_type != required:
+        raise Refused(f"refused before signing: {vid}: alg {alg} incompatible with {key_type} key")
+    try:
+        derived = _public_bytes(alg, crypto["private_key_hex"])
+    except Exception as exc:
+        raise Refused(f"refused before signing: {vid}: private key unusable for {alg} ({type(exc).__name__})")
+    if derived != pub:
+        raise Refused(f"refused before signing: {vid}: private key does not derive public_key_hex")
+    canon = signing_input_v2(env)
+    sig = _sign(alg, crypto["private_key_hex"], canon)
+    try:
+        _verify_signature(alg, pub, sig, canon)
+    except Exception as exc:
+        raise Refused(f"signature does not verify: {vid}: {type(exc).__name__} {exc}".rstrip())
+    return sig, canon
+
+
+def _without_signature(vec: dict) -> dict:
+    """The vector minus the three fields re-signing may change."""
+    v = copy.deepcopy(vec)
+    env = v.get("message") if isinstance(v.get("message"), dict) else v.get("data")
+    env["security"].pop("sig", None)
+    v["crypto"].pop("canonical_bytes_hex", None)
+    v["crypto"].pop("signature_base64url", None)
+    return v
+
+
+def serialize(doc: dict, original: str) -> bytes:
+    """The corpus format: indent 2, unescaped UTF-8, LF, final newline only if the original had one."""
+    return (json.dumps(doc, indent=2, ensure_ascii=False) + ("\n" if original.endswith("\n") else "")).encode("utf-8")
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Re-sign the named valid signed vectors (Core §5.1 profile).")
+    ap.add_argument("--ids", required=True, help="comma-separated vector IDs to re-sign")
+    ap.add_argument("--apply", action="store_true", help="write the corpus (default: dry run)")
+    ap.add_argument("--vectors", default=VECTORS, help=f"corpus file (default: {VECTORS})")
+    args = ap.parse_args(argv)
+
+    ids = [i.strip() for i in args.ids.split(",") if i.strip()]
+    if not ids:
+        print("ERROR: --ids names no vector", file=sys.stderr)
+        return 2
+    raw_bytes = open(args.vectors, "rb").read()
+    raw = raw_bytes.decode("utf-8")
+    doc = json.loads(raw)
+    if serialize(doc, raw) != raw_bytes:
+        # rewriting would change bytes of vectors nobody selected (escapes, line endings, spacing)
+        print(f"ERROR: {args.vectors} is not in the format this tool reproduces byte for byte "
+              "(indent 2, unescaped UTF-8, LF line endings); nothing written", file=sys.stderr)
+        return 1
+    by_id = {v["id"]: v for v in doc["vectors"]}
+
+    results = []
+    try:
+        for vid in ids:
+            eligibility(by_id.get(vid), vid)
+        for vid in ids:
+            vec = by_id[vid]
+            sig, canon = resign(vec)
+            env = vec.get("message") if isinstance(vec.get("message"), dict) else vec.get("data")
+            before = copy.deepcopy(vec)
+            env["security"]["sig"] = b64url(sig)
+            vec["crypto"]["canonical_bytes_hex"] = canon.hex()
+            vec["crypto"]["signature_base64url"] = b64url(sig)
+            if _without_signature(vec) != _without_signature(before):
+                raise Refused(f"{vid}: re-signing would change more than the signature fields")
+            results.append((vid, "unchanged" if vec == before else "re-signed"))
+    except Refused as exc:
+        print(f"ERROR: {exc}; nothing written", file=sys.stderr)
+        return 1
+
+    for vid, state in results:
+        print(f"{vid}: {state}")
+    if not args.apply:
+        print("dry run: corpus not written (use --apply)")
+        return 0
+    with open(args.vectors, "wb") as f:
+        f.write(serialize(doc, raw))
+    print(f"written: {args.vectors}")
     return 0
 
 

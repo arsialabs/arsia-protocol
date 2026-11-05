@@ -578,8 +578,51 @@ def expect_signature_problems(vectors):
             out.append(f"{v['id']}: expect_signature {e!r} but security object {'present' if has_sec else 'absent'}")
         if e == "invalid":
             negatives.append(v["id"])
-    if sorted(negatives) != ["INV-18", "INV-19"]:
-        out.append(f"signature negatives {sorted(negatives)} != ['INV-18', 'INV-19']")
+    if sorted(negatives) != sorted(SIGNATURE_NEGATIVES):
+        out.append(f"signature negatives {sorted(negatives)} != {sorted(SIGNATURE_NEGATIVES)}")
+    by_id = {v["id"]: v for v in vectors}
+    for vid in ALG_MISMATCH_NEGATIVES:
+        if vid in by_id:
+            out += alg_mismatch_problems(by_id[vid])
+        else:
+            out.append(f"{vid}: missing")
+    return out
+
+
+SIGNATURE_NEGATIVES = ("INV-18", "INV-19", "INV-111", "INV-112")
+ALG_MISMATCH_NEGATIVES = ("INV-111", "INV-112")  # A-33: discriminate a key-selected verifier
+
+
+def alg_mismatch_problems(v):
+    """A-33: the alg is wrong before the signed bytes are computed, the bytes and both signature copies agree,
+    the signature verifies under the key's own algorithm, and the declared alg is rejected for incompatibility."""
+    sys.path.insert(0, "scripts")
+    from regen_v2 import signing_input_v2
+    import validate_vectors as vv
+    out, m, c = [], v["message"], v["crypto"]
+    declared = m["security"]["alg"]
+    pub = bytes.fromhex(c["public_key_hex"])
+    canon = bytes.fromhex(c["canonical_bytes_hex"])
+    sig = vv._base64url_decode(c["signature_base64url"])
+    if canon != signing_input_v2(m) or json.loads(canon)["security"]["alg"] != declared:
+        out.append(f"{v['id']}: canonical bytes are not the signing input with the declared alg {declared}")
+    if m["security"].get("sig") != c["signature_base64url"]:
+        out.append(f"{v['id']}: security.sig != crypto.signature_base64url")
+    own = {"Ed25519": "EdDSA", "P-256": "ES256", "RSA": "RS256"}[vv._key_type(pub)]
+    if own == declared:
+        out.append(f"{v['id']}: declared alg {declared} matches the key; nothing to discriminate")
+    try:
+        vv._verify_signature(own, pub, sig, canon)
+    except Exception:
+        out.append(f"{v['id']}: signature does not verify under the key's own algorithm {own}")
+    try:
+        vv._verify_signature(declared, pub, sig, canon)
+        out.append(f"{v['id']}: declared alg {declared} verified")
+    except ValueError as exc:
+        if "incompatible with" not in str(exc):
+            out.append(f"{v['id']}: rejected for another reason: {exc}")
+    except Exception as exc:
+        out.append(f"{v['id']}: rejected for another reason: {type(exc).__name__}")
     return out
 
 
@@ -714,7 +757,7 @@ def policy_identity_problems(vectors):
 COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16"}
 
 
-def coverage_claim_problems(skip_doc, vectors):
+def coverage_claim_problems(skip_doc, vectors, passing=None):
     """A-65: the coverage column states only what the repository executes. `executed: Rn` needs a scenario
     that Rn consumes (or a lookup of the vector by ID in the harness); `equivalent`/`partial` quote a check
     the harness runs and passes under that rule; category totals are computed; the introduction's
@@ -724,8 +767,9 @@ def coverage_claim_problems(skip_doc, vectors):
     import validate_vectors as vv
     from jsonschema import Draft202012Validator
     harness = open("scripts/runtime_harness.py", encoding="utf-8").read()
-    run = subprocess.run([sys.executable, "scripts/runtime_harness.py"], capture_output=True, text=True).stdout
-    passing = {line[5:].split("  [")[0] for line in run.splitlines() if line.startswith("ok   ")}
+    if passing is None:
+        run = subprocess.run([sys.executable, "scripts/runtime_harness.py"], capture_output=True, text=True).stdout
+        passing = {line[5:].split("  [")[0] for line in run.splitlines() if line.startswith("ok   ")}
     by_id = {v["id"]: v for v in vectors}
     out, cats = [], {}
     for line in skip_doc.splitlines():
@@ -738,7 +782,11 @@ def coverage_claim_problems(skip_doc, vectors):
             continue
         cats[cols[2]] = cats.get(cols[2], 0) + 1
         cov = cols[5]
-        if cov.startswith("executed: "):
+        if cov == "executed: --check-crypto":
+            # a signature negative: its decisive expectation is the signature failure, nothing else
+            if (by_id[vid].get("crypto") or {}).get("expect_signature") != "invalid":
+                out.append(f"{vid}: 'executed: --check-crypto' without crypto.expect_signature 'invalid'")
+        elif cov.startswith("executed: "):
             rule = cov[len("executed: "):]
             sc = by_id[vid].get("test_metadata", {}).get("scenario")
             if COVERAGE_RULE.get(sc) != rule and f'v["id"] == "{vid}"' not in harness:
@@ -765,6 +813,140 @@ def coverage_claim_problems(skip_doc, vectors):
                     list(Draft202012Validator(schema, registry=reg).iter_errors(payload))
                 if errs:
                     out.append(f"'0 failures' stated but {v['id']} is structurally invalid")
+    return out
+
+
+def resigner_contract_problems():
+    """A-40: scripts/regen_v2.py re-signs only the named valid vectors, writes nothing on any refusal (observed
+    by mtime and hash, so an identical rewrite also counts), changes only the signature fields, preserves the
+    file format, refuses before signing on a key mismatch, and refuses to write a signature that does not verify."""
+    import contextlib
+    import hashlib
+    import io
+    import subprocess
+    import tempfile
+    sys.path.insert(0, "scripts")
+    import regen_v2
+    import validate_vectors as vv
+    src = "test-vectors/arsia-test-vectors.json"
+    original = open(src, encoding="utf-8").read()
+    out = []
+    tmp = tempfile.mkdtemp(prefix="regen-contract-")
+
+    def copy_with(edit=None, name="c.json"):
+        path = os.path.join(tmp, name)
+        doc = json.loads(original)
+        if edit:
+            edit({v["id"]: v for v in doc["vectors"]})
+        text = json.dumps(doc, indent=2, ensure_ascii=False) + ("\n" if original.endswith("\n") else "")
+        open(path, "w", encoding="utf-8").write(text)
+        os.utime(path, ns=(1_000_000_000, 1_000_000_000))  # a known mtime, so any write is visible
+        return path
+
+    def state(path):
+        return os.stat(path).st_mtime_ns, hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+    def run(path, ids, apply=True):
+        cmd = [sys.executable, "scripts/regen_v2.py", "--ids", ids, "--vectors", path] + (["--apply"] if apply else [])
+        p = subprocess.run(cmd, capture_output=True, text=True)
+        return p.returncode, p.stdout + p.stderr
+
+    def vec(path, vid):
+        return next(v for v in json.load(open(path, encoding="utf-8"))["vectors"] if v["id"] == vid)
+
+    def edit_ctv02(by):
+        by["CTV-02"]["message"]["payload"]["args"] = {"edited": "re-sign me"}
+
+    def others_equal(a, b, vid):
+        """Other vectors equal as objects, and both files in the one byte format the serializer reproduces:
+        together, the other vectors are equal byte for byte."""
+        ta, tb = open(a, "rb").read(), open(b, "rb").read()
+        for t in (ta, tb):
+            if regen_v2.serialize(json.loads(t), t.decode("utf-8")) != t:
+                return False
+        da, db = json.loads(ta)["vectors"], json.loads(tb)["vectors"]
+        return [x for x in da if x["id"] != vid] == [x for x in db if x["id"] != vid]
+
+    def signature_fields_only(before, after):
+        strip = lambda v: regen_v2._without_signature(v)
+        return strip(before) == strip(after)
+
+    # (a) dry run writes nothing
+    p = copy_with(); s = state(p); rc, _ = run(p, "CTV-02", apply=False)
+    if rc != 0 or state(p) != s:
+        out.append("(a) dry run wrote or failed")
+    # (b) EdDSA apply on a correctly signed vector: identical bytes, format and final newline kept
+    p = copy_with(); rc, msg = run(p, "CTV-02")
+    if rc != 0 or open(p, encoding="utf-8").read() != original:
+        out.append(f"(b) CTV-02 apply changed the file: {msg[-80:]}")
+    # (c) ES256: only ITV-551's signature fields change, and the new signature verifies
+    p = copy_with(); before = vec(p, "ITV-551"); rc, msg = run(p, "ITV-551"); after = vec(p, "ITV-551")
+    ok = rc == 0 and signature_fields_only(before, after) and others_equal(p, src, "ITV-551")
+    try:
+        c = after["crypto"]
+        vv._verify_signature("ES256", bytes.fromhex(c["public_key_hex"]), vv._base64url_decode(c["signature_base64url"]),
+                             regen_v2.signing_input_v2(after["message"]))
+    except Exception:
+        ok = False
+    if not ok or after["message"]["security"]["sig"] != after["crypto"]["signature_base64url"]:
+        out.append(f"(c) ITV-551 re-signing changed more than its signature or does not verify: {msg[-80:]}")
+    # (d) unknown ID, (e) a signature negative and an 'absent' block: refused, nothing written
+    for case, ids in (("(d)", "NOPE-1"), ("(e)", "INV-18"), ("(e)", "INV-15")):
+        p = copy_with(); s = state(p); rc, _ = run(p, ids)
+        if rc == 0 or state(p) != s:
+            out.append(f"{case} {ids}: not refused, or the file was written")
+    # (f) mixed batch on an edited copy: re-signing CTV-02 would change the file, yet nothing is written
+    p = copy_with(edit_ctv02, "f.json"); s = state(p); rc, _ = run(p, "CTV-02,INV-18")
+    if rc == 0 or state(p) != s:
+        out.append("(f) mixed batch: CTV-02 written before INV-18 was refused (partial apply)")
+    # (g) a public key that the private key does not derive: refused before signing
+    def wrong_key(by):
+        by["CTV-02"]["crypto"]["public_key_hex"] = by["ITV-01"]["crypto"]["public_key_hex"]
+    p = copy_with(wrong_key, "g.json"); s = state(p); rc, msg = run(p, "CTV-02")
+    if rc == 0 or state(p) != s or "refused before signing" not in msg:
+        out.append(f"(g) key mismatch not refused before signing: {msg[-90:]}")
+    # (h) an edited envelope: the edit stays, the bytes are recomputed, the signature verifies, nothing else changes
+    p = copy_with(edit_ctv02, "h.json"); s = state(p); before = vec(p, "CTV-02")
+    rc1, _ = run(p, "CTV-02", apply=False)
+    dry_ok = rc1 == 0 and state(p) == s
+    rc, msg = run(p, "CTV-02"); after = vec(p, "CTV-02")
+    ok = dry_ok and rc == 0 and after["message"]["payload"]["args"] == {"edited": "re-sign me"}
+    ok = ok and after["crypto"]["canonical_bytes_hex"] == regen_v2.signing_input_v2(after["message"]).hex()
+    ok = ok and after["message"]["security"]["sig"] == after["crypto"]["signature_base64url"]
+    ok = ok and after["crypto"]["signature_base64url"] != before["crypto"]["signature_base64url"]
+    try:
+        c = after["crypto"]
+        vv._verify_signature("EdDSA", bytes.fromhex(c["public_key_hex"]), vv._base64url_decode(c["signature_base64url"]),
+                             bytes.fromhex(c["canonical_bytes_hex"]))
+    except Exception:
+        ok = False
+    ok = ok and signature_fields_only(before, after) and others_equal(p, copy_with(edit_ctv02, "h0.json"), "CTV-02")
+    if not ok:
+        out.append(f"(h) edited CTV-02 not re-signed correctly: {msg[-80:]}")
+    # (j) a file the serializer would normalise (an escaped id of an unselected vector; CRLF): refused, bytes kept
+    for case, transform in (("escaped id of CTV-01", lambda s: s.replace('"id": "CTV-01"', '"id": "\\u0043TV-01"', 1)),
+                            ("CRLF line endings", lambda s: s.replace("\n", "\r\n"))):
+        p = os.path.join(tmp, "j.json")
+        text = transform(original)
+        assert text != original
+        with open(p, "wb") as f:
+            f.write(text.encode("utf-8"))
+        os.utime(p, ns=(1_000_000_000, 1_000_000_000))
+        s = state(p); rc, msg = run(p, "CTV-02")
+        if rc == 0 or state(p) != s or "byte for byte" not in msg:
+            out.append(f"(j) {case}: not refused, or the file was rewritten: {msg[-80:]}")
+    # (i) a produced signature that does not verify (correct key pair): refused, nothing written
+    p = copy_with(edit_ctv02, "i.json"); s = state(p)
+    real_sign = regen_v2._sign
+    regen_v2._sign = lambda alg, k, data: (lambda b: bytes([b[0] ^ 0xFF]) + b[1:])(real_sign(alg, k, data))
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = regen_v2.main(["--ids", "CTV-02", "--apply", "--vectors", p])
+    finally:
+        regen_v2._sign = real_sign
+    if rc == 0 or state(p) != s or "signature does not verify" not in err.getvalue():
+        out.append(f"(i) a non-verifying signature was not refused: {err.getvalue()[-90:]}")
     return out
 
 
@@ -1262,6 +1444,17 @@ def main() -> int:
     probs = coverage_claim_problems(skip_doc, vectors)
     check("skip classification coverage column == harness evidence; totals computed (A-65)", not probs,
           "; ".join(probs[:4]))
+    synth_doc = ("| SYN-1 | — | synthetic | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |\n"
+                 "| SYN-2 | — | synthetic | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |\n"
+                 "**Category totals:** crypto-behaviour: 2 — total 2.\n")
+    synth = [{"id": "SYN-1", "skip_schema": True},
+             {"id": "SYN-2", "skip_schema": True, "crypto": {"expect_signature": "valid"}}]
+    st = coverage_claim_problems(synth_doc, synth, passing=set())
+    check("skip coverage guard self-test: 'executed: --check-crypto' on an ineligible vector is reported (A-65, A-33)",
+          sorted(p.split(":")[0] for p in st) == ["SYN-1", "SYN-2"], "; ".join(st))
+    probs = resigner_contract_problems()
+    check("regen_v2 re-signer contract: selection, eligibility, no partial write, signature fields only (A-40)",
+          not probs, "; ".join(probs[:4]))
 
     # DR-1/DR-2: executor oversight sources and post-execution review
     probs = migrated_oversight_problems(vectors, schemas, reg, rh)
@@ -1280,7 +1473,7 @@ def main() -> int:
 
     # VC: runtime vectors and coverage claims
     probs = expect_signature_problems(vectors)
-    check("crypto.expect_signature declared and coherent; signature negatives INV-18/19 (A-34)", not probs,
+    check("crypto.expect_signature declared and coherent; signature negatives INV-18/19, INV-111/112 (A-34, A-33)", not probs,
           "; ".join(probs[:4]))
     probs = posture_problems(vectors, rh)
     check("vector postures quote their section verbatim; MAY-based ts rejections declare it (DR-0.3)", not probs,

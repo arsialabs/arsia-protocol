@@ -76,6 +76,40 @@ Apply to every record below.
   (gateway, `policy_version`) as Identity §8.1 states; ITV-547's `data_residency: null`
   omitted.
 
+**Addendum — 2026-11-04 (owner decisions for the tools cycle, under DR-0).**
+- **F1 — `gen_state_vec2.py` retired.** The one-shot generator of ITV-215..277 is
+  removed with its scripts/README entry. It had been applied, refused the existing
+  IDs, emitted Draft-01 wire, gave an outcome different from the declared expectation
+  for 18 of its 63 vectors under the current schemas, and no longer reproduced the 19
+  vectors whose `message`/`data` later cycles changed. A-40's dry-run criterion is
+  preserved in the ledger and closed by this disposition: the generator was not
+  ported and no dry run of it passed. The corpus is the maintained source of these
+  vectors; the generator remains their historical origin. Historical documents are
+  unchanged.
+- **F2 — `regen_v2.py` a selective re-signer.** `--ids` is required (no automatic
+  selection), the run is dry unless `--apply`, and an unknown or ineligible ID aborts
+  it with nothing written. Only `crypto.expect_signature: "valid"` vectors are
+  eligible; negatives and `absent` blocks are fixtures. Only the signature and its
+  derived crypto fields change; alg/key compatibility and the key pair are checked
+  before signing, and the produced signature is verified before writing. Unselected
+  vectors and the file format are preserved. The one-shot Draft-02 migration
+  (`migrate_message`, `stringify_amounts`, the special cases) is removed: run today it
+  would have rewritten the negative INV-41, re-signed ES256 vectors and appended a
+  final newline. ES256 signatures may still differ between explicit runs.
+- **F3 — `envelope_hash` kept and documented.** Its docstring states its purpose
+  (Routing §7.4.1), that no tool calls it, that on its own it does not verify an
+  attestation, and that attestation coverage stays with A-56; it is not evidence for
+  A-56.
+- **F4 — Coverage `executed: --check-crypto`.** The skip-classification vocabulary
+  gains this value for signature negatives (`expect_signature: "invalid"`) whose
+  decisive expectation is the signature failure: INV-18, INV-19 and the A-33
+  negatives INV-111 and INV-112. A `crypto` block alone does not mean a vector's
+  runtime expectation is executed; the guard admits the value only for signature
+  negatives. The A-33 negatives carry the wrong alg before the signed bytes are
+  computed, agree on bytes and both signature copies, verify under the key's own
+  algorithm, and are rejected for the alg/key incompatibility; a verifier that selects
+  the algorithm from the key material accepts them.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

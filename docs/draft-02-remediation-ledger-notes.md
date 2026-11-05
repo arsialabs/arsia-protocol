@@ -413,6 +413,25 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   or produce a proof. Receiving agents implement the Identity §3.3 list, the nonce
   challenge and an atomic, shared single-use `jti` store held until `iat` + S. Senders
   retry with a new proof. The SDK migration track carries this.
+- **Published counts after the tools cycle:** 33 schemas (incl. meta), 831 vectors
+  (473/208/150), 15 keypairs, RTM 2021 / 1218, 126 consistency checks, harness R1-R20;
+  README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md and test-vectors/README.md
+  (INV 112, next INV-113) updated. docs/getting-started.md still said 463 / 189 / 148
+  (stale since the A-79 cycle); it now says 473 / 208 / 150. README.md ("815 test
+  vectors" in its "New here?" paragraph; "1,986 rows" twice) and docs/getting-started.md
+  ("1,986 rows") had been missed by earlier count sweeps, which searched the number
+  without its thousands separator; they now say 831 and 2,021.
+- **Coverage of the signature negatives (tools cycle):** INV-18 and INV-19 were
+  classified `none — conformance test against an implementation` since VC, although
+  `validate_vectors.py --check-crypto` asserts their failure; they are now
+  `executed: --check-crypto`, like INV-111 and INV-112.
+- **Retired tools in historical documents (tools cycle, not changed):** the Draft-01
+  audit, the session handovers, docs/draft-02-decisions.md and
+  docs/generated/arsia-protocol-overview.md still describe `gen_state_vec2.py` and the
+  `--apply` migration of `regen_v2.py`; they record the state at their date.
+- **Propagation impact (tools cycle):** none on the wire. Implementations can use
+  INV-111 and INV-112 to check that their verifier selects the algorithm from the
+  declared `alg` and the key type together (Core §5.2 Step 5).
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
