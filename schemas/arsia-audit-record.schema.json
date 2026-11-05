@@ -52,6 +52,7 @@
         "asset_transfer",
         "broker_relay",
         "compliance_warning",
+        "decision_rejected",
         "error",
         "event",
         "ict_incident",
@@ -70,7 +71,7 @@
         "state_revoke",
         "state_set"
       ],
-      "description": "The type of event being audited. Values correspond to protocol operations: request/response/event/error/pending_approval/approval_decision are envelope intents; approval_expired is an oversight deadline expiry (ARSIA-Actions.md §3.4); state_set/state_delete/state_grant/state_revoke/state_purge are State operations (ARSIA-State.md §3); asset_transfer is an Assets operation (ARSIA-Assets.md §3); broker_relay is a Compliance Broker relay (ARSIA-Routing.md §7.4); key_rotation is an Identity key lifecycle event (ARSIA-Identity.md §2.4, §2.5); rollback is an action rollback (ARSIA-Actions.md §4.2); ict_incident is a DORA incident record (ARSIA-Assets.md §6.2.3). Per ARSIA-State.md §7.1."
+      "description": "The type of event being audited. Values correspond to protocol operations: request/response/event/error/pending_approval/approval_decision are envelope intents; approval_expired is an oversight deadline expiry (ARSIA-Actions.md §3.4); state_set/state_delete/state_grant/state_revoke/state_purge are State operations (ARSIA-State.md §3); asset_transfer is an Assets operation (ARSIA-Assets.md §3); broker_relay is a Compliance Broker relay (ARSIA-Routing.md §7.4); key_rotation is an Identity key lifecycle event (ARSIA-Identity.md §2.4, §2.5); rollback is an action rollback (ARSIA-Actions.md §4.2); ict_incident is a DORA incident record (ARSIA-Assets.md §6.2.3); decision_rejected is a received approval_decision or post-execution review decision rejected and not admitted to its flow (ARSIA-Actions.md §3.4, §3.9.3). Per ARSIA-State.md §7.1."
     },
     "from_agent": {
       "allOf": [
@@ -626,9 +627,23 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         },
         {
-          "description": "Timestamp of the JWKS fetch whose keys were used to verify the audited message's signature (Core §5.2, Verification Caching / stale-key behaviour). Required at runtime for compliance-relevant signed messages; schema-optional."
+          "description": "Instant of the JWKS fetch that supplied the key identified by verified_kid, also when that key was served from the cache; never the instant of verification or of the record. Present together with verified_kid (dependentRequired). Required at runtime on the record of a compliance-relevant message whose signature the log owner verified (ARSIA-Core.md §5.2, stale-key behaviour); that condition is not stated by the record and is checked at runtime. Per ARSIA-State.md §7.1."
         }
       ]
+    },
+    "verified_kid": {
+      "type": "string",
+      "pattern": "^agent:[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(\\/[a-zA-Z0-9][a-zA-Z0-9_-]*)?#[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+      "description": "kid of the key with which the log owner successfully verified the audited message's signature (ARSIA-Core.md §5.2). Never present for a message whose signature was not verified or failed verification. Present together with jwks_fetched_at (dependentRequired). Per ARSIA-State.md §7.1."
+    },
+    "rejection_code": {
+      "type": "string",
+      "enum": [
+        "unauthorized",
+        "forbidden",
+        "invalid_request"
+      ],
+      "description": "Error code of the first verification step a rejected decision failed (ARSIA-Actions.md §3.4, §3.9.3); a duplicate or late decision has invalid_request only when it failed no earlier step (ARSIA-Core.md §4.2.1). Present exactly on decision_rejected records. Per ARSIA-State.md §7.1."
     },
     "attestation_id": {
       "allOf": [
@@ -799,6 +814,12 @@
       "hash_chain",
       "chain_id",
       "chain_seq"
+    ],
+    "verified_kid": [
+      "jwks_fetched_at"
+    ],
+    "jwks_fetched_at": [
+      "verified_kid"
     ]
   },
   "allOf": [
@@ -1391,6 +1412,50 @@
           "review_outcome",
           "reviewer_id",
           "late"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "decision_rejected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "correlation_id",
+          "root_request_id",
+          "rejection_code"
+        ],
+        "properties": {
+          "intent": {
+            "enum": [
+              "approval_decision",
+              "event"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "rejection_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "event_type": {
+            "const": "decision_rejected"
+          }
+        },
+        "required": [
+          "event_type"
         ]
       }
     }

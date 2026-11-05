@@ -470,6 +470,43 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Attestation zone (observed in coverage SC1, not fixed):** Routing §7.4.1 checks the
   broker's jurisdiction against the message's declared zone; it states no check that the
   attestation's own `residency_zone` equals that zone. R22 follows the text.
+- **Published counts after coverage SC2:** 34 schemas (incl. meta), 893 vectors
+  (483/215/195), 17 keypairs, RTM 2045 / 1241, 129 consistency checks, harness R1-R22;
+  README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md, schemas/README.md and
+  test-vectors/README.md (ITV 708, INV 157, next ITV-709 / INV-158) updated.
+- **Normative changes for the Issue (coverage SC2, CONTRIBUTING §4):** Actions §3.4
+  verification order for approved and denied decisions, receipt-instant deadline
+  without skew, rejected decisions and Path 3 only while pending (with the §3.2, §3.3,
+  §3.5, §3.6, state-machine and §3.9.3 echoes, Assets §5.2); Core §4.2.1 (the log is
+  `decision_rejected`) and §5.2 (`verified_kid`, authenticated revocation event);
+  Identity §2.5 key-revocation payload and authentication; State §7.1
+  `decision_rejected`, `rejection_code`, `verified_kid`; new schema
+  `arsia-key-revocation.schema.json`. The late-decision log moved from SHOULD to MUST
+  (ACT-§3.4-27); the replies stay SHOULD.
+- **Event before removal (coverage SC2, out of scope):** an authenticated
+  key-revocation event that arrives while the sender still publishes the key: the
+  invalidated cache entry is restored by the next refresh. The vectors follow the
+  contract (removal at once, Identity §2.5 item 2); whether an authenticated event
+  should outlast a refresh is not stated.
+- **R7 reduced (coverage SC2):** the synthetic `verify_decision` was removed; the
+  approval-decision verification is executed by R15 on the vectors. R7 keeps the
+  pending args/root match and the oversight record counts.
+- **Review decisions logged (coverage SC2):** `Review.receive` now records the rejected
+  review decisions (verification failures and duplicates) as `decision_rejected`, as
+  Actions §3.9.3 required; a valid late review decision is still `review_decision` with
+  `late: true`.
+- **Receiver simulation without signatures (coverage SC2, not changed):** `receive()`
+  of R10 (compliance resolution) does not verify signatures, so its records carry no
+  `verified_kid`; the evidence obligation is executed in R15, which verifies.
+- **Token claims in the harness (coverage SC2):** the access token is a compact JWS with
+  every claim Core §6.1 requires (`iss`, `sub`, `aud`, numeric `iat`/`exp`, `jti`,
+  `scope`; checked against `arsia-jwt-claims.schema.json`, none defaulted), signed with an Ed25519 key derived in the harness for the
+  trusted issuer and verified under that configured key; R11's issuer audience policy
+  now lists `agent:acme.executor`.
+- **Stale RTM rows outside the cycle (observed in coverage SC2, not fixed):**
+  IDENT-§2.5-04 and IDENT-§3.1-03 (a RECOMMENDED or SHOULD 1-hour cache TTL; the rule is
+  the Core §5.2 3600 s MUST ceiling) and IDENT-§2.5-05 (a MAY about future revocation
+  mechanisms that §2.5 no longer states) belong to SC4.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

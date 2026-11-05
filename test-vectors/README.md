@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-846 test vectors (475 schema-valid, 208 expected-invalid, 163 runtime-only — validator classification) for
+893 test vectors (483 schema-valid, 215 expected-invalid, 195 runtime-only — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -11,7 +11,7 @@ verification outcome (`crypto.expect_signature`).
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 846 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 893 test vectors |
 | [keypairs.json](keypairs.json) | 17 test keypairs: 15 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle and the two added in coverage SC1 is stated in the file) |
 
 ## Vector Formats
@@ -29,15 +29,15 @@ meta-schema (`schemas/arsia-test-vectors.meta.json`):
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 693 |
-| `INV-` | Invalid (all specs) | 125 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 708 |
+| `INV-` | Invalid (all specs) | 157 |
 | `CTV-` | Core (envelope, intents, compliance) | 10 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-694** / **INV-126**
+Next available ID: **ITV-709** / **INV-158**
 
 ## Runtime-Only Vectors
 
@@ -55,7 +55,7 @@ shows that the binding holds, not that the vector's message is accepted (the vec
 be invalid for another reason). `token_binding` and `attestation` scenarios state the
 presented token explicitly.
 
-163 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+195 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally
@@ -90,7 +90,20 @@ store produces. A `token_binding` scenario (R21) gives the presented token
 (`input.presented_token`); an `attestation` scenario (R22) gives the received envelope,
 the presented token, the broker entry, a simulated JWKS, the recipient's clock and the
 attestations already seen (`input.envelope`, `presented_token`, `broker_entry`, `jwks`,
-`now`, `seen`), and expects `accept` or `unauthorized` with the Routing §7.4.1 step. A
+`now`, `seen`), and expects `accept` or `unauthorized` with the Routing §7.4.1 step. In
+an `execution` scenario with approvals (R15), each approval step may override the
+approver's signed access token (`issuer`, `scope`, `sub`, `aud`, `token_lifetime`,
+`token_tamper`, `token_drop`) or the decision (`capabilities`, `approver_id`,
+`correlation_id`, `root_request_id`, `tamper`, `alg`), pre-fill the executing agent's JWKS cache
+(`input.jwks_cache`), remove a key before verification (`remove_keys`), verify later
+than receipt (`verify_at`, also on a review decision event) or stay queued until the
+deadline timer (`queued`); the
+result lists the rejected decisions (`rejections`) and the verification evidence of the
+records (`evidence`: `verified_kid`, `jwks_fetched_at`). A `revocation` scenario (R13)
+gives the senders' published keys (`input.publishers`) and timed steps — `fetch`,
+`remove`, `publish`, `receive`, `verify` (a kid), `verify_message` (the vector's own
+signed message) and `event` (the vector's message as a key-revocation event, Identity
+§2.5) — and expects each step's result, including `invalidated` for an event. A
 schema-valid vector may also carry a scenario.
 
 ### Posture

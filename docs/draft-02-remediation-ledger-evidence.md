@@ -1038,3 +1038,145 @@ published, none differs from the catalog key.
 - Findings register 99 rows: open 10 → 7, closed 89 → 92; disposition per DR or cycle
   addendum 29 → 32, recorded 16, pending 54 → 51. Coverage register 24 rows: open 13 →
   10, closed 11 → 14.
+
+## 24. Coverage SC2 closure evidence
+
+Execution baseline `002ed1c`. Owner decisions L1–L5 and the plan-review adjustments
+R1–R7 are in the design record (DR-0 addendum, coverage SC2). Line references are to
+the files after the cycle. No key material was printed. Mutations ran on a scratch
+copy: `git archive 002ed1c` with the full candidate diff applied and the new schema
+copied, the unmutated copy first passing the whole battery, and the candidate restored
+between cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-57 | Executed approval-chain vectors: capability, deadline, approver id, signature | Actions §3.4 states one verification order for approved and denied decisions (Verification of an `approval_decision`, l.1483). Harness R15 runs every approval decision through `Run._decide` (`runtime_harness.py` l.1275) and every review decision through `Review.receive` (l.1448), both on `verify_oversight_decision` (l.1127): signature through the executing agent's JWKS cache (`KeyDirectory` l.1043, `verify_signed` l.1065, with the alg/key coherence of Core §5.2 Step 5 through the validator's `_verify_signature`); a JWS access token signed under the trusted issuer's configured key (`issue_token` l.1093, `verify_token` l.1100, every Core §6.1 claim required through `arsia-jwt-claims.schema.json`); `arsiaprotocol.oversight.approve` matched exactly (`scope_satisfies`) and present in `capabilities`; binding incl. `approver_id` = `from`; deadline on the receipt instant, no skew; pending state. Signature, key and token are evaluated at the verification instant. Rejections are logged as `decision_rejected` (`Run.reject` l.1305) and never admitted; `Run.expire` (l.1312) verifies queued decisions first and applies Path 3 only while pending and once the deadline is reached; an accepted review decision is recorded at its processing instant. Capability: INV-133, INV-134, INV-140; deadline: ITV-695, INV-126, INV-152, ITV-705..707; approver identity: INV-135; signature: INV-127, INV-128, INV-139, INV-155 (alg/key mismatch); token: INV-129..132, INV-153, INV-154, INV-156, INV-157 (missing iat, jti); correlation: INV-136..138; multi-approval: ITV-696; review record instant: ITV-708; accepted reference: ITV-694. The synthetic `verify_decision` of R7 is removed. | (a)–(l), (n), (v)–(z), (ab)–(af) | yes |
+| A-58 | Schema rule for `jwks_fetched_at`; executed revocation/cache vectors | Schema: `verified_kid` ↔ `jwks_fetched_at` `dependentRequired`, the State §7.1 exception row replaced by two "present" rows (the runtime obligation stays in Core §5.2), parity guard extended to presence rows (`check_consistency.py` l.95, l.144, l.214). R15 checks the evidence on every record of every execution vector: the sender's kid and a fetch not later than the processing on records of received, verified messages; none on records of messages the executor emitted; the fetch instant from the cache (ITV-694: 09:30, not the 10:10 verification). Key-revocation payload schema (`arsia-key-revocation.schema.json`): ITV-699, INV-145..147. R13 `revocation` scenarios (`revocation_case` l.1938, `process_key_revocation` l.1918, `verify_signed_jwks` l.1899) with real signed messages: authenticated invalidation (ITV-700..702), unauthenticated events cause no invalidation (INV-148..151), cache ceiling and queued messages (ITV-703, ITV-704). | (m), (o)–(u), (aa) | yes |
+
+**Vectors (47).**
+- Execution (R15; base request at 10:00, deadline 11:00:00.000, GDPR-STANDARD skew
+  300 s): ITV-694 (approver's JWKS cached at 09:30), ITV-695 (received at
+  10:59:59.999), ITV-696 (required 2; X rejected for the token audience, then X and Y
+  admitted), ITV-705 (received 10:59:59, queued; the timer at 11:00 verifies it first),
+  ITV-706 (denial, then the deadline: no expiry); INV-126 (received exactly at
+  11:00:00.000), INV-127/128 (approved/denied, reason changed after signing), INV-129
+  (token `aud`), INV-130 (`sub`), INV-131 (untrusted issuer), INV-132 (token expired
+  900 s before), INV-133 (scope `arsiaprotocol.*` only), INV-134 (`capabilities` empty,
+  re-signed), INV-135 (`approver_id` of another agent, re-signed), INV-136 (unknown
+  `correlation_id`, kept as received), INV-137 (`root_request_id`), INV-138 (approval
+  after an admitted denial), INV-139 (invalid signature and wrong correlation →
+  `unauthorized`), INV-140 (scope without approve and `approver_id` mismatch →
+  `forbidden`), INV-152 (late and invalid signature → `unauthorized`), INV-153 (token
+  claim changed after signing), INV-154 (received 10:09:59, key removed, verified
+  10:10:01 past the 60 s max-age of the 10:09 fetch), INV-155 (alg ES256 declared over
+  a valid Ed25519 signature), INV-156 and INV-157 (token validly signed without `iat`,
+  without `jti`), ITV-707 (timer at 10:00:01, before the deadline: the queued decision
+  is processed, no expiry), ITV-708 (review decision received 10:00:02, verified and
+  recorded 10:01:02).
+- Schema-ref: ITV-697, INV-141, INV-142 (`verified_kid` / `jwks_fetched_at`); ITV-698,
+  INV-143, INV-144 (`decision_rejected`, `rejection_code`); ITV-699, INV-145..147
+  (key-revocation payload).
+- Revocation (R13; `agent:acme.echo-client`, revoked `#key1`, successor `#other-key`,
+  both already in the catalog; 14:00 fetch, 14:05 removal, 14:10 event, 14:20 lookup):
+  ITV-700 (successor already cached: no refresh at the event; the next `#key1` lookup
+  refreshes and `#other-key` is then served from the 14:20 fetch), ITV-701 (successor
+  published at the rotation: refresh at the event), ITV-702 (`effective_at` one day
+  ahead: invalidation at once), INV-148 (signed by `#key1` itself), INV-149
+  (`revoked_kid` of `agent:acme.billing`), INV-150 (`effective_at` changed after
+  signing; signature negative, construction guarded), INV-151 (signing key never
+  published: the refresh it causes is an ordinary JWKS update), ITV-703 (accepted at
+  14:30 with `jwks_fetched_at` 14:00, rejected past the ceiling), ITV-704 (queued
+  message verified after the 60 s max-age).
+
+**Existing vectors changed.** ITV-694 (an SC2 vector) states `processed_at` in its
+evidence after the review below. Expectations: ITV-656 and ITV-662 (`event_types` gain
+`decision_rejected`); ITV-657..660 (`event_types` added; "not recorded" → "not
+recorded as a decision; logged as decision_rejected"). Descriptions only, no result
+change: ITV-314..316, ITV-319..321 and ITV-664 (stale "§3.4 Step N" references after
+the renumbering), ITV-317 (the withdrawn "±300s clock skew tolerance" on the
+deadline). Spec echo also aligned: the Assets §5.2 `pending_approval` example
+("latest time approval will be accepted").
+
+**Mutations.** 33/33 detected:
+
+```
+(a) approval verification skips the signature step: DETECTED (R15 INV-127, INV-128)
+(b) a rejected denial ends the pending flow: DETECTED (R15 INV-128)
+(c1) token aud not checked: DETECTED (R15 INV-129)
+(c2) token sub not checked: DETECTED (R15 INV-130)
+(d) approve capability satisfied by a wildcard: DETECTED (R15 INV-133)
+(e) capability checked in the token only, not in capabilities: DETECTED (R15 INV-134)
+(f) approver_id = from not checked: DETECTED (R15 INV-135)
+(g) deadline with > instead of >=: DETECTED (R15 INV-126)
+(h) deadline extended by 300 s of skew: DETECTED (R15 INV-126)
+(i) a rejected attempt consumes its approver: DETECTED (R15 ITV-696)
+(j) binding (step 4) checked before signature, token and authority: DETECTED (R15 INV-139, INV-140)
+(k) decision_rejected not emitted: DETECTED (R15 ITV-662, INV-127)
+(l) verified_kid recorded although the signature failed: DETECTED (R15 INV-127)
+(m) jwks_fetched_at = the verification instant: DETECTED (R15 ITV-694; R13 ITV-703)
+(n) a valid late review decision rejected: DETECTED (R15 C-09)
+(o) authenticated revocation event not acted on: DETECTED (R13 ITV-700)
+(p) event signed by the revoked key accepted: DETECTED (R13 INV-148)
+(q) revoked_kid of another agent accepted: DETECTED (R13 INV-149)
+(r) invalidation before authentication: DETECTED (R13 INV-148, INV-149, INV-150)
+(s) a future effective_at delays the invalidation: DETECTED (R13 ITV-702)
+(t) schema: verified_kid no longer requires jwks_fetched_at: DETECTED (validator INV-141)
+(u) schema: decision_rejected without required rejection_code: DETECTED (validator INV-143)
+(v) deadline checked before steps 1-4: DETECTED (R15 INV-152)
+(w) Path 3 applied to a resolved flow: DETECTED (R15 ITV-706)
+(x) the deadline timer expires without verifying queued decisions: DETECTED (R15 ITV-705)
+(y) token signature not verified (claims only): DETECTED (R15 INV-153)
+(z) steps 1-3 evaluated at the receipt instant: DETECTED (R15 INV-154)
+(aa) State §7.1 loses the `verified_kid` present row: DETECTED (A-59 parity guard)
+(ab) approval signature verified without alg/key coherence: DETECTED (R15 INV-155)
+(ac) token claims not checked against Core §6.1; a missing iat defaulted: DETECTED (R15 INV-156, INV-157)
+(ad) the token generator omits jti: DETECTED (R15 ITV-694)
+(ae) Path 3 before the deadline is reached: DETECTED (R15 ITV-707)
+(af) the accepted review decision recorded at its receipt instant: DETECTED (R15 ITV-708)
+```
+
+**Owner review correction.** The owner's double check reproduced four harness defects
+that the battery and the first 28 mutations did not cover: (1) `verify_signed` delegated
+to `signature_ok`, which verifies Ed25519 without checking `security.alg`, so an
+approval declaring ES256 with a valid Ed25519 signature was admitted; (2)
+`verify_token` defaulted a missing `iat`, did not require `jti`, and `reviewer_token`
+issued no `jti`; (3) `Run.expire` resolved a pending flow by Path 3 before the deadline;
+(4) `Review.receive` authenticated at the verification instant but recorded the
+accepted decision at the receipt instant, so `processed_at` could precede
+`jwks_fetched_at`. Fixed respectively by verifying through the validator's
+`_verify_signature` (Core §5.2 Step 5), by checking the claims against
+`arsia-jwt-claims.schema.json` with no defaults and issuing complete tokens, by a
+deadline guard in `Run.expire` that still processes the queue, and by recording at the
+verification instant. Regressions INV-155..157, ITV-707, ITV-708; mutations (ab)–(af);
+(w) and (x) retargeted to the guarded `expire`. No decision changed.
+
+Mutation (r) invalidates the named key before any check. It is detected where the event
+would otherwise leave the cache untouched (INV-148..150); in INV-151 the refresh caused
+by the unknown signing key removes `#key1` legitimately, so that vector does not
+discriminate (r), as the plan review anticipated.
+
+**Inventory.** The existing vectors changed are exactly those listed above; no other
+vector changed result. The signature negatives are INV-18, INV-19, INV-37, INV-38,
+INV-39, INV-111, INV-112, INV-124 and INV-150; the INV-150 construction guard proves the
+signature verifies over the pre-tamper bytes (`effective_at` 13:55) with `#other-key`
+and not over the presented event. No key was added to the catalog.
+
+**Counts before → after.**
+- Vectors 846 → 893 (validator 475 / 208 / 163 → 483 / 215 / 195); crypto-checked 145 →
+  154 (134 → 142 verified, 8 → 9 negatives, 3 canonical only); 0 failures in all four
+  modes.
+- Skip classification 163 → 195 rows (crypto-behaviour 11 → 15, executor-oversight
+  35 → 63), all new rows `executed: R15` or `executed: R13`.
+- Schemas 33 → 34 (`arsia-key-revocation.schema.json`); consistency checks 127 → 129
+  (its meta-schema and `$id` checks).
+- RTM 2028 / 1225 → 2045 / 1241: ACT-§3.4-30..36, CORE-§4.2.1-05, CORE-§5.2-14..16,
+  IDENT-§2.5-06..09, STATE-§7.1-28..29; ACT-§3.4-27 SHOULD → MUST; rows aligned to the
+  new text; stale rows corrected where A-58 traces through them (CORE-§5.2-11 "every
+  24 hours" → 3600 s, IDENT-§2.5-03 refetch-on-failure → the revocation event,
+  STATE-§7.1-04 22 → 23 event types); Draft-02 Delta rows added; coverage summaries of
+  the four touched RTMs recomputed from their tables (the Actions summary was stale at
+  the baseline: 329 stated, 350 rows).
+- Harness R1-R22, 492 → 676 assertions.
+- Findings register 99 rows: open 7 → 5, closed 92 → 94; disposition per DR or cycle
+  addendum 32 → 34, recorded 16, pending 51 → 49. Coverage register 24 rows: open 10 →
+  6, closed 14 → 18.

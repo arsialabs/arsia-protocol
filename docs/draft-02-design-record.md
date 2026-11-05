@@ -143,6 +143,50 @@ Apply to every record below.
   adversarial JWKS publishes the foreign key so that only the kid's membership rejects
   it.
 
+**Addendum — 2026-11-05 (owner decisions for coverage SC2, under DR-0).** Normative
+alignments, listed for the GitHub Issue (CONTRIBUTING §4).
+- **L1 — Approval verification order.** One order for every `approval_decision`,
+  approved or denied: signature → `unauthorized`; access token (Core §6.4 steps 2–3,
+  §6.5, including `sub`/`aud`) → `unauthorized`; `arsiaprotocol.oversight.approve`
+  matched exactly in the token scope and present in `capabilities` → `forbidden`;
+  correlation, root, `request_payload_hash` and `approver_id` = `from` →
+  `invalid_request`; then deadline and pending state; then the decision applies. An
+  invalid decision neither approves nor denies. The error to the original requester on
+  expiry and the handling of a late decision toward the approver stay distinct; the
+  SHOULD replies stay SHOULD.
+- **L2 — Deadline.** No clock skew: in time when received strictly before the
+  `approval_deadline`, on the executing agent's clock, independent of the decision's
+  `ts` and of the timer (precedent: Actions §3.9.4). The skew still applies to external
+  timestamps and to the token. The equality with `pending_approval.expires_at` stays and
+  grants no extension.
+- **L3 — `verified_kid`.** New audit field, present together with `jwks_fetched_at`.
+  The schema states the joint presence; the obligation to carry both on the record of a
+  verified compliance-relevant message is Core §5.2's, at runtime; the harness proves
+  the emission, the key and the fetch instant actually used, also from the cache.
+  `verified_kid` means a successful verification; `jwks_fetched_at` is the fetch
+  instant.
+- **L4 — Key-revocation event.** `payload.data` = {`revoked_kid`, `effective_at`},
+  closed schema; `revoked_kid` and the signing key belong to `from`; the signing key is
+  published and differs from `revoked_kid`; invalidation only after authentication;
+  removal from the JWKS stays the authoritative signal; `effective_at` never delays the
+  immediate invalidation.
+- **L5 — `decision_rejected`.** New event type, common to approval and review
+  decisions, recording the received message (its correlation as received) with
+  `rejection_code`: verification failures, duplicates, late arrivals that prevent
+  admission. A valid late review decision stays `review_decision` with `late: true`.
+  Not a Record 3, not an approval, does not consume the approver, changes no outcome;
+  logged whether or not an `error` is sent; `verified_kid` only if the signature
+  verified. §3.5 and §3.6 count "decisions verified and admitted to the flow".
+- **Plan-review adjustments.** R1 duplicate and deadline give `invalid_request` only
+  when no earlier step failed (late + invalid signature → `unauthorized`); R2 Path 3
+  only for a still-pending flow, after the decisions received before the deadline are
+  verified, §3.6 rule 3 qualified; R3 an unauthenticated event causes no invalidation,
+  ordinary JWKS refreshes from resolving its key are unaffected; R4 the token signature
+  is executed (JWS under the trusted issuer's configured key); R6 the deadline echoes
+  (§3.2, §3.6 rule 4, state machine) refer to the Path 3 conditions; R7 the receipt
+  instant decides only the deadline, signature, key resolution and token are evaluated
+  at the verification instant.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

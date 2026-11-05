@@ -780,7 +780,7 @@ and the field is absent, the message is invalid and MUST be rejected with error 
   1. **Unknown correlation:** a message whose `correlation_id` does not match any
      message the receiving agent has sent and still tracks MUST NOT be processed as
      a reply. The receiver MUST log the discrepancy; for `approval_decision` it MUST
-     reject with error code `invalid_request` (ARSIA-Actions.md §3.4 Step 3); for
+     reject with error code `invalid_request` (ARSIA-Actions.md §3.4, verification step 4); for
      `response` and `error` it MAY discard the message silently.
   2. **Duplicate correlation:** if a reply for the same `correlation_id` was already
      accepted, subsequent replies with that `correlation_id` MUST NOT change the
@@ -793,6 +793,10 @@ and the field is absent, the message is invalid and MUST be rejected with error 
      (ARSIA-Actions.md §3.9.4): a review decision that arrives after the review
      deadline is processed per that section. It never alters the execution, whose
      terminal state is not reopened.
+
+  For an `approval_decision` and for a post-execution review decision, the log that
+  rules 1–3 require is the `decision_rejected` audit record (ARSIA-State.md §7.1;
+  ARSIA-Actions.md §3.4, §3.9.3).
 
 #### 4.2.2 `expires_at` — Expiration Timestamp
 
@@ -2047,15 +2051,20 @@ following rules bound the exposure window:
   including for messages already queued but not yet verified.
 - **Emergency rotation.** On compromise, the agent MUST remove the key
   immediately, publish the successor key, and SHOULD additionally emit a signed
-  `event` with payload type `arsiaprotocol.identity/key-revocation` to its known
-  counterparties, naming the revoked `kid` and the effective instant. Recipients
-  that process this event MUST invalidate the cached key at once rather than
-  waiting for the next refresh.
+  `event` with payload type `arsiaprotocol.identity/key-revocation`
+  (ARSIA-Identity.md §2.5) to its known counterparties, naming the revoked `kid` and
+  the effective instant. Recipients that authenticate this event
+  (ARSIA-Identity.md §2.5) MUST invalidate the cached key at once rather than waiting
+  for the next refresh.
 - **Stale-key behaviour.** A verification performed against a cached key is only
-  as fresh as the cache; implementations MUST record, in audit records for
-  compliance-relevant messages, the JWKS fetch timestamp used for verification, so
-  that post-incident review can bound which acceptances predate revocation
-  awareness.
+  as fresh as the cache; implementations MUST record, in the audit record of a
+  compliance-relevant message whose signature they verified, the `kid` of the
+  verifying key (`verified_kid`) and the instant of the JWKS fetch that supplied that
+  key (`jwks_fetched_at`) — the fetch instant, also when the key was served from the
+  cache, never the instant of verification or of the record (ARSIA-State.md §7.1) —
+  so that post-incident review can bound which acceptances predate revocation
+  awareness. A record of a message whose signature was not verified, or failed
+  verification, carries neither.
 - **Compromise-window accounting.** Operators MUST treat all signatures produced
   by a compromised key as invalid from the compromise instant
   (ARSIA-Identity.md §2.5, §7.3): acceptance during the propagation window does

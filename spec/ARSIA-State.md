@@ -2993,7 +2993,7 @@ REQUIRED unless marked OPTIONAL.
   `"state_grant"`, `"state_revoke"`, `"state_purge"`, `"asset_transfer"`,
   `"broker_relay"`, `"key_rotation"`, `"rollback"`, `"ict_incident"`,
   `"compliance_warning"`, `"review_pending"`, `"review_decision"`,
-  `"review_overdue"`, `"review_escalation"`
+  `"review_overdue"`, `"review_escalation"`, `"decision_rejected"`
 - **REQUIRED.**
 - **Description:** The type of event being audited. Values correspond to protocol
   operations:
@@ -3027,6 +3027,8 @@ REQUIRED unless marked OPTIONAL.
   a decision (ARSIA-Actions.md §3.9.4).
   `"review_escalation"` — The result of escalating an overdue review obligation
   (ARSIA-Actions.md §3.9.4).
+  `"decision_rejected"` — A received `approval_decision` or post-execution review
+  decision was rejected and not admitted to its flow (ARSIA-Actions.md §3.4, §3.9.3).
 
 #### `from_agent`
 
@@ -3229,6 +3231,36 @@ that resolution (ARSIA-Core.md §4.3.10.7) and MUST NOT diverge from it:
   `request` messages belongs only to the high-risk requirement set
   (ARSIA-Core.md §4.3.10.3), not to the auditing of rejections.
 
+#### `rejection_code`
+
+- **Type:** string
+- **Enum:** `"unauthorized"`, `"forbidden"`, `"invalid_request"`
+- **OPTIONAL.** Present exactly on `decision_rejected` records.
+- **Description:** The error code of the first verification step the rejected
+  decision failed (ARSIA-Actions.md §3.4, §3.9.3); a duplicate or late decision
+  (ARSIA-Core.md §4.2.1) has `invalid_request` only when it failed no earlier step.
+  The record keeps the `correlation_id` and `root_request_id` the decision carried, as
+  received; their presence documents the attempt and does not show that the binding
+  was valid.
+
+#### `verified_kid`
+
+- **Type:** string (`kid`)
+- **OPTIONAL.**
+- **Description:** The `kid` of the key with which the log owner successfully
+  verified the audited message's signature (ARSIA-Core.md §5.2). It is never present
+  for a message whose signature was not verified or failed verification. Present
+  together with `jwks_fetched_at`.
+
+#### `jwks_fetched_at`
+
+- **Type:** string (RFC 3339 with millisecond precision, UTC)
+- **OPTIONAL** in the schema; REQUIRED at runtime per ARSIA-Core.md §5.2 (see the note
+  on the per-event-type extension table).
+- **Description:** The instant of the JWKS fetch that supplied the key identified by
+  `verified_kid` — also when that key was served from the cache — never the instant of
+  verification or of the record. Present together with `verified_kid`.
+
 #### `human_oversight_status`
 
 - **Type:** string
@@ -3398,13 +3430,21 @@ by the schema.
 | `event_type` = `review_overdue` | `correlation_id`, `root_request_id`, `review_mode`, `review_deadline` | — | ARSIA-Actions.md §3.9.5 |
 | `event_type` = `review_escalation` | `correlation_id`, `root_request_id`, `review_mode`, `escalation_result`, `escalation_attempts` | — | ARSIA-Actions.md §3.9.5 |
 | `event_type` = `review_decision` | `correlation_id`, `root_request_id`, `review_outcome`, `reviewer_id`, `late` | `reason` (string or null) | ARSIA-Actions.md §3.9.5 |
+| `event_type` = `decision_rejected` | `correlation_id`, `root_request_id`, `rejection_code` | — | ARSIA-Actions.md §3.4, §3.9.3 |
 | `human_oversight_status` = `approved` or `denied` | `approver_id` | — | §7.1 (`approver_id`) |
 | any record type | — | `deployer_id` (when the log owner's IdentityRecord sets a `deployer_id` different from its `owner_id`) | ARSIA-Identity.md §4.4 |
 | `intent` = `request` and `event_type` ∈ `request`, `state_set`, `state_delete`, `state_purge`, `state_grant`, `state_revoke`, `asset_transfer`, `rollback` (covered record) | `obligation_resolution` | — | ARSIA-Core.md §4.3.10.7 |
 | `rejection_cause` = `compliance` | `obligation_resolution`, `correlation_id` (and `event_type` = `error`) | — | ARSIA-Core.md §4.3.10.6 |
 | `obligation_resolution`.`outcome` = `rejected` | `rejection_cause` | — | §7.1 (`rejection_cause`) |
 | `event_type` = `ict_incident` (exception) | incident classification fields per ARSIA-Assets.md §6.2 — not yet defined as schema extension fields | — | ARSIA-Assets.md §6.2.3 |
-| any signed compliance-relevant message (exception) | `jwks_fetched_at` — the JWKS fetch timestamp used for signature verification; runtime-conditional, not expressible in the schema | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
+| `verified_kid` present | `jwks_fetched_at` | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
+| `jwks_fetched_at` present | `verified_kid` | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
+| `rejection_code` present | — (and `event_type` = `decision_rejected`) | — | §7.1 (`rejection_code`) |
+
+The schema enforces that `verified_kid` and `jwks_fetched_at` appear together. Whether
+a record must carry them depends on whether the log owner verified the audited
+message's signature, which the record alone does not state: that obligation is
+ARSIA-Core.md §5.2's, checked at runtime.
 
 `asset_transfer` records carry their escrow transition in `sub_type`; `amount` is a
 canonical decimal string. `message_id`, `from_agent` and `to_agent` are base fields

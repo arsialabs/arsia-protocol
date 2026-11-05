@@ -1834,7 +1834,7 @@ The receiving agent responds with a `pending_approval` message (ARSIA-Actions.md
     "args": {
       "action_id": "arsiaprotocol.assets/transfer-request",
       "original_request_id": "<AssetTransferRequest.id>",
-      "approval_deadline": "<RFC 3339 timestamp — latest time approval will be accepted>",
+      "approval_deadline": "<RFC 3339 timestamp — decisions received from this instant are late>",
       "approver_capability": "arsiaprotocol.oversight.approve",
       "context": "Transfer EUR 1500.00 from agent:acme.billing to agent:contoso.treasury via agent:europa.payments.sepa. Purpose: MiFID II suitability assessment fee. Amount exceeds threshold for automatic execution.",
       "risk_level": 8,
@@ -1897,8 +1897,8 @@ execute the transfer and responds to the initiator with the `error` of
 ARSIA-Actions.md §3.4 Path 2 (`forbidden`, `oversight_decision: "denied"`). An `approval_decision` whose `decision`
 value is not `"approved"` or `"denied"`, whose `correlation_id` does not match the
 outstanding `pending_approval`, or whose token lacks the required capabilities MUST
-be rejected with `invalid_request`/`forbidden` per ARSIA-Actions.md §3.4 and MUST
-NOT execute the transfer.
+be rejected per the verification of ARSIA-Actions.md §3.4 and MUST NOT execute the
+transfer.
 
 If no `approval_decision` is received before the `pending_approval`'s `expires_at`
 deadline, the processor responds with the `error` of ARSIA-Actions.md §3.4 Path 3

@@ -66,9 +66,13 @@
 | IDENT-§2.4-07 | 2.4 | RECOMMENDED | operational_policy | informational | Maximum key lifetime of 90 days is RECOMMENDED as a rotation trigger | — | — |
 | IDENT-§2.5-01 | 2.5 | SHOULD | sdk_enabled | procedural | Implementations SHOULD achieve key revocation by removing the compromised key from JWKS and rotating immediately | — | — |
 | IDENT-§2.5-02 | 2.5 | RECOMMENDED | operational_policy | informational | Short key validity periods (90 days RECOMMENDED) limit revocation exposure | — | — |
-| IDENT-§2.5-03 | 2.5 | SHOULD | deployment | behavioural_positive | JWKS-caching recipients SHOULD refetch on signature verification failure for near-immediate revocation propagation | — | — |
+| IDENT-§2.5-03 | 2.5 | SHOULD | deployment | behavioural_positive | On compromise the agent SHOULD additionally emit a signed key-revocation event to known counterparties naming the revoked kid and the effective instant | arsia-key-revocation | ITV-700 |
 | IDENT-§2.5-04 | 2.5 | RECOMMENDED | sdk | behavioural_positive | JWKS cache TTL RECOMMENDED maximum is 1 hour | — | — |
 | IDENT-§2.5-05 | 2.5 | MAY | sdk | informational | Future protocol versions MAY define a formal key revocation mechanism (CRL or OCSP-like) | — | — |
+| IDENT-§2.5-06 | 2.5 | REQUIRED | sdk | structural | key-revocation payload.data contains exactly revoked_kid (a kid of from) and effective_at | arsia-key-revocation | ITV-699, INV-145, INV-146, INV-147 |
+| IDENT-§2.5-07 | 2.5 | MUST | sdk | behavioural_negative | A recipient acts on a key-revocation event only after authenticating it — signing key of from, published, distinct from revoked_kid; revoked_kid of from — otherwise unauthorized | — | INV-148, INV-149, INV-150, INV-151 |
+| IDENT-§2.5-08 | 2.5 | MUST | sdk | behavioural_positive | For an authenticated key-revocation event the recipient MUST invalidate the cached key at once; effective_at never delays the invalidation | — | ITV-700, ITV-701, ITV-702 |
+| IDENT-§2.5-09 | 2.5 | MUST_NOT | sdk | behavioural_negative | An unauthenticated key-revocation event MUST NOT cause the invalidation its payload names; ordinary JWKS refreshes caused by resolving its signing key are unaffected | — | INV-148, INV-149, INV-150, INV-151 |
 | IDENT-§3.1-01 | 3.1 | MUST | sdk | structural | Every ARSIA message MUST carry a security object with alg, kid, and sig fields | arsia-message | — |
 | IDENT-§3.1-02 | 3.1 | MUST | sdk | procedural | Recipient MUST verify message signature using the 10-step verification procedure (step 9: declared, allowlisted alg coherent with the key, per ARSIA-Core.md §5.2 Step 5) | — | ITV-551, ITV-552 |
 | IDENT-§3.1-03 | 3.1 | SHOULD | sdk | behavioural_positive | Recipients SHOULD cache JWKS responses for up to 1 hour, respecting Cache-Control headers | — | — |
@@ -310,18 +314,18 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 297 |
-| Schema ≠ — | 130 |
-| Vector ≠ — | 106 |
-| Both ≠ — | 57 |
-| Both = — (gaps) | 118 |
+| Total requirements | 301 |
+| Schema ≠ — | 132 |
+| Vector ≠ — | 111 |
+| Both ≠ — | 59 |
+| Both = — (gaps) | 117 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 19 | 13 | 9 | 15 |
-| 2 | 27 | 7 | 5 | 4 | 19 |
+| 2 | 31 | 9 | 10 | 6 | 18 |
 | 3 | 39 | 10 | 12 | 6 | 23 |
 | 4 | 9 | 4 | 2 | 2 | 5 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
@@ -346,3 +350,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | certificate codes registered in Core §11.2 | §6.4.3 | — | — |
 | key revocation under cache: 3600 s ceiling, revocation event | §2.5 | — | integration |
 | DPoP verification complete: RFC 9449 §4.3 checks 1-12 with ARSIA profile restrictions, nonce challenge precedence, single-use jti (atomic, per target URI, held until iat + S), retransmission with a new proof (A-49) | §3.3, §9.2 | dpop-proof | INV-104..107; harness R20 |
+| key-revocation event payload (revoked_kid, effective_at) and its authentication: signing key of from, published, distinct from revoked_kid; immediate invalidation, effective_at never delays it (A-58) | §2.5 | key-revocation | ITV-699..702, INV-145..151; harness R13 |

@@ -55,6 +55,7 @@
 | CORE-§4.2.1-02 | 4.2.1 | MUST | sdk | behavioural_positive | correlation_id MUST equal the original request message id | — | CTV-04, CTV-10 |
 | CORE-§4.2.1-03 | 4.2.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD log unmatched correlation_id in response/error messages | — | — |
 | CORE-§4.2.1-04 | 4.2.1 | MAY | sdk_enabled | behavioural_negative | Agents MAY discard response/error messages with unmatched correlation_id | — | — |
+| CORE-§4.2.1-05 | 4.2.1 | MUST | sdk | procedural | For an approval_decision or a post-execution review decision, the log that correlation rules 1–3 require is the decision_rejected audit record | arsia-audit-record | INV-136, INV-138, ITV-656 |
 | CORE-§4.2.2-01 | 4.2.2 | REQUIRED | sdk | structural | expires_at is REQUIRED when intent is request or pending_approval | arsia-message | CTV-01, CTV-08, INV-05 |
 | CORE-§4.2.2-02 | 4.2.2 | MUST_NOT | sdk | behavioural_negative | Messages MUST NOT be processed after their expires_at timestamp | — | — |
 | CORE-§4.2.2-03 | 4.2.2 | MUST | sdk | structural | expires_at value MUST be strictly greater than the message ts value | — | CTV-01 |
@@ -187,9 +188,12 @@
 | CORE-§5.2-08 | 5.2 | SHOULD_NOT | sdk | behavioural_negative | Signature failure error SHOULD NOT include verification failure details | — | — |
 | CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — |
 | CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — |
-| CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on unknown kid, expired max-age, or every 24 hours | — | — |
+| CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on an unknown kid, on expired Cache-Control max-age, and at least every 3600 seconds | — | ITV-701, ITV-703, ITV-704 |
 | CORE-§5.2-12 | 5.2 | REQUIRED | sdk | behavioural_positive | Signature verification is REQUIRED for an error carrying obligation_resolution and for the post-execution review events | arsia-message | ITV-657 |
-| CORE-§5.2-13 | 5.2 | MUST | sdk | behavioural_negative | security.alg MUST be compatible with the resolved key type (EdDSA–OKP/Ed25519, ES256–EC/P-256, RS256–RSA); a mismatch MUST be rejected with unauthorized (Step 5) | — | INV-111, INV-112 |
+| CORE-§5.2-13 | 5.2 | MUST | sdk | behavioural_negative | security.alg MUST be compatible with the resolved key type (EdDSA–OKP/Ed25519, ES256–EC/P-256, RS256–RSA); a mismatch MUST be rejected with unauthorized (Step 5) | — | INV-111, INV-112, INV-155 |
+| CORE-§5.2-14 | 5.2 | MUST | sdk | behavioural_negative | After a refresh no longer finds a kid, signatures by that key MUST be rejected, including messages already queued but not yet verified | — | ITV-703, ITV-704, INV-154 |
+| CORE-§5.2-15 | 5.2 | MUST | sdk | behavioural_positive | Recipients that authenticate a key-revocation event MUST invalidate the cached key at once rather than waiting for the next refresh | — | ITV-700, ITV-701, ITV-702 |
+| CORE-§5.2-16 | 5.2 | MUST | sdk | structural | The audit record of a compliance-relevant message whose signature was verified MUST carry verified_kid and jwks_fetched_at (the fetch instant, also when served from the cache); a record of an unverified or failed signature carries neither | arsia-audit-record | ITV-694, ITV-697, INV-127, INV-141, INV-142, ITV-708 |
 | CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — |
 | CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — |
 | CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 |
@@ -421,11 +425,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 406 |
-| Schema ≠ — | 181 |
-| Vector ≠ — | 151 |
-| Both ≠ — | 88 |
-| Both = — (gaps) | 162 |
+| Total requirements | 410 |
+| Schema ≠ — | 183 |
+| Vector ≠ — | 156 |
+| Both ≠ — | 90 |
+| Both = — (gaps) | 161 |
 
 ### Per-section breakdown
 
@@ -434,8 +438,8 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 142 | 79 | 78 | 46 | 31 |
-| 5 | 36 | 8 | 21 | 5 | 12 |
+| 4 | 143 | 80 | 79 | 47 | 31 |
+| 5 | 39 | 9 | 25 | 6 | 11 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
@@ -473,3 +477,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | CORE-COMPLIANCE-04..09 added; in-repo runner | §12.3, §12.4 | — | as listed per test |
 | DPoP receiver checks delegated to Identity §3.3; single-use jti stated as an ARSIA requirement; broker audit covers messages not forwarded (A-49, A-89) | §6.3, §9.2, §13.2.2 | dpop-proof, audit-record | INV-104..107, ITV-688, ITV-689; harness R19, R20 |
 | algorithm coherence traced to discriminating negatives: declared alg incompatible with the key type, signature valid for the key's own algorithm (A-33); no normative change | §5.2 Step 5 | — | INV-111, INV-112; validate_vectors --check-crypto |
+| decision_rejected is the log of correlation rules 1–3 for decisions; stale-key evidence verified_kid + jwks_fetched_at; key-revocation event authenticated before invalidation (A-57, A-58) | §4.2.1, §5.2 | audit-record, key-revocation | ITV-694, ITV-697, ITV-700..704; harness R13, R15 |

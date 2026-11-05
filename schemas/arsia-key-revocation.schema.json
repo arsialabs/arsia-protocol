@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-key-revocation.schema.json",
+  "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
+  "title": "ARSIA Key Revocation",
+  "description": "Validates payload.data of an event with payload type arsiaprotocol.identity/key-revocation (ARSIA-Identity.md §2.5; ARSIA-Core.md §5.2, Verification Caching). The binding of revoked_kid and of the signing key to the event's from, and the rule that the signing key differs from revoked_kid, are runtime checks (Identity §2.5).",
+  "type": "object",
+  "required": [
+    "revoked_kid",
+    "effective_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "revoked_kid": {
+      "type": "string",
+      "pattern": "^agent:[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(\\/[a-zA-Z0-9][a-zA-Z0-9_-]*)?#[a-zA-Z0-9][a-zA-Z0-9_-]*$",
+      "description": "kid of the revoked key; its agent-id prefix equals the event's from (runtime). Per ARSIA-Identity.md §2.5."
+    },
+    "effective_at": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        {
+          "description": "Instant from which signatures by the revoked key are invalid; for an emergency rotation, the compromise instant (ARSIA-Core.md §5.2, compromise-window accounting). It never delays the recipient's invalidation. Per ARSIA-Identity.md §2.5."
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "revoked_kid": "agent:acme.echo-client#key1",
+      "effective_at": "2026-03-24T14:00:00.000Z"
+    }
+  ]
+}

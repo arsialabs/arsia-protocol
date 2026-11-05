@@ -13,7 +13,7 @@ Schema cannot express, executed as tests — including against the runtime
   R5  Amount grammar, length and per-asset-type scale;     (Assets §2, §3.1.1, D4)
       currency exponent from an injected ISO 4217 catalog
   R6  Idempotency precedence: signed envelope wins         (Core §10.4, M-25)
-  R7  Correlation/root chain verification;                 (Core §4.2, B-01)
+  R7  Pending args/root match;                              (Core §4.2, B-01)
       oversight audit-record count                         (Actions §3.5/§3.6, A-25)
   R8  I-JSON number range rule                             (State §2.1.2, B-08)
   R9  Content-field mutual exclusivity                     (Core §4.4.7, A-08)
@@ -22,13 +22,18 @@ Schema cannot express, executed as tests — including against the runtime
       simulations; authenticated context (Identity §7)
   R11 Issuer trust and key-origin policy                    (Core §6.5)
   R12 Session-scope audit precedence                        (State §8.3)
-  R13 JWKS-document cache: unknown-kid refresh, max-age     (Core §5.2/§7.3, A-18)
-      capped at 3600 s, revocation event, shared-cache sequences
+  R13 JWKS-document cache: unknown-kid refresh, max-age     (Core §5.2/§7.3, A-18; Identity §2.5, A-58)
+      capped at 3600 s, revocation event, shared-cache sequences;
+      `revocation` vectors: signed key-revocation events
+      authenticated before invalidation, queued messages
   R14 Audit hash chain: chain value, verification against   (State §7.2, DR-5)
       a held head, tombstones, conformance-level mandate
   R15 Executor oversight and post-execution review:        (Actions §3, Core §4.3.10, DR-1/DR-2)
       executor sources, approval binding, review deadlines,
-      overdue and escalation, async terminal results, tokens
+      overdue and escalation, async terminal results, tokens;
+      approval/review decision verification in order with   (Actions §3.4, §3.9.3; A-57)
+      signed tokens and a JWKS cache, decision_rejected,
+      verified_kid/jwks_fetched_at evidence                  (Core §5.2, State §7.1; A-58)
   R16 Message timing: clock-skew tolerance and expiry       (Core §4.1.3, §4.2.2, §8.3)
       against a declared recipient clock; MAY posture;
       temporal causes kept apart from compliance causes
@@ -286,20 +291,7 @@ def r6():
 
 
 # ------------------------------------------------------------- R7 chain verify
-def verify_decision(decision, pending_store):
-    """Actions §3.4 Step 3 (+ root check): returns (accepted, error)."""
-    p = pending_store.get(decision.get("correlation_id"))
-    if p is None:
-        return False, "invalid_request"  # unknown correlation
-    if decision.get("root_request_id") != p["root_request_id"]:
-        return False, "invalid_request"  # root mismatch
-    if p.get("resolved"):
-        return False, "invalid_request"  # duplicate/late
-    if decision["payload"]["result"]["decision"] not in ("approved", "denied"):
-        return False, "invalid_request"  # bad enum (B-06)
-    return True, None
-
-
+# The approval_decision verification of Actions §3.4 runs in R15 (Run.approval), on the execution vectors.
 def verify_pending(pending):
     """Actions §3.2: payload.args.original_request_id MUST equal envelope root_request_id."""
     return pending["payload"]["args"]["original_request_id"] == pending.get("root_request_id")
@@ -309,16 +301,6 @@ def r7():
     pend_msg = {"root_request_id": "R1", "payload": {"args": {"original_request_id": "R1"}}}
     check("R7 pending args/root match", verify_pending(pend_msg))
     check("R7 pending args/root MISMATCH rejected", not verify_pending({**pend_msg, "root_request_id": "RX"}))
-    pend = {"P1": {"root_request_id": "R1", "resolved": False}}
-    good = {"correlation_id": "P1", "root_request_id": "R1",
-            "payload": {"result": {"decision": "approved"}}}
-    check("R7 happy path", verify_decision(good, pend)[0])
-    check("R7 unknown correlation", not verify_decision({**good, "correlation_id": "PX"}, pend)[0])
-    check("R7 root mismatch", not verify_decision({**good, "root_request_id": "RX"}, pend)[0])
-    bad_enum = {**good, "payload": {"result": {"decision": "rejected"}}}
-    check("R7 invalid enum 'rejected' (B-06)", not verify_decision(bad_enum, pend)[0])
-    pend2 = {"P1": {"root_request_id": "R1", "resolved": True}}
-    check("R7 duplicate/late decision", not verify_decision(good, pend2)[0])
     check("R7 single-approval cycle: 4 records (ACTIONS-10)", oversight_records(1) ==
           ["request", "pending_approval", "approval_decision", "response"])
     check("R7 multi-approval N=3 ending in a decision: N + 3 = 6 records (A-25)",
@@ -1019,10 +1001,11 @@ def _key(agent):
     return Ed25519PrivateKey.from_private_bytes(bytes([AGENT_SEEDS[agent]]) * 32)
 
 
-def sign(msg, agent):
-    """Draft-02 signing profile (envelope minus security.sig), Core §5.1."""
+def sign(msg, agent, alg="EdDSA"):
+    """Draft-02 signing profile (envelope minus security.sig), Core §5.1, with the agent's Ed25519 key; `alg`
+    is the declared algorithm, inside the signed bytes (another value builds an alg/key mismatch)."""
     from regen_v2 import signing_input_v2, b64url
-    msg["security"] = {"alg": "EdDSA", "kid": f"{agent}#key-1"}
+    msg["security"] = {"alg": alg, "kid": f"{agent}#key-1"}
     msg["security"]["sig"] = b64url(_key(agent).sign(signing_input_v2(msg)))
     return msg
 
@@ -1040,6 +1023,122 @@ def signature_ok(msg):
         return True
     except Exception:
         return False
+
+
+# A-57/A-58: verification through the recipient's JWKS cache (Core §5.2) and authenticated access tokens
+# (Core §6.4 steps 2-3, §6.5), shared by approval decisions (Actions §3.4) and review decisions (§3.9.3).
+APPROVE = "arsiaprotocol.oversight.approve"
+JWKS_DEFAULT_MAX_AGE = 3600
+ISSUER_SEEDS = {"https://as.acme.example": 31, "https://evil.example": 32}
+
+
+def _epoch(at):
+    return iso(at).replace(tzinfo=dt.timezone.utc).timestamp()
+
+
+def _at(seconds):
+    return stamp(dt.datetime.fromtimestamp(seconds, dt.timezone.utc).replace(tzinfo=None))
+
+
+class KeyDirectory:
+    """The executing agent's view of its senders' JWKS (Core §5.2): one JwksCache per sender over the sender's
+    published key (`<agent>#key-1`). `cached` pre-fills a sender's cache with an earlier fetch:
+    {agent: {"fetched_at": t, "max_age": s}}."""
+
+    def __init__(self, cached=None):
+        self.publishers, self.caches = {}, {}
+        for agent, c in (cached or {}).items():
+            self.cache(agent, c.get("max_age", JWKS_DEFAULT_MAX_AGE))._refresh(_epoch(c["fetched_at"]))
+
+    def cache(self, agent, max_age=JWKS_DEFAULT_MAX_AGE):
+        if agent not in self.caches:
+            self.publishers[agent] = Publisher({f"{agent}#key-1"}, max_age)
+            self.caches[agent] = JwksCache(self.publishers[agent])
+        return self.caches[agent]
+
+    def remove(self, kid):
+        agent = kid.split("#", 1)[0]
+        self.cache(agent)
+        self.publishers[agent].kids.discard(kid)
+
+
+def verify_signed(msg, directory, now):
+    """Core §5.2 at `now`, the instant of verification: the kid belongs to `from`, its key is resolved through the
+    cache under the refresh rules of Verification Caching, and the signature verifies. Returns (ok, verified_kid,
+    jwks_fetched_at): the instant of the fetch that supplied the key, also when it was served from the cache."""
+    sec = msg.get("security") or {}
+    kid = sec.get("kid", "")
+    agent = kid.split("#", 1)[0]
+    if agent != msg.get("from") or agent not in AGENT_SEEDS:
+        return False, None, None
+    cache = directory.cache(agent)
+    if not cache.accept(kid, _epoch(now)):
+        return False, None, None
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    from regen_v2 import signing_input_v2
+    try:  # Core §5.2 Step 5: the declared alg must be allowlisted and coherent with the key, then verify
+        vv._verify_signature(sec.get("alg"), _unb64u(_jwk(agent)["x"]), vv._base64url_decode(sec.get("sig", "")),
+                             signing_input_v2(msg))
+    except Exception:
+        return False, None, None
+    return True, kid, _at(cache.fetched_at)
+
+
+def _issuer_key(issuer):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    return Ed25519PrivateKey.from_private_bytes(bytes([ISSUER_SEEDS.get(issuer, 33)]) * 32)
+
+
+def issue_token(claims, signer=None):
+    """A compact JWS access token (Core §6.1) signed with its issuer's key, or with `signer`'s to forge one."""
+    h = _b64u(json.dumps({"typ": "at+jwt", "alg": "EdDSA"}).encode())
+    p = _b64u(json.dumps(claims).encode())
+    return f"{h}.{p}." + _b64u(_issuer_key(signer or claims["iss"]).sign(f"{h}.{p}".encode()))
+
+
+def verify_token(token, message, now, skew):
+    """Core §6.4 steps 2-3 and §6.5 at `now`: a trusted issuer, an algorithm allowed for it and coherent with its
+    Ed25519 key, the signature under the issuer's CONFIGURED key (never one the token names), exp/iat within the
+    clock skew, sub = from, aud = to within the issuer's audience policy. Returns the claims, or None."""
+    try:
+        h, p, s = token.split(".")
+        header, claims = json.loads(_unb64u(h)), json.loads(_unb64u(p))
+    except Exception:
+        return None
+    cfg = TRUST.get(claims.get("iss"))
+    if cfg is None or header.get("alg") not in cfg["algs"] or header.get("alg") != "EdDSA":
+        return None
+    try:
+        _issuer_key(claims["iss"]).public_key().verify(_unb64u(s), f"{h}.{p}".encode())
+    except Exception:
+        return None
+    if schema_errors(claims, "arsia-jwt-claims.schema.json"):  # Core §6.1: every required claim, none defaulted
+        return None
+    t = _epoch(now)
+    if not (claims["exp"] + skew > t and claims["iat"] - skew <= t):
+        return None
+    if claims.get("sub") != message.get("from") or claims.get("aud") != message.get("to") \
+            or claims.get("aud") not in cfg["audiences"]:
+        return None
+    return claims
+
+
+def verify_oversight_decision(decision, token, verified_at, directory, skew):
+    """Actions §3.4 verification steps 1-3 (also §3.9.3 steps 1-3), at the verification instant: signature,
+    token, then the reserved approve capability matched exactly in the token scope and present in
+    `capabilities`. Returns (code or None, evidence); evidence carries verified_kid and jwks_fetched_at once
+    the signature verified (State §7.1), and nothing otherwise."""
+    ok, kid, fetched = verify_signed(decision, directory, verified_at)
+    if not ok:
+        return "unauthorized", {}
+    evidence = {"verified_kid": kid, "jwks_fetched_at": fetched}
+    claims = verify_token(token, decision, verified_at, skew)
+    if claims is None:
+        return "unauthorized", evidence
+    if not authorized(claims.get("scope", "").split(), [APPROVE]) or APPROVE not in decision.get("capabilities", []):
+        return "forbidden", evidence
+    return None, evidence
 
 
 def executor_sources(action_id, descriptor=None, claim=None, capabilities=(), assessment=None):
@@ -1087,9 +1186,14 @@ class Run:
     post-execution review. Records are append-only; snapshots prove none is modified later."""
 
     def __init__(self, req, descriptor, at, claim=None, assessment=None, review_config=FULL_REVIEW_CONFIG,
-                 identity=None, escalation=None):
+                 identity=None, escalation=None, directory=None):
         self.req, self.descriptor, self.at = req, descriptor, at
         self.records, self._snapshots, self.messages = [], [], []
+        self.directory = directory or KeyDirectory()
+        self.skew = skew_tolerance(req)[0]
+        self.queue, self.required, self.approvers = [], 1, set()
+        ok, kid, fetched = verify_signed(req, self.directory, at)  # Core §5.2 on the received request
+        self.req_evidence = {"verified_kid": kid, "jwks_fetched_at": fetched} if ok else {}
         self.escalation = escalation or {}
         self.pending = self.terminal = self.review = self.ack = None
         self.remediation = False
@@ -1112,9 +1216,9 @@ class Run:
                                                "obligation_resolution": self.res}}, EXECUTOR_ID)
             self.messages.append(self.rejection)
             self.record(req, "error", at, rejection_cause="compliance", correlation_id=req["id"],
-                        obligation_resolution=self.res)
+                        obligation_resolution=self.res, **self.req_evidence)
             return
-        self.record(req, "request", at, obligation_resolution=self.res)
+        self.record(req, "request", at, obligation_resolution=self.res, **self.req_evidence)
         if "required_before_execution" in self.modes:
             self.path = "pending"
             self._send_pending()
@@ -1149,36 +1253,74 @@ class Run:
         self.record(self.pending, "pending_approval", self.at, correlation_id=req["id"],
                     root_request_id=req["id"], approval_deadline=deadline)
 
-    def approval(self, decision, received_at, required=1):
-        """Actions §3.4 Path 1-3, §3.6. Returns the error code of a rejected decision, or None."""
+    def approval(self, decision, received_at, required=None, token=None, verified_at=None):
+        """Receipt and verification of one approval_decision (Actions §3.4). Returns the rejection code or None."""
+        self.receive_decision(decision, received_at, token)
+        return self.process(verified_at or received_at, required)[-1]
+
+    def receive_decision(self, decision, received_at, token):
+        """Receipt only: the receipt instant is kept for the deadline check (Actions §3.4, step 5)."""
+        self.queue.append((decision, received_at, token))
+
+    def process(self, now, required=None):
+        """Verifies the queued decisions in receipt order at `now`, the instant of verification."""
+        if required is not None:
+            self.required = required
+        codes = []
+        while self.queue:
+            decision, received_at, token = self.queue.pop(0)
+            codes.append(self._decide(decision, received_at, token, now))
+        return codes
+
+    def _decide(self, decision, received_at, token, now):
+        """Actions §3.4 verification, in order: signature, token and authority at the verification instant `now`
+        (steps 1-3), correlation and binding (step 4), deadline at the receipt instant and pending state
+        (step 5). The first failing step gives the code; a rejected decision is logged, nothing else changes."""
         p = self.pending
         result = decision["payload"]["result"]
-        if decision.get("correlation_id") != p["id"] or decision.get("root_request_id") != p["root_request_id"]:
-            return "invalid_request"
-        if result.get("request_payload_hash") != p["payload"]["args"]["request_payload_hash"]:
-            return "invalid_request"
-        if iso(received_at) >= iso(p["payload"]["args"]["approval_deadline"]) or self.path != "pending":
-            return "invalid_request"
-        if decision["from"] in self.approvers:
-            return "invalid_request"
+        code, evidence = verify_oversight_decision(decision, token, now, self.directory, self.skew)
+        if code is None and (decision.get("correlation_id") != p["id"]
+                             or decision.get("root_request_id") != p["root_request_id"]
+                             or result.get("request_payload_hash") != p["payload"]["args"]["request_payload_hash"]
+                             or result.get("approver_id") != decision.get("from")):
+            code = "invalid_request"
+        if code is None and (iso(received_at) >= iso(p["payload"]["args"]["approval_deadline"])
+                             or self.path != "pending" or decision["from"] in self.approvers):
+            code = "invalid_request"
+        if code is not None:
+            self.reject(decision, now, code, evidence)
+            return code
         self.approvers.add(decision["from"])
-        self.record(decision, "approval_decision", received_at, correlation_id=p["id"],
+        self.record(decision, "approval_decision", now, correlation_id=p["id"],
                     root_request_id=p["root_request_id"], decision=result["decision"],
-                    approver_id=result["approver_id"], reason=result.get("reason"))
+                    approver_id=result["approver_id"], reason=result.get("reason"), **evidence)
         if result["decision"] == "denied":
-            self._finish_error(received_at, "forbidden", "Action denied by human oversight",
+            self._finish_error(now, "forbidden", "Action denied by human oversight",
                                {"oversight_decision": "denied", "approver_id": result["approver_id"],
                                 "reason": result.get("reason")})
-        elif len(self.approvers) >= required:
+        elif len(self.approvers) >= self.required:
             self.path = "executing"
         return None
 
+    def reject(self, decision, at, code, evidence):
+        """A received decision rejected and not admitted (Actions §3.4, §3.9.3; State §7.1): the record keeps the
+        correlation the decision carried, as received, and the verification evidence only if its signature
+        verified."""
+        self.record(decision, "decision_rejected", at, correlation_id=decision.get("correlation_id"),
+                    root_request_id=decision.get("root_request_id"), rejection_code=code, **evidence)
+
     def expire(self, now):
+        """Path 3: the decisions received before the deadline are verified first; the pending_approval is
+        resolved as expired only if it is still pending. Returns the codes of the decisions processed."""
+        codes = self.process(now)
+        if self.path != "pending" or iso(now) < iso(self.pending["payload"]["args"]["approval_deadline"]):
+            return codes  # resolved already, or the deadline is not reached: no expiry
         p = self.pending
         self.record(p, "approval_expired", now, correlation_id=p["id"], root_request_id=p["root_request_id"],
                     decision="expired", reason=None)
         self._finish_error(now, "forbidden", "Action approval deadline exceeded",
                            {"oversight_decision": "expired", "deadline": p["payload"]["args"]["approval_deadline"]})
+        return codes
 
     def _finish_error(self, at, code, description, details):
         req = self.req
@@ -1303,31 +1445,29 @@ class Review:
         if result == "failed":
             run.record(note, "compliance_warning", times[-1])
 
-    def receive(self, decision, received_at, token):
-        """Actions §3.9.3 verification order; returns (error_code or None, state)."""
-        if not signature_ok(decision):
-            return "unauthorized", self.state
-        if token["iss"] not in TRUSTED_ISSUERS or iso(token["exp"]) <= iso(received_at) or \
-                token["sub"] != decision["from"] or token["aud"] != EXECUTOR_ID:
-            return "unauthorized", self.state
-        if "arsiaprotocol.oversight.approve" not in token["scope"].split() or \
-                "arsiaprotocol.oversight.approve" not in decision.get("capabilities", []):
-            return "forbidden", self.state
+    def receive(self, decision, received_at, token, verified_at=None):
+        """Actions §3.9.3 verification order; a rejected decision is logged as decision_rejected (State §7.1).
+        A decision received after a deadline is not rejected for that reason (§3.9.4). Returns (code, state)."""
+        verified_at = verified_at or received_at
+        code, evidence = verify_oversight_decision(decision, token, verified_at, self.run.directory, self.run.skew)
         data, nd = decision["payload"]["data"], self.notice["payload"]["data"]
-        if decision.get("correlation_id") != self.notice["id"] or \
-                decision.get("root_request_id") != self.notice["root_request_id"] or \
-                data["execution_message_id"] != nd["execution_message_id"] or \
-                data["result_hash"] != nd["result_hash"] or data["reviewer_id"] != decision["from"]:
-            return "invalid_request", self.state
-        if self.decision is not None:
-            return "invalid_request", self.state  # duplicate: recorded outcome unchanged
+        if code is None and (decision.get("correlation_id") != self.notice["id"] or
+                             decision.get("root_request_id") != self.notice["root_request_id"] or
+                             data["execution_message_id"] != nd["execution_message_id"] or
+                             data["result_hash"] != nd["result_hash"] or data["reviewer_id"] != decision["from"]):
+            code = "invalid_request"
+        if code is None and self.decision is not None:
+            code = "invalid_request"  # duplicate: recorded outcome unchanged (Core §4.2.1 rule 2)
+        if code is not None:
+            self.run.reject(decision, verified_at, code, evidence)
+            return code, self.state
         self.tick(received_at)  # overdue facts first, whatever the timer did (Actions §3.9.4)
         late = any(iso(received_at) >= iso(ob["deadline"]) for ob in self.obligations)
         self.decision = decision
         self.state = "completed_late" if late else "completed"
-        self.run.record(decision, "review_decision", received_at, correlation_id=self.notice["id"],
+        self.run.record(decision, "review_decision", verified_at, correlation_id=self.notice["id"],
                         root_request_id=self.notice["root_request_id"], review_outcome=data["decision"],
-                        reviewer_id=data["reviewer_id"], late=late, reason=data["reason"])
+                        reviewer_id=data["reviewer_id"], late=late, reason=data["reason"], **evidence)
         if data["decision"] == "objected":
             self.run.remediation = True
         return None, self.state
@@ -1350,21 +1490,41 @@ def review_decision_msg(review, at, decision="confirmed", reviewer=REVIEWER_ID, 
     return msg
 
 
-def reviewer_token(at, iss="https://as.acme.example", scope="arsiaprotocol.oversight.approve",
-                   sub=REVIEWER_ID):
-    return {"iss": iss, "sub": sub, "aud": EXECUTOR_ID, "exp": plus_seconds(at, 600), "scope": scope}
+def reviewer_token(at, iss="https://as.acme.example", scope=APPROVE, sub=REVIEWER_ID, aud=EXECUTOR_ID,
+                   lifetime=600, tamper=False, drop=()):
+    """A signed access token for an approver or reviewer, issued at `at`, with every claim Core §6.1 requires;
+    `drop` omits claims before the issuer signs, `tamper` changes a claim after it signed (its signature no
+    longer verifies)."""
+    t = int(_epoch(at))
+    claims = {"iss": iss, "sub": sub, "aud": aud, "iat": t, "exp": t + lifetime, "scope": scope,
+              "jti": det_id(f"token/{iss}/{sub}/{aud}/{scope}/{at}")}
+    token = issue_token({k: v for k, v in claims.items() if k not in drop})
+    if tamper:
+        h, p, s = token.split(".")
+        claims = json.loads(_unb64u(p))
+        claims["exp"] += 86400
+        token = f"{h}.{_b64u(json.dumps(claims).encode())}.{s}"
+    return token
 
 
-def approval_decision_msg(run, at, decision="approved", approver=REVIEWER_ID, payload_hash_override=None):
+def approval_decision_msg(run, at, decision="approved", approver=REVIEWER_ID, payload_hash_override=None,
+                          capabilities=(APPROVE,), approver_id=None, correlation_id=None, root_request_id=None,
+                          tamper=False, alg="EdDSA"):
+    """An approval_decision signed by its approver (Actions §3.3); the overrides build the negatives of the
+    §3.4 verification, and `tamper` changes the reason after signing (its signature no longer verifies)."""
     p = run.pending
-    msg = {"v": "2.0", "id": det_id(f"{p['id']}/approval/{approver}"), "ts": at, "from": approver,
-           "to": EXECUTOR_ID, "intent": "approval_decision", "correlation_id": p["id"],
-           "root_request_id": p["root_request_id"], "capabilities": ["arsiaprotocol.oversight.approve"],
+    msg = {"v": "2.0", "id": det_id(f"{p['id']}/approval/{approver}/{at}"), "ts": at, "from": approver,
+           "to": EXECUTOR_ID, "intent": "approval_decision", "correlation_id": correlation_id or p["id"],
+           "root_request_id": root_request_id or p["root_request_id"], "capabilities": list(capabilities),
            "payload": {"type": "arsiaprotocol.oversight/decision",
-                       "result": {"decision": decision, "approver_id": approver, "reason": None, "conditions": None,
+                       "result": {"decision": decision, "approver_id": approver_id or approver, "reason": None,
+                                  "conditions": None,
                                   "request_payload_hash": payload_hash_override
                                   or p["payload"]["args"]["request_payload_hash"]}}}
-    return sign(msg, approver)
+    sign(msg, approver, alg)
+    if tamper:
+        msg["payload"]["result"]["reason"] = "altered after signing"
+    return msg
 
 
 def reissue_token(claim, scope):
@@ -1437,7 +1597,8 @@ def execution_case(inp):
         if not trusted:
             return {"check03": "fail", "details": "probe credential rejected", "error": "unauthorized",
                     "emitted": [], "messages": []}
-    run = Run(req, desc, at, claim, assessment, cfg, identity, inp.get("escalation"))
+    run = Run(req, desc, at, claim, assessment, cfg, identity, inp.get("escalation"),
+              KeyDirectory(inp.get("jwks_cache")))
     out = {"path": run.path, "outcome": run.res["outcome"],
            "oversight": {"result": run.res["axes"]["oversight"]["result"],
                          "status": run.res["axes"]["oversight"]["status"],
@@ -1458,13 +1619,28 @@ def execution_case(inp):
         out["pending"] = {"request_payload_hash_ok": run.pending["payload"]["args"]["request_payload_hash"] ==
                           payload_hash(req)}
         if case in ("approval", "assets"):
+            run.required = inp.get("required_approvals", 1)
             for step in inp.get("approvals", []):
-                dec = approval_decision_msg(run, step["at"], step.get("decision", "approved"),
-                                            step.get("approver", REVIEWER_ID), step.get("payload_hash"))
-                err = run.approval(dec, step["at"], inp.get("required_approvals", 1))
+                approver = step.get("approver", REVIEWER_ID)
+                dec = approval_decision_msg(run, step["at"], step.get("decision", "approved"), approver,
+                                            step.get("payload_hash"), step.get("capabilities", [APPROVE]),
+                                            step.get("approver_id"), step.get("correlation_id"),
+                                            step.get("root_request_id"), step.get("tamper", False),
+                                            step.get("alg", "EdDSA"))
+                tok = reviewer_token(step["at"], step.get("issuer", "https://as.acme.example"),
+                                     step.get("scope", APPROVE), step.get("sub", approver),
+                                     step.get("aud", EXECUTOR_ID), step.get("token_lifetime", 600),
+                                     step.get("token_tamper", False), step.get("token_drop", ()))
+                for kid in step.get("remove_keys", []):  # the approver's key leaves the published JWKS
+                    run.directory.remove(kid)
+                if step.get("queued"):  # received now, verified later (at the next processing instant)
+                    run.receive_decision(dec, step["at"], tok)
+                    continue
+                err = run.approval(dec, step["at"], None, tok, step.get("verify_at"))
                 out.setdefault("approval_errors", []).append(err)
-            if inp.get("expire_at") and run.path == "pending":
-                run.expire(inp["expire_at"])
+            if inp.get("expire_at"):  # the deadline timer: Path 3 only while still pending (Actions §3.4)
+                out.setdefault("approval_errors", []).extend(run.expire(inp["expire_at"]))
+            out["admitted"] = len(run.approvers)
     if run.path == "executing" and inp.get("ack_only"):
         run.acknowledge()
         out["review_opened"] = run.review is not None
@@ -1502,7 +1678,7 @@ def execution_case(inp):
                                           ev.get("tamper", False))
                 tok = reviewer_token(ev["at"], ev.get("issuer", "https://as.acme.example"),
                                      ev.get("scope", "arsiaprotocol.oversight.approve"), ev.get("reviewer", REVIEWER_ID))
-                err, _ = rv.receive(dec, ev["at"], tok)
+                err, _ = rv.receive(dec, ev["at"], tok, ev.get("verify_at"))
                 out.setdefault("decision_errors", []).append(err)
         out["review"] = {"state": rv.state, "review_deadline": rv.review_deadline,
                          "notice_to": rv.notice["to"],
@@ -1516,6 +1692,11 @@ def execution_case(inp):
     out["path"] = run.path
     out["remediation"] = run.remediation
     out["event_types"] = [r["event_type"] for r in run.records]
+    out["evidence"] = [{k: r.get(k) for k in ("event_type", "from_agent", "verified_kid", "jwks_fetched_at",
+                                              "processed_at")}
+                       for r in run.records if r["from_agent"] != EXECUTOR_ID]
+    out["rejections"] = [{k: r.get(k) for k in ("rejection_code", "correlation_id", "root_request_id", "verified_kid")}
+                         for r in run.records if r["event_type"] == "decision_rejected"]
     out["message_intents"] = [m["intent"] for m in run.messages]
     out["records_unmodified"] = run.unmodified()
     if case == "assets":
@@ -1597,6 +1778,19 @@ def r15(vectors):
         errs += [e for m in got["messages"] for e in schema_errors(m, "arsia-message.schema.json")]
         check(f"R15 {v['id']} emitted messages and records are schema-valid", not errs, "; ".join(errs[:3]))
         check(f"R15 {v['id']} no record modified after emission", got.get("records_unmodified", True))
+        # A-58 (Core §5.2, State §7.1): the verification evidence is on the records of received messages whose
+        # signature verified, with the sender's kid and a fetch not later than the processing; never on records
+        # of messages the executor emitted
+        recs = got["emitted"]
+        bad = [r["event_type"] for r in recs if r["from_agent"] == EXECUTOR_ID
+               and ("verified_kid" in r or "jwks_fetched_at" in r)]
+        bad += [r["event_type"] for r in recs if r["from_agent"] != EXECUTOR_ID and r["event_type"] != "decision_rejected"
+                and (r.get("verified_kid") != r["from_agent"] + "#key-1"
+                     or iso(r["jwks_fetched_at"]) > iso(r["processed_at"]))]
+        check(f"R15 {v['id']} verified_kid/jwks_fetched_at exactly on received, verified messages", not bad, str(bad))
+        if "admitted" in got:  # A-57: a rejected decision is never a Record 3 (Actions §3.5, §3.6)
+            check(f"R15 {v['id']} Record 3 count == decisions admitted",
+                  got["event_types"].count("approval_decision") == got["admitted"])
     check("R15 execution vectors present", len(with_meta) > 0, str(len(with_meta)))
 
 
@@ -1604,7 +1798,7 @@ def r15(vectors):
 TRUST = {
     "https://as.acme.example": {
         "key_origin": "https://as.acme.example/.well-known/jwks.json",
-        "audiences": {"agent:acme.billing", "agent:acme.payments"},
+        "audiences": {"agent:acme.billing", "agent:acme.payments", "agent:acme.executor"},
         "algs": {"EdDSA", "ES256"},
     }
 }
@@ -1664,11 +1858,13 @@ class JwksCache:
     def __init__(self, fetch):
         self.fetch = fetch
         self.kids = None
+        self.keys = {}
         self.fetched_at = None
         self.max_age = None
 
     def _refresh(self, now):
         kids, max_age = self.fetch()
+        self.keys = dict(kids) if isinstance(kids, dict) else {}  # kid -> public key hex, when published
         self.kids, self.fetched_at, self.max_age = set(kids), now, max_age
 
     def accept(self, kid, now):
@@ -1684,21 +1880,100 @@ class JwksCache:
     def revocation_event(self, kid):
         if self.kids is not None:
             self.kids.discard(kid)  # invalidate at once; next lookup must refresh
+            self.keys.pop(kid, None)
 
 
 class Publisher:
     """The sender's published JWKS, mutable over time."""
 
     def __init__(self, kids, max_age=3600):
-        self.kids, self.max_age, self.up = set(kids), max_age, True
+        self.kids = dict(kids) if isinstance(kids, dict) else set(kids)  # a dict maps kid -> public key hex
+        self.max_age, self.up = max_age, True
 
     def __call__(self):
         if not self.up:
             raise ConnectionError("JWKS unreachable")
-        return set(self.kids), self.max_age
+        return (dict(self.kids) if isinstance(self.kids, dict) else set(self.kids)), self.max_age
 
 
-def r13():
+def verify_signed_jwks(msg, caches, now):
+    """Core §5.2 with published key material: the kid belongs to `from`, it is resolved through that sender's
+    cache at `now` (refresh rules), and the signature verifies under the cached key, Draft-02 signing input."""
+    sys.path.insert(0, "scripts")
+    import validate_vectors as vv
+    from regen_v2 import signing_input_v2
+    sec = msg.get("security") or {}
+    kid = sec.get("kid", "")
+    cache = caches.get(kid.split("#", 1)[0])
+    if cache is None or kid.split("#", 1)[0] != msg.get("from") or not cache.accept(kid, now):
+        return False, None, None
+    try:
+        vv._verify_signature(sec.get("alg"), bytes.fromhex(cache.keys[kid]), vv._base64url_decode(sec.get("sig", "")),
+                             signing_input_v2(msg))
+    except Exception:
+        return False, None, None
+    return True, kid, _at(cache.fetched_at)
+
+
+def process_key_revocation(event, caches, now):
+    """Identity §2.5: the event is acted on only once authenticated — payload.data valid against its schema
+    (else invalid_request); revoked_kid belongs to `from` and differs from the signing key, and the signature
+    verifies with a published key of `from` (else unauthorized). Only then is the named key invalidated, at
+    once, whatever effective_at states. Cache updates caused by resolving the signing key are ordinary JWKS
+    refreshes, not effects of the event. Returns {result, code, invalidated}."""
+    payload = event.get("payload") or {}
+    data = payload.get("data")
+    if payload.get("type") != "arsiaprotocol.identity/key-revocation" or not isinstance(data, dict) \
+            or schema_errors(data, "arsia-key-revocation.schema.json"):
+        return {"result": "rejected", "code": "invalid_request", "invalidated": None}
+    sender, signer, revoked = event.get("from"), (event.get("security") or {}).get("kid", ""), data["revoked_kid"]
+    if signer == revoked or revoked.split("#", 1)[0] != sender:
+        return {"result": "rejected", "code": "unauthorized", "invalidated": None}
+    if not verify_signed_jwks(event, caches, now)[0]:
+        return {"result": "rejected", "code": "unauthorized", "invalidated": None}
+    caches[sender].revocation_event(revoked)
+    return {"result": "accepted", "code": None, "invalidated": revoked}
+
+
+def revocation_case(inp, message):
+    """Runs a `revocation` scenario (Core §5.2 Verification Caching; Identity §2.5): the senders' published keys,
+    one recipient cache per sender, steps in time order. `message` is the vector's own signed message (a
+    key-revocation event, or a message signed by the key under revocation). Returns one result per step."""
+    pubs = {a: Publisher(dict(c["keys"]), c.get("max_age", JWKS_CEILING)) for a, c in inp["publishers"].items()}
+    caches = {a: JwksCache(p) for a, p in pubs.items()}
+    out = []
+    for st in inp["steps"]:
+        now, op = _epoch(st["at"]), st["op"]
+        agent = st.get("agent") or st.get("kid", "").split("#", 1)[0]
+        if op == "fetch":
+            caches[agent]._refresh(now)
+            out.append({"op": op})
+        elif op == "remove":
+            pubs[agent].kids.pop(st["kid"])
+            out.append({"op": op})
+        elif op == "publish":
+            pubs[agent].kids[st["kid"]] = st["public_key_hex"]
+            out.append({"op": op})
+        elif op == "receive":  # the message is received; it is verified at a later step
+            out.append({"op": op})
+        elif op == "verify":  # a later message signed with this kid
+            ok = caches[agent].accept(st["kid"], now)
+            out.append({"op": op, "kid": st["kid"], "accepted": ok,
+                        "jwks_fetched_at": _at(caches[agent].fetched_at) if ok else None})
+        elif op == "verify_message":
+            ok, _kid, fetched = verify_signed_jwks(message, caches, now)
+            out.append({"op": op, "accepted": ok, "jwks_fetched_at": fetched})
+        elif op == "event":
+            res = process_key_revocation(message, caches, now)
+            out.append(dict(res, op=op, sender_jwks_fetched_at=_at(caches[message["from"]].fetched_at)
+                            if caches.get(message["from"]) and caches[message["from"]].fetched_at is not None
+                            else None))
+        else:
+            raise ValueError(f"unknown revocation step {op}")
+    return out
+
+
+def r13(vectors=()):
     # Finding 2 sequence: one SHARED cache, two calls, never-published kid.
     pub = Publisher({"k1"})
     cache = JwksCache(pub)
@@ -1747,6 +2022,18 @@ def r13():
     pub.up = False
     check("R13 JWKS unreachable on needed refresh rejected", not cache.accept("k2", 10))
     check("R13 JWKS unreachable after ceiling rejected", not cache.accept("k1", 3601))
+    # A-58: revocation vectors (scenario `revocation`), with real signed messages and published keys
+    sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "revocation"]
+    check("R13 revocation scenario vectors present (event accepted and rejected)",
+          {s.get("result") for v in sc for s in v["test_metadata"]["expect"]["steps"] if s.get("op") == "event"}
+          >= {"accepted", "rejected"}, str(len(sc)))
+    for v in sc:
+        got = revocation_case(v["test_metadata"]["input"], v["message"])
+        miss = [f"step {i}{m}" for i, (e, g) in enumerate(zip(v["test_metadata"]["expect"]["steps"], got))
+                for m in subset_match(e, g)]
+        if len(got) != len(v["test_metadata"]["expect"]["steps"]):
+            miss.append("step count")
+        check(f"R13 {v['id']} steps match their stated expectation", not miss, ", ".join(miss))
 
 
 # --------------------------------------------------------- R14 audit hash chain
@@ -3053,7 +3340,8 @@ def r22(vectors):
 
 def main() -> int:
     vectors = json.load(open("test-vectors/arsia-test-vectors.json"))["vectors"]
-    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(); r14(vectors); r15(vectors)
+    r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
+    r15(vectors)
     r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")

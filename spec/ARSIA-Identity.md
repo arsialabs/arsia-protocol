@@ -413,9 +413,47 @@ Implementations SHOULD achieve revocation through the following approach:
    the authoritative revocation signal (ARSIA-Core.md §5.2, Verification Caching).
 3. SHOULD additionally emit a signed `event` with payload type
    `arsiaprotocol.identity/key-revocation` to known counterparties, naming the revoked
-   `kid` and the effective instant (ARSIA-Core.md §5.2) — recipients processing it
-   MUST invalidate the cached key at once.
+   `kid` and the effective instant (ARSIA-Core.md §5.2; payload below) — recipients
+   that authenticate it MUST invalidate the cached key at once.
 4. Log a `key_rotation` audit event with `reason: "revocation"`.
+
+**Key-revocation event.** The `event` of item 3 carries:
+
+```json
+{
+  "type": "arsiaprotocol.identity/key-revocation",
+  "data": {
+    "revoked_kid": "agent:acme.echo-client#key1",
+    "effective_at": "2026-03-24T14:00:00.000Z"
+  }
+}
+```
+
+`payload.data` contains exactly:
+
+- `revoked_kid` (string, REQUIRED): the `kid` of the revoked key; its agent-id
+  prefix equals the event's `from`;
+- `effective_at` (RFC 3339 with millisecond precision, REQUIRED): the instant from
+  which signatures by that key are invalid — for an emergency rotation, the
+  compromise instant (ARSIA-Core.md §5.2, compromise-window accounting).
+
+**Schema:** `arsia-key-revocation.schema.json`
+
+A recipient acts on the event only after authenticating it: its signature verifies
+per §3.1 with a key whose `kid` belongs to `from`, is published in the JWKS used to
+authenticate it, and differs from `revoked_kid` — a key cannot authenticate its own
+revocation — and `revoked_kid` belongs to `from`. An event that fails these checks
+is rejected with `unauthorized` (one whose `payload.data` violates the schema, with
+`invalid_request`) and MUST NOT cause the invalidation its payload names; updates of
+the cache that resolving the signing key causes under ARSIA-Core.md §5.2 (refresh on
+an unknown `kid`, on expiry, at the ceiling) are unaffected. For an authenticated
+event the recipient MUST invalidate the cached key at once, whatever `effective_at`
+states: `effective_at` records from when signatures by the key are invalid and never
+delays the invalidation. Removal of the key from the published JWKS remains the
+authoritative revocation signal (item 2); the event accelerates its propagation.
+
+> **Informative note.** The successor key, published without overlap under item 2,
+> is the natural signer of the event.
 
 Revocation propagation to caching recipients is bounded by the mandatory periodic
 JWKS refresh of ARSIA-Core.md §5.2 (at least once every 3600 seconds), NOT by

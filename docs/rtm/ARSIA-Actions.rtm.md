@@ -192,7 +192,7 @@
 | ACT-§3.3-03 | 3.3 | MUST | sdk | behavioural_positive | decision field MUST be one of "approved" or "denied" | arsia-message | — |
 | ACT-§3.3-04 | 3.3 | MUST_NOT | sdk | behavioural_negative | Action MUST NOT be executed when approval_decision carries decision "denied" | — | ITV-308 |
 | ACT-§3.3-05 | 3.3 | REQUIRED | sdk | structural | approval_decision result MUST include approver_id matching the approving agent's agent-id | arsia-message | ITV-309 |
-| ACT-§3.3-06 | 3.3 | MUST | sdk | behavioural_positive | approver_id MUST match the from field of the approval_decision envelope | — | ITV-309 |
+| ACT-§3.3-06 | 3.3 | MUST | sdk | behavioural_positive | approver_id MUST match the from field of the approval_decision envelope; a mismatch is rejected with invalid_request (§3.4 verification step 4) | — | ITV-309, INV-135 |
 | ACT-§3.3-07 | 3.3 | OPTIONAL | sdk | informational | approval_decision result MAY include reason as human-readable text (max 512 characters) | arsia-message | — |
 | ACT-§3.3-08 | 3.3 | RECOMMENDED | sdk | informational | Providing a reason is RECOMMENDED when the oversight decision is "denied" | — | — |
 | ACT-§3.3-09 | 3.3 | RECOMMENDED | sdk | informational | Denial reason is strongly RECOMMENDED to help the requesting agent understand why action was blocked | — | — |
@@ -200,25 +200,25 @@
 | ACT-§3.3-11 | 3.3 | MUST | sdk | procedural | Executing agent MUST honour all conditions attached to the approval_decision | — | — |
 | ACT-§3.3-12 | 3.3 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD document their supported approval condition formats | — | — |
 | ACT-§3.3-13 | 3.3 | MUST | sdk | structural | approval_decision MUST include "arsiaprotocol.oversight.approve" in its capabilities array | arsia-message | ITV-310, ITV-532, ITV-533 |
-| ACT-§3.3-14 | 3.3 | MUST | external | behavioural_positive | Receiving agent MUST verify the approver's token includes arsiaprotocol.oversight.approve scope | — | — |
-| ACT-§3.3-15 | 3.3 | MUST | sdk | behavioural_positive | approval_decision from an agent without oversight.approve capability MUST be rejected as forbidden | arsia-message | ITV-311, ITV-532, ITV-533 |
+| ACT-§3.3-14 | 3.3 | MUST | external | behavioural_positive | Receiving agent MUST verify the approver's token includes arsiaprotocol.oversight.approve scope | — | INV-133 |
+| ACT-§3.3-15 | 3.3 | MUST | sdk | behavioural_positive | approval_decision from an agent without oversight.approve capability MUST be rejected as forbidden | arsia-message | ITV-311, ITV-532, ITV-533, INV-133, INV-134 |
 | ACT-§3.3-16 | 3.3 | MUST | sdk | behavioural_positive | approval_decision MUST be signed by the approver's Ed25519 key, not the executing or requesting agent's key | arsia-message | ITV-312, ITV-313 |
-| ACT-§3.3-17 | 3.3 | MUST | sdk | behavioural_positive | Receiving agent MUST verify the approval_decision signature per ARSIA-Identity.md §3.1 | — | — |
+| ACT-§3.3-17 | 3.3 | MUST | sdk | behavioural_positive | Receiving agent MUST verify the approval_decision signature per ARSIA-Identity.md §3.1 | — | INV-127, INV-128, INV-139, INV-155 |
 | ACT-§3.3-18 | 3.3 | REQUIRED | sdk | structural | approval_decision result MUST include the request_payload_hash of the pending_approval decided | arsia-message | INV-66 |
-| ACT-§3.4-01 | 3.4 | MUST | sdk | procedural | Executing agent MUST perform verification steps before executing an approved action | — | — |
-| ACT-§3.4-02 | 3.4 | MUST | external | behavioural_positive | Executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve capability | — | ITV-314 |
-| ACT-§3.4-03 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject the approval_decision with error forbidden if approver capability is missing | — | ITV-315 |
-| ACT-§3.4-04 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute the action if approver lacks the required capability | — | ITV-316 |
-| ACT-§3.4-05 | 3.4 | MUST | sdk | procedural | Executing agent MUST verify current time is before the approval_deadline (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-317 |
-| ACT-§3.4-06 | 3.4 | MUST | sdk | procedural | Executing agent MUST treat action as expired (Path 3) if the approval_deadline has passed | — | ITV-318 |
-| ACT-§3.4-07 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action whose approval_deadline has passed, even if approval was sent in time | — | ITV-319 |
+| ACT-§3.4-01 | 3.4 | MUST | sdk | behavioural_negative | Executing agent MUST verify every approval_decision, approved or denied, in order — signature, token, authority, correlation and binding, deadline and pending state — before it takes effect; the first failing step gives the code | — | ITV-694, INV-127, INV-128, INV-139, INV-140, INV-152 |
+| ACT-§3.4-02 | 3.4 | MUST | external | behavioural_positive | Executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve capability | — | ITV-314, INV-133 |
+| ACT-§3.4-03 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject the approval_decision with forbidden when arsiaprotocol.oversight.approve is missing from the token scope (exact match) or from capabilities | — | ITV-315, INV-133, INV-134 |
+| ACT-§3.4-04 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute the action if approver lacks the required capability | — | ITV-316, INV-134 |
+| ACT-§3.4-05 | 3.4 | MUST | sdk | procedural | Executing agent MUST verify the decision was received strictly before the approval_deadline, on its own clock, without clock-skew tolerance | — | ITV-317, ITV-695, INV-126 |
+| ACT-§3.4-06 | 3.4 | MUST | sdk | procedural | Executing agent MUST resolve a still-pending flow as expired (Path 3) once the deadline is reached and the decisions received before it are verified | — | ITV-318, INV-126, ITV-705, ITV-707 |
+| ACT-§3.4-07 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action whose approval_deadline has passed, even if approval was sent in time | — | ITV-319, INV-126 |
 | ACT-§3.4-08 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST verify approval_decision correlation_id matches a previously sent pending_approval id | arsia-message | ITV-320 |
-| ACT-§3.4-09 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject approval_decision with error invalid_request if no matching pending_approval exists | — | ITV-320 |
-| ACT-§3.4-10 | 3.4 | MUST_NOT | sdk_enabled | behavioural_negative | Executing agent MUST NOT execute the action if no matching pending_approval is found | — | ITV-321 |
+| ACT-§3.4-09 | 3.4 | MUST | sdk | behavioural_positive | Executing agent MUST reject approval_decision with error invalid_request if no matching pending_approval exists | — | ITV-320, INV-136 |
+| ACT-§3.4-10 | 3.4 | MUST_NOT | sdk_enabled | behavioural_negative | Executing agent MUST NOT execute the action if no matching pending_approval is found | — | ITV-321, INV-136 |
 | ACT-§3.4-11 | 3.4 | MUST | sdk | procedural | Executing agent MUST execute the action after all verification steps pass | — | — |
 | ACT-§3.4-12 | 3.4 | MUST | sdk | procedural | Executing agent MUST apply all conditions from the approval_decision to the action execution | — | — |
 | ACT-§3.4-13 | 3.4 | MUST | sdk | procedural | Executing agent MUST send response to the original requester after execution completes | — | — |
-| ACT-§3.4-14 | 3.4 | MUST | sdk | procedural | Executing agent MUST log request, pending_approval, approval_decision, and response in the audit trail | arsia-audit-record | — |
+| ACT-§3.4-14 | 3.4 | MUST | sdk | procedural | Executing agent MUST log request, pending_approval, approval_decision, and response in the audit trail | arsia-audit-record | ITV-694 |
 | ACT-§3.4-15 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute the action when approval_decision decision is "denied" | — | ITV-322 |
 | ACT-§3.4-16 | 3.4 | MUST | sdk | procedural | Executing agent MUST send a forbidden error to the original requester when action is denied | arsia-message | ITV-323 |
 | ACT-§3.4-17 | 3.4 | MUST | sdk | behavioural_positive | Denied-action error code MUST be "forbidden" per ARSIA-Core.md §11.2 | arsia-message | ITV-323 |
@@ -229,11 +229,18 @@
 | ACT-§3.4-22 | 3.4 | MUST | sdk | behavioural_positive | Expired-action error code MUST be "forbidden" | arsia-message | ITV-326 |
 | ACT-§3.4-23 | 3.4 | MUST | sdk | structural | Expired-action error details MUST include oversight_decision: "expired" and the exceeded deadline | arsia-message | ITV-326, ITV-327 |
 | ACT-§3.4-24 | 3.4 | MUST | sdk | procedural | Executing agent MUST log the approval expiry in the audit trail | arsia-audit-record | ITV-94 |
-| ACT-§3.4-25 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action if approval_decision arrives after the approval_deadline | — | ITV-328 |
-| ACT-§3.4-26 | 3.4 | SHOULD | sdk | behavioural_positive | Executing agent SHOULD respond to late approver with error invalid_request and deadline_exceeded: true | arsia-message | ITV-328 |
-| ACT-§3.4-27 | 3.4 | SHOULD | sdk | behavioural_positive | Late approval_decision SHOULD still be logged in the audit trail for completeness | arsia-audit-record | — |
+| ACT-§3.4-25 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute an action if approval_decision arrives after the approval_deadline | — | ITV-328, INV-126 |
+| ACT-§3.4-26 | 3.4 | SHOULD | sdk | behavioural_positive | Executing agent SHOULD respond to a late approver with the code the verification determines: invalid_request with deadline_exceeded: true when no earlier step failed | arsia-message | ITV-328 |
+| ACT-§3.4-27 | 3.4 | MUST | sdk | procedural | A late approval_decision MUST be logged as a rejected decision (decision_rejected) | arsia-audit-record | INV-126, INV-152 |
 | ACT-§3.4-28 | 3.4 | MUST | sdk | behavioural_negative | Executing agent MUST reject an approval_decision whose request_payload_hash differs from the pending_approval's with invalid_request and MUST NOT execute the action | — | ITV-662 |
 | ACT-§3.4-29 | 3.4 | MUST_NOT | sdk | behavioural_negative | Executing agent MUST NOT execute a materially changed action under an approval; a new pending_approval is required | — | — |
+| ACT-§3.4-30 | 3.4 | MUST_NOT | sdk | behavioural_negative | A rejected approval_decision MUST NOT approve or deny: it is not admitted, does not count toward the required approvals, does not consume its approver, does not resolve the pending_approval and does not change a recorded outcome | — | INV-128, INV-138, ITV-696 |
+| ACT-§3.4-31 | 3.4 | MUST | sdk | procedural | Executing agent MUST log every rejected approval_decision as decision_rejected, with the code of the first failing step, whether or not it replies | arsia-audit-record | INV-127, INV-136, ITV-698, INV-143 |
+| ACT-§3.4-32 | 3.4 | SHOULD | sdk | behavioural_positive | Executing agent SHOULD reply to the sender of a rejected decision with an error carrying that code | — | — |
+| ACT-§3.4-33 | 3.4 | MUST | sdk | behavioural_negative | Executing agent MUST verify the approver's access token — signature under the trusted issuer's configured key, exp/iat with the clock skew, sub = from, aud = to — and reject with unauthorized | — | INV-129, INV-130, INV-131, INV-132, INV-153, INV-156, INV-157 |
+| ACT-§3.4-34 | 3.4 | MUST | sdk | behavioural_negative | Signature, key resolution and token are evaluated at the verification instant, not the receipt instant: deadline eligibility does not exempt authentication or a revocation applying when the decision is verified | — | INV-154 |
+| ACT-§3.4-35 | 3.4 | MUST | sdk | behavioural_negative | Path 3 applies only while the pending_approval is still pending, after the decisions received before the deadline are verified; a resolved flow is never resolved again by expiry | — | ITV-705, ITV-706, ITV-707 |
+| ACT-§3.4-36 | 3.4 | MUST | sdk | behavioural_negative | A duplicate or late decision is rejected with invalid_request only when no earlier verification step failed | — | INV-152 |
 | ACT-§3.5-01 | 3.5 | MUST | sdk | procedural | Every oversight cycle MUST generate at least four audit records: request, pending_approval, decision, and response | arsia-audit-record | ITV-93, ITV-105, ITV-581, ITV-582, ITV-583, ITV-584, ITV-585 |
 | ACT-§3.6-01 | 3.6 | MAY | sdk_enabled | procedural | Implementations MAY require multiple independent approvals for actions with risk_level 10 | — | — |
 | ACT-§3.6-02 | 3.6 | OPTIONAL | sdk | informational | Multiple approval level support is OPTIONAL in ARSIA Protocol v1.0 | — | — |
@@ -241,7 +248,7 @@
 | ACT-§3.6-04 | 3.6 | MAY | sdk | informational | ActionDescriptor MAY include required_approvals field to support multi-approval workflows | arsia-action-descriptor | ITV-132 |
 | ACT-§3.6-05 | 3.6 | OPTIONAL | sdk | procedural | required_approvals (integer, default 1) specifies the number of distinct approvals needed before execution | arsia-action-descriptor | ITV-132 |
 | ACT-§3.6-06 | 3.6 | MUST | sdk | behavioural_positive | Each approval MUST come from a distinct approver with a different agent-id | — | ITV-329 |
-| ACT-§3.6-07 | 3.6 | MUST | sdk | behavioural_positive | Each individual approval_decision MUST be logged as a separate audit record | arsia-audit-record | — |
+| ACT-§3.6-07 | 3.6 | MUST | sdk | behavioural_positive | Each approval_decision verified and admitted to the flow MUST be logged as a separate audit record (Record 3); rejected decisions (decision_rejected) are not counted | arsia-audit-record | ITV-696, INV-138 |
 | ACT-§3.6-08 | 3.6 | MUST | sdk_enabled | procedural | Executing agent MUST track which approvers have approved in a multi-approval flow | — | — |
 | ACT-§3.6-09 | 3.6 | MUST_NOT | sdk_enabled | behavioural_negative | Executing agent MUST NOT accept duplicate approvals from the same approver | — | ITV-329, ITV-330 |
 | ACT-§3.6-10 | 3.6 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD default to required_approvals: 1 and escalate only when warranted | — | — |
@@ -253,9 +260,9 @@
 | ACT-§3.9-02 | 3.9.1 | MUST | sdk | behavioural_negative | A missing review-configuration element MUST cause rejection with invalid_request / obligation_conflict; the action is not executed | — | ITV-647, ITV-648, ITV-649 |
 | ACT-§3.9-03 | 3.9.3 | MUST | sdk | behavioural_positive | Review notices, review decisions and overdue notices MUST be signed by their sender, and their receivers MUST verify the signature | arsia-message | ITV-628, ITV-629, ITV-630, ITV-657 |
 | ACT-§3.9-04 | 3.9.3 | MUST | sdk | procedural | When a review is opened, the executing agent MUST send a review-pending event to its review endpoint | arsia-message | ITV-628, ITV-645, ITV-674 |
-| ACT-§3.9-05 | 3.9.3 | MUST | sdk | behavioural_negative | Before recording a review decision the executing agent MUST verify signature (unauthorized), token (unauthorized), authority (forbidden) and correlation and binding (invalid_request), in that order | arsia-message | ITV-657, ITV-658, ITV-659, ITV-660, INV-68, INV-69 |
-| ACT-§3.9-06 | 3.9.3 | MUST | sdk | behavioural_negative | A review decision that fails verification is not recorded as a decision and MUST be logged | — | ITV-657 |
-| ACT-§3.9-07 | 3.9.3 | MUST_NOT | sdk | behavioural_negative | A later decision for the same review MUST NOT change the recorded outcome | — | ITV-656 |
+| ACT-§3.9-05 | 3.9.3 | MUST | sdk | behavioural_negative | Before recording a review decision the executing agent MUST verify signature (unauthorized), token (unauthorized), authority (forbidden) and correlation and binding (invalid_request), in that order | arsia-message | ITV-657, ITV-658, ITV-659, ITV-660, INV-68, INV-69, ITV-708 |
+| ACT-§3.9-06 | 3.9.3 | MUST | sdk | behavioural_negative | A review decision that fails verification is not recorded as a decision and MUST be logged as decision_rejected | arsia-audit-record | ITV-657, ITV-658, ITV-659, ITV-660 |
+| ACT-§3.9-07 | 3.9.3 | MUST_NOT | sdk | behavioural_negative | A later decision for the same review MUST NOT change the recorded outcome; it is logged as decision_rejected | — | ITV-656 |
 | ACT-§3.9-08 | 3.9.3 | MUST | sdk | procedural | For each overdue obligation the executing agent MUST send a review-overdue event to its escalation destination | arsia-message | ITV-630, ITV-653, ITV-674 |
 | ACT-§3.9-09 | 3.9.4 | MUST | sdk | behavioural_positive | Lateness depends only on the deadline (inclusive) and the receipt instant; the agent MUST record pending overdue facts and send their notices before recording a late decision | arsia-audit-record | ITV-651, ITV-652 |
 | ACT-§3.9-10 | 3.9.4 | MUST | sdk | behavioural_positive | At an obligation deadline without a verified decision the executing agent MUST append a review_overdue record, independent of the escalation | arsia-audit-record | ITV-633, ITV-653 |
@@ -363,20 +370,20 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 329 |
-| Schema ≠ — | 152 |
-| Vector ≠ — | 116 |
-| Both ≠ — | 60 |
-| Both = — (gaps) | 121 |
+| Total requirements | 357 |
+| Schema ≠ — | 166 |
+| Vector ≠ — | 151 |
+| Both ≠ — | 78 |
+| Both = — (gaps) | 118 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 72 | 21 | 26 | 8 | 33 |
-| 2 | 82 | 47 | 27 | 18 | 26 |
-| 3 | 85 | 41 | 40 | 19 | 23 |
-| 4 | 53 | 17 | 13 | 8 | 31 |
+| 2 | 82 | 48 | 28 | 19 | 25 |
+| 3 | 111 | 54 | 72 | 36 | 21 |
+| 4 | 55 | 17 | 15 | 8 | 31 |
 | 5 | 28 | 18 | 7 | 5 | 8 |
 | 6 | 9 | 8 | 3 | 2 | 0 |
 
@@ -393,3 +400,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | risk_level minimum 0 in pending-approval args | §2.1/§3.2 | arsia-message | — |
 | async: one mechanism, two surfaces (202+Location ≡ status_url) | §4.3 | — | — |
 | risk-level retention-floor claim removed | §3.5 | — | — |
+| approval_decision verification in one order for approved and denied (signature, token, authority, binding incl. approver_id, deadline); deadline on the receipt instant without skew; rejected decisions logged as decision_rejected and never admitted; Path 3 only while pending (A-57) | §3.2-§3.6, §3.9.3, state machine | audit-record | ITV-694..696, ITV-705..708, INV-126..140, INV-152..157; harness R15 |

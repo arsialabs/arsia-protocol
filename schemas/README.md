@@ -4,7 +4,7 @@
 
 JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structures.
 
-## Schemas (33)
+## Schemas (34)
 
 | Schema | Spec | Validates |
 |--------|------|-----------|
@@ -16,6 +16,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-jwt-claims.schema.json](arsia-jwt-claims.schema.json) | Core §6.1 | Access token JWT claims (including `arsia_oversight`) and OAuth 2.0 token response |
 | [arsia-dpop-proof.schema.json](arsia-dpop-proof.schema.json) | Identity §3.3, Core §6.3 | DPoP proof JWT payload per RFC 9449 |
 | [arsia-jwk-entry.schema.json](arsia-jwk-entry.schema.json) | Core §7.3 | JWK entry in an agent's JWKS |
+| [arsia-key-revocation.schema.json](arsia-key-revocation.schema.json) | Identity §2.5, Core §5.2 | Key-revocation event payload (`revoked_kid`, `effective_at`) |
 | [arsia-websocket-frame.schema.json](arsia-websocket-frame.schema.json) | Core §8.2 | WebSocket control frames (auth, ping, pong) |
 | [arsia-compliance-profiles.schema.json](arsia-compliance-profiles.schema.json) | Core | Compliance profiles registry structure |
 | [arsia-identity-record.schema.json](arsia-identity-record.schema.json) | Identity §1.2 | Agent identity record |
@@ -31,7 +32,7 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 | [arsia-dora-incident.schema.json](arsia-dora-incident.schema.json) | Assets §6.2.2 | DORA incident event payload |
 | [arsia-mifid-audit-record.schema.json](arsia-mifid-audit-record.schema.json) | Assets §6.1 | MiFID II audit record for asset transfers |
 | [arsia-state-entry.schema.json](arsia-state-entry.schema.json) | State §2.1 | State entry |
-| [arsia-audit-record.schema.json](arsia-audit-record.schema.json) | State §7.1 | Audit trail record, including the post-execution review records (Actions §3.9.5) |
+| [arsia-audit-record.schema.json](arsia-audit-record.schema.json) | State §7.1 | Audit trail record, including the post-execution review records (Actions §3.9.5), rejected decisions (`decision_rejected`) and the verifying key (`verified_kid`, `jwks_fetched_at`) |
 | [arsia-audit-chain-tombstone.schema.json](arsia-audit-chain-tombstone.schema.json) | State §7.2 | Tombstone replacing a permanently deleted chained audit record |
 | [arsia-obligation-rules.schema.json](arsia-obligation-rules.schema.json) | Core §4.3.10 | Declarative obligation rules artifact (`profiles/arsia-obligation-rules.json`) |
 | [arsia-state-operations.schema.json](arsia-state-operations.schema.json) | State §3 | Payload args/result for all 8 state operations |

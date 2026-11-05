@@ -322,7 +322,7 @@
 | STATE-§7.1-01 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord fields are REQUIRED unless explicitly marked OPTIONAL | arsia-audit-record | — |
 | STATE-§7.1-02 | 7.1 | OPTIONAL | sdk | structural | Some ArsiaAuditRecord fields are marked OPTIONAL per individual field definitions | arsia-audit-record | — |
 | STATE-§7.1-03 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.record_id field is REQUIRED (string, UUID v4) | arsia-audit-record | — |
-| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 22 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102, ITV-632, ITV-633, ITV-634, ITV-636 |
+| STATE-§7.1-04 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.event_type field is REQUIRED (enum of 23 protocol event types) | arsia-audit-record | ITV-17, ITV-88, ITV-89, ITV-90, ITV-91, ITV-93, ITV-94, ITV-96, ITV-99, ITV-100, ITV-101, ITV-102, ITV-632, ITV-633, ITV-634, ITV-636, ITV-698 |
 | STATE-§7.1-05 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.from_agent field is REQUIRED (string, agent-id of sender) | arsia-audit-record | — |
 | STATE-§7.1-06 | 7.1 | REQUIRED | sdk | structural | ArsiaAuditRecord.message_id field is REQUIRED (links audit record to originating message) | arsia-audit-record | — |
 | STATE-§7.1-07 | 7.1 | OPTIONAL | sdk | structural | ArsiaAuditRecord.human_oversight_status field is OPTIONAL (enum: not_required, pending, approved, denied, expired) | arsia-audit-record | ITV-16, ITV-17, ITV-89, STV-07 |
@@ -346,6 +346,8 @@
 | STATE-§7.1-25 | 7.1 | MUST | sdk | structural | A record with rejection_cause compliance MUST have event_type error, a rejected obligation_resolution with non-empty conflicts, and correlation_id set to the rejected message's id | arsia-audit-record | ITV-600, INV-57, INV-58, INV-59, INV-60 |
 | STATE-§7.1-26 | 7.1 | MUST | sdk | behavioural_negative | Every rejection produced by compliance validation MUST produce a rejection_cause compliance record, whatever audit_required the rejected message declares | arsia-audit-record | ITV-603, ITV-622, INV-62 |
 | STATE-§7.1-27 | 7.1 | MUST | sdk | structural | review_pending, review_overdue, review_escalation and review_decision records MUST carry their extension fields (State §7.1 table) | arsia-audit-record | ITV-632, ITV-633, ITV-634, ITV-635, ITV-636, ITV-637, INV-72, INV-73, INV-74, INV-75 |
+| STATE-§7.1-28 | 7.1 | MUST | sdk | structural | A decision_rejected record carries correlation_id and root_request_id as received and rejection_code; rejection_code appears only on decision_rejected records | arsia-audit-record | ITV-698, INV-143, INV-144 |
+| STATE-§7.1-29 | 7.1 | MUST | sdk | structural | verified_kid and jwks_fetched_at are present together; verified_kid only for a successful verification; jwks_fetched_at is the instant of the fetch that supplied the key | arsia-audit-record | ITV-697, INV-141, INV-142 |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 |
 | STATE-§7.2-02 | 7.2 | MUST_NOT | deployment | behavioural_negative | Once an ArsiaAuditRecord is written, it MUST NOT be modified. | — | — |
 | STATE-§7.2-03 | 7.2 | MUST | sdk | procedural | New audit records MUST be created for status changes; existing records MUST NOT be updated | — | STV-07 |
@@ -445,10 +447,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 432 |
-| Schema ≠ — | 172 |
-| Vector ≠ — | 230 |
-| Both ≠ — | 119 |
+| Total requirements | 434 |
+| Schema ≠ — | 174 |
+| Vector ≠ — | 232 |
+| Both ≠ — | 121 |
 | Both = — (gaps) | 149 |
 
 ### Per-section breakdown
@@ -461,7 +463,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 33 | 8 | 12 | 6 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
-| 7 | 62 | 39 | 27 | 23 | 19 |
+| 7 | 64 | 41 | 29 | 25 | 19 |
 | 8 | 18 | 8 | 16 | 7 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |
@@ -486,3 +488,4 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | §10.4 rewritten; AEAD defined; legal_basis personal+sensitive | §10.4, §5.2 | — | — |
 | entry generation; preconditions across recreation (expected_generation, entry_live); PURGE repetition by generation; conflict details aligned (A-79, A-94, A-95) | §2.1.14, §2.4, §3.1.2, §3.2.2, §8.4 | state-entry, state-operations, audit-record, message | ITV-676..681, INV-81..91; harness R17 |
 | PURGE within retention needs a recorded retention_override, evaluated from stored state over every generation; state_purge records within_retention / entry_retained_until; erasure-vs-retention guidance no longer adjudicates; MIFID-II floor re-grounded as profile_floor (A-7, A-70, A-90, A-44) | §3.2.2, §4.1.1, §4.1.2, §5.3.2, §6.3, §7.1, §8.4 | common, state-operations, audit-record, message, catalog | ITV-682..687, INV-92..100; harness R18 |
+| decision_rejected event type with rejection_code; verified_kid ↔ jwks_fetched_at present together (the jwks_fetched_at exception row replaced) (A-57, A-58) | §7.1 | audit-record | ITV-697, ITV-698, INV-141..144 |

@@ -140,7 +140,7 @@ print(errors[0].message)
 
 ## 4. Validate Against JSON Schemas
 
-The protocol ships 33 JSON Schemas (Draft 2020-12) in [`schemas/`](../schemas/) that validate every structure in the spec.
+The protocol ships 34 JSON Schemas (Draft 2020-12) in [`schemas/`](../schemas/) that validate every structure in the spec.
 
 **Option A — SDK convenience function:**
 
@@ -184,7 +184,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 846 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that checks all 893 test vectors against the JSON Schemas, with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -193,7 +193,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 475 schema-valid, 208 expected-invalid, and 163 runtime-only cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 483 schema-valid, 215 expected-invalid, and 195 runtime-only cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 
@@ -228,7 +228,7 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
 - [Security model](security.md) — threat model, cryptographic foundation, data protection
-- [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,028 rows)
+- [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,045 rows)
 
 ---
 

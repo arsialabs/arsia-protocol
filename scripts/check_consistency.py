@@ -27,7 +27,6 @@ def check(name, cond, detail=""):
 # enforce. Each needs a written reason; any other row must match the schema exactly.
 AUDIT_EXTENSION_EXCEPTIONS = {
     "ict_incident": "extension promised by Assets §6.2 but no field is defined yet",
-    "jwks_fetched_at": "runtime-conditional (signed messages only); tracked by A-58",
 }
 
 # State §7.1 base fields whose prose requiredness deliberately differs from the schema's
@@ -93,6 +92,8 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
     matched_multi = set()
     exceptions_seen = set()
     covered = set()
+    present_rows = set()
+    dep = audit_schema.get("dependentRequired", {})
     for cells in rows:
         if len(cells) < 3:
             problems.append(f"malformed row: {cells}")
@@ -136,6 +137,16 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
                 problems.append(f"{rtype}: no schema condition with exactly this compound/nested condition")
             else:
                 matched_multi.add(hit)
+            continue
+        present = re.match(r"`([a-z_]+)` present$", rcond)
+        if present:  # presence condition: the schema's dependentRequired for that field (A-58)
+            name = present.group(1)
+            present_rows.add(name)
+            if name not in props:
+                problems.append(f"{rtype}: `{name}` is not a schema property")
+            if set(dep.get(name, [])) != required:
+                problems.append(f"{rtype}: table REQUIRED {sorted(required)} != schema dependentRequired "
+                                f"{sorted(dep.get(name, []))}")
             continue
         m = re.match(r"`([a-z_]+)` = (.+)$", rtype)
         if not m:
@@ -194,12 +205,15 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
 
     # chain fields (State §7.2): prose all-or-none group == schema dependentRequired
     group = {n for n, b in zip(parts[1::2], parts[2::2]) if "Present together with the other chain" in b}
-    dep = audit_schema.get("dependentRequired", {})
     want = {f: sorted(group - {f}) for f in group}
     if not group:
         problems.append("no chain fields found in State §7.1 (marker moved?)")
-    elif {k: sorted(v) for k, v in dep.items()} != want:
+    elif {k: sorted(v) for k, v in dep.items() if k in group} != want:
         problems.append(f"chain all-or-none: prose group {sorted(group)} != schema dependentRequired {dep}")
+    # every other dependentRequired entry is stated by a "`x` present" row of the table (A-58)
+    unstated = sorted(set(dep) - group - present_rows)
+    if unstated:
+        problems.append(f"schema dependentRequired {unstated} without a '`x` present' table row")
 
     # tombstone (State §7.2): schema field set == the prose list "containing exactly ..."
     if tombstone_schema is not None:
@@ -637,12 +651,14 @@ def negative_copy_selftest(vectors):
     return out
 
 
-SIGNATURE_NEGATIVES = ("INV-18", "INV-19", "INV-111", "INV-112", "INV-37", "INV-38", "INV-39", "INV-124")
+SIGNATURE_NEGATIVES = ("INV-18", "INV-19", "INV-111", "INV-112", "INV-37", "INV-38", "INV-39", "INV-124", "INV-150")
 ALG_MISMATCH_NEGATIVES = ("INV-111", "INV-112")  # A-33: discriminate a key-selected verifier
 # A-54: how each Draft-02 malleability negative was built (the bytes the signature was really made over)
 TAMPER_NEGATIVES = {"INV-37": "alg flipped EdDSA -> ES256 after signing",
                     "INV-38": "kid swapped #key1 -> #other-key after signing",
-                    "INV-39": "Draft-01 signature (whole security removed)"}
+                    "INV-39": "Draft-01 signature (whole security removed)",
+                    "INV-150": "key-revocation effective_at changed after signing (A-58)"}
+INV150_SIGNED_EFFECTIVE_AT = "2026-03-24T13:55:00.000Z"  # the effective_at the #other-key signature covers
 
 
 def _catalog_keys():
@@ -672,7 +688,10 @@ def tamper_negative_problems(v, construction):
         out.append(f"{v['id']}: crypto.public_key_hex is not the catalog key of kid {kid}")
     signer = keys.get("agent:acme.echo-client#key1", {}).get("public_key_hex")
     pre = copy.deepcopy(env)
-    if v["id"] == "INV-37":
+    if v["id"] == "INV-150":
+        pre["payload"]["data"]["effective_at"] = INV150_SIGNED_EFFECTIVE_AT
+        made, really = signing_input_v2(pre), bytes.fromhex(keys.get(kid, {}).get("public_key_hex", "00"))
+    elif v["id"] == "INV-37":
         pre["security"]["alg"] = "EdDSA"
         made, really = signing_input_v2(pre), bytes.fromhex(signer)
     elif v["id"] == "INV-38":
@@ -879,7 +898,7 @@ def policy_identity_problems(vectors):
 
 
 COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16",
-                 "token_binding": "R21", "attestation": "R22"}
+                 "token_binding": "R21", "attestation": "R22", "revocation": "R13"}
 
 
 def coverage_claim_problems(skip_doc, vectors, passing=None):

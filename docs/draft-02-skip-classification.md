@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 11, executor-oversight: 35, numeric: 2, other: 16, retention-floor: 6, temporal: 13, token: 17, transport: 5, x509: 7 — total 163.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 13, token: 17, transport: 5, x509: 7 — total 195.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -200,6 +200,38 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-672 | Assets §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | ITV-673 | Assets §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | ITV-674 | Actions §3.9 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-694 | Actions §3.4; Core §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-695 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-696 | Actions §3.4, §3.6 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-705 | Actions §3.4 Path 3 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-706 | Actions §3.4 Path 3 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-126 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-127 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-128 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-129 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-130 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-131 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-132 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-133 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-134 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-135 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-136 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-137 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-138 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-139 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-140 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-148 | Identity §2.5 | Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); in | crypto-behaviour | behavioural-runtime | — | executed: R13 |
+| INV-149 | Identity §2.5 | Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); in | crypto-behaviour | behavioural-runtime | — | executed: R13 |
+| INV-150 | Identity §2.5 | Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); in | crypto-behaviour | behavioural-runtime | — | executed: R13 |
+| INV-151 | Identity §2.5 | Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); in | crypto-behaviour | behavioural-runtime | — | executed: R13 |
+| INV-152 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-153 | Actions §3.4 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-154 | Actions §3.4; Core §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-707 | Actions §3.4 Path 3 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| ITV-708 | Actions §3.9.3; State §7.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-155 | Actions §3.4; Core §5.2 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-156 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
+| INV-157 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 
 ## Residual risk statement
 

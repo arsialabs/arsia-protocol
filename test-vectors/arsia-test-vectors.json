@@ -13943,7 +13943,7 @@
     },
     {
       "id": "ITV-314",
-      "description": "Actions §3.4: Valid approval_decision — executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve. Capability present in both token scope and message capabilities. Per ARSIA-Actions.md §3.4 Step 1.",
+      "description": "Actions §3.4: Valid approval_decision — executing agent MUST verify the approver's token includes arsiaprotocol.oversight.approve. Capability present in both token scope and message capabilities. Per ARSIA-Actions.md §3.4 (verification step 3).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -13981,7 +13981,7 @@
     },
     {
       "id": "ITV-315",
-      "description": "Actions §3.4: Valid forbidden error — executing agent MUST reject approval_decision when approver lacks arsiaprotocol.oversight.approve capability. Per ARSIA-Actions.md §3.4 Step 1.",
+      "description": "Actions §3.4: Valid forbidden error — executing agent MUST reject approval_decision when approver lacks arsiaprotocol.oversight.approve capability. Per ARSIA-Actions.md §3.4 (verification step 3).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -14018,7 +14018,7 @@
     },
     {
       "id": "ITV-316",
-      "description": "Actions §3.4: Valid forbidden error — action MUST NOT be executed when the approver lacks the required capability. Error returned to original requester. Per ARSIA-Actions.md §3.4 Step 1.",
+      "description": "Actions §3.4: Valid forbidden error — action MUST NOT be executed when the approver lacks the required capability. Error returned to original requester. Per ARSIA-Actions.md §3.4 (verification step 3).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -14055,7 +14055,7 @@
     },
     {
       "id": "ITV-317",
-      "description": "Actions §3.4: Valid forbidden error — approval_deadline expired (with ±300s clock skew tolerance per Core §8.3). Action treated as expired. Per ARSIA-Actions.md §3.4 Step 2, Path 3.",
+      "description": "Actions §3.4: Valid forbidden error — approval_deadline reached on the executing agent's clock (no clock-skew tolerance). Action treated as expired. Per ARSIA-Actions.md §3.4 (verification step 5), Path 3.",
       "category": "actions",
       "valid": true,
       "message": {
@@ -14121,7 +14121,7 @@
     },
     {
       "id": "ITV-319",
-      "description": "Actions §3.4: Valid forbidden error — action MUST NOT be executed when deadline has passed even if the approval_decision was sent before the deadline but arrived after it. Per ARSIA-Actions.md §3.4 Step 2.",
+      "description": "Actions §3.4: Valid forbidden error — action MUST NOT be executed when deadline has passed even if the approval_decision was sent before the deadline but arrived after it. Per ARSIA-Actions.md §3.4 (verification step 5).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -14154,7 +14154,7 @@
     },
     {
       "id": "ITV-320",
-      "description": "Actions §3.4: Valid invalid_request error — approval_decision correlation_id does not match any pending_approval. MUST return invalid_request. Per ARSIA-Actions.md §3.4 Step 3.",
+      "description": "Actions §3.4: Valid invalid_request error — approval_decision correlation_id does not match any pending_approval. MUST return invalid_request. Per ARSIA-Actions.md §3.4 (verification step 4).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -14186,7 +14186,7 @@
     },
     {
       "id": "ITV-321",
-      "description": "Actions §3.4: Valid invalid_request error — action MUST NOT be executed when no matching pending_approval exists. Spurious correlation_id rejected. Per ARSIA-Actions.md §3.4 Step 3.",
+      "description": "Actions §3.4: Valid invalid_request error — action MUST NOT be executed when no matching pending_approval exists. Spurious correlation_id rejected. Per ARSIA-Actions.md §3.4 (verification step 4).",
       "category": "actions",
       "valid": true,
       "message": {
@@ -32077,7 +32077,7 @@
     },
     {
       "id": "ITV-656",
-      "description": "Runtime — a second decision for a completed review does not change the recorded outcome and is answered invalid_request (Core §4.2.1 rule 2).",
+      "description": "Runtime — a second decision for a completed review does not change the recorded outcome and is answered invalid_request (Core §4.2.1 rule 2); the duplicate is logged as decision_rejected (Actions §3.9.3).",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32121,14 +32121,15 @@
             "request",
             "response",
             "review_pending",
-            "review_decision"
+            "review_decision",
+            "decision_rejected"
           ]
         }
       }
     },
     {
       "id": "ITV-657",
-      "description": "Runtime — review decision whose signature does not verify: rejected with unauthorized, not recorded (Actions §3.9.3 step 1).",
+      "description": "Runtime — review decision whose signature does not verify: rejected with unauthorized, not recorded as a decision; logged as decision_rejected (Actions §3.9.3 step 1).",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32161,13 +32162,19 @@
           },
           "decision_errors": [
             "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "response",
+            "review_pending",
+            "decision_rejected"
           ]
         }
       }
     },
     {
       "id": "ITV-658",
-      "description": "Runtime — review decision presented with a token from an untrusted issuer: unauthorized (Actions §3.9.3 step 2; Core §6.5).",
+      "description": "Runtime — review decision presented with a token from an untrusted issuer: unauthorized (Actions §3.9.3 step 2; Core §6.5); not recorded as a decision, logged as decision_rejected.",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32200,13 +32207,19 @@
           },
           "decision_errors": [
             "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "response",
+            "review_pending",
+            "decision_rejected"
           ]
         }
       }
     },
     {
       "id": "ITV-659",
-      "description": "Runtime — reviewer token without arsiaprotocol.oversight.approve in scope: forbidden (Actions §3.9.3 step 3).",
+      "description": "Runtime — reviewer token without arsiaprotocol.oversight.approve in scope: forbidden (Actions §3.9.3 step 3); not recorded as a decision, logged as decision_rejected.",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32239,13 +32252,19 @@
           },
           "decision_errors": [
             "forbidden"
+          ],
+          "event_types": [
+            "request",
+            "response",
+            "review_pending",
+            "decision_rejected"
           ]
         }
       }
     },
     {
       "id": "ITV-660",
-      "description": "Runtime — review decision whose result_hash differs from the notice's: invalid_request, not recorded (Actions §3.9.3 step 4).",
+      "description": "Runtime — review decision whose result_hash differs from the notice's: invalid_request, not recorded as a decision; logged as decision_rejected (Actions §3.9.3 step 4).",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32278,6 +32297,12 @@
           },
           "decision_errors": [
             "invalid_request"
+          ],
+          "event_types": [
+            "request",
+            "response",
+            "review_pending",
+            "decision_rejected"
           ]
         }
       }
@@ -32323,7 +32348,7 @@
     },
     {
       "id": "ITV-662",
-      "description": "Runtime — approval_decision whose request_payload_hash differs from the pending one: rejected invalid_request; the action is not executed (ACTIONS-17).",
+      "description": "Runtime — approval_decision whose request_payload_hash differs from the pending one: rejected invalid_request; the action is not executed (ACTIONS-17); the attempt is logged as decision_rejected (Actions §3.4).",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -32355,7 +32380,8 @@
           ],
           "event_types": [
             "request",
-            "pending_approval"
+            "pending_approval",
+            "decision_rejected"
           ]
         }
       }
@@ -32407,7 +32433,7 @@
     },
     {
       "id": "ITV-664",
-      "description": "Runtime — prior approval (descriptor) and required_within_24h together: both modes apply; after the approved execution the review is opened from the terminal result (Actions §3.4 Step 7).",
+      "description": "Runtime — prior approval (descriptor) and required_within_24h together: both modes apply; after the approved execution the review is opened from the terminal result (Actions §3.4, Path 1 Step 5).",
       "schema_ref": "arsia-compliance-field.schema.json",
       "expected": "valid",
       "data": {
@@ -37524,6 +37550,2285 @@
       },
       "skip_schema": true,
       "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-126",
+      "description": "Runtime — approval_decision received exactly at the approval_deadline: late (received_at >= deadline, no skew); rejected invalid_request and logged as decision_rejected; the deadline timer then resolves the still-pending flow by Path 3 (forbidden, expired).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "invalid_request",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T11:00:00.000Z"
+            }
+          ],
+          "expire_at": "2026-10-31T11:00:00.000Z"
+        },
+        "expect": {
+          "path": "failed",
+          "approval_errors": [
+            "invalid_request"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected",
+            "approval_expired",
+            "error"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "invalid_request",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ],
+          "final_error": {
+            "code": "forbidden",
+            "details": {
+              "oversight_decision": "expired"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "INV-127",
+      "description": "Runtime — approved decision whose signature does not verify (reason changed after signing): rejected unauthorized at step 1; logged as decision_rejected WITHOUT verified_kid; the pending_approval stays pending.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "tamper": true
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-128",
+      "description": "Runtime — DENIED decision whose signature does not verify: rejected unauthorized (Actions §3.4 applies to both values); it neither denies nor resolves the flow — no Path 2 error, the pending_approval stays pending.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "decision": "denied",
+              "tamper": true
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected"
+          ],
+          "message_intents": [
+            "pending_approval"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-129",
+      "description": "Runtime — the approver's access token has aud different from the decision's to: unauthorized (step 2, Core §6.4 step 3); the decision's signature verified, so the decision_rejected record carries verified_kid.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "aud": "agent:acme.billing"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-130",
+      "description": "Runtime — the approver's access token has sub different from the decision's from: unauthorized (step 2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "sub": "agent:acme.approver-two"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-131",
+      "description": "Runtime — the approver's access token is issued by an untrusted issuer: unauthorized (step 2, Core §6.5).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "issuer": "https://evil.example"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-132",
+      "description": "Runtime — the approver's access token expired 900 s before the decision, beyond the 300 s clock skew: unauthorized (step 2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "token_lifetime": -900
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-133",
+      "description": "Runtime — the token scope holds only the wildcard arsiaprotocol.*: the reserved arsiaprotocol.oversight.approve is satisfied only by an exact entry (Core §6.4 step 5), so forbidden (step 3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "forbidden",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "scope": "arsiaprotocol.*"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "forbidden"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-134",
+      "description": "Runtime — the decision's capabilities lack arsiaprotocol.oversight.approve (validly signed; the token scope has it): forbidden (step 3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "forbidden",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "capabilities": []
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "forbidden"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-135",
+      "description": "Runtime — result.approver_id differs from from (validly signed): invalid_request (step 4, Actions §3.3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "invalid_request",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "approver_id": "agent:acme.approver-two"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "invalid_request"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-136",
+      "description": "Runtime — correlation_id matches no pending_approval the agent sent: invalid_request (step 4, Core §4.2.1 rule 1); the decision_rejected record keeps the correlation_id as received.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "invalid_request",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "correlation_id": "7a000000-0000-4000-8000-0000000000cc"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "invalid_request"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "invalid_request",
+              "correlation_id": "7a000000-0000-4000-8000-0000000000cc",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-137",
+      "description": "Runtime — root_request_id differs from the pending_approval's: invalid_request (step 4, Core §4.2.4).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "invalid_request",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "root_request_id": "7a000000-0000-4000-8000-0000000000dd"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "invalid_request"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "invalid_request",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-0000000000dd",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-138",
+      "description": "Runtime — an approval received after the flow was already resolved by an admitted denial: invalid_request (step 5, Core §4.2.1 rule 3); the recorded outcome (denied) is unchanged.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "invalid_request",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "decision": "denied"
+            },
+            {
+              "at": "2026-10-31T10:12:00.000Z",
+              "approver": "agent:acme.approver-two"
+            }
+          ]
+        },
+        "expect": {
+          "path": "failed",
+          "approval_errors": [
+            null,
+            "invalid_request"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "approval_decision",
+            "error",
+            "decision_rejected"
+          ],
+          "final_error": {
+            "code": "forbidden",
+            "details": {
+              "oversight_decision": "denied"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "INV-139",
+      "description": "Runtime — signature invalid AND correlation_id wrong: unauthorized, the code of the first failing step (Actions §3.4 order).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "tamper": true,
+              "correlation_id": "7a000000-0000-4000-8000-0000000000cc"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-140",
+      "description": "Runtime — token scope without arsiaprotocol.oversight.approve AND approver_id different from from: forbidden, the code of the first failing step (step 3 before step 4).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "forbidden",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "scope": "test.unit",
+              "approver_id": "agent:acme.approver-two"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "forbidden"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-141",
+      "description": "INVALID — audit record with verified_kid but without jwks_fetched_at: the two are present together (State §7.1, dependentRequired).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a10141-0000-4000-8000-000000000141",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "approved",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "verified_kid": "agent:arsialabs.demo.oversight-panel#key1"
+      },
+      "expected_error": "jwks_fetched_at is required when verified_kid is present — State §7.1, Core §5.2"
+    },
+    {
+      "id": "INV-142",
+      "description": "INVALID — audit record with jwks_fetched_at but without verified_kid (State §7.1, dependentRequired).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a10142-0000-4000-8000-000000000142",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "approved",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "jwks_fetched_at": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "verified_kid is required when jwks_fetched_at is present — State §7.1, Core §5.2"
+    },
+    {
+      "id": "INV-143",
+      "description": "INVALID — decision_rejected record without rejection_code (State §7.1 extension table).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a10143-0000-4000-8000-000000000143",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "decision_rejected",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "verified_kid": "agent:arsialabs.demo.oversight-panel#key1",
+        "jwks_fetched_at": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "rejection_code is required for decision_rejected records — State §7.1"
+    },
+    {
+      "id": "INV-144",
+      "description": "INVALID — rejection_code on an approval_decision record: rejection_code is present exactly on decision_rejected records (State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a10144-0000-4000-8000-000000000144",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "approved",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "verified_kid": "agent:arsialabs.demo.oversight-panel#key1",
+        "jwks_fetched_at": "2026-04-27T14:00:00.000Z",
+        "rejection_code": "forbidden"
+      },
+      "expected_error": "rejection_code requires event_type decision_rejected — State §7.1"
+    },
+    {
+      "id": "INV-145",
+      "description": "INVALID — key-revocation payload.data with a member beyond revoked_kid and effective_at (Identity §2.5, closed set).",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2026-03-24T13:55:00.000Z",
+        "reason": "compromise"
+      },
+      "expected_error": "additional property reason — Identity §2.5 (payload.data contains exactly revoked_kid, effective_at)"
+    },
+    {
+      "id": "INV-146",
+      "description": "INVALID — key-revocation payload.data without effective_at (Identity §2.5).",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1"
+      },
+      "expected_error": "effective_at is required — Identity §2.5"
+    },
+    {
+      "id": "INV-147",
+      "description": "INVALID — key-revocation revoked_kid that is not a kid (no #fragment) (Identity §2.5).",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client",
+        "effective_at": "2026-03-24T13:55:00.000Z"
+      },
+      "expected_error": "revoked_kid does not match the kid pattern — Identity §2.5"
+    },
+    {
+      "id": "INV-148",
+      "description": "Identity §2.5: INVALID (runtime) — the revocation of #key1 signed by #key1 itself, still in the recipient's cache: a key cannot authenticate its own revocation, unauthorized; the event causes no invalidation, and since no refresh happened #key1 is still accepted from the cache until max-age (bounded exposure, Core §5.2). The signature itself is valid.",
+      "category": "identity",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00148-0000-4000-8000-000000000148",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-24T13:55:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "wJTnp-FmeQQp9kScQFuBK7pJ0qEvJk--K-RwY9mDKCQOb4zY9gIhwaYu5wn1rbSaLuFsBDSfScXlLZQ-Yzx2CQ"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303134382d303030302d343030302d383030302d303030303030303030313438222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431333a35353a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "wJTnp-FmeQQp9kScQFuBK7pJ0qEvJk--K-RwY9mDKCQOb4zY9gIhwaYu5wn1rbSaLuFsBDSfScXlLZQ-Yzx2CQ",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); input and expected result in test_metadata, executed by harness R13",
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+                "agent:acme.echo-client#other-key": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "rejected",
+              "code": "unauthorized",
+              "invalidated": null,
+              "sender_jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            },
+            {
+              "op": "verify",
+              "accepted": true,
+              "jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-149",
+      "description": "Identity §2.5: INVALID (runtime) — an event from agent:acme.echo-client naming a key of agent:acme.billing: revoked_kid does not belong to from, unauthorized; the billing key, removed from its JWKS but still cached, keeps being accepted from the cache (the event invalidated nothing). The signature is valid.",
+      "category": "identity",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00149-0000-4000-8000-000000000149",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.billing#key1",
+            "effective_at": "2026-03-24T13:55:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "o6imSVUL98i8JCYanRx8tk3LDqTS0WUkjVTkrLD3bqESDu0gTEaUu5kRB25x3NB9snkpNOW_Aaep4aMvy9RMBw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303134392d303030302d343030302d383030302d303030303030303030313439222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431333a35353a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e62696c6c696e67236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "o6imSVUL98i8JCYanRx8tk3LDqTS0WUkjVTkrLD3bqESDu0gTEaUu5kRB25x3NB9snkpNOW_Aaep4aMvy9RMBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); input and expected result in test_metadata, executed by harness R13",
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+                "agent:acme.echo-client#other-key": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+              },
+              "max_age": 3600
+            },
+            "agent:acme.billing": {
+              "keys": {
+                "agent:acme.billing#key1": "b27ef3fdc9c0a6494eac5542c3a0f7c6e57b746ba0ff9cac65b889a8a12e9ab5"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.billing"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.billing#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.billing#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "rejected",
+              "code": "unauthorized",
+              "invalidated": null
+            },
+            {
+              "op": "verify",
+              "accepted": true,
+              "jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-150",
+      "description": "Identity §2.5: INVALID (runtime) — effective_at changed after signing: the event signature does not verify (signature over the pre-tamper bytes; Core §5.2), unauthorized, no invalidation; #key1 stays accepted from the stale cache.",
+      "category": "identity",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00150-0000-4000-8000-000000000150",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-24T14:30:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "oyu0tj4BuS4JFKkCm0wDUc67iPwPSYtHHPSGH1jM9trzDFxyzVhACRBPWFDnwKfiVsaWTd4vAGRfzBLC0rGQDQ"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303135302d303030302d343030302d383030302d303030303030303030313530222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431343a33303a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "oyu0tj4BuS4JFKkCm0wDUc67iPwPSYtHHPSGH1jM9trzDFxyzVhACRBPWFDnwKfiVsaWTd4vAGRfzBLC0rGQDQ",
+        "expect_signature": "invalid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); input and expected result in test_metadata, executed by harness R13",
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+                "agent:acme.echo-client#other-key": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "rejected",
+              "code": "unauthorized",
+              "invalidated": null,
+              "sender_jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            },
+            {
+              "op": "verify",
+              "accepted": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-151",
+      "description": "Identity §2.5: INVALID (runtime) — event signed with a key the sender never published: resolving the unknown kid refreshes the JWKS and does not find it, unauthorized, and the event invalidates nothing. The refresh itself is an ordinary Core §5.2 update: it brings the 14:10 JWKS, where #key1 is already absent, so #key1 is rejected afterwards because of the JWKS, not of the event. The signature is valid.",
+      "category": "identity",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00151-0000-4000-8000-000000000151",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-24T13:55:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "oUf5WW20jEVFc3fS1_CncbxDxXu9VH-28ZXdh322b_3moEVxXpzVsExvKpO_y_px_6GcK1yj7QCTR5ACCt02BA"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303135312d303030302d343030302d383030302d303030303030303030313531222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431333a35353a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "oUf5WW20jEVFc3fS1_CncbxDxXu9VH-28ZXdh322b_3moEVxXpzVsExvKpO_y_px_6GcK1yj7QCTR5ACCt02BA",
+        "expect_signature": "valid"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — key-revocation event authentication and cache invalidation (Identity §2.5, Core §5.2); input and expected result in test_metadata, executed by harness R13",
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "rejected",
+              "code": "unauthorized",
+              "invalidated": null,
+              "sender_jwks_fetched_at": "2026-03-24T14:10:00.000Z"
+            },
+            {
+              "op": "verify",
+              "accepted": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-152",
+      "description": "Runtime — a decision received after the deadline AND with a signature that does not verify: unauthorized, not invalid_request — the deadline gives invalid_request only when no earlier step failed (Actions §3.4, late arrival).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T11:00:01.000Z",
+              "tamper": true
+            }
+          ],
+          "expire_at": "2026-10-31T11:00:02.000Z"
+        },
+        "expect": {
+          "path": "failed",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": null
+            }
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected",
+            "approval_expired",
+            "error"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-153",
+      "description": "Runtime — the approver's access token had a claim changed after the issuer signed it: its signature does not verify under the issuer's configured key, unauthorized (step 2, Core §6.4 step 2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "token_tamper": true
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-154",
+      "description": "Runtime — decision received in time (10:09:59), but the approver's key left its JWKS before verification at 10:10:01, after the 60 s max-age of the cached fetch (10:09:00): the key is resolved at the verification instant, the refresh no longer finds it, unauthorized. Deadline eligibility does not exempt authentication (Actions §3.4; Core §5.2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:09:59.000Z",
+              "remove_keys": [
+                "agent:acme.oversight-dashboard#key-1"
+              ],
+              "verify_at": "2026-10-31T10:10:01.000Z"
+            }
+          ],
+          "jwks_cache": {
+            "agent:acme.oversight-dashboard": {
+              "fetched_at": "2026-10-31T10:09:00.000Z",
+              "max_age": 60
+            }
+          }
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-155",
+      "description": "Runtime — approval_decision declaring alg ES256 with a valid Ed25519 signature over bytes that contain that alg: the declared algorithm is incompatible with the approver's Ed25519 key (Core §5.2 Step 5), unauthorized at step 1; the flow stays pending and the decision_rejected record carries no verified_kid.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "alg": "ES256"
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-156",
+      "description": "Runtime — the approver's access token, validly signed by the trusted issuer, lacks iat: a required claim (Core §6.1) is never defaulted, unauthorized (step 2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "token_drop": [
+                "iat"
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-157",
+      "description": "Runtime — the approver's access token, validly signed by the trusted issuer, lacks jti (Core §6.1): unauthorized (step 2).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": "unauthorized",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "token_drop": [
+                "jti"
+              ]
+            }
+          ]
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "rejections": [
+            {
+              "rejection_code": "unauthorized",
+              "correlation_id": "c0f0aa30-6847-42a9-b41e-0e703cb3cb20",
+              "root_request_id": "7a000000-0000-4000-8000-000000000001",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-694",
+      "description": "Runtime — approval_decision verified in order (Actions §3.4) and admitted; the approver's JWKS came from a cache fetched at 09:30, so its Record 3 carries verified_kid and jwks_fetched_at = 09:30 (the fetch, not the verification); the request's record carries the requester's key fetched at receipt (Core §5.2, State §7.1); each record's processed_at is its processing instant.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z"
+            }
+          ],
+          "jwks_cache": {
+            "agent:acme.oversight-dashboard": {
+              "fetched_at": "2026-10-31T09:30:00.000Z"
+            }
+          },
+          "end_at": "2026-10-31T10:20:00.000Z"
+        },
+        "expect": {
+          "path": "completed",
+          "approval_errors": [
+            null
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "approval_decision",
+            "response"
+          ],
+          "evidence": [
+            {
+              "event_type": "request",
+              "from_agent": "agent:acme.analyst",
+              "verified_kid": "agent:acme.analyst#key-1",
+              "jwks_fetched_at": "2026-10-31T10:00:00.000Z",
+              "processed_at": "2026-10-31T10:00:00.000Z"
+            },
+            {
+              "event_type": "approval_decision",
+              "from_agent": "agent:acme.oversight-dashboard",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1",
+              "jwks_fetched_at": "2026-10-31T09:30:00.000Z",
+              "processed_at": "2026-10-31T10:10:00.000Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-695",
+      "description": "Runtime — approval_decision received 1 ms before the approval_deadline (11:00:00.000): in time on the executing agent's clock, without clock-skew tolerance (Actions §3.4, receipt instant); admitted and executed.",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:59:59.999Z"
+            }
+          ],
+          "end_at": "2026-10-31T11:00:05.000Z"
+        },
+        "expect": {
+          "path": "completed",
+          "approval_errors": [
+            null
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-696",
+      "description": "Runtime — required_approvals 2: approver X's first decision is rejected (token aud wrong), X then sends a valid decision and Y another: both admitted, executed. The rejected attempt did not consume X and is not a Record 3 (Actions §3.4, §3.6).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "aud": "agent:acme.billing"
+            },
+            {
+              "at": "2026-10-31T10:11:00.000Z"
+            },
+            {
+              "at": "2026-10-31T10:12:00.000Z",
+              "approver": "agent:acme.approver-two"
+            }
+          ],
+          "required_approvals": 2,
+          "end_at": "2026-10-31T10:20:00.000Z"
+        },
+        "expect": {
+          "path": "completed",
+          "approval_errors": [
+            "unauthorized",
+            null,
+            null
+          ],
+          "admitted": 2,
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected",
+            "approval_decision",
+            "approval_decision",
+            "response"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-697",
+      "description": "Valid audit record — Record 3 of an approval_decision whose signature the log owner verified: verified_kid (the verifying key) and jwks_fetched_at (the fetch that supplied it) present together (Core §5.2, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10697-0000-4000-8000-000000000697",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "approval_decision",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "decision": "approved",
+        "approver_id": "agent:arsialabs.demo.oversight-panel",
+        "reason": null,
+        "human_oversight_status": "approved",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "verified_kid": "agent:arsialabs.demo.oversight-panel#key1",
+        "jwks_fetched_at": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-698",
+      "description": "Valid audit record — decision_rejected: a received approval_decision rejected forbidden at step 3 (its signature verified, so verified_kid and jwks_fetched_at are present), with the correlation it carried (Actions §3.4, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a10698-0000-4000-8000-000000000698",
+        "message_id": "c3a00003-0000-4000-8000-000000000003",
+        "event_type": "decision_rejected",
+        "from_agent": "agent:arsialabs.demo.oversight-panel",
+        "to_agent": "agent:arsialabs.demo.risk-assessor",
+        "intent": "approval_decision",
+        "payload_type": "arsiaprotocol.oversight/decision",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:20:00.000Z",
+        "retained_until": "2026-10-27T14:00:00.000Z",
+        "timestamp": "2026-04-27T14:20:00.000Z",
+        "correlation_id": "c3a00002-0000-4000-8000-000000000002",
+        "root_request_id": "c3a00001-0000-4000-8000-000000000001",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+        "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "rejection_code": "forbidden",
+        "verified_kid": "agent:arsialabs.demo.oversight-panel#key1",
+        "jwks_fetched_at": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-699",
+      "description": "Valid key-revocation payload.data — exactly revoked_kid and effective_at (Identity §2.5).",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "valid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2026-03-24T13:55:00.000Z"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-700",
+      "description": "Identity §2.5: key-revocation event signed by the successor key #other-key, which the recipient already holds in its cached JWKS (no refresh). The revoked #key1 was removed from the published JWKS but is still in the cache, within max-age: the authenticated event invalidates it at once, so the next lookup of #key1 refreshes the JWKS, which no longer lists it, and a later message under #key1 is rejected; #other-key is then served from that 14:20 fetch.",
+      "category": "identity",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00700-0000-4000-8000-000000000700",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-24T13:55:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "RXsHlGubkvs4hVCpeubfaYO1Fp1qsM3_sdn4URvl8UwtsJR2w7qe32XQakU47B8zUSx44juabKwxeM2Ec7wCAA"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303730302d303030302d343030302d383030302d303030303030303030373030222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431333a35353a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "RXsHlGubkvs4hVCpeubfaYO1Fp1qsM3_sdn4URvl8UwtsJR2w7qe32XQakU47B8zUSx44juabKwxeM2Ec7wCAA",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+                "agent:acme.echo-client#other-key": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#other-key"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "accepted",
+              "invalidated": "agent:acme.echo-client#key1",
+              "sender_jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            },
+            {
+              "op": "verify",
+              "accepted": false
+            },
+            {
+              "op": "verify",
+              "accepted": true,
+              "jwks_fetched_at": "2026-03-24T14:20:00.000Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-701",
+      "description": "Identity §2.5: key-revocation event signed by a successor key published at the rotation (without overlap): resolving the unknown signing kid refreshes the JWKS (an ordinary Core §5.2 refresh), the event authenticates and #key1 is rejected afterwards.",
+      "category": "identity",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00701-0000-4000-8000-000000000701",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-24T13:55:00.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "E7ogxWB9d3ODv1qqPTu5_tqoIbzGlLPBsnS5WgmbFBwJVqdG9pMdt3cZTCUMSiIgu22_cVPU4krf3QC4rjPZBA"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303730312d303030302d343030302d383030302d303030303030303030373031222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32345431333a35353a30302e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "E7ogxWB9d3ODv1qqPTu5_tqoIbzGlLPBsnS5WgmbFBwJVqdG9pMdt3cZTCUMSiIgu22_cVPU4krf3QC4rjPZBA",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "publish",
+              "kid": "agent:acme.echo-client#other-key",
+              "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "publish"
+            },
+            {
+              "op": "event",
+              "result": "accepted",
+              "invalidated": "agent:acme.echo-client#key1",
+              "sender_jwks_fetched_at": "2026-03-24T14:10:00.000Z"
+            },
+            {
+              "op": "verify",
+              "accepted": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-702",
+      "description": "Identity §2.5: effective_at one day in the future does not delay the invalidation: the authenticated event invalidates the cached #key1 at once.",
+      "category": "identity",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00702-0000-4000-8000-000000000702",
+        "ts": "2026-03-24T14:10:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:arsialabs.demo.compliance-checker",
+        "intent": "event",
+        "payload": {
+          "type": "arsiaprotocol.identity/key-revocation",
+          "data": {
+            "revoked_kid": "agent:acme.echo-client#key1",
+            "effective_at": "2026-03-25T23:59:59.000Z"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#other-key",
+          "sig": "sqAIRuQorKx5VmPdMqG-YnM9pLOYbSmtvIJv7U0Kfio9CLeZpeGdtL6g65xCAy5KzN_-aMlhBlp94VrEmgtZDg"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "e3e762f65dd361bb224f4472d484489d63d1365129f68e5cfa0f94dc2fe1fc06",
+        "public_key_hex": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418",
+        "canonical_bytes_hex": "7b2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303730322d303030302d343030302d383030302d303030303030303030373032222c22696e74656e74223a226576656e74222c227061796c6f6164223a7b2264617461223a7b226566666563746976655f6174223a22323032362d30332d32355432333a35393a35392e3030305a222c227265766f6b65645f6b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c2274797065223a22617273696170726f746f636f6c2e6964656e746974792f6b65792d7265766f636174696f6e227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236f746865722d6b6579227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e636f6d706c69616e63652d636865636b6572222c227473223a22323032362d30332d32345431343a31303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "sqAIRuQorKx5VmPdMqG-YnM9pLOYbSmtvIJv7U0Kfio9CLeZpeGdtL6g65xCAy5KzN_-aMlhBlp94VrEmgtZDg",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+                "agent:acme.echo-client#other-key": "0647a03ab9f781b7b3e6e258a0e6e39743433be376b9934f06e3a7ab7e65f418"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:10:00.000Z",
+              "op": "event"
+            },
+            {
+              "at": "2026-03-24T14:20:00.000Z",
+              "op": "verify",
+              "kid": "agent:acme.echo-client#key1"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "event",
+              "result": "accepted",
+              "invalidated": "agent:acme.echo-client#key1"
+            },
+            {
+              "op": "verify",
+              "accepted": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-703",
+      "description": "Core §5.2 Verification Caching: a message signed by #key1 after #key1 left the published JWKS (14:05). Served from the 14:00 cache it is accepted at 14:30, with jwks_fetched_at = 14:00 (the fetch, not the verification); past the 3600 s ceiling the refresh no longer finds the key and the same message is rejected.",
+      "category": "identity",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00703-0000-4000-8000-000000000703",
+        "ts": "2026-03-24T10:00:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:acme.echo-server",
+        "intent": "request",
+        "expires_at": "2026-03-24T10:00:30.000Z",
+        "capabilities": [
+          "echo.ping"
+        ],
+        "payload": {
+          "type": "com.acme.echo/ping",
+          "args": {
+            "message": "hello"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "VsGdXvoU-ggO0OoH6mg-lEmOeNtI0aTpr4GGSTSLXJPHVLrgnW3zDODlkdYiubakkNBvYqA1ft3WGV7CxuoZBg"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303730332d303030302d343030302d383030302d303030303030303030373033222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "VsGdXvoU-ggO0OoH6mg-lEmOeNtI0aTpr4GGSTSLXJPHVLrgnW3zDODlkdYiubakkNBvYqA1ft3WGV7CxuoZBg",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd"
+              },
+              "max_age": 3600
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:05:00.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:30:00.000Z",
+              "op": "verify_message"
+            },
+            {
+              "at": "2026-03-24T15:00:00.001Z",
+              "op": "verify_message"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "verify_message",
+              "accepted": true,
+              "jwks_fetched_at": "2026-03-24T14:00:00.000Z"
+            },
+            {
+              "op": "verify_message",
+              "accepted": false,
+              "jwks_fetched_at": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-704",
+      "description": "Core §5.2 Verification Caching: a message received at 14:00:30 and still queued; #key1 leaves the JWKS at 14:00:45; verified at 14:01:01, past the 60 s max-age of the 14:00 fetch, the refresh no longer finds the key and the message is rejected — including messages already queued but not yet verified.",
+      "category": "identity",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "d0b00704-0000-4000-8000-000000000704",
+        "ts": "2026-03-24T10:00:00.000Z",
+        "from": "agent:acme.echo-client",
+        "to": "agent:acme.echo-server",
+        "intent": "request",
+        "expires_at": "2026-03-24T10:00:30.000Z",
+        "capabilities": [
+          "echo.ping"
+        ],
+        "payload": {
+          "type": "com.acme.echo/ping",
+          "args": {
+            "message": "hello"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.echo-client#key1",
+          "sig": "fzWnBhLDGjSjbm4riUca3Wvl8j63IcDHi13-dEuoC1ieM-muRXrWiglwALlD8OEWJ3x7QSHgffliyFGsKl1zBw"
+        }
+      },
+      "crypto": {
+        "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
+        "public_key_hex": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b226563686f2e70696e67225d2c22657870697265735f6174223a22323032362d30332d32345431303a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e6563686f2d636c69656e74222c226964223a2264306230303730342d303030302d343030302d383030302d303030303030303030373034222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226d657373616765223a2268656c6c6f227d2c2274797065223a22636f6d2e61636d652e6563686f2f70696e67227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e6563686f2d636c69656e74236b657931227d2c22746f223a226167656e743a61636d652e6563686f2d736572766572222c227473223a22323032362d30332d32345431303a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "fzWnBhLDGjSjbm4riUca3Wvl8j63IcDHi13-dEuoC1ieM-muRXrWiglwALlD8OEWJ3x7QSHgffliyFGsKl1zBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "revocation",
+        "input": {
+          "publishers": {
+            "agent:acme.echo-client": {
+              "keys": {
+                "agent:acme.echo-client#key1": "db20606b77bf63488d763f423a4caa11c92c3a54cb845ef248d691dc8c7220bd"
+              },
+              "max_age": 60
+            }
+          },
+          "steps": [
+            {
+              "at": "2026-03-24T14:00:00.000Z",
+              "op": "fetch",
+              "agent": "agent:acme.echo-client"
+            },
+            {
+              "at": "2026-03-24T14:00:30.000Z",
+              "op": "receive"
+            },
+            {
+              "at": "2026-03-24T14:00:45.000Z",
+              "op": "remove",
+              "kid": "agent:acme.echo-client#key1"
+            },
+            {
+              "at": "2026-03-24T14:01:01.000Z",
+              "op": "verify_message"
+            }
+          ]
+        },
+        "expect": {
+          "steps": [
+            {
+              "op": "fetch"
+            },
+            {
+              "op": "receive"
+            },
+            {
+              "op": "remove"
+            },
+            {
+              "op": "verify_message",
+              "accepted": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-705",
+      "description": "Runtime — approval received 1 s before the deadline and still queued when the deadline timer runs: it is verified first, at the timer's instant, keeps its eligibility as to the deadline and is admitted; the flow is no longer pending, so no expiry (Actions §3.4, Path 3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:59:59.000Z",
+              "queued": true
+            }
+          ],
+          "expire_at": "2026-10-31T11:00:00.000Z",
+          "end_at": "2026-10-31T11:00:05.000Z"
+        },
+        "expect": {
+          "path": "completed",
+          "approval_errors": [
+            null
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "approval_decision",
+            "response"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-706",
+      "description": "Runtime — a denial admitted at 10:10, then the deadline is reached: Path 3 applies only to a still-pending flow, so there is no approval_expired record and no second error (Actions §3.4, Path 3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:10:00.000Z",
+              "decision": "denied"
+            }
+          ],
+          "expire_at": "2026-10-31T11:00:00.000Z"
+        },
+        "expect": {
+          "path": "failed",
+          "event_types": [
+            "request",
+            "pending_approval",
+            "approval_decision",
+            "error"
+          ],
+          "message_intents": [
+            "pending_approval",
+            "error"
+          ],
+          "final_error": {
+            "code": "forbidden",
+            "details": {
+              "oversight_decision": "denied"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-707",
+      "description": "Runtime — the deadline timer runs at 10:00:01, before the approval_deadline (11:00:00.000): the queued decision (received 10:00:00.500, signature altered) is processed and rejected, and the flow is NOT resolved by expiry, since the deadline is not reached (Actions §3.4, Path 3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "GDPR-STANDARD"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "approval",
+          "descriptor_oversight": true,
+          "compliance": {
+            "profile": "GDPR-STANDARD"
+          },
+          "approvals": [
+            {
+              "at": "2026-10-31T10:00:00.500Z",
+              "queued": true,
+              "tamper": true
+            }
+          ],
+          "expire_at": "2026-10-31T10:00:01.000Z"
+        },
+        "expect": {
+          "path": "pending",
+          "approval_errors": [
+            "unauthorized"
+          ],
+          "event_types": [
+            "request",
+            "pending_approval",
+            "decision_rejected"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ITV-708",
+      "description": "Runtime — a review decision received at 10:00:02 and verified at 10:01:02, its key fetched at verification: it is in time (receipt instant) and its review_decision record is processed at 10:01:02, never before the fetch of the key that verified it (State §7.1 processed_at; Actions §3.9.3).",
+      "schema_ref": "arsia-compliance-field.schema.json",
+      "expected": "valid",
+      "data": {
+        "profile": "DSA-VLOP",
+        "legal_basis": "legal_obligation"
+      },
+      "expected_error": null,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input and expected result in test_metadata, executed by harness R15 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "execution",
+        "input": {
+          "case": "review",
+          "compliance": {
+            "profile": "DSA-VLOP",
+            "legal_basis": "legal_obligation"
+          },
+          "end_at": "2026-10-31T10:00:01.000Z",
+          "events": [
+            {
+              "kind": "decision",
+              "at": "2026-10-31T10:00:02.000Z",
+              "verify_at": "2026-10-31T10:01:02.000Z"
+            }
+          ]
+        },
+        "expect": {
+          "decision_errors": [
+            null
+          ],
+          "review": {
+            "state": "completed"
+          },
+          "evidence": [
+            {
+              "event_type": "request",
+              "from_agent": "agent:acme.analyst",
+              "verified_kid": "agent:acme.analyst#key-1",
+              "jwks_fetched_at": "2026-10-31T10:00:00.000Z",
+              "processed_at": "2026-10-31T10:00:00.000Z"
+            },
+            {
+              "event_type": "review_decision",
+              "from_agent": "agent:acme.oversight-dashboard",
+              "verified_kid": "agent:acme.oversight-dashboard#key-1",
+              "jwks_fetched_at": "2026-10-31T10:01:02.000Z",
+              "processed_at": "2026-10-31T10:01:02.000Z"
+            }
+          ]
+        }
+      }
     }
   ]
 }

@@ -1273,7 +1273,7 @@ The `payload` object MUST have the following structure:
   "args": {
     "action_id": "<the action_id from the ActionDescriptor>",
     "original_request_id": "<the id of the original request message>",
-    "approval_deadline": "<RFC 3339 timestamp — latest time approval will be accepted>",
+    "approval_deadline": "<RFC 3339 timestamp — decisions received from this instant are late>",
     "approver_capability": "arsiaprotocol.oversight.approve",
     "context": "<human-readable description of what will happen if approved>",
     "risk_level": <integer — the action's risk_level from its ActionDescriptor>,
@@ -1296,10 +1296,13 @@ approval back to the originating request. It MUST equal the envelope's
 whose two values differ with error code `invalid_request`.
 
 **`approval_deadline`** (string, REQUIRED): An RFC 3339 timestamp with millisecond
-precision (same format as ARSIA-Core.md §4.1.3) indicating the latest time at which
-an `approval_decision` will be accepted. After this deadline, the action is
-automatically denied (§3.4). The `approval_deadline` MUST equal the `expires_at` field
-of the `pending_approval` envelope.
+precision (same format as ARSIA-Core.md §4.1.3) indicating the instant from which an
+`approval_decision` is no longer accepted: a decision is in time only when received
+strictly before it, on the executing agent's clock (§3.4). From this instant, decisions
+newly received are late. Expiry is resolved under §3.4, Path 3, after verification of
+the decisions received before the deadline and only while the flow remains pending.
+The `approval_deadline` MUST equal the `expires_at` field of the `pending_approval`
+envelope. That equality grants no extension of the deadline.
 
 **`approver_capability`** (string, REQUIRED): The capability string required to approve
 this action. For v2.0, this MUST be `"arsiaprotocol.oversight.approve"`. This field exists to
@@ -1425,7 +1428,8 @@ The `payload` object MUST have the following structure:
 
 **`approver_id`** (string, REQUIRED): The agent-id of the approving agent or
 human-authorizing system. This MUST match the `from` field of the `approval_decision`
-envelope. This field provides an additional explicit record of who approved the action,
+envelope; a mismatch is rejected with `invalid_request` (§3.4, verification step 4).
+This field provides an additional explicit record of who approved the action,
 which is important for audit trail completeness.
 
 **`reason`** (string, OPTIONAL but RECOMMENDED when `decision` is `"denied"`): A
@@ -1468,54 +1472,78 @@ capability MUST be rejected with error code `forbidden` (ARSIA-Core.md §11.2).
 approver's Ed25519 key — NOT by the executing agent's key, and NOT by the original
 requester's key. This ensures that the approval is cryptographically attributable to
 the approving identity. The receiving agent MUST verify the signature per
-ARSIA-Identity.md §3.1.
+ARSIA-Identity.md §3.1 (§3.4, verification step 1).
 
 ### 3.4 Execution After Approval
 
 This section defines the normative behavior of the executing agent upon receiving an
-`approval_decision` message. Three paths are defined: approved, denied, and expired.
+`approval_decision` message: the verification every decision undergoes, then three
+paths — approved, denied, and expired.
+
+#### Verification of an `approval_decision`
+
+Before an `approval_decision` takes effect — whether its `decision` is `"approved"` or
+`"denied"` — the executing agent MUST verify, in this order:
+
+1. its signature (ARSIA-Core.md §5.2; ARSIA-Identity.md §3.1) — on failure,
+   `unauthorized`;
+2. the access token presented with it (ARSIA-Core.md §6.4 steps 2–3, §6.5): its
+   signature, a trusted issuer, `exp` and `iat`, `sub` equal to the decision's
+   `from`, and `aud` equal to the decision's `to` within the issuer's audience
+   policy — an invalid or expired token, or an untrusted issuer, gives
+   `unauthorized`;
+3. the approver's authority — `arsiaprotocol.oversight.approve` in the token's
+   scope, matched exactly as a reserved capability (ARSIA-Core.md §6.4 step 5), and
+   in the decision's `capabilities`; otherwise `forbidden`;
+4. correlation and binding — `correlation_id` matches the `id` of a
+   `pending_approval` the agent sent and still tracks (ARSIA-Core.md §4.2.1, rule
+   1); `root_request_id` equals that `pending_approval`'s `root_request_id`
+   (ARSIA-Core.md §4.2.4); `request_payload_hash` equals its `request_payload_hash`;
+   and `result.approver_id` equals `from`; otherwise `invalid_request`;
+5. deadline and pending state — the decision was received before the
+   `approval_deadline`, and the `pending_approval` is still pending; otherwise
+   `invalid_request`.
+
+**Receipt instant.** Step 5 compares the instant at which the executing agent
+receives the decision, on its own clock, with the `approval_deadline` it set: a
+decision received strictly before the deadline is in time; one received at or after
+the deadline is late. No clock-skew tolerance applies, since both instants are the
+agent's own, and the result depends neither on the decision's `ts` nor on when a
+timer runs. The tolerance of ARSIA-Core.md §8.3 still applies to the timestamps the
+agent validates from other parties, including the token claims of step 2.
+
+A decision received before the deadline keeps its eligibility as to the deadline
+however late it is verified: the agent resolves the `pending_approval` as expired
+(Path 3) only after every decision it received before the deadline has been
+verified, and only if the `pending_approval` is then still pending. This eligibility
+concerns the deadline only. Steps 1–3 — the signature with key resolution under
+ARSIA-Core.md §5.2, and the token — are evaluated at the instant of verification, on
+the agent's clock, never at the receipt instant: a decision received in time is not
+exempt from authentication, nor from a revocation or cache refresh that applies when
+it is verified.
+
+**Rejected decisions.** A decision that fails a step is rejected with the code of the
+first step it fails; a duplicate or late decision is rejected with `invalid_request`
+only when it failed no earlier step. It neither approves nor denies the action: it is
+not admitted to the flow, does not count toward the required approvals (§3.6), does
+not consume its approver, does not resolve the `pending_approval`, and does not
+change a recorded outcome. The executing agent MUST log it with an audit record of
+`event_type` `"decision_rejected"` (ARSIA-State.md §7.1), whether or not it replies,
+and SHOULD reply to the sender with an `error` carrying that code. A decision received
+at or after the deadline is further handled per *Late arrival of `approval_decision`*
+below; one for a `pending_approval` already resolved, per ARSIA-Core.md §4.2.1,
+rules 2 and 3.
+
+A decision that passes every step is admitted to the flow and follows Path 1 or
+Path 2.
 
 #### Path 1: Decision is `"approved"`
 
-Upon receiving an `approval_decision` message with `decision: "approved"`, the executing
-agent MUST perform the following verification steps before executing the action:
+**Step 1: Verify the decision.** The executing agent MUST NOT execute the action
+unless the decision was admitted by the verification above and, under §3.6, the
+required approvals have been admitted.
 
-**Step 1: Verify the approver's capability.**
-
-The executing agent MUST verify that the approver's access token includes the
-`arsiaprotocol.oversight.approve` capability in its scope (ARSIA-Core.md §6.4). If the
-capability is not present, the executing agent MUST reject the `approval_decision`
-with error code `forbidden` and MUST NOT execute the action.
-
-**Step 2: Verify the approval deadline.**
-
-The executing agent MUST verify that the current time is before the `approval_deadline`
-declared in the original `pending_approval` message. Formally: `current_time <
-approval_deadline` (with the clock skew tolerance of ARSIA-Core.md §8.3 — ±300 seconds
-by default, or the applicable compliance profile's `clock_skew_seconds`).
-If the deadline has passed, the executing agent MUST treat the action as expired (Path 3
-below) and MUST NOT execute the action, even if the `approval_decision` was sent before
-the deadline but arrived after it.
-
-**Step 3: Verify the correlation chain.**
-
-The executing agent MUST verify that the `correlation_id` of the `approval_decision`
-matches the `id` of a `pending_approval` message that the executing agent previously
-sent. If no matching `pending_approval` is found — for example, because the pending
-state was already resolved or because the `correlation_id` is spurious — the executing
-agent MUST reject the `approval_decision` with error code `invalid_request` and MUST NOT
-execute the action. The executing agent MUST additionally verify that the
-`root_request_id` of the `approval_decision` equals the `root_request_id` of the
-matched `pending_approval` (ARSIA-Core.md §4.2.4); on mismatch it MUST reject with
-error code `invalid_request` and MUST NOT execute the action. Duplicate and late
-decisions are handled per the correlation handling rules of ARSIA-Core.md §4.2.1: a
-decision for a `pending_approval` that was already resolved (approved, denied, or
-expired) MUST NOT change the recorded outcome. The executing agent MUST verify that
-the decision's `request_payload_hash` equals the `request_payload_hash` of the matched
-`pending_approval`; on mismatch it MUST reject the `approval_decision` with error code
-`invalid_request` and MUST NOT execute the action.
-
-**Step 4: Execute the action.**
+**Step 2: Execute the action.**
 
 If all verification steps pass, the executing agent MUST execute the action with the
 parameters of the original request — those whose hash the approval binds — applying
@@ -1525,7 +1553,7 @@ other than one a condition imposes is a material change: the approval does not c
 it, the agent MUST NOT execute the changed action under it, and a new
 `pending_approval` is required.
 
-**Step 5: Respond to the original requester.**
+**Step 3: Respond to the original requester.**
 
 After execution completes (successfully or with an error), the executing agent MUST send
 a response to the ORIGINAL requester — that is, the agent identified in the `from` field
@@ -1536,13 +1564,13 @@ ARSIA response or error message (ARSIA-Core.md §4.1.6) with `correlation_id` se
 `payload.obligation_resolution` (ARSIA-Core.md §4.4.8); in the asynchronous pattern
 the terminal result of §4.3 carries it.
 
-**Step 6: Record in audit trail.**
+**Step 4: Record in audit trail.**
 
 The executing agent MUST log all messages in the audit trail: the original request, the
 `pending_approval`, the `approval_decision`, and the final response or error. See §3.5
 for the detailed audit requirements.
 
-**Step 7: Open the post-execution review.**
+**Step 5: Open the post-execution review.**
 
 If the effective oversight set also includes `"required_within_24h"` or
 `"required_post_execution"`, the executing agent opens the review of §3.9 when
@@ -1550,7 +1578,7 @@ execution ends.
 
 #### Path 2: Decision is `"denied"`
 
-Upon receiving an `approval_decision` message with `decision: "denied"`:
+Upon admitting an `approval_decision` with `decision: "denied"` (verification above):
 
 **Step 1: Do not execute the action.**
 
@@ -1591,8 +1619,13 @@ The executing agent MUST log the denial in the audit trail. See §3.5.
 
 #### Path 3: Approval deadline expired
 
-When the `approval_deadline` elapses without the executing agent having received a valid
-`approval_decision`:
+Path 3 applies only to a `pending_approval` still pending: a flow already denied,
+expired or proceeding to execution is never resolved again by expiry.
+
+When the `approval_deadline` is reached, on the executing agent's clock, while the
+`pending_approval` is still pending — once every decision received before the deadline
+has been verified, no denial has been admitted and the required approvals have not been
+admitted:
 
 **Step 1: Do not execute the action.**
 
@@ -1630,11 +1663,14 @@ The error code MUST be `"forbidden"`. The `details` object MUST include
 
 The executing agent MUST log the expiry in the audit trail. See §3.5.
 
-**Late arrival of `approval_decision`.** If an `approval_decision` arrives AFTER the
-`approval_deadline` has passed, the executing agent MUST NOT execute the action
-regardless of the decision value. The executing agent SHOULD respond to the approver
-with error code `invalid_request` and `details: { "deadline_exceeded": true }`. The
-late decision SHOULD still be logged in the audit trail for completeness.
+**Late arrival of `approval_decision`.** If an `approval_decision` is received at or
+after the `approval_deadline`, the executing agent MUST NOT execute the action
+regardless of the decision value. It MUST log the late decision as a rejected
+decision (`decision_rejected`, above), with the code the verification determines:
+`invalid_request` when no step before the deadline check failed. The executing agent
+SHOULD respond to the approver with an `error` carrying that code — for a decision
+that failed no earlier step, `invalid_request` with
+`details: { "deadline_exceeded": true }`.
 
 ### 3.5 Audit Trail for Oversight
 
@@ -1696,6 +1732,9 @@ autonomously.
 This record captures who made the oversight decision, what they decided, and why. In the
 case of a deadline expiry (Path 3), this record is replaced by a record with
 `event_type: "approval_expired"` and `decision: "expired"`.
+
+One Record 3 is written for each `approval_decision` verified and admitted to the flow
+(§3.4). A rejected decision is logged as `decision_rejected` and is not a Record 3.
 
 #### Record 4: Final Response or Error
 
@@ -1782,8 +1821,8 @@ minimum.
 include an additional field:
 
 **`required_approvals`** (integer, OPTIONAL, default: 1): The number of independent
-`approval_decision` messages with `decision: "approved"` that must be received before
-the action can execute. Each approval MUST come from a distinct approver — that is,
+`approval_decision` messages with `decision: "approved"` that must be admitted (§3.4)
+before the action can execute. Each approval MUST come from a distinct approver — that is,
 from agents with different `from` values.
 
 **Flow modification.** When `required_approvals` > 1:
@@ -1791,25 +1830,26 @@ from agents with different `from` values.
 1. The executing agent sends a single `pending_approval` message (as in §3.2).
 
 2. The executing agent waits for `required_approvals` distinct `approval_decision`
-   messages, each with `decision: "approved"`, each from a different approver agent,
-   and each with the `arsiaprotocol.oversight.approve` capability.
+   messages admitted (§3.4), each with `decision: "approved"`, each from a different
+   approver agent, and each with the `arsiaprotocol.oversight.approve` capability.
 
-3. If any single approver sends `decision: "denied"`, the action is denied immediately
-   — the executing agent does not wait for the remaining approvals. The denial path
+3. If a `denied` decision is verified and admitted (§3.4), the action is denied
+   immediately — the executing agent does not wait for the remaining approvals. The denial path
    (§3.4, Path 2) applies.
 
-4. If the `approval_deadline` passes before all required approvals are received, the
-   action is denied via the expiry path (§3.4, Path 3).
+4. If the flow is still pending under the conditions of §3.4, Path 3 — the deadline
+   reached, every decision received before it verified, and the required approvals not
+   admitted — the action is denied via the expiry path.
 
-5. All individual `approval_decision` messages MUST be logged as separate audit records
-   (§3.5, Record 3). For a multi-approval flow that ends with a decision (all required
-   approvals received, or a denial), the total number of audit records is N + 3:
-   Record 1, Record 2, one Record 3 for each of the N `approval_decision` messages
-   received (including any denial), and Record 4.
+5. Every `approval_decision` verified and admitted to the flow (§3.4) MUST be logged
+   as a separate audit record (§3.5, Record 3). For a multi-approval flow that ends
+   with a decision (all required approvals admitted, or a denial), the total number of
+   audit records is N + 3: Record 1, Record 2, one Record 3 for each of the N decisions
+   admitted (including any denial), and Record 4; rejected decisions
+   (`decision_rejected`) are not counted.
 
    For a flow that ends by deadline expiry (step 4), the total is N + 4: Record 1,
-   Record 2, one Record 3 for each of the N `approval_decision` messages received
-   before the deadline, one `approval_expired` record, and Record 4. With N = 0 this is
+   Record 2, one Record 3 for each of the N decisions admitted before the expiry, one `approval_expired` record, and Record 4. With N = 0 this is
    the four-record expiry cycle of §3.5.
 
 **Ordering.** Approvals may arrive in any order. The executing agent MUST track the set
@@ -1933,7 +1973,7 @@ with error code `invalid_request` and diagnostic `obligation_conflict`
 The review is opened when execution ends: when the action reaches COMPLETED, or FAILED
 after having entered EXECUTING (§4.1). An action that never entered EXECUTING has no
 review. When the effective set also includes `"required_before_execution"`, the review
-follows the approved execution (§3.4, Step 7).
+follows the approved execution (§3.4, Path 1 Step 5).
 
 #### 3.9.2 Execution Instant and Review Deadlines
 
@@ -2055,10 +2095,13 @@ executing agent MUST verify, in this order:
    the notice's; `reviewer_id` equals `from`; otherwise `invalid_request`.
 
 A decision that fails verification is not recorded as a decision: the agent MUST log
-it and SHOULD reply with an `error` carrying the code stated. The first verified
+it with an audit record of `event_type` `"decision_rejected"` (ARSIA-State.md §7.1)
+and SHOULD reply with an `error` carrying the code stated. The first verified
 decision decides the review. A later decision for the same review MUST NOT change the
-recorded outcome; the agent MUST log it and SHOULD reply `invalid_request`
-(ARSIA-Core.md §4.2.1, rule 2).
+recorded outcome; the agent MUST log it with an audit record of `event_type`
+`"decision_rejected"` and SHOULD reply `invalid_request` (ARSIA-Core.md §4.2.1, rule
+2). A decision received after an obligation deadline is not rejected for that reason:
+it is processed per §3.9.4.
 
 **Overdue notice.** For each obligation that becomes overdue, the executing agent MUST
 send to its escalation destination an `event` with payload type
@@ -2214,9 +2257,13 @@ oversight and has sent a `pending_approval` message (§3.2).
 No action side effects occur in this state.
 
 **Transitions:**
-- If `approval_decision` with `decision: "approved"` received and verified → **EXECUTING**
-- If `approval_decision` with `decision: "denied"` received → **FAILED**
-- If `approval_deadline` elapses without a valid `approval_decision` → **FAILED**
+- If `approval_decision` with `decision: "approved"` admitted (§3.4) and the required
+  approvals reached → **EXECUTING**
+- If `approval_decision` with `decision: "denied"` admitted (§3.4) → **FAILED**
+- If the conditions of §3.4, Path 3 hold — `approval_deadline` reached, every decision
+  received before it verified, the flow still pending without the required admitted
+  approvals → **FAILED**
+- A rejected decision (§3.4) leaves the state unchanged.
 
 **Timeout:** The `approval_deadline` from the `pending_approval` message.
 
