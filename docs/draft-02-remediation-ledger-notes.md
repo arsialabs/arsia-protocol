@@ -67,6 +67,10 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `action_id`, the rollback request's `message_id`, a timestamp and full/partial
   status. Neither the schema nor the State §7.1 table defines these fields
   (candidate finding).
+  Resolved in C3b (`59addd5`): Actions §4.2 maps each item to a field
+  (`original_message_id`, `action_id`, the base `message_id` and `processed_at`,
+  `partial_rollback`). `arsia-audit-record` defines the three extension fields and
+  requires them when `event_type` is `rollback`.
 - **Plain `asset_transfer` records (C3a observation):** the former §7.1 table
   claimed `payment_reference`, `amount` and `original_audit_id` for
   non-escrow transfers and reversals. No originating prose or schema rule
@@ -85,9 +89,12 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **CHECK-04 field list (C3a observation):** Identity CHECK-04 presents its list
   as "the fields defined in ArsiaAuditRecord", but it omits the schema-required
   `retention_source`.
+  Resolved in C3b (`59addd5`): the CHECK-04 list includes `retention_source`.
 - **Canonical pending_approval field set not enforced (C3a observation):** Assets
   §5.2 requires "exactly the canonical field set" of Actions §3.2, but the
   `pending-approval-args` schema does not close its properties.
+  Resolved in DR-1/DR-2 (`e5e06a5`): `$defs/pending-approval-args` has
+  `additionalProperties: false`, unchanged since.
 - **Extension fields without RTM rows (C3a observation):** the per-event-type
   extension table has no dedicated RTM rows (A-64 domain).
 - **ITV-401 pre-existing defect (C3a):** the vector also lacked `correlation_id`,
@@ -244,6 +251,10 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   "test-signature-for-schema-vali…", 98 vectors in all, only these five runtime-only).
   The inventory of signatures outside crypto-block verification (below) is a different
   survey; it does not replace this count.
+  Resolved in the Draft-01.1 port (`de9db8d`): INV-23, INV-24, ITV-566, ITV-567 and
+  ITV-568 are re-signed and verify with the catalog key of their kid (A-97 guard). The
+  placeholder value remains only in ITV-550, a declared signature negative
+  (`alg`/`not-allowed`).
 - **Free-text expected_error (observed in VC, not fixed):** 16 runtime vectors state
   free text or codes outside Core §11.2 (e.g. `certificate_invalid`,
   `identity_verification_failed`) in `expected_error`.
@@ -262,6 +273,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `"reason": null` and `"conditions": null`, while the field definitions and
   `approval-decision-result` type them as string and array; INV-25 omits
   `conditions`.
+  Resolved in coverage SC3 (`94f96b6`): that commit removed both null members from the
+  §3.3 example, which carries neither now.
 
 - **Signatures outside crypto-block verification (LM3):** 187 vectors carry
   `security.sig` without a `crypto` block, so they are not included in the

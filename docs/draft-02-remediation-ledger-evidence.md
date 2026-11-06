@@ -1589,7 +1589,8 @@ No vector or key changed as a result of the review.
 
 ## 28. Main reconciliation inventory
 
-`git merge --no-commit --no-ff origin/main` on `de9db8d` (the port). `origin/main` is
+`git merge --no-commit --no-ff origin/main` on `de9db8d` (the port), committed after the
+owner's review as `54c2726` (parents `de9db8d` and `17dcf33`). `origin/main` is
 17dcf33, the PR #1 merge of `bbbd8df` onto the common base 2692450 (Draft-01): 18
 commits, 21 files. Classes:
 - **port**: equivalent by the port, `de9db8d`;
