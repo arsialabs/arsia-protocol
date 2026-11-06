@@ -606,6 +606,16 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Published counts after the Draft-01.1 port:** 923 vectors (485 schema-valid / 215
   expected-invalid / 204 runtime-only / 19 raw), 53 keypairs, 142 consistency checks,
   updated in README.md, CLAUDE.md, docs/getting-started.md and test-vectors/README.md.
+- **Main reconciliation (for consumers):**
+  - ITV-201, ITV-423 and ITV-266 now carry a signed `security` block, and ITV-482
+    carries `capabilities: ["arsiaprotocol.onboarding.evaluate"]` (Identity §7.6). Each
+    now fails only for the rule it tests (A-100).
+  - `keypairs.json` imports `agent:acme.state-extension#key1` unchanged from the
+    Draft-01.1 catalog: 54 entries, 35 of them imported.
+  - CHANGELOG: `## [Draft-02] — Unreleased` above the historical Draft-01.1 entry.
+- **Published counts after the main reconciliation:** 923 vectors (unchanged), 54
+  keypairs, 142 consistency checks, updated in README.md, CLAUDE.md, CHANGELOG.md and
+  test-vectors/README.md.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

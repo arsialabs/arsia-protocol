@@ -193,7 +193,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 485 schema-valid, 215 expected-invalid, 204 runtime-only and 19 raw parse cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 485 schema-valid, 215 expected-invalid, 204 runtime-only and 19 raw parse cases; their signatures are real Ed25519, ES256 and RS256 signatures, and each verifies unless its vector declares a signature negative. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 
@@ -222,12 +222,12 @@ ARSIA defines three conformance levels so you can adopt progressively (Core §12
 **Build with the SDK:**
 
 - [Learning Path](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/learning-path.md) — step-by-step from install to production
-- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 19 copy-pasteable recipes
+- [Cookbook](https://github.com/arsialabs/arsia-protocol-sdk/blob/main/python/docs/cookbook.md) — 22 copy-pasteable recipes
 
 **Evaluate for compliance:**
 
 - [Compliance profiles](../profiles/) — 7 profiles mapping EU regulation to protocol fields
-- [Security model](security.md) — threat model, cryptographic foundation, data protection
+- [Security model](../SECURITY.md) — threat model, cryptographic foundation, data protection
 - [RTMs](rtm/) — 6 Requirements Traceability Matrices (2,045 rows)
 
 ---

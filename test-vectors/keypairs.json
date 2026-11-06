@@ -1,6 +1,6 @@
 {
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
-  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Two keys no catalog had are generated: agent:contoso.crm#key1 (Ed25519, derived from the kid as the coverage SC1 keys) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425 and must never verify. The provenance member records the three sets and their digests.",
+  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; the main reconciliation imports one more under the same rule, agent:acme.state-extension#key1 for ITV-266 (35 imported in all); an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Two keys no catalog had are generated: agent:contoso.crm#key1 (Ed25519, derived from the kid as the coverage SC1 keys) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425 and must never verify. The provenance member records the three sets and their digests.",
   "keypairs": {
     "agent:acme.echo-client": {
       "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
@@ -266,6 +266,11 @@
       "kid": "agent:acme.legacy-system#rsa1024",
       "private_key_hex": "30820275020100300d06092a864886f70d01010105000482025f3082025b02010002818100a32499ef7c808d8096b202e607529b5e3b68435a93f337960cf342757a7f6961f5641816f6b1201e989428aa1f00bb81d4c6e688436d9c7888d05811700b4fb92701467ad1abb83c093d9549f290f2ea7dccdf734f4eac050e8834ab02dd154dd59af20b7810c2a0869c57b171e411f49e58a1284d145c3d29d6a1fb13c3b431020301000102818002514bca8627415b5948b017da74c6f640bbcb7126f6e68c4024d885d8b6a4a59a99d069cb195b0e74366e9974154b949d9431c42fc907d702828b2dbc3cbce62ba3ae1be8bd83b6fb1476807bba9ef269411cc21e6aa01f8b0bd5c31b368ceb1d60da98d60ee515a178c5f12beb7231b459db5240b208ba82bf5da4b36f0801024100d21c3e4110971516c2c77a39126d48e7aa20c1e15bbb8b2cbf00a7a097814b287d5a863c7e73f652a034c130c53c09d45eb815e50bb74097f97170a640693881024100c6c64de820ee04132ef775459b5e0c2aeae6ae6adb728876a60ac40d2d08b62a367045f28a98e8c1c9257b053fdf4520ec6e50636c2e3ef78cd1f97e534a23b102406d4d2e01910cd776b0bb2ed4f3c610501bcbd0b0589536b07f686acb7b2552a0ec9d2409e24a9710a2b0eef35d177f918ff8b9c31e96252f2a1f9e578e586e8102400626a4ca861a576df08a1fcae39fe9687a9460d955a919a7f2436b05ad5b13a802bf3eaadeb7149cca88aa61e3341983874d729761059d5533ba5baa1911b641024031467c50ae20d5296473b3a3c1474c72a5c976c89e120c113e8ef0a5e4e32915115f731a8f17d90436cbfe490bdd0a0c3f1ca14d0d43c062265fd41030681cfc",
       "public_key_hex": "30819f300d06092a864886f70d010101050003818d0030818902818100a32499ef7c808d8096b202e607529b5e3b68435a93f337960cf342757a7f6961f5641816f6b1201e989428aa1f00bb81d4c6e688436d9c7888d05811700b4fb92701467ad1abb83c093d9549f290f2ea7dccdf734f4eac050e8834ab02dd154dd59af20b7810c2a0869c57b171e411f49e58a1284d145c3d29d6a1fb13c3b4310203010001"
+    },
+    "agent:acme.state-extension": {
+      "private_key_hex": "486e0ee2cc9b1e36993ecdce654f50541977cb3a6c647b45a2d12b398a7d0b2d",
+      "public_key_hex": "899ead3157deabaedecdb7331d5855790926da655b53b01e7a1990961b6eec38",
+      "kid": "agent:acme.state-extension#key1"
     }
   },
   "provenance": {
@@ -307,6 +312,7 @@
         "agent:acme.qa-inspector#key1",
         "agent:acme.rate-limiter#key1",
         "agent:acme.shipping#key1",
+        "agent:acme.state-extension#key1",
         "agent:acme.trading-engine#key1",
         "agent:acme.transfer-processor#key1",
         "agent:arsialabs.analytics.reporter#key1",
@@ -329,7 +335,7 @@
         "agent:contoso.risk-assessor#key1",
         "agent:segment0.segment1.segment2.segment3.segment4.segment5.segment6.segment7.segment8.segment9.segment10.segment11.segment12.segment13.segment14.segment15.segment16.segment17.segment18.segment19.segment20.segment21.segment22.segment23.segment24.segment25.segment26.segment27.segment28.segment29.segment30.segment31.segment32.segment33.segment34.segment35.segment36.segment37.segment38.segment39.segment40.segment41.segment42.segment43.segment44.segment45.segment46.segment47.segment48.segment49#key1"
       ],
-      "sha256": "sha-256:03c7f94e339a84ae982c657a9c34417d667e0afdbdd50c0eb599f0a59d9e9b00"
+      "sha256": "sha-256:dae19412f2a67f0cc2bcf3e49993a51dfd7a4cb5119907f4f80298a2ef711722"
     },
     "generated": {
       "kids": [

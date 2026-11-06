@@ -9551,6 +9551,11 @@
         "authorization": {
           "token_hash": "sha-256:d1eee60de70109b2a524bc731503f686d55cc6c94a4be105dc23d8941dfe8986",
           "proof_type": "bearer"
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.billing#key1",
+          "sig": "MoLdD9nR6tKgNSs0h_Mi0ESN8Q-qcSTMu-PUegbS7RFb7yBdu-feo-JDvl48Y0WjH78dNlxwGCsvU2-Pht63DQ"
         }
       },
       "expected_error": "invalid_request"
@@ -11728,6 +11733,11 @@
           "args": {
             "key": "agent:acme.state-extension/agent/archive-batch"
           }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.state-extension#key1",
+          "sig": "o8XcW196KvrXxWwiMK0X1mA3d7WZQwU0cXNXnNEUawLT_a4Kz3sSrx81Swq1wq5igAGTfZzhj8GpZzWDPG4kDA"
         }
       },
       "expected_error": "forbidden"
@@ -18044,6 +18054,11 @@
           "result": {
             "status": "success"
           }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.billing#key1",
+          "sig": "HKIl66AhcdFKYcZAJmCPfg98Gw1no11Z7kx1QtSNTeVz06SWpLmIX8CilZg3eYjkwUjje-YzAOCit5J_IFzbAg"
         }
       },
       "expected_error": "payload must not contain both args and result — Core §4.4.7"
@@ -20186,6 +20201,9 @@
         "from": "agent:arsialabs.demo.gateway",
         "to": "agent:acme.echo-client",
         "intent": "request",
+        "capabilities": [
+          "arsiaprotocol.onboarding.evaluate"
+        ],
         "payload": {
           "type": "arsiaprotocol.onboarding/decision",
           "args": {

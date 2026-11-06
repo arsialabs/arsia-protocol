@@ -1879,19 +1879,28 @@ def catalog_problems(doc):
     return out
 
 
-SINGLE_CAUSE = (  # (vector, format, schema, the one error: validator, instance path, message)
+LEGAL_BASIS = ("required", ("compliance",), "'legal_basis' is a required property")
+SINGLE_CAUSE = (  # (vector, format, schema, its errors exactly: validator, instance path, message)
     ("INV-21", "data", "arsia-state-operations.schema.json#/$defs/set-args",
-     ("required", (), "'pii_special_categories' is a required property")),
-    ("ITV-402", "message", "arsia-message.schema.json", ("required", (), "'security' is a required property")),
+     [("required", (), "'pii_special_categories' is a required property")]),
+    ("ITV-402", "message", "arsia-message.schema.json", [("required", (), "'security' is a required property")]),
     ("ITV-550", "data", "arsia-message.schema.json",
-     ("enum", ("security", "alg"), "'DSA' is not one of ['EdDSA', 'ES256', 'RS256']")),
+     [("enum", ("security", "alg"), "'DSA' is not one of ['EdDSA', 'ES256', 'RS256']")]),
+    # main reconciliation (Draft-01.1 59c70ac): signed, so the announced rule is the only failure
+    ("ITV-201", "message", "arsia-message.schema.json", [LEGAL_BASIS, LEGAL_BASIS]),  # the compliance and the
+    # envelope conditional both require legal_basis when pii_involved is true: one cause, two schema rules
+    ("ITV-266", "message", "arsia-message.schema.json", "enum payload/type"),  # the reserved state type
+    ("ITV-423", "message", "arsia-message.schema.json", "oneOf payload"),  # args and result together
+    ("ITV-482", "message", "arsia-message.schema.json", [("required", (), "'security' is a required property")]),
 )
 
 
 def port_fixture_problems(vectors, registry):
     """A-98: expires_at > ts in every signed envelope carrying both; positive transfer-request args conform to
     AssetTransferRequest; ITV-426 encodes exactly 32 bytes; INV-21 (set-args, pii_special_categories), ITV-402
-    (missing security) and ITV-550 (security.alg enum) each fail with exactly their one announced error."""
+    (missing security), ITV-550 (security.alg enum) and, from the main reconciliation (A-100), ITV-201 (legal_basis),
+    ITV-266 (reserved state type), ITV-423 (args with result) and ITV-482 (missing security) each fail with exactly
+    their announced error."""
     import validate_vectors as vv
     from jsonschema import Draft202012Validator
     out = []
@@ -1913,10 +1922,30 @@ def port_fixture_problems(vectors, registry):
     n426 = None if raw426 is None else len(raw426)
     if n426 != 32:  # a valid encoding of the length its description announces (Core §5.2 Step 1), not merely "not 64"
         out.append(f"ITV-426 signature is not a canonical base64url encoding of the announced 32 bytes ({n426})")
-    # Single-cause negatives: the general --check-errors comparator matches a keyword ("required", "enum") and
-    # would accept a second defect next to the announced one, so each fails with exactly its one error.
+    v482 = next((v for v in vectors if v["id"] == "ITV-482"), None)
+    if not v482 or (v482.get("message") or {}).get("capabilities") != ["arsiaprotocol.onboarding.evaluate"]:
+        out.append("ITV-482 capabilities are not the Identity §7.6 decision value [arsiaprotocol.onboarding.evaluate]")
+    out += single_cause_problems(vectors, registry)
+    return out
+
+
+# A cause that is the coexistence of two members: comparing the oneOf error and its path cannot tell it from another
+# payload defect (without payload.type the same error appears), so both members must be present and removing either
+# one alone must leave a structurally valid envelope (copies in memory; signatures are not checked there).
+EXCLUSIVE_PAIR = {"ITV-423": ("payload", "args", "result")}
+
+
+def single_cause_problems(vectors, registry, only=None):
+    """Single-cause negatives: the general --check-errors comparator matches a keyword ("required", "enum") and
+    would accept a second defect next to the announced one, so each fails with exactly its errors."""
+    import copy as _copy
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    out = []
     by_id = {v["id"]: v for v in vectors}
     for vid, fmt, ref, want in SINGLE_CAUSE:
+        if only is not None and vid not in only:
+            continue
         v = by_id.get(vid)
         if not v or (fmt == "message" and not isinstance(v.get("message"), dict)) or \
                 (fmt == "data" and (v.get("schema_ref") != ref or not isinstance(v.get("data"), dict))):
@@ -1930,8 +1959,55 @@ def port_fixture_problems(vectors, registry):
         else:
             errs = list(Draft202012Validator(schema, registry=registry).iter_errors(v["data"]))
         got = [(e.validator, tuple(e.absolute_path), e.message) for e in errs]
-        if got != [want]:
-            out.append(f"{vid} does not fail for its announced cause only: {[(g[0], '/'.join(map(str, g[1])), g[2][:50]) for g in got]}")
+        shown = [(g[0], "/".join(map(str, g[1])), g[2][:50]) for g in got]
+        if isinstance(want, str):  # one error, compared by validator and path (its message repeats the instance
+            # or the whole enum)
+            got = [f"{g[0]} {'/'.join(map(str, g[1]))}" for g in got]
+            want = [want]
+        if got != want:
+            out.append(f"{vid} does not fail for its announced cause only: {shown}")
+        if vid in EXCLUSIVE_PAIR:
+            obj = v["message"] if fmt == "message" else v["data"]
+            parent, a, b = EXCLUSIVE_PAIR[vid]
+            node = obj.get(parent) if isinstance(obj.get(parent), dict) else {}
+            if a not in node or b not in node:
+                out.append(f"{vid}: {parent} does not carry both {a} and {b}")
+                continue
+            for drop in (a, b):
+                c = _copy.deepcopy(obj)
+                del c[parent][drop]
+                rest = vv.message_errors(c, schema, registry)[1]
+                if rest:
+                    out.append(f"{vid} without {parent}.{drop} is not structurally valid (another defect): "
+                               f"{[(e.validator, '/'.join(map(str, e.absolute_path))) for e in rest]}")
+    return out
+
+
+def single_cause_selftest(vectors, catalog, registry):
+    """Regression for the ITV-423 isolation: a copy without payload.type (args and result kept), re-signed with the
+    catalog key of its kid, verifies, yet must be rejected for that additional defect; the original passes."""
+    import base64 as _b64
+    import copy as _copy
+    from regen_v2 import signing_input_v2, _sign
+    out = []
+    orig = next((v for v in vectors if v["id"] == "ITV-423"), None)
+    if orig is None:
+        return ["ITV-423 missing"]
+    if single_cause_problems([orig], registry, only={"ITV-423"}):
+        out.append("the original ITV-423 is rejected")
+    probe = _copy.deepcopy(orig)
+    m = probe.get("message")
+    if not (isinstance(m, dict) and isinstance(m.get("payload"), dict) and "type" in m["payload"]
+            and isinstance(m.get("security"), dict) and m["security"].get("kid") in catalog):
+        return out + ["ITV-423 has no signed payload.type to remove for the probe"]
+    del m["payload"]["type"]
+    sec = m["security"]
+    sec["sig"] = _b64.urlsafe_b64encode(_sign(sec["alg"], catalog[sec["kid"]]["private_key_hex"],
+                                              signing_input_v2(m))).decode().rstrip("=")
+    if signature_problems([probe], catalog):
+        out.append("the probe without payload.type does not verify with its catalog key")
+    if not single_cause_problems([probe], registry, only={"ITV-423"}):
+        out.append("not detected: ITV-423 without payload.type (same oneOf error at payload)")
     return out
 
 
@@ -2452,9 +2528,11 @@ def main() -> int:
     probs = catalog_problems(kp_doc)
     check("keypair catalog: Draft-02 and imported entries equal their recorded digests; the below-minimum key declared (A-99)",
           not probs, "; ".join(probs[:4]))
-    probs = port_fixture_problems(corpus_vectors, vv.build_registry())
+    registry = vv.build_registry()
+    probs = port_fixture_problems(corpus_vectors, registry) + single_cause_selftest(corpus_vectors, catalog, registry)
     check("fixtures: expires_at after ts; positive transfer-request args conform; ITV-426 encodes 32 bytes; INV-21, "
-          "ITV-402 and ITV-550 fail with exactly their announced error (A-98)",
+          "ITV-402, ITV-550, ITV-201, ITV-266, ITV-423 and ITV-482 fail with exactly their announced error; ITV-423 "
+          "isolated by its args/result controls and a re-signed probe without payload.type (A-98, A-100)",
           not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed

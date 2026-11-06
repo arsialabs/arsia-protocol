@@ -1586,3 +1586,138 @@ No vector or key changed as a result of the review.
 - RTM: ROUTE-§4.1.9-01 and ROUTE-§8-02 gain `exec:R16`.
 - Findings register 99 → 102 rows (A-97, A-98, A-99 registered and closed); open 0.
   Coverage register 24 → 25 rows, all closed.
+
+## 28. Main reconciliation inventory
+
+`git merge --no-commit --no-ff origin/main` on `de9db8d` (the port). `origin/main` is
+17dcf33, the PR #1 merge of `bbbd8df` onto the common base 2692450 (Draft-01): 18
+commits, 21 files. Classes:
+- **port**: equivalent by the port, `de9db8d`;
+- **cycle**: equivalent by an earlier Draft-02 cycle, with the resolution cited;
+- **merged**: incorporated in this merge;
+- **n/a**: not applicable to Draft-02, with the reason;
+- **repaired**: not resolved in Draft-02 before the merge; repaired here by owner decision
+  (A-100, reconciliation addendum).
+
+Corpus inventory method: each main commit's corpus diff, vector by vector and path by
+path, set against the vector at `de9db8d`. The check covers format, expectation, crypto
+block, the A-97 guard, validator and `--check-crypto` results, and the schema errors of
+negatives. The cited cycle is the Draft-02 commit that last changed the vector before
+the port (first-parent history).
+
+**Corpus and keypairs**
+
+| Main commit | Vectors | Class | Draft-02 resolution |
+|---|---|---|---|
+| 8d2e727 sign all valid vectors | ITV-12, 14, 15, 63, 64, 66, 73–86, 278, 282, 284, 285, 289–291, 293, 294, 300–311, 313–323, 325, 326, 328–330, 332–336, 338–341, 364–378, 380, 383–389, 393, 396, 399, 400, 403, 444, 478, 491, 494, 495, 497, 498, 500, 502–504, 510, 512–514, 516, 518, 533–535, 548, 549, 558–560 (119) | port | re-signed with catalog keys (A-97 group P). The 16 vectors whose `kid` main renamed keep their Draft-02 kid, which the port publishes (A-99) |
+| 8d2e727, fe7763b (schema-valid requests) | ITV-536–541, 543, 544, 547, 553–555 | cycle | `bbb8ef3` (vector cycle): crypto blocks with real signatures (`--check-crypto` verified); schema-valid, with no message errors |
+| 8d2e727, 119b914, 59c70ac keypairs | 57 main entries | port / repaired / n/a | 34 imported unchanged (A-99); `agent:acme.state-extension#key1` imported unchanged here for ITV-266 (A-100); 9 already in Draft-02 with the same key; 5 conflicting kids keep the Draft-02 key (port addendum); 8 used by no Draft-02 vector: `agent:acme.{compliance-checker,escrow-holder,escrow-service,identity-admin,notes,risk-engine,state-store,transfer-service}#key1` |
+| 119b914 sign invalid vectors | INV-23, 24, ITV-13, 24–27, 68, 69, 87, 324, 327, 361, 382, 390–392, 398, 401, 427–429, 431–437, 446, 479–481, 526, 532 (35) | port | re-signed (A-97 group N); ITV-401's `correlation_id` came earlier in C3a (`aa5547d`) |
+| 119b914 | INV-25 (`intent`) | cycle | `bbb8ef3`: `intent` `approval_decision`, crypto block verified |
+| 9c1316a | ITV-498, ITV-518, CTV-03 | port | A-98 |
+| 59c70ac second defects | ITV-402, ITV-550; ITV-449 (skip reason) | port | A-98, with single-cause checks |
+| 59c70ac missing `security` | INV-20, INV-22, ITV-409–414, 416, 418, 422, 424, 477 | cycle | `bbb8ef3`: `security` with a verified crypto block |
+| 59c70ac missing `security` | ITV-201, ITV-266, ITV-423 | repaired | `security` added as main has it (`alg`, `kid`), signed by `regen_v2.py --catalog` under the Draft-02 profile. Each now fails only for its rule: ITV-201 `legal_basis` (two schema rules), ITV-266 `enum` at `payload/type`, ITV-423 `oneOf` at `payload` |
+| 59c70ac removal | ITV-482 | repaired | main removed it over the Draft-01 conflict between two `capabilities` values. Draft-02 has no such conflict (onboarding decisions no longer reuse `approval_decision`) and keeps the vector. It gains `capabilities: ["arsiaprotocol.onboarding.evaluate"]` (the Identity §7.6 table); its missing `security` stays the only error |
+| 59c70ac removal | ITV-545 | n/a | Draft-02 keeps it with `posture` (MAY, Core §8.3; vector cycle) |
+| 59c70ac | ITV-546 | cycle | `260ac73`, `bbb8ef3`: rebuilt as a Core §4.3.8 Rule 2/4 negative whose `ts` is within the tolerance |
+| 59c70ac | ITV-448, ITV-450 (`expected` → invalid) | n/a | Draft-02 convention for runtime-only schema-ref vectors: `expected` is the structural result and the runtime outcome is `expected_error` (as INV-115..120 and INV-129..132) |
+| 2b51be1 | INV-21 | port | resolved differently: a schema-ref against `set-args` with its cause executed, instead of a signed runtime-only vector |
+| d769c1b | corpus `version` 1.0.1 | n/a | corpus `2.0.0` (SC4) |
+
+**Specifications, RTMs and documentation**
+
+| Main change | Class | Resolution |
+|---|---|---|
+| Version labels Draft-01.1 in the six specs (09ecf10) | n/a | Draft-02 labels |
+| Core TOC link to §10.4 (09ecf10) | merged | `#104-header-vs-envelope-precedence-http-transport` |
+| Core §4.4.1 errata note: label, "earlier pattern", example locations Actions §2.1 / §4.2 | merged | the Draft-02 locations are the same; the closing sentence becomes "did not change the wire protocol version, then `1.0`" (Draft-02 is wire 2.0) |
+| RTM coverage-gap tables recomputed (7dec87d) | cycle | regenerated in `4686d4a`; recomputed in this merge from the requirement rows, all six RTMs match (summary and per-section) |
+| RTM row count 1,903 (227c56e, 67246cc) | cycle | 2,045 (`rtm_counts.py`); `SECURITY.md` still said 2,086, corrected here |
+| Assets gap list gains ASSETS-§4.2.3-03/04 | cycle | both are rows of the Draft-02 table (`untested(no-reference-model)`); the separate list was removed in `4686d4a` |
+| CORE-§8.3-09 without ITV-545; IDENT-§7.6-03 without ITV-482 | n/a | Draft-02 keeps both vectors |
+| Test-vector counts in README, SECURITY, getting-started, FAQ, test-vector README | cycle / merged | Draft-02 counts (923; 485 / 215 / 204 / 19); `SECURITY.md` counts updated here |
+| Keypair count 57 | n/a | 54 (Draft-02 catalog: the 53 entries at the end of the port, plus the key imported here for ITV-266) |
+| README oversight and data-residency links | merged | Actions §3 and Routing §5 anchors, verified against the Draft-02 headings |
+| `SECURITY.md` "six dimensions", RTM and test-vector links | merged | six bullets counted; links resolve from the root |
+| getting-started security-model link, cookbook 22 recipes | merged | `../SECURITY.md`; 22 recipes in the SDK cookbook on its `main` (`01d2f31`) |
+| getting-started validation statement ("runtime-only skipped") | n/a | Draft-02 validates runtime-only vectors structurally (A-42) |
+| getting-started signature claim limited to signed cases | merged | adapted: signatures verify unless the vector declares a signature negative |
+| Test-vector README signature statement | merged | adapted to Draft-02: signatures outside a crypto block verify with the catalog key unless declared |
+| Test-vector README skip-category table | n/a | per-vector classification in `docs/draft-02-skip-classification.md` |
+| Test-vector README snippets (three algorithms; run from `test-vectors/`) | merged | adapted to `expect_signature` and to crypto blocks in `data`. The Draft-02 snippets read `message` only and failed on the 16 such blocks. Executed: 145 signatures verified, 157 canonical forms equal |
+| VERSIONING errata paragraph | merged | artefact corrections and the retrocompatibility scope added; Draft-01.1 recorded as the last erratum, superseded by Draft-02 |
+| VERSIONING `version` field "(profiles, test vectors)" | merged | no schema carries a top-level `version`; the profile catalog and the corpus do |
+| profiles README "Draft-01.1" (merged silently) | n/a | Draft-02 label restored |
+| README badge Draft-01.1 | n/a | Draft-02 |
+| CHANGELOG | merged | the Draft-01.1 entry kept as history, below `## [Draft-02] — Unreleased`; Draft-01 entry corrections (oversight attribution, counts) kept; the Draft-02 entry's figures updated and the reconciliation noted |
+
+**Repairs (A-100).** `merge_fix.py` (scratch) imports the key and edits the four vectors;
+`regen_v2.py --catalog --ids ITV-201,ITV-423,ITV-266` signs them (only `security.sig`
+written). The catalog's `provenance.imported` lists 35 kids with a new digest. Guards: the
+`SINGLE_CAUSE` table gains the four vectors (exact error lists; ITV-266 and ITV-423 by
+validator and path, since their messages repeat the instance or the whole enum), and
+`port_fixture_problems` requires ITV-482's capability to be the §7.6 value.
+
+**ITV-423 isolation.** Comparing ITV-423's `oneOf` error and its path does not show that the
+coexistence of `args` and `result` is the only cause: without `payload.type` the same outer
+error appears. The comparison is kept, and `single_cause_problems` adds `EXCLUSIVE_PAIR`:
+- the fixture carries both `payload.args` and `payload.result`;
+- in-memory copies without `args` alone and without `result` alone each validate
+  structurally. The corpus is not changed, and signatures are not checked on these copies.
+
+The regression `single_cause_selftest` builds a copy without `payload.type`, with `args`
+and `result` kept, re-signed with the catalog key of `agent:acme.billing#key1`. That copy
+verifies with the A-97 guard. The strengthened check rejects it, because its `args`-only
+and `result`-only copies keep the `oneOf` error at `payload`. The original passes. The
+message schema and the general `--check-errors` comparator are unchanged.
+
+Mutations, 10 of 10 detected:
+- (a)–(c) ITV-201, ITV-423 and ITV-266 without `security` again → fixture guard;
+- (d) ITV-482 without `capabilities` again → fixture guard;
+- (e) the imported key removed and (f) altered → catalog guard and A-97 guard (ITV-266);
+- (g) ITV-201 with main's Draft-01 signature → A-97 guard;
+- (h) ITV-482 with another capability → fixture guard;
+- (i) the isolation removed (accepted again on the `oneOf` error and path alone) →
+  regression: "not detected: ITV-423 without payload.type";
+- (j) the corpus ITV-423 without `payload.type`, re-signed so it verifies → fixture guard.
+  On its first run (j) exposed that the regression raised `KeyError` when the corpus
+  vector lacked `payload.type`; the regression now reports that case instead of raising.
+
+The port's 23 mutations and the coverage SC4 23 still detect on the same candidate.
+
+**Conflicts.** 18 files conflicted; `SECURITY.md` and `profiles/README.md` merged without a
+marker and were reviewed hunk by hunk. Corpus, keypairs, the six specs and the five RTMs
+were resolved to the Draft-02 side, plus the two Core corrections above. Every other file
+was resolved hunk by hunk as listed.
+
+**Parent comparison.**
+- Against `de9db8d`, besides the ledger, evidence, notes and CLAUDE.md:
+  - documentation and Core: CHANGELOG, README, SECURITY, VERSIONING, getting-started,
+    Core, test-vector README;
+  - the four repaired vectors, one added keypair (with its description and provenance),
+    and `check_consistency.py` (the guards above).
+
+  Schemas, the other scripts, RTMs and profiles are byte-identical.
+- Against `origin/main`: of the lines main added outside the JSON files, those absent
+  from the result are only Draft-01.1 labels and counts, the Draft-01 skip table, the
+  RTM figures and rows above, and snippet lines replaced by their adapted form.
+
+  | File | Main-added lines | Present | Absent |
+  |---|---|---|---|
+  | CHANGELOG.md | 80 | 80 | 0 |
+  | README.md | 7 | 1 | 6 |
+  | SECURITY.md | 3 | 1 | 2 |
+  | VERSIONING.md | 2 | 1 | 1 |
+  | FAQ.md | 1 | 0 | 1 |
+  | getting-started.md | 5 | 2 | 3 |
+  | RTMs | 39 | 3 | 36 |
+  | profiles/README.md | 1 | 0 | 1 |
+  | specs | 39 | 7 | 32 |
+  | test-vectors/README.md | 35 | 14 | 21 |
+
+**Battery on the merge state** (system Python and clean venv):
+- validator 4 modes: TOTAL 491 / 228 / 923, 0 failures; crypto 157 checked, 145
+  verified, 9 negatives, 3 canonical only;
+- consistency 142, harness 783, examples and links OK;
+- RTM 2045 / 1247 / 1445; `git diff --check` clean.

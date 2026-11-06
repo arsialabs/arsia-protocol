@@ -120,7 +120,7 @@ See LICENSE-SPEC.md for full terms.
     1. [Idempotency Key Semantics](#101-idempotency-key-semantics)
     2. [Server-Side Storage Requirements](#102-server-side-storage-requirements)
     3. [Duplicate Detection Behaviour](#103-duplicate-detection-behaviour)
-    4. [Header vs. Envelope Precedence](#104-header-vs-envelope-precedence)
+    4. [Header vs. Envelope Precedence](#104-header-vs-envelope-precedence-http-transport)
 11. [Error Handling](#11-error-handling)
     1. [Error Response Format](#111-error-response-format)
     2. [Standard Error Codes](#112-standard-error-codes)
@@ -1695,15 +1695,15 @@ contain additional fields depending on the message intent.
   MAY be used to address sub-actions such as the rollback convention defined in
   ARSIA-Actions.md §4.2. Implementations MUST reject messages with payload types
   they do not recognise, responding with error code `not_implemented` (§11.2).
-- **Errata (Draft-01.1, ERRATA-01):** The Draft-01 pattern published on
-  2026-04-10 was `^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*(\/[a-zA-Z][a-zA-Z0-9_]*)?$`,
-  which (a) omitted the hyphen from the path-segment character class and (b)
+- **Errata (ERRATA-01):** An earlier pattern,
+  `^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*(\/[a-zA-Z][a-zA-Z0-9_]*)?$`,
+  (a) omitted the hyphen from the path-segment character class and (b)
   allowed at most one path segment. Both restrictions contradicted the spec's
-  own normative examples (`com.acme.billing/create-invoice` and
-  `com.example.notes/create/rollback` in ARSIA-Actions.md §4.2). The corrected
-  pattern above is a strict superset of the Draft-01 pattern — every previously
-  valid `payload.type` value remains valid. This is a text correction only; the
-  wire protocol version remains `1.0`.
+  own normative examples (`com.acme.billing/create-invoice` in ARSIA-Actions.md
+  §2.1 and `com.example.notes/create/rollback` in ARSIA-Actions.md §4.2). The
+  corrected pattern above is a strict superset of the earlier pattern — every
+  previously valid `payload.type` value remains valid. The erratum was a text
+  correction only; it did not change the wire protocol version, then `1.0`.
 
 > **Informative note.** The `payload.type` format is distinct from the capability string
 > grammar defined in ARSIA-Actions.md §1.1. See that section for a comparison of the two

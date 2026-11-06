@@ -5,14 +5,16 @@
 923 test vectors (485 schema-valid, 215 expected-invalid, 204 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
-verification outcome (`crypto.expect_signature`).
+verification outcome (`crypto.expect_signature`). Signatures outside a crypto block verify with the
+catalog key of their `kid` unless the vector declares a signature negative (see
+[Signatures outside a crypto block](#signatures-outside-a-crypto-block)).
 
 ## Files
 
 | File | Description |
 |------|-------------|
 | [arsia-test-vectors.json](arsia-test-vectors.json) | 923 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
-| [keypairs.json](keypairs.json) | 53 test keypairs: 48 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 34 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses; 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
+| [keypairs.json](keypairs.json) | 54 test keypairs: 49 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 35 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses (34 in the port, one in the main reconciliation); 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
 
 ## Vector Formats
 
@@ -222,19 +224,33 @@ python3 scripts/validate_vectors.py --check-errors --format summary
 
 ### Verify signatures (Python)
 
+The Python snippets below run from the `test-vectors/` directory.
+
 ```python
 import json, base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, padding
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
     c = v.get('crypto')
-    if not c or c['expect_signature'] != 'valid' or v['message']['security']['alg'] != 'EdDSA':
+    if not c or c['expect_signature'] != 'valid':
         continue
-    pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(c['public_key_hex']))
+    env = v['message'] if isinstance(v.get('message'), dict) else v['data']  # the signed object
+    alg = env['security']['alg']
+    pub = bytes.fromhex(c['public_key_hex'])
     sig = base64.urlsafe_b64decode(c['signature_base64url'] + '==')
     canonical = bytes.fromhex(c['canonical_bytes_hex'])
-    pub.verify(sig, canonical)
+    if alg == 'EdDSA':
+        Ed25519PublicKey.from_public_bytes(pub).verify(sig, canonical)
+    elif alg == 'ES256':  # raw r||s -> DER
+        der = encode_dss_signature(int.from_bytes(sig[:32], 'big'), int.from_bytes(sig[32:], 'big'))
+        ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub).verify(der, canonical, ec.ECDSA(hashes.SHA256()))
+    else:  # RS256, DER public key
+        load_der_public_key(pub).verify(sig, canonical, padding.PKCS1v15(), hashes.SHA256())
     print(f'{v["id"]}: VALID')
 ```
 
@@ -247,7 +263,8 @@ data = json.load(open('arsia-test-vectors.json'))
 for v in data['vectors']:
     if 'crypto' not in v:
         continue
-    msg = json.loads(json.dumps(v['message']))
+    env = v['message'] if isinstance(v.get('message'), dict) else v['data']  # the signed object
+    msg = json.loads(json.dumps(env))
     msg.get('security', {}).pop('sig', None)  # Draft-02 profile: only security.sig is removed
     canonical = rfc8785.dumps(msg)
     expected = bytes.fromhex(v['crypto']['canonical_bytes_hex'])
