@@ -178,6 +178,115 @@
             }
           }
         },
+        "signature_expectation": {
+          "type": "object",
+          "description": "Declared signature negative of a vector WITHOUT a crypto block (Draft-01.1 port): the envelope's security.sig is expected NOT to pass verification, for the stated cause and condition. Absent, a present security.sig MUST verify mathematically with the catalog key of its kid (test-vectors/keypairs.json). It does not change valid, expected or expected_error.",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "cause",
+            "condition"
+          ],
+          "properties": {
+            "result": {
+              "const": "invalid"
+            },
+            "cause": {
+              "enum": [
+                "kid",
+                "alg",
+                "key",
+                "signature"
+              ]
+            },
+            "condition": {
+              "enum": [
+                "binding",
+                "unresolved",
+                "not-allowed",
+                "incompatible",
+                "size",
+                "length",
+                "mismatch"
+              ]
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "cause": {
+                    "const": "kid"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "condition": {
+                    "enum": [
+                      "binding",
+                      "unresolved"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "cause": {
+                    "const": "alg"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "condition": {
+                    "enum": [
+                      "not-allowed",
+                      "incompatible"
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "cause": {
+                    "const": "key"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "condition": {
+                    "const": "size"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "cause": {
+                    "const": "signature"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "condition": {
+                    "enum": [
+                      "length",
+                      "mismatch"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
         "raw_hex": {
           "type": "string",
           "pattern": "^(?:[0-9a-f]{2})+$",
@@ -387,6 +496,81 @@
                 "const": null
               }
             }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "signature_expectation"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "crypto"
+              ]
+            },
+            "anyOf": [
+              {
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "object",
+                    "required": [
+                      "security"
+                    ],
+                    "properties": {
+                      "security": {
+                        "type": "object",
+                        "required": [
+                          "sig"
+                        ],
+                        "properties": {
+                          "sig": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "required": [
+                  "schema_ref",
+                  "data"
+                ],
+                "properties": {
+                  "schema_ref": {
+                    "enum": [
+                      "arsia-message.schema.json",
+                      "arsia-relay-attestation.schema.json"
+                    ]
+                  },
+                  "data": {
+                    "type": "object",
+                    "required": [
+                      "security"
+                    ],
+                    "properties": {
+                      "security": {
+                        "type": "object",
+                        "required": [
+                          "sig"
+                        ],
+                        "properties": {
+                          "sig": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       ]

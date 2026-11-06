@@ -151,7 +151,7 @@
 | ROUTE-§4.1.7-03 | 4.1.7 | MUST | sdk_enabled | behavioural_positive | Retried messages MUST preserve the original id and idempotency key for deduplication | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | ROUTE-§4.1.8-01 | 4.1.8 | MUST_NOT | sdk_enabled | behavioural_negative | HTTP 400/401/403/404/409/413/501 errors are non-retryable; sender MUST NOT retry without modifying the request (409 with Retry-After for an in-progress idempotent request excepted, ARSIA-Core.md §11.3) | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | ROUTE-§4.1.8-02 | 4.1.8 | SHOULD | sdk_enabled | behavioural_positive | A 409 conflict carrying Retry-After for an in-progress idempotent request SHOULD be retried unchanged after the delay | — | — | — |
-| ROUTE-§4.1.9-01 | 4.1.9 | MUST_NOT | sdk | behavioural_negative | Expired messages (past expires_at) MUST NOT be processed | — | ITV-498 | struct:ITV-498; untested(structural-only) |
+| ROUTE-§4.1.9-01 | 4.1.9 | MUST_NOT | sdk | behavioural_negative | Expired messages (past expires_at) MUST NOT be processed | — | ITV-498 | struct:ITV-498; exec:R16:ITV-498 |
 | ROUTE-§4.1.9-02 | 4.1.9 | MUST_NOT | sdk | behavioural_negative | EXPIRED is a terminal state; the message MUST NOT be processed or retried | — | ITV-499 | struct:ITV-499; untested(structural-only) |
 | ROUTE-§4.1.9-03 | 4.1.9 | MUST | sdk | behavioural_positive | Messages expiring during DISPATCHED or BROKER_RELAYED state MUST transition to EXPIRED | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | ROUTE-§4.1.9-04 | 4.1.9 | MUST | sdk | behavioural_positive | Recipient MUST reject expired messages with error code invalid_request | arsia-message | ITV-499 | schema-ref:arsia-message; struct:ITV-499; untested(structural-only) |
@@ -284,7 +284,7 @@
 | ROUTE-§7.4-28 | 7.4 | MUST | sdk | behavioural_negative | The attestation header value MUST be non-empty base64url without padding (base64url alphabet, no '=', a length that decodes to whole octets); the decoded octets MUST pass ARSIA-Core.md §5.2 steps 2-4 and the object MUST validate against the attestation schema (step 2) | arsia-relay-attestation | ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177 | schema-ref:arsia-relay-attestation; struct:ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177; exec:R22:ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177 |
 | ROUTE-§7.4-29 | 7.4 | MUST | sdk | behavioural_negative | A failure of the ARSIA-Core.md §5.2 steps 2-4 checks on the decoded attestation is a step 2 failure, rejected with unauthorized, not with invalid_request | — | INV-176 | struct:INV-176; exec:R22:INV-176 |
 | ROUTE-§8-01 | 8 | MUST | external | procedural | Conformant implementations MUST pass all routing conformance tests at the applicable level | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
-| ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 | struct:ITV-518; untested(structural-only) |
+| ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 | struct:ITV-518; exec:R16:ITV-518 |
 | ROUTE-§8-03 | 8 | MUST | external | procedural | Conformance test framework MUST synchronise clocks between agents for timing-sensitive tests | — | — | out-of-repo(transport) |
 
 ---

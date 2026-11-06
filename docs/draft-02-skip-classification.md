@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 14, token: 17, transport: 11, x509: 7 — total 202.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 204.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -71,7 +71,7 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-445 | §3.1 step 3 | Runtime constraint — kid-prefix-to-from cross-field comparison not enforceable by JSON Schema | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-446 | — | Runtime constraint — cross-object comparison between message compliance and IdentityRecord not enforceable by  | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-448 | ±300s clock skew per Core §8.3 | Runtime constraint — iat temporal validation (±300s clock skew per Core §8.3) not enforceable by JSON Schema | temporal | behavioural-runtime | yes | none — conformance test against an implementation |
-| ITV-449 | — | Runtime constraint — nbf temporal validation not enforceable by JSON Schema; schema does not define nbf field  | temporal | behavioural-runtime | yes | none — conformance test against an implementation |
+| ITV-449 | — | Runtime constraint — nbf temporal validation not enforceable by JSON Schema; the claims schema accepts the additional nbf claim | temporal | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-450 | — | Runtime constraint — nbf temporal validation not enforceable by JSON Schema; schema does not define nbf field | temporal | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-457 | — | Runtime constraint — X.509 certificate content validation not enforceable by JSON Schema | x509 | integration | yes | none — integration (two communicating implementations) |
 | ITV-458 | — | Runtime constraint — X.509 certificate content validation not enforceable by JSON Schema | x509 | integration | yes | none — integration (two communicating implementations) |
@@ -233,6 +233,8 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-156 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-157 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-171 | Core §8.3 | Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance | temporal | behavioural-runtime | — | executed: R16 |
+| ITV-498 | Core §4.2.2; Routing §4.1.9 | Runtime expiry validation — schema cannot compare expires_at against the recipient's clock (Core §4.2.2) | temporal | behavioural-runtime | — | executed: R16 |
+| ITV-518 | Core §4.2.2; Routing §4.1.9 | Runtime expiry validation — schema cannot compare expires_at against the recipient's clock (Core §4.2.2) | temporal | behavioural-runtime | — | executed: R16 |
 | INV-172 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 | INV-173 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 | INV-174 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |

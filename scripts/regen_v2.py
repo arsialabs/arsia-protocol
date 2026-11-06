@@ -14,6 +14,7 @@ Usage:
   python3 scripts/regen_v2.py --ids ITV-03,CTV-02             # dry run: what would change, per ID
   python3 scripts/regen_v2.py --ids ITV-03 --apply            # write
   python3 scripts/regen_v2.py --ids ... --vectors PATH        # another corpus file
+  python3 scripts/regen_v2.py --catalog --ids ITV-12          # vectors WITHOUT a crypto block (below)
 
 Rules: every ID is checked before anything is written, and one unknown or ineligible
 ID aborts the run with nothing written. Only vectors whose `crypto.expect_signature`
@@ -25,6 +26,13 @@ Unselected vectors and the file format (including the presence or absence of a f
 newline) are preserved byte for byte: a file the tool's serializer would not reproduce
 exactly (other escapes, CRLF line endings, other spacing) is refused with nothing
 written. ES256 signatures differ from run to run.
+
+--catalog mode (Draft-01.1 port): re-signs vectors WITHOUT a crypto block with the key that
+test-vectors/keypairs.json publishes for the envelope's kid. Eligible: a recognised signed object
+(`message`, or `data` of an arsia-message / arsia-relay-attestation schema-ref), `security` with
+`alg` and `kid`, `security.sig` already present as a string, the kid in the catalog, and no
+`signature_expectation` (a declared signature negative is a fixture, never re-signed). A vector
+whose defect is the absence of a signature is never signed. Only `security.sig` changes.
 """
 import argparse
 import copy
@@ -124,6 +132,63 @@ def eligibility(vec: dict | None, vid: str) -> None:
         raise Refused(f"{vid}: no security object with alg")
 
 
+SIGNED_DATA_SCHEMAS = ("arsia-message.schema.json", "arsia-relay-attestation.schema.json")
+
+
+def signed_object(vec: dict) -> dict | None:
+    """The signed object of a vector: its message, or the data of a message / relay-attestation schema-ref."""
+    if isinstance(vec.get("message"), dict):
+        return vec["message"]
+    if vec.get("schema_ref") in SIGNED_DATA_SCHEMAS and isinstance(vec.get("data"), dict):
+        return vec["data"]
+    return None
+
+
+def catalog_eligibility(vec: dict | None, vid: str, catalog: dict) -> None:
+    """Raises Refused unless --catalog may re-sign the vector (see the module docstring)."""
+    if vec is None:
+        raise Refused(f"{vid}: no such vector")
+    if "crypto" in vec:
+        raise Refused(f"{vid}: has a crypto block; re-sign it without --catalog")
+    if "signature_expectation" in vec:
+        raise Refused(f"{vid}: declares signature_expectation (a signature negative is a fixture)")
+    obj = signed_object(vec)
+    sec = obj.get("security") if obj else None
+    if not isinstance(sec, dict) or not isinstance(sec.get("alg"), str) or not isinstance(sec.get("kid"), str):
+        raise Refused(f"{vid}: no signed object with security.alg and security.kid")
+    if not isinstance(sec.get("sig"), str):
+        raise Refused(f"{vid}: security.sig absent (a missing signature is never added)")
+    if sec["kid"] not in catalog:
+        raise Refused(f"{vid}: kid {sec['kid']!r} not in the keypair catalog")
+
+
+def catalog_resign(vec: dict, entry: dict) -> bytes:
+    """Signature of the vector's signed object with the catalog entry of its kid; refused unless the
+    alg is allowlisted and compatible, the private key derives the published key, and it verifies."""
+    from validate_vectors import ALLOWED_ALGS, _key_type, _verify_signature
+
+    vid, obj = vec["id"], signed_object(vec)
+    alg = obj["security"]["alg"]
+    pub = bytes.fromhex(entry["public_key_hex"])
+    required = {"EdDSA": "Ed25519", "ES256": "P-256", "RS256": "RSA"}.get(alg)
+    if alg not in ALLOWED_ALGS or required is None or _key_type(pub) != required:
+        raise Refused(f"refused before signing: {vid}: alg {alg!r} not allowlisted or incompatible with the key")
+    try:
+        if _public_bytes(alg, entry["private_key_hex"]) != pub:
+            raise Refused(f"refused before signing: {vid}: private key does not derive public_key_hex")
+    except Refused:
+        raise
+    except Exception as exc:
+        raise Refused(f"refused before signing: {vid}: private key unusable for {alg} ({type(exc).__name__})")
+    canon = signing_input_v2(obj)
+    sig = _sign(alg, entry["private_key_hex"], canon)
+    try:
+        _verify_signature(alg, pub, sig, canon)
+    except Exception as exc:
+        raise Refused(f"signature does not verify: {vid}: {type(exc).__name__} {exc}".rstrip())
+    return sig
+
+
 def resign(vec: dict) -> tuple[bytes, bytes]:
     """(signature, canonical bytes) for the vector's current envelope; writes nothing.
 
@@ -180,6 +245,9 @@ def main(argv=None) -> int:
     ap.add_argument("--ids", required=True, help="comma-separated vector IDs to re-sign")
     ap.add_argument("--apply", action="store_true", help="write the corpus (default: dry run)")
     ap.add_argument("--vectors", default=VECTORS, help=f"corpus file (default: {VECTORS})")
+    ap.add_argument("--catalog", action="store_true",
+                    help="re-sign vectors without a crypto block with the catalog key of their kid")
+    ap.add_argument("--keypairs", default="test-vectors/keypairs.json", help="keypair catalog for --catalog")
     args = ap.parse_args(argv)
 
     ids = [i.strip() for i in args.ids.split(",") if i.strip()]
@@ -203,6 +271,28 @@ def main(argv=None) -> int:
     by_id = {v["id"]: v for v in doc["vectors"]}
 
     results = []
+    if args.catalog:
+        try:
+            catalog = {e["kid"]: e for e in strict_json(open(args.keypairs, "rb").read())["keypairs"].values()}
+        except JsonRejected as exc:
+            print(f"ERROR: {args.keypairs}: rejected at Core §5.2 {exc}; nothing written", file=sys.stderr)
+            return 1
+        try:
+            for vid in ids:
+                catalog_eligibility(by_id.get(vid), vid, catalog)
+            for vid in ids:
+                vec = by_id[vid]
+                before = copy.deepcopy(vec)
+                obj = signed_object(vec)
+                obj["security"]["sig"] = b64url(catalog_resign(vec, catalog[obj["security"]["kid"]]))
+                strip = lambda v: (lambda c: (signed_object(c)["security"].pop("sig", None), c)[1])(copy.deepcopy(v))
+                if strip(vec) != strip(before):
+                    raise Refused(f"{vid}: re-signing would change more than security.sig")
+                results.append((vid, "unchanged" if vec == before else "re-signed"))
+        except Refused as exc:
+            print(f"ERROR: {exc}; nothing written", file=sys.stderr)
+            return 1
+        ids = []
     try:
         for vid in ids:
             eligibility(by_id.get(vid), vid)

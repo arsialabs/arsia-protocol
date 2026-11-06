@@ -193,7 +193,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 487 schema-valid, 215 expected-invalid, 202 runtime-only and 19 raw parse cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 485 schema-valid, 215 expected-invalid, 204 runtime-only and 19 raw parse cases with real Ed25519, ES256, and RS256 signatures. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 

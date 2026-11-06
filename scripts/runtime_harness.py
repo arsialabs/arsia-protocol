@@ -2207,9 +2207,10 @@ def timing(message, recipient_time, posture=None):
 
 def r16(vectors):
     timed = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "timing"]
-    check("R16 timing vectors present (ITV-408/411/440/545/546/547; clean profile case ITV-709/710, INV-171, A-62)",
-          sorted(v["id"] for v in timed) == ["INV-171", "ITV-408", "ITV-411", "ITV-440", "ITV-545", "ITV-546", "ITV-547",
-                                             "ITV-709", "ITV-710"])
+    check("R16 timing vectors present (ITV-408/411/440/545/546/547; clean profile case ITV-709/710, INV-171, A-62; "
+          "expiry ITV-498/518, Draft-01.1 port)",
+          sorted(v["id"] for v in timed) == ["INV-171", "ITV-408", "ITV-411", "ITV-440", "ITV-498", "ITV-518", "ITV-545",
+                                             "ITV-546", "ITV-547", "ITV-709", "ITV-710"])
     for v in timed:
         got = timing(v["message"], v["test_metadata"]["input"]["recipient_time"], v.get("posture"))
         miss = subset_match(v["test_metadata"]["expect"], got)

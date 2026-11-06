@@ -471,8 +471,10 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   (header absent), with ITV-711, ITV-712 and INV-172..177.
 - **Crypto blocks with an unpublished kid (observed in coverage SC1, not fixed):** 24
   pre-existing blocks name a kid absent from keypairs.json (e.g. INV-04, ITV-134..137);
-  their signatures verify against the key in the block. The kid ↔ catalog guard applies
-  to published kids and requires one for signature negatives and attestations.
+  their signatures verify against the key in the block. Draft-01.1 port: the kids of 23 of
+  those blocks are now published (A-99); INV-04's malformed kid stays unpublished by
+  disposition. The kid ↔ catalog guard applies to published kids and requires one for
+  signature negatives and attestations.
 - **Attestation zone (observed in coverage SC1, not fixed):** Routing §7.4.1 checks the
   broker's jurisdiction against the message's declared zone; it states no check that the
   attestation's own `residency_zone` equals that zone. R22 follows the text.
@@ -582,6 +584,28 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   partial ones and of the equivalent one remain conformance requirements for
   implementations; models for QUERY, GRANT, escrow, X.509, onboarding phases and transport
   were outside the cycle.
+
+- **Draft-01.1 port (for consumers):**
+  - `test-vectors/keypairs.json` has 53 entries and a `provenance` member. The 34 imported
+    entries are byte-identical to the Draft-01.1 catalog.
+    `agent:acme.legacy-system#rsa1024` is below the RSA minimum by design and must never
+    verify.
+  - A vector without a crypto block may carry `signature_expectation`, only when its
+    signed object (`message`, or `data` of an arsia-message / arsia-relay-attestation
+    schema-ref) carries `security.sig` as a string; the meta-schema enforces it. Without
+    the field, a present signature verifies with the catalog key of its kid. Every such
+    signature is canonical base64url without padding.
+  - The catalog publishes every kid a signature outside a crypto block uses and the kids
+    of the 23 crypto blocks the port covered. INV-04 is the one exception, by
+    disposition: its crypto block keeps the malformed kid `echo-client#key1` that its
+    structural defect requires, carries its own key (the catalog key of
+    `agent:acme.echo-client#key1`) and verifies.
+  - `regen_v2.py --catalog` re-signs such vectors.
+  - INV-21 changed format from message-only to schema-ref, against `#/$defs/set-args`.
+  - `resolve_schema` now returns a reference into the document for fragment schema refs.
+- **Published counts after the Draft-01.1 port:** 923 vectors (485 schema-valid / 215
+  expected-invalid / 204 runtime-only / 19 raw), 53 keypairs, 142 consistency checks,
+  updated in README.md, CLAUDE.md, docs/getting-started.md and test-vectors/README.md.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

@@ -1033,6 +1033,11 @@ def resigner_contract_problems():
     def vec(path, vid):
         return next(v for v in strict_load(path)["vectors"] if v["id"] == vid)
 
+    def run_cat(path, ids):
+        cmd = [sys.executable, "scripts/regen_v2.py", "--catalog", "--ids", ids, "--vectors", path, "--apply"]
+        p = subprocess.run(cmd, capture_output=True, text=True)
+        return p.returncode, p.stdout + p.stderr
+
     def edit_ctv02(by):
         by["CTV-02"]["message"]["payload"]["args"] = {"edited": "re-sign me"}
 
@@ -1126,6 +1131,32 @@ def resigner_contract_problems():
         regen_v2._sign = real_sign
     if rc == 0 or state(p) != s or "signature does not verify" not in err.getvalue():
         out.append(f"(i) a non-verifying signature was not refused: {err.getvalue()[-90:]}")
+    # --catalog (Draft-01.1 port): (k) a crypto vector, (l) a declared signature negative, (m) a vector without
+    # security.sig, (n) a kid outside the catalog — each refused with nothing written
+    def unknown_kid(by):
+        by["ITV-278"]["message"]["security"]["kid"] = "agent:nobody.none#k"
+    for case, ids, edit in (("(k)", "CTV-02", None), ("(l)", "INV-11", None), ("(m)", "ITV-358", None),
+                            ("(n)", "ITV-278", unknown_kid)):
+        p = copy_with(edit, f"cat{case[1]}.json"); s = state(p)
+        rc, msg = run_cat(p, ids)
+        if rc == 0 or state(p) != s:
+            out.append(f"{case} --catalog {ids}: not refused, or the file was written: {msg[-80:]}")
+    # (o) an edited envelope re-signed by --catalog: only security.sig changes, and it verifies with the catalog key
+    def edit_278(by):
+        by["ITV-278"]["message"].setdefault("context", {})["locale"] = "en-GB"
+    p = copy_with(edit_278, "cato.json"); before = vec(p, "ITV-278"); rc, msg = run_cat(p, "ITV-278"); after = vec(p, "ITV-278")
+    strip = lambda v: (lambda c: (c["message"]["security"].pop("sig"), c)[1])(json.loads(json.dumps(v)))
+    cat = {e["kid"]: e for e in strict_load("test-vectors/keypairs.json")["keypairs"].values()}
+    sec = after["message"]["security"]
+    try:
+        vv._verify_signature(sec["alg"], bytes.fromhex(cat[sec["kid"]]["public_key_hex"]), vv._base64url_decode(sec["sig"]),
+                             regen_v2.signing_input_v2(after["message"]))
+        verifies = True
+    except Exception:  # noqa: BLE001
+        verifies = False
+    if rc != 0 or strip(before) != strip(after) or sec["sig"] == before["message"]["security"]["sig"] or not verifies \
+            or not others_equal(p, copy_with(edit_278, "cato0.json"), "ITV-278"):
+        out.append(f"(o) --catalog did not re-sign ITV-278 by its signature alone: {msg[-80:]}")
     return out
 
 
@@ -1593,6 +1624,314 @@ def corpus_header_problems(doc):
         out.append(f"generated {doc.get('generated')!r} describes the Draft-01 corpus")
     if doc.get("$schema") != "https://arsiaprotocol.org/schemas/test-vectors/v1.0.json":
         out.append("$schema changed")
+    return out
+
+
+# ---------------------------------------------------------------- Draft-01.1 port (A-97, A-98, A-99)
+SIGNED_DATA_SCHEMAS = ("arsia-message.schema.json", "arsia-relay-attestation.schema.json")
+SIG_LENGTH = {"EdDSA": 64, "ES256": 64}
+B64URL_NOPAD = re.compile(r"^[A-Za-z0-9_-]*$")
+
+
+def strict_b64url(s):
+    """The octets of s if s is base64url without padding in its canonical form (RFC 4648 §5, unpadded as
+    Core §5.1 encodes security.sig): only the URL-safe alphabet, no '=', no length ≡ 1 (mod 4), unused trailing
+    bits zero. None otherwise; never raises. The validator's lenient decoder skips characters outside the
+    alphabet, so a guard that promises "no other defect" decodes with this one."""
+    import base64
+    if not isinstance(s, str) or not B64URL_NOPAD.match(s) or len(s) % 4 == 1:
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+    except Exception:  # noqa: BLE001 - not decodable is reported as None
+        return None
+    return raw if base64.urlsafe_b64encode(raw).decode().rstrip("=") == s else None
+
+
+def signed_object(v):
+    if isinstance(v.get("message"), dict):
+        return v["message"]
+    if v.get("schema_ref") in SIGNED_DATA_SCHEMAS and isinstance(v.get("data"), dict):
+        return v["data"]
+    return None
+
+
+def _key_facts(pub_hex):
+    """(key type, RSA bits or None) of a catalog public key; never raises."""
+    import validate_vectors as vv
+    try:
+        kt = vv._key_type(bytes.fromhex(pub_hex))
+    except Exception:  # noqa: BLE001 - an unrecognised key is reported as such
+        return None, None
+    if kt != "RSA":
+        return kt, None
+    from cryptography.hazmat.primitives.serialization import load_der_public_key
+    return kt, load_der_public_key(bytes.fromhex(pub_hex)).key_size
+
+
+def _math_verifies(alg, pub_hex, sig_bytes, data):
+    """Mathematical verification only (no allowlist, no RSA size floor): does sig verify under this key?"""
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.asymmetric import ec, padding
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
+    from cryptography.hazmat.primitives.serialization import load_der_public_key
+    from cryptography.exceptions import InvalidSignature
+    pub = bytes.fromhex(pub_hex)
+    try:
+        if alg == "EdDSA":
+            Ed25519PublicKey.from_public_bytes(pub).verify(sig_bytes, data)
+        elif alg == "ES256":
+            if len(sig_bytes) != 64:
+                return False
+            ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub).verify(
+                encode_dss_signature(int.from_bytes(sig_bytes[:32], "big"), int.from_bytes(sig_bytes[32:], "big")),
+                data, ec.ECDSA(hashes.SHA256()))
+        elif alg == "RS256":
+            load_der_public_key(pub).verify(sig_bytes, data, padding.PKCS1v15(), hashes.SHA256())
+        else:
+            return False
+        return True
+    except (InvalidSignature, ValueError, TypeError):
+        return False
+
+
+def signature_problems(vectors, catalog):
+    """A-97: outside crypto blocks, a present security.sig verifies with the catalog key of its kid (the
+    Draft-02 profile, Core §5.1/§5.2 Step 5 rules), unless the vector declares signature_expectation; a
+    declared negative fails exactly for its cause and condition while every other condition holds. Envelopes:
+    kid binding to `from` is not part of the default rule (INV-01 has no from); attestations: the signer is the
+    broker (kid of broker_id, Routing §7.4.1 step 2). catalog: kid -> entry."""
+    import validate_vectors as vv
+    from regen_v2 import signing_input_v2
+    out = []
+    for v in vectors:
+        exp = v.get("signature_expectation")
+        obj = signed_object(v)
+        sec = (obj or {}).get("security") if obj else None
+        has_sig = isinstance(sec, dict) and isinstance(sec.get("sig"), str)
+        if exp is not None and ("crypto" in v or not has_sig):
+            out.append(f"{v['id']}: signature_expectation without a signed object carrying security.sig, or with crypto")
+            continue
+        if "crypto" in v or not has_sig:
+            continue
+        alg, kid, sig = sec.get("alg"), sec.get("kid"), sec["sig"]
+        sig_bytes = strict_b64url(sig)
+        if sig_bytes is None:  # checked before every predicate: an encoding defect is never an extra, silent one
+            out.append(f"{v['id']}: security.sig is not canonical base64url without padding")
+            continue
+        entry = catalog.get(kid)
+        kt, bits = _key_facts(entry["public_key_hex"]) if entry else (None, None)
+        allowed = alg in vv.ALLOWED_ALGS
+        compatible = allowed and kt == {"EdDSA": "Ed25519", "ES256": "P-256", "RS256": "RSA"}[alg]
+        data = signing_input_v2(obj)
+        math_ok = bool(entry and compatible and _math_verifies(alg, entry["public_key_hex"], sig_bytes, data))
+        size_ok = kt != "RSA" or (bits or 0) >= 2048
+        owner = obj.get("broker_id") if v.get("schema_ref") == "arsia-relay-attestation.schema.json" else obj.get("from")
+        if exp is None:
+            if not (entry and compatible and size_ok and math_ok):
+                out.append(f"{v['id']}: security.sig does not verify with the catalog key of {kid}")
+            continue
+        cause, cond = exp.get("cause"), exp.get("condition")
+        expected_len = SIG_LENGTH.get(alg) or ((bits or 0) // 8 if kt == "RSA" else None)
+        ok = {
+            ("kid", "binding"): bool(entry) and compatible and size_ok and math_ok
+                                and isinstance(owner, str) and kid.split("#", 1)[0] != owner,
+            ("kid", "unresolved"): entry is None and allowed,
+            ("alg", "not-allowed"): not allowed,
+            ("alg", "incompatible"): allowed and entry is not None and not compatible,
+            ("key", "size"): bool(entry) and compatible and kt == "RSA" and (bits or 0) < 2048 and math_ok,
+            ("signature", "length"): bool(entry) and compatible and size_ok and len(sig_bytes) != expected_len,
+            ("signature", "mismatch"): bool(entry) and compatible and size_ok and len(sig_bytes) == expected_len
+                                       and not math_ok,
+        }.get((cause, cond))
+        if exp.get("result") != "invalid" or ok is None:
+            out.append(f"{v['id']}: signature_expectation {exp} outside the contract")
+        elif not ok:
+            out.append(f"{v['id']}: declared {cause}/{cond} not demonstrated (another condition fails or the declared one does not)")
+    return out
+
+
+def signature_selftest(catalog):
+    """Each failure other than the declared one is rejected; one sound case per cause is accepted."""
+    import copy as _copy
+    import base64 as _b64
+    from regen_v2 import signing_input_v2, _sign
+    by_kid = catalog
+    ed = "agent:acme.echo-client#key1"
+    rsa_small = "agent:acme.legacy-system#rsa1024"
+    rsa_ok = next(k for k, e in by_kid.items() if _key_facts(e["public_key_hex"]) == ("RSA", 2048) or
+                  (_key_facts(e["public_key_hex"])[0] == "RSA" and (_key_facts(e["public_key_hex"])[1] or 0) >= 2048))
+    b64 = lambda b: _b64.urlsafe_b64encode(b).decode().rstrip("=")
+
+    def vec(vid, frm, kid, alg, exp=None, sig_kid=None, sig=None):
+        m = {"v": "2.0", "id": "00000000-0000-4000-8000-000000000000", "ts": "2026-01-01T00:00:00.000Z",
+             "from": frm, "to": "agent:acme.echo-server", "intent": "event",
+             "payload": {"type": "com.acme.test/event", "data": {}}, "security": {"alg": alg, "kid": kid, "sig": ""}}
+        if sig is None:
+            k = sig_kid or kid
+            m["security"]["sig"] = b64(_sign(alg if alg in ("EdDSA", "RS256", "ES256") else "EdDSA",
+                                             by_kid[k]["private_key_hex"], signing_input_v2(m)))
+        else:
+            m["security"]["sig"] = sig
+        v = {"id": vid, "message": m}
+        if exp:
+            v["signature_expectation"] = {"result": "invalid", "cause": exp[0], "condition": exp[1]}
+        return v
+
+    def with_sig(v, f):
+        v = _copy.deepcopy(v); v["message"]["security"]["sig"] = f(v["message"]["security"]["sig"])
+        return v
+
+    def corrupt(v):
+        v = _copy.deepcopy(v); s_ = v["message"]["security"]["sig"]
+        v["message"]["security"]["sig"] = ("B" if s_[0] != "B" else "C") + s_[1:]
+        return v
+    good = {
+        "default": vec("G0", "agent:acme.echo-client", ed, "EdDSA"),
+        "kid/binding": vec("G1", "agent:acme.billing", ed, "EdDSA", ("kid", "binding")),
+        "kid/unresolved": vec("G2", "agent:acme.echo-client", "agent:nobody.none#k", "EdDSA", ("kid", "unresolved"), sig="A" * 86),
+        "alg/not-allowed": vec("G3", "agent:acme.echo-client", ed, "DSA", ("alg", "not-allowed"), sig="A" * 86),
+        "alg/incompatible": vec("G4", "agent:acme.echo-client", ed, "ES256", ("alg", "incompatible"), sig="A" * 86),
+        "key/size": vec("G5", "agent:acme.legacy-system", rsa_small, "RS256", ("key", "size")),
+        "signature/length": vec("G6", "agent:acme.echo-client", ed, "EdDSA", ("signature", "length"), sig="A" * 43),
+        "signature/mismatch": corrupt(vec("G7", "agent:acme.echo-client", ed, "EdDSA", ("signature", "mismatch"))),
+    }
+    out = [f"control {k} rejected: {p}" for k, v in good.items() for p in signature_problems([v], by_kid)]
+    bad = {
+        "kid/binding with a corrupted signature": corrupt(good["kid/binding"]),
+        "kid/binding with an unresolved kid": vec("B2", "agent:acme.billing", "agent:nobody.none#k", "EdDSA", ("kid", "binding"), sig="A" * 86),
+        "key/size with a 2048-bit key": vec("B3", rsa_ok.split("#")[0], rsa_ok, "RS256", ("key", "size")),
+        "key/size with a kid without key": vec("B4", "agent:nobody.none", "agent:nobody.none#k", "RS256", ("key", "size"), sig="A" * 171),
+        "signature/length with 64 bytes": vec("B5", "agent:acme.echo-client", ed, "EdDSA", ("signature", "length"), sig="A" * 86),
+        "alg/not-allowed with an allowed alg": vec("B6", "agent:acme.echo-client", ed, "EdDSA", ("alg", "not-allowed")),
+        "an undeclared vector with an altered signature": corrupt(good["default"]),
+        "result other than invalid": dict(good["kid/binding"], signature_expectation={"result": "valid", "cause": "kid", "condition": "binding"}),
+        "a field without security.sig": {"id": "B9", "message": {k: x for k, x in good["default"]["message"].items() if k != "security"},
+                                         "signature_expectation": {"result": "invalid", "cause": "signature", "condition": "mismatch"}},
+        "a field on a vector with crypto": dict(good["kid/binding"], crypto={"expect_signature": "valid"}),
+        "kid/binding with characters outside the alphabet appended": with_sig(good["kid/binding"], lambda x: x + "!!!!"),
+        "kid/binding with '=' padding": with_sig(good["kid/binding"], lambda x: x + "=="),
+        "signature/length with characters outside the alphabet appended": with_sig(good["signature/length"], lambda x: x + "!!!!"),
+        "signature/length with non-zero unused bits": with_sig(good["signature/length"], lambda x: x[:-1] + "B"),
+        "an undeclared vector with characters outside the alphabet appended": with_sig(good["default"], lambda x: x + "!!!!"),
+    }
+    for name, v in bad.items():
+        if not signature_problems([v], by_kid):
+            out.append(f"not detected: {name}")
+    return out
+
+
+def signature_format_selftest(vectors):
+    """The meta-schema admits signature_expectation only where the guard does: no crypto block, and a signed
+    object (message, or data of a signed-object schema) whose security.sig is a string. The declared corpus
+    negatives are the controls; each case below must be rejected by the meta-schema alone."""
+    import copy as _copy
+    from jsonschema import Draft202012Validator
+    meta = strict_load("schemas/arsia-test-vectors.meta.json")
+    mv = Draft202012Validator(meta["$defs"]["test-vector"])
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    declared = [v for v in vectors if "signature_expectation" in v]
+    if not declared:
+        out.append("no declared signature negative to serve as control")
+    out += [f"meta-schema rejects the declared negative {v['id']}" for v in declared if not mv.is_valid(v)]
+    field = {"result": "invalid", "cause": "signature", "condition": "mismatch"}
+    bad = {}
+    for vid, why in (("CTV-11", "a raw vector"), ("ITV-358", "a message without security.sig"), ("CTV-01", "a vector with crypto")):
+        if vid not in by_id:
+            out.append(f"self-test fixture {vid} missing")
+            continue
+        bad[f"{why} ({vid})"] = dict(_copy.deepcopy(by_id[vid]), signature_expectation=field)
+    data_case = next(v for v in declared if v.get("schema_ref"))  # ITV-550: data of arsia-message
+    bad["data of a schema that is not a signed object"] = dict(_copy.deepcopy(data_case), schema_ref="arsia-common.schema.json")
+    nosig = _copy.deepcopy(data_case); nosig["data"]["security"]["sig"] = 0
+    bad["security.sig not a string"] = nosig
+    bad["a cause outside the vocabulary"] = dict(_copy.deepcopy(declared[0]),
+                                                 signature_expectation=dict(field, cause="hash"))
+    for name, v in bad.items():
+        if mv.is_valid(v):
+            out.append(f"meta-schema accepts signature_expectation on {name}")
+    return out
+
+
+def catalog_problems(doc):
+    """A-99: the keypair catalog keeps its Draft-02 entries, holds the imported entries exactly, and marks the one
+    key deliberately below the RSA minimum."""
+    import hashlib
+    import rfc8785
+    out = []
+    prov = doc.get("provenance") or {}
+    entries = {e["kid"]: e for e in doc["keypairs"].values()}
+    dig = lambda kids: "sha-256:" + hashlib.sha256(rfc8785.dumps({k: entries[k] for k in sorted(kids)})).hexdigest()
+    for part in ("draft-02", "imported"):
+        kids = (prov.get(part) or {}).get("kids") or []
+        if not kids or any(k not in entries for k in kids) or dig(kids) != prov[part].get("sha256"):
+            out.append(f"{part} entries differ from their recorded digest")
+    gen = (prov.get("generated") or {}).get("kids") or []
+    listed = set((prov.get("draft-02") or {}).get("kids", [])) | set((prov.get("imported") or {}).get("kids", [])) | set(gen)
+    if listed != set(entries) or len(entries) != len(doc["keypairs"]):
+        out.append(f"catalog kids {len(entries)} != provenance sets {len(listed)}")
+    small = sorted(k for k, e in entries.items() if _key_facts(e["public_key_hex"])[0] == "RSA"
+                   and (_key_facts(e["public_key_hex"])[1] or 0) < 2048)
+    if small != sorted((prov.get("generated") or {}).get("below_minimum", [])):
+        out.append(f"keys below the RSA minimum {small} != declared")
+    return out
+
+
+SINGLE_CAUSE = (  # (vector, format, schema, the one error: validator, instance path, message)
+    ("INV-21", "data", "arsia-state-operations.schema.json#/$defs/set-args",
+     ("required", (), "'pii_special_categories' is a required property")),
+    ("ITV-402", "message", "arsia-message.schema.json", ("required", (), "'security' is a required property")),
+    ("ITV-550", "data", "arsia-message.schema.json",
+     ("enum", ("security", "alg"), "'DSA' is not one of ['EdDSA', 'ES256', 'RS256']")),
+)
+
+
+def port_fixture_problems(vectors, registry):
+    """A-98: expires_at > ts in every signed envelope carrying both; positive transfer-request args conform to
+    AssetTransferRequest; ITV-426 encodes exactly 32 bytes; INV-21 (set-args, pii_special_categories), ITV-402
+    (missing security) and ITV-550 (security.alg enum) each fail with exactly their one announced error."""
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    out = []
+    ts_schema = vv.resolve_schema("arsia-asset-transfer-request.schema.json", registry)
+    for v in vectors:
+        m = signed_object(v)
+        if not isinstance(m, dict):
+            continue
+        if isinstance(m.get("ts"), str) and isinstance(m.get("expires_at"), str) and not m["expires_at"] > m["ts"]:
+            out.append(f"{v['id']}: expires_at not after ts (Core §4.2.2)")
+        p = m.get("payload") if isinstance(m.get("payload"), dict) else {}
+        positive = (v.get("valid") is True or v.get("expected") == "valid") and not v.get("expected_error")
+        if p.get("type") == "arsiaprotocol.assets/transfer-request" and m.get("intent") == "request" and positive:
+            errs = list(Draft202012Validator(ts_schema, registry=registry).iter_errors(p.get("args", {})))
+            if errs:
+                out.append(f"{v['id']}: transfer-request args do not conform ({errs[0].message[:60]})")
+    v426 = next((v for v in vectors if v["id"] == "ITV-426"), None)
+    raw426 = strict_b64url(v426["message"]["security"]["sig"]) if v426 else None
+    n426 = None if raw426 is None else len(raw426)
+    if n426 != 32:  # a valid encoding of the length its description announces (Core §5.2 Step 1), not merely "not 64"
+        out.append(f"ITV-426 signature is not a canonical base64url encoding of the announced 32 bytes ({n426})")
+    # Single-cause negatives: the general --check-errors comparator matches a keyword ("required", "enum") and
+    # would accept a second defect next to the announced one, so each fails with exactly its one error.
+    by_id = {v["id"]: v for v in vectors}
+    for vid, fmt, ref, want in SINGLE_CAUSE:
+        v = by_id.get(vid)
+        if not v or (fmt == "message" and not isinstance(v.get("message"), dict)) or \
+                (fmt == "data" and (v.get("schema_ref") != ref or not isinstance(v.get("data"), dict))):
+            out.append(f"{vid} is not a {fmt} vector of {ref}")
+            continue
+        schema = vv.resolve_schema(ref, registry)
+        if fmt == "message":
+            errs = vv.message_errors(v["message"], schema, registry)[1]
+        elif ref.startswith("arsia-message.schema.json"):
+            errs = vv.message_errors(v["data"], schema, registry)[1]
+        else:
+            errs = list(Draft202012Validator(schema, registry=registry).iter_errors(v["data"]))
+        got = [(e.validator, tuple(e.absolute_path), e.message) for e in errs]
+        if got != [want]:
+            out.append(f"{vid} does not fail for its announced cause only: {[(g[0], '/'.join(map(str, g[1])), g[2][:50]) for g in got]}")
     return out
 
 
@@ -2097,6 +2436,26 @@ def main() -> int:
           "; ".join(probs[:4]))
     probs = policy_identity_problems(vectors)
     check("(gateway, policy_version) -> one policy digest (Identity §8.1)", not probs, "; ".join(probs[:4]))
+
+    # Draft-01.1 port (A-97, A-98, A-99)
+    import validate_vectors as vv
+    kp_doc = strict_load("test-vectors/keypairs.json")
+    catalog = {e["kid"]: e for e in kp_doc["keypairs"].values()}
+    corpus_vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
+    probs = signature_problems(corpus_vectors, catalog)
+    check("signatures outside crypto blocks verify with the catalog key, or fail exactly for their declared cause (A-97)",
+          not probs, "; ".join(probs[:4]))
+    probs = signature_selftest(catalog) + signature_format_selftest(corpus_vectors)
+    check("signature-expectation guard self-test: every other failure rejected (encoding first), one sound case per "
+          "cause accepted; the meta-schema admits the field only on a signed object with security.sig (A-97)",
+          not probs, "; ".join(probs[:4]))
+    probs = catalog_problems(kp_doc)
+    check("keypair catalog: Draft-02 and imported entries equal their recorded digests; the below-minimum key declared (A-99)",
+          not probs, "; ".join(probs[:4]))
+    probs = port_fixture_problems(corpus_vectors, vv.build_registry())
+    check("fixtures: expires_at after ts; positive transfer-request args conform; ITV-426 encodes 32 bytes; INV-21, "
+          "ITV-402 and ITV-550 fail with exactly their announced error (A-98)",
+          not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     import validate_vectors as vv

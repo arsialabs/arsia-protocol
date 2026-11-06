@@ -112,14 +112,14 @@
     },
     {
       "id": "CTV-03",
-      "description": "Full request with MIFID-II compliance — financial transfer request",
+      "description": "Full request with MIFID-II compliance — currency transfer request whose args conform to AssetTransferRequest (Assets §3.1)",
       "valid": true,
       "category": "core",
       "crypto": {
         "private_key_hex": "2f8fc328a104c098d22cae1605ebc76c26d1e201759247e7978da802a6dfc9ad",
         "public_key_hex": "0c5c624e4cf8e2f607003286184e2a0fbbcb0b1df9fb88cccf4973e4d012c8b9",
-        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a30613965363738623234663731363932623731623664666165633636366639383536383539623939333432313864386130323238303663383535313262303638227d2c226361706162696c6974696573223a5b226173736574732e7472616e73666572222c226173736574732e736574746c65225d2c22636f6d706c69616e6365223a7b2261695f73797374656d5f636c617373696669636174696f6e223a22686967682d7269736b222c2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c226578706c61696e6162696c6974795f7265717569726564223a747275652c2268756d616e5f6f7665727369676874223a2272657175697265645f6265666f72655f657865637574696f6e222c226c6567616c5f6261736973223a22636f6e7472616374222c227069695f696e766f6c766564223a747275652c2270726f66696c65223a224d494649442d4949222c22726574656e74696f6e223a22503138323744227d2c22636f6e74657874223a7b22666c616773223a312c226c6f63616c65223a22656e2d4742222c227072696f72697479223a392c227370616e5f6964223a2263386265376338323730333134343432222c2274726163655f6964223a223162663836353139313663643433646438343438656232313163383033323064227d2c22657870697265735f6174223a22323032362d30332d32345430393a30303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2264346535663661372d623863392d346430652d396631612d326233633464356536663761222c22696e74656e74223a2272657175657374222c226d696e5f76223a22312e30222c227061796c6f6164223a7b2261726773223a7b2261737365745f74797065223a22657175697479222c22636f756e7465727061727479223a226167656e743a61727369616c6162732e64656d6f2e636c656172696e672d686f757365222c2263757272656e6379223a22455552222c226973696e223a22444530303037313634363030222c227175616e74697479223a3130302c22756e69745f7072696365223a38352e34327d2c2274797065223a22617273696170726f746f636f6c2e6173736574732f7472616e736665722d72657175657374222c2276657273696f6e223a22312e30227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e736574746c656d656e742d6167656e74222c227473223a22323032362d30332d32345430393a30303a30302e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "VF_2U9xDD94lyMPKfe3HPD56Aoj7XFyAylgRI4Zb5ZHQWu-nuYQrnh1qdE6qQFOL-EFYkn5oBRmxPs-NINLEAw",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a30613965363738623234663731363932623731623664666165633636366639383536383539623939333432313864386130323238303663383535313262303638227d2c226361706162696c6974696573223a5b226173736574732e7472616e73666572222c226173736574732e736574746c65225d2c22636f6d706c69616e6365223a7b2261695f73797374656d5f636c617373696669636174696f6e223a22686967682d7269736b222c2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c226578706c61696e6162696c6974795f7265717569726564223a747275652c2268756d616e5f6f7665727369676874223a2272657175697265645f6265666f72655f657865637574696f6e222c226c6567616c5f6261736973223a22636f6e7472616374222c227069695f696e766f6c766564223a747275652c2270726f66696c65223a224d494649442d4949222c22726574656e74696f6e223a22503138323744227d2c22636f6e74657874223a7b22666c616773223a312c226c6f63616c65223a22656e2d4742222c227072696f72697479223a392c227370616e5f6964223a2263386265376338323730333134343432222c2274726163655f6964223a223162663836353139313663643433646438343438656232313163383033323064227d2c22657870697265735f6174223a22323032362d30332d32345430393a30303a33302e3030305a222c2266726f6d223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964223a2264346535663661372d623863392d346430652d396631612d326233633464356536663761222c22696e74656e74223a2272657175657374222c226d696e5f76223a22312e30222c227061796c6f6164223a7b2261726773223a7b22616d6f756e74223a22383534322e3030222c2261737365745f74797065223a2263757272656e6379222c2263757272656e63795f6f725f756e6974223a22455552222c226465736372697074696f6e223a22536574746c656d656e74206f662031303020736861726573204445303030373136343630302061742038352e34322045555220756e646572204d69464944204949222c2266726f6d5f6167656e74223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72222c226964656d706f74656e63795f6b6579223a226374762d30332d6964656d2d30303031222c227061796d656e745f7265666572656e6365223a226374762d30332d6d696669642d736574746c656d656e742d30303031222c22746f5f6167656e74223a226167656e743a61727369616c6162732e64656d6f2e736574746c656d656e742d6167656e74227d2c2274797065223a22617273696170726f746f636f6c2e6173736574732f7472616e736665722d72657175657374222c2276657273696f6e223a22312e30227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61727369616c6162732e64656d6f2e7269736b2d6173736573736f72236b657931227d2c22746f223a226167656e743a61727369616c6162732e64656d6f2e736574746c656d656e742d6167656e74222c227473223a22323032362d30332d32345430393a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "fpWH9MyeYe1kzycUYXuj2Vssq7oXBNppB6F-OzXC0ZcB2JL6B3itl-RWxquKovLGH_eerikQGRKhtgMyDm8FCg",
         "expect_signature": "valid"
       },
       "message": {
@@ -146,12 +146,14 @@
           "type": "arsiaprotocol.assets/transfer-request",
           "version": "1.0",
           "args": {
-            "asset_type": "equity",
-            "isin": "DE0007164600",
-            "quantity": 100,
-            "unit_price": 85.42,
-            "currency": "EUR",
-            "counterparty": "agent:arsialabs.demo.clearing-house"
+            "amount": "8542.00",
+            "currency_or_unit": "EUR",
+            "asset_type": "currency",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.settlement-agent",
+            "payment_reference": "ctv-03-mifid-settlement-0001",
+            "description": "Settlement of 100 shares DE0007164600 at 85.42 EUR under MiFID II",
+            "idempotency_key": "ctv-03-idem-0001"
           }
         },
         "compliance": {
@@ -168,7 +170,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "VF_2U9xDD94lyMPKfe3HPD56Aoj7XFyAylgRI4Zb5ZHQWu-nuYQrnh1qdE6qQFOL-EFYkn5oBRmxPs-NINLEAw"
+          "sig": "fpWH9MyeYe1kzycUYXuj2Vssq7oXBNppB6F-OzXC0ZcB2JL6B3itl-RWxquKovLGH_eerikQGRKhtgMyDm8FCg"
         },
         "authorization": {
           "token_hash": "sha-256:0a9e678b24f71692b71b6dfaec666f9856859b9934218d8a022806c85512b068",
@@ -2004,7 +2006,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AmnNE38q6L6KY6smen1SwTCBAH7dl2VYbQ9RdwUyZAyC2vjqFghW4R_Ygolrlk4x98mpbDkRMkoUmMfD5y1uCQ"
+          "sig": "bs-TBGzIb8xLK9nQTp0-CCfKsa63toaLfS5Xxn68xMi4Pfh6b2Ik8FE1YHxzGqKMosgHi1qd13lVZNHMhiEZAA"
         }
       },
       "expected_error": "from is required — Core §4.1"
@@ -2397,10 +2399,15 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "DjBbEmmrXSWufozWyqowwXQ613yPDA2_Y43n1QZdylOJcmWy1EOiATggzVPKc7LLT8DcAtKbS60xB0FeMbz8BQ"
+          "sig": "DDbIPZps8s90BhqmSwQ-Dx9sjkVi0HdTOmMqw7YwHjnDDqUEhhv54IfxNGbxIZvD1aWBn-aFtyOPWNhB6WRPDQ"
         }
       },
-      "expected_error": "kid prefix does not match from — Core §5.2"
+      "expected_error": "kid prefix does not match from — Core §5.2",
+      "signature_expectation": {
+        "result": "invalid",
+        "cause": "kid",
+        "condition": "binding"
+      }
     },
     {
       "id": "INV-12",
@@ -2797,7 +2804,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u",
+          "sig": "cATNqj6IrzTl7ZGJRA_dlkBvdTax4UxNX77eM1p0-324c8pqwxu9ysJbZWlrdAldJPrlvIC_D09JoIlA35AcCA",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -2821,7 +2828,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u",
+          "sig": "gKTfHtYsLDHrbewDBBr7651yi8feTUtr_qa0PWLdS30Wo2C4QJEto8aHz3XzHUFfT4pCoprgXZkC7uSr4rBBAQ",
           "encrypted": true,
           "enc_method": "A256GCM"
         }
@@ -2854,7 +2861,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.verifier#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "2xdq9igGQX3HU4hn3C8fpQehbStF1EhvinFfG9ObdB63sF0BevetYgamZvAV6jKvzIxOBHAwr7WpI3ub9M7hCQ"
         },
         "root_request_id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7b"
       },
@@ -2889,7 +2896,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "60sikdxwhpNrFN5T9Xsm4rFeX0rkYxhbgnox5HbvJLWXUr58oEGNlbKG7hA31AxzDWbmYib5vgHBkF_OeS3YDg"
         },
         "root_request_id": "e5f6a7b8-c9d0-4e1f-a2b3-c4d5e6f7a8b9"
       },
@@ -3222,7 +3229,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "umJJaq6FKD54kPsgGdwLwc7xnOuJD49-sVRKuT3cpQCGGzYwMkGWwqKCHzGn09KW_Ph2do30-PawJgmEvI1yDQ"
         }
       },
       "expected_error": "context.trace_id must match pattern ^[0-9a-f]{32}$ — Core §4.3.4"
@@ -3249,7 +3256,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "qAptNKew9F7XV5G7Gva3aZ7rCXfqfiZHlo0a4jpaIFNdLxrNdxshPaupIQgW0jQs0qu_rg9Epq-Zet_QWRQNAQ"
         }
       },
       "expected_error": "context.span_id must match pattern ^[0-9a-f]{16}$ — Core §4.3.4"
@@ -3276,7 +3283,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "S8n0Kgew-cHLInIMHmyjWnStsVUIDwrsoayvd8hdN8odBX7QXY8u2mTp_2amiDB2xgGxt8E-ghiLmB6AcF4iCA"
         }
       },
       "expected_error": "context.flags must be <= 255 — Core §4.3.4"
@@ -3303,7 +3310,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "xXDFo8uDgvCu7yw6geI7Nm3NmT6qoiAB2--U2uxfk4A1YIb_Ryq8_izpeiDv4SVekKi1XtB3JhDR7uuXNvBsDA"
         }
       },
       "expected_error": "context.priority must be <= 10 — Core §4.3.4"
@@ -4137,7 +4144,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u",
+          "sig": "MHOh5XtJBAkZT-xGFou1NvptZN4XIoNYvwRD5NeJP-zLoteEgGb11fF53b1hpJq_OGvoLdcL2FTwznwNgkc6CQ",
           "encrypted": true,
           "enc_alg": "RSA-OAEP-256",
           "enc_method": "A256GCM"
@@ -4161,7 +4168,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u",
+          "sig": "CY5gzTQzNCTb28Q7H0yUvIJ7WvHlZvyYZR8sCGKtauy6AKHlM-2lgMNaCI0zKvW2JxjqCJNHefnWF5UcZGMHDw",
           "encrypted": true,
           "enc_alg": "ECDH-ES+A256KW",
           "enc_method": "A256GCM"
@@ -4209,7 +4216,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "4m62EHaASdEylAgUI10mMhKtWmBqJVawXU6pPMdXKjos6V2i4rljNf88NbkIBSPxFHgoKLgIaGZpVNPr11xTDQ"
         }
       },
       "expected_error": null
@@ -4253,7 +4260,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "uL31217FUVPMuhEVYadCENFeqdGfZn132aOeE_EDaNoETy_I1tPPCgxE43euUWCcboFw579CAjXzymZwkC5cAw"
         }
       },
       "expected_error": "pattern mismatch — capability 'read' has single segment, requires 2+ — Actions §1.1"
@@ -4280,7 +4287,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.sender#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "30bquRYyD304t-RB2QRuuttqAkUeGD21D9MmEZRtHuDybO6Q2tcculjbgTHTJjQnyC2d_QSRuo7ltC2N67W5Dg"
         }
       },
       "expected_error": "maxLength — capability exceeds 128 characters — Actions §1.1"
@@ -4359,7 +4366,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.gateway#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "MgvZPl4HghP_00Rmcsm9XrvB3w0ATQuL2U0CaQuiVmw_1v__Bjwp8KUUBLj3Kxop2MTkJCaJoHtnOFTMROY6AA"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b901"
       },
@@ -4388,7 +4395,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.auth-server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "XbPzGjrfH98eWhZ3Qhzdy9e7DZvr3wYJ8YYrgs2zet8SDgq-lW12DmCiwqigw9OnfFMclK6HSqcH36AGf3F1DA"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b902"
       },
@@ -4417,7 +4424,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.registry#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "6pw7gYoqwEdcaO0tGrz4WtNZVpmS9nFB1bm6z0kT7Db0ULTJ7D-zKmuedkWAWF9_GP_6TZac1D9XT2juz6N9Ag"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b903"
       },
@@ -4449,7 +4456,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.verifier#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "oBgffXr4kgAjoa5rtl3FdThp_yjem78u9wiR8e4VWhkLTmvBs9ajqlixYlNO_3uyxzo1zQo5rgGt5NVyMrNJAQ"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b904"
       },
@@ -4481,7 +4488,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.verifier#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "jlfTB5Vl6xgZFmRu3nJPZXufQGFJBYaWMrb3GJ1YYqvIl2jHaLvtrbCVN50Ci-DqqWkOVsiG7w3YneXG24xKCA"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b905"
       },
@@ -4513,7 +4520,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.verifier#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "VkX9ZajfL1YwaUm7DKdRYlUrTJZZ_0N95vNIEAfx7fuMtKbmL5f_aEiIsRSPRapKWMnoDgWp5BZqsxpoVNyPAA"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b906"
       },
@@ -4542,7 +4549,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "wM94Mk0ci9gL2WTOV1fPyEoyEpoJYj9uEIyZ7CKO1mCQ68rPFZoLweqKGCt2lpOpgZbuHMZyB6EKhejIGcsZBA"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b907"
       },
@@ -4580,7 +4587,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.broker#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "CAzViERJ0-7t_AKA8qiN7felXnddf5x1ltmYMbFf-NYiRePPuQsqO6bDQSMoGCu_PckzQRK6cxib_MvT29XADw"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b908"
       },
@@ -4618,7 +4625,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.broker#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "ibxgAfWBLHN_e0KJ_h3Pvpb6-VgKPNNNtGw-WDrGq3IGYm8tELhm2MUh4JugYZpdeP4tSBI53cEk0ccKgW1pBw"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b909"
       },
@@ -4654,7 +4661,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.state-server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Nezz7h65stGawwycQbF-xLnzmhV9x_0f_mtYWLOBfIy8oV1QW2w8DzOrZBhKuC72RYu2svcQZEexSM_rSSbCBg"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b910"
       },
@@ -4689,7 +4696,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.gateway#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "71i7ah2c5CLnLkMhX6cePR4gcoRwjZVe__9o1cogFMx65XHE4xBo0ixzvjk1irQtU36LfjlrIPlvYqt1qnNNDQ"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b911"
       },
@@ -4722,7 +4729,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.gateway#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "MqfZVm_N7rcaV_qDl-GDPvjYdmx_pQdcCvxzR07j-ezp2PFsR3r25dr2Bzi9gVWEPw6qx1rGhToMT6g9Q8SJCQ"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b912"
       },
@@ -4761,7 +4768,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "bvkyFRvmgXmWFNuy82R3UfQDszwjE3oBnqnl82q2c-nunevkvcBSfkuBbvk9-w_UCOsOAJoklHXbOKcfxFCABg"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b913"
       },
@@ -4881,7 +4888,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "rUOrrn8TfNCND4gKkWv7v62sybnZk0ZuEoGH3TeoOEMWaxzza4BC7aQVig4MnyQZt0Q1vaTux8AX28_f8dfMDw"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b914"
       },
@@ -4951,7 +4958,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.state-server#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "8EFYUH9nN3bhnbxEK0Ju83l1FOlUvBhyjjrefGlngd_mBV4j_H7dgIFci6Qt843kGy-EBWaj-sy1IGVjY6yjCw"
         },
         "root_request_id": "f6a7b8c9-d0e1-4f2a-b3c4-d5e6f7a8b915"
       },
@@ -12203,7 +12210,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "_V6Yr9mZ8xi-Lky5kGVZ6x6GNgEPILiIbx6nDlKOoGPtopKB3rTtq9lQ0siGuANMiI9GjdbTKafxttFQBt0VDQ"
         }
       },
       "expected_error": null
@@ -12307,7 +12314,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "15Nify8aO4eSVVuYcvDfEbS15phleVRwUxhnKvWTOT4YyUMzQZJhARnj2p_C9HFuZ3BOMenHEoXdzdpfht1cBQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12365,7 +12372,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "5AcuM4naRTfS-twjkflaBUAxmjxLzSsjvXatJjx3Pdr_thVB5re8LeqDQRW7zdcCeC0uotXMXOoQqFEtNeRMCQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12402,7 +12409,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "dOzrC74CADiCE20dFe1QBmxAbDBneV6WP2zRDUcL27fyEfHcEf-2i8NE23gBbqAf2LIABtIbjvhlB_Y0WZ8SCQ"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -12492,7 +12499,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "02MJYTaNBmQ1vGOqW3tEHAKaMgR2A59-hAoKwVYEkiIqD_b5ZxAIx1ePf9YOcj9XMEydHpJ4xbGF25nU3AyBCQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12529,7 +12536,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "69raEemFSsjwme6kxaHIVU2Z_xpEB-awWP4dQm4onveOM5X1NruyGZQZaGWWaoQSP8ebzRhlsSJK4duF95YrDQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12560,7 +12567,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "QJiucxwL7WuK3a2qpd7qJmJXWW4x0-9RLFUR_JCW-2zxYDCkasRXZ8t1KN134Pv_atw8T_h5XCc50NFWZapdAQ"
         }
       },
       "expected_error": null
@@ -12704,7 +12711,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "rvUiAhCU-3P90v-83rQuCSBBItdKmHp1AY_fR7YCmrjcmcmk8egGcvpH1micuWzqqyuRFgucM1xGwozvFi7lCw"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12772,7 +12779,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "2I3lLnbQBxAQkEB00IcqXoTDTgeCFVh4IX8KdZbGqkcTQAOYX1xjNWyne-afTufdBiRJ6KgNvqwb8Thn0WMlCg"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12904,7 +12911,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "BVNXMP_XKlj7gpHtKxY4RYxpavgGrSa4JrDEb7Ff2m73arenxrFyw1W_QR7ZwRFqNRxQU5Tk1I6bxYqCrvPbCA"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12939,7 +12946,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "ZurP4dpu2DEYtZh4vF9gLzb0bhjriCTHtkuwyeoi9kmHjyEIAZVXHk_y3JwccAJoopOrFaBuiS70KWyPn8ZjCg"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -12970,7 +12977,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "vDn2HZwowM_vzMwY8ce0vavVtD6z57nutBKocaCMeNyobV12vcZrUiU_IX1G0Q1sTpIcFl0EE_P05RIRt7ecAA"
         }
       },
       "expected_error": null
@@ -13089,7 +13096,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "BmnijT8bmmTnbl88h-kZ2Y8Y79Bu1WbU17l5WOu1shluNUlUbc_ajTEOQGsfs6veG270WXFXPfVpKfupupHVDA"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -13244,7 +13251,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "kdZjFiOeOkf8CrWgSRz2xLS9iv1cA6ntu-puNAZtp2dYZ46p__6L7At59p91nMARIQXzGu9xLFjweJGxBZuoBw"
         },
         "root_request_id": "a1000003-0000-4000-a000-000000000003"
       },
@@ -13399,7 +13406,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "BzOvrLbVo84P0DlX1yI1QK0Knb0lkcyPfaG3c4n2p3_MTymHGOs3UTlGUxNoJc5bQ3CRaXP5ECKY2_xep2p5Bw"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -13570,7 +13577,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "jCxXbHlx303oaEfYYQRjxT0a9obGR_n7ZfYd3hUx8NIW2LHVhdiuXL9_JEIfujZy_toXR3pjZ5ZxxvNTAUDhCQ"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -13727,7 +13734,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "D1U_xQ9My-Qw7WL61a9wkCuSOU4IOqTqey4sGWRUloYqLmU0KSoRBzZ0HtopcmfUJEhCR3idHz6nePksFufcAw"
         },
         "root_request_id": "a1000003-0000-4000-a000-000000000003"
       },
@@ -13796,7 +13803,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "tV-gymMxMWHtmJaQAgPZNTGPfzBleBKAegATvEViu6quen92PNuOPrVFRgwvfEeQId-GF5JTVkCeOiVoznO_BQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -13829,7 +13836,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "As9LUCC4cuZwRlPdmx6EhRFFWh4tS7655PeNal1UEBTqwOA4S7ywygorQfidWoX4kPwU6a3LKAJGZBquUFUiDA"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -13868,7 +13875,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "BamITYc7s8-UmL1sbQQI_jRzs3lO83kbHHati9M6lOUYrNTlCvbk6y13Bs_oZW6u-HZjn5hti3awbFdkyFylDA"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -13908,7 +13915,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "NVOzzMUPMP44FfnbR7f3wqwSgQEMM7eKW1hEiOJ2-wMyVf-jNB0sNiF_ztE89tZXWpjDBQ7yuEQjjeCo5cSLBg"
         },
         "root_request_id": "c3000001-0000-4000-a000-000000000001"
       },
@@ -13978,7 +13985,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "drsxhq2mGwwKgUq4vP9eFFBHJG0YgvnIYPu9wG-2wZK6sT8vFFeU1wY8vwXTf2LrdKqCGLnCGatfhj0NqYqEDQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14016,7 +14023,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "FHaSaFWGx9CEHxwejfra77hD2riz_-xmOE2opej3iCezhCLdV8_iGr62tgFuH5Ctan8uraDQ0ucxtqrcXBRwDw"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -14058,7 +14065,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "7fVXggqDWgL4tOg6Adm_d8YDCa75alEIgPfArk3oaYdF20hPwUGcH2LMFp0vXXlkqZErRazQYxrQxuFv1ZzHDw"
         },
         "root_request_id": "c3000006-0000-4000-a000-000000000006"
       },
@@ -14095,7 +14102,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "q9zELeMVzg5KAXH5AJ7mUVQkegLBbduHAHRs2_X38R_tqXBbcB86h92y73325vvgeSs5iIZO735zdeXK3pl0CQ"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -14128,7 +14135,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "mEWhr2lkdg9S3ilVxri7vFWOxD5GhQWgYs7rN7dKCTGBNjoEXDXCV-V6RjLJax46qBoXOckIAcmzHB23qx9qBw"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14161,7 +14168,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "5ONnJ2KeTMpdoukt2gc9p4T2RHd0mO_KQ5HQ8wXZkXMt6moY2OSYgQXAk6Le2OqlIWSZ50GeOEs6YcIZTOcLAw"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -14194,7 +14201,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "AOOMDBdrh0jG7mPFcWchv9yrNIueeZtWSwCD0VKOUZcHsPB5cuJYMVqr6NsJdyZ0_0yq1P-LF_tCvsJiWUrQAg"
         },
         "root_request_id": "a1000003-0000-4000-a000-000000000003"
       },
@@ -14226,7 +14233,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "JQ7pdebveAiFCpiUWYlRcHCbuOzUwZW7ySEVtHBSEN0E2-ZekiM4JP9NRXEHL1P2nSI8N9we9XXa4XtBKC6cCA"
         },
         "root_request_id": "f0000000-0000-4000-a000-000000000099"
       },
@@ -14258,7 +14265,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "wv2um4yvag4KUbxjNGx5Vy0D142rf573l1SxuszagwNjNKg8fGsms2-AybxEGmyAPSwkli8AroRX3p3ZJV-kDg"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14292,7 +14299,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "mew2seBcCGC02wgICAVNJreRyVrf9_wNk4VzQOfAYkMN04IK5J8xPwdcLcZQU31IWwuQ4DhSIpnztVLMqf9tAQ"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -14326,7 +14333,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "ikTDu8_DTZ-83JbiMC_m6e208DvYsXd3Mpvk7Ch7U8kkyEHigI3oZKOP3tGdWled7lS0baLe3I3DXyreMQcFCg"
         },
         "root_request_id": "a1000003-0000-4000-a000-000000000003"
       },
@@ -14358,7 +14365,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "RN5pdGj7qIv1HBb60dkU4EQErZ5UycpYvkhs7uWXcRBKDH4nIxTRV5ejCufbAloegGAA9lUT7VZz-KpJY8WnCg"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14391,7 +14398,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "yqCdCBhW5TFui5FH1Qfo5XskjJbHpXZMkxVtGJZaNFFklnBPDVC5Xp1meIfRNThQQgf3_d_iaHdY6bVv-w09Dw"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -14424,7 +14431,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "PKQwal9p_QQhnqcEC2ILp0uwr4bcwhvukDFptc7Q4SFnMIbUWy__Q_Yaqcp6lzCvYZRjcS3dZ1AoK1ZToGtdAg"
         },
         "root_request_id": "a1000003-0000-4000-a000-000000000003"
       },
@@ -14456,7 +14463,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "nrCMVXhE-wg4apE-GwQp63SeDx9yJ1mp3BGl1KC77AmrCeRwkQQooEFwczwMv2J5zx3xhRreLeVUgz7eTlVGDQ"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14489,7 +14496,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Zkm2dA__5W_y45YtvUboIPcNnmRAsKsdiP1_kZO9MEU6NogLnWaYAgUjE3u7nV9rjRQEIyzqqKIbLZjmznu2DQ"
         },
         "root_request_id": "c3000001-0000-4000-a000-000000000001"
       },
@@ -14523,7 +14530,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "TUnpKD9yjb1RjjGpqCypYtfjxtXLLiKsMdqJ1WVNGDCTjIC2JSf16H2qfZ-cXhd00No-bYNM8tPO2m6I2n8hDg"
         },
         "root_request_id": "c3000002-0000-4000-a000-000000000002"
       },
@@ -14557,7 +14564,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "ni_Nb7ZuQf_QVs9u77CqRurICTuR4W2Ww_meH3F2mDKodK54AzrBctAYTW_1vF3X1g5Lu6YE6ugT14d5OEoaAA"
         },
         "root_request_id": "c3000003-0000-4000-a000-000000000003"
       },
@@ -14616,7 +14623,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "6xerPpUKOq9-dJCD0Oi-ocH1OBMmJ2lL6N5L8iiXfKROZreJDFghFpwNTuZ5O0HEWxe3WmeVpRApYWp97O8JDw"
         },
         "root_request_id": "a1000001-0000-4000-a000-000000000001"
       },
@@ -14652,7 +14659,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "zttv7FzGfxo_agFbDOgJjcoXWYN4ARdHW9STu_OrUlNuU67mjGLsQl9OBWi9XPDerw_yKUOpBfUVouzB7bYnAw"
         },
         "root_request_id": "a1000033-0000-4000-a000-000000000033"
       },
@@ -14684,7 +14691,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "nOgHPRxcuZBa0vpvqT7qulo198nYNw_BcNJpg181DUOwfojUOl7vjjhOpOf3mWZaaQjYprQrpZ-EAn4N6IVxBg"
         },
         "root_request_id": "a1000034-0000-4000-a000-000000000034"
       },
@@ -14716,7 +14723,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "IWTYrWUDVrd6HeaD54vyDM041l139eZE8vCXLVVeH6WFgdHlaDAfirUVX_37tSHvWQQqp-2VGyaahom1p7QWCg"
         },
         "root_request_id": "a1000035-0000-4000-a000-000000000035"
       },
@@ -14749,7 +14756,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "nsqW6s6qtzECRkMRHbm3fpncNg5MifS1mxpw2X0Py6AwOd4IS5LB6eLLc9ZIjF-vlgJYmVjuTh6IKXpNeLHzCQ"
         },
         "root_request_id": "a1000036-0000-4000-a000-000000000036"
       },
@@ -15012,7 +15019,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Lo4ucQ8jHd20_9_ZltYn5YZ1iCm6-5acmGkaHsmbmw3M0Hw21dX0AtQKyQjTvp_6PR4FVgEXLMlG190Y6AYZAw"
         },
         "compliance": {
           "profile": "EU-AI-ACT-HIGH-RISK",
@@ -15192,7 +15199,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.trading-engine#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "Lil5EMErBMFBp7PUKVE98NbtR-UsancfakMBrCKjNoPE7-55MNa1jtPXamFKYOe4T7t8E-lOucnVFtACPukyDg"
         },
         "root_request_id": "a1000039-0000-4000-a000-000000000039"
       },
@@ -15261,7 +15268,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.trading-engine#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "xq39HlzqJa12yRqZJuwTaTuWjh-6mHqwjv8t5mkrFEJuw_r-RmeZbYisLAn3iUP0kvVxpt1cIkTl1-YAmvJIDQ"
         },
         "root_request_id": "a1000040-0000-4000-a000-000000000040"
       },
@@ -15294,7 +15301,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.trading-engine#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "SerkyRfaB-JmY40kPMESI09GDCRVZS1_-boNG14nh4S8RClen_XL-7GjJQYve70rBx5i4z-4cF8xPbYh9kgaDA"
         },
         "root_request_id": "a1000041-0000-4000-a000-000000000041"
       },
@@ -15730,7 +15737,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.compliance-officer#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "wTEUCozOzjmnC8XKXSh2k-r88Bd2OC-hUNlovg8bdOI-wZYM_0iCGtPar2WIAS3m4h2aZdx0NSm2yAW-Q-N_BQ"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-reversal",
@@ -15825,7 +15832,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "kxONKc38e-d3V2Pwz0AA6StvToyy_Ql6pL6kyd9v-V_tTPwIvzDMLZeymPTZJeupuwzEtXUAcQU35NEMe1-CCQ"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -15861,7 +15868,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "gDSE-Kdc_qpas_vwuHnNzOxfEScBKc4vuhV25np8bKCdpk0xyDgpDu4JffbC6NgEu_XEBbhen9EvuK-XM7ZAAA"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-request",
@@ -15895,7 +15902,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "7VgO5aSyBkzxKmQj1JdZAd0PXTcptqpKpIkf3fOTfKz9f8QFKgr903rHCrP19W_78mA8jqgdrwXKXvx_usqqAw"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-receipt",
@@ -15930,7 +15937,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "oIfO9AiTyw-OfIjYz2hiPANX4s1ilvI0KghZXR5iAl_dCmLBSg9BUEJK-k3cZzP-Dk-svytdx4esb9joDaKKAg"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-receipt",
@@ -15965,7 +15972,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "RBh40DQ-VaXQLCzYAnGWo6ZzoIG2850U2L8DdzdPPUvS_jHGZja88L_XAip6jHPy50wBaiEJ-n9DZ2y4TokCBQ"
         },
         "compliance": {
           "profile": "MIFID-II",
@@ -16011,7 +16018,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "bkjX3MxY6pbmvuZzZkfV6L2Qg7XYmGz38IdW0U4cjzu0P87KT2OYR_w7-8xBws-9CQhngHPjhKDzwJKlJbTtAg"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-receipt",
@@ -16045,7 +16052,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "X3wf6azvbJqSiTAPDMGhpmoN6wfBETLnAtpVUsJAO3w84NoASrcNhBIjnQla8Il9-wq8H1rq8yEpi8Dwm_jvBA"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16074,7 +16081,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "kZ9csQHlDxu7uYi2gLp3id9RKtuc1sYzLjFFb6Zj9Ke3tFAuJ9jXRjCqqiWd6qazzl8-u3oaCAPX9ZQ48hqcAg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16103,7 +16110,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "JCUgM7RneHm8O2Ry6Z5x0_VZXp-FBnk4ftNVHbBg3UilnMdUjKXJGvgLG86q4OYqm86dPjC_SgVon8a4I9OTCg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16140,7 +16147,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "-pxTm2G51QSl_b_AX5TTWwcy85PAoDUNUawQwUxrcUtD1zKGtH1QG6d-wfSD5iH2tPxqyZddqSkf8XtlKdLwBg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16169,7 +16176,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "fFMkN_MnCaXuc2za7Xk2YOR0nS5bI4gfllIQEhY7itYkiNn5trKciXZqqsG4VS9KqfMdyqpxuBZHOR8UKxTKAw"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16204,7 +16211,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "ESoMnF5QAAdYeiwKMa2NkCLabf2N42PMVx5tkGNlRRYBk88XLETtfUmo3DxrDOQAzPHydyj4qOD3AuQUkbTbCQ"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16233,7 +16240,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "lEvqsQ-njFX5WExvJt1k4neiBpn4kgR7O-d7oI6762jJj4qqAF1mnF-tT7ftWZ-KSFudTC3rbTfp_97ixm8wAA"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16262,7 +16269,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "Yb4tFesEyWKuUF1FQN2jw3Ah5IjO4Q4vRi_So_4IMz2mpj7TxYoC-hVt_zwEm7KZOBSFJLkfWbA2u83LmUYKAQ"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-receipt",
@@ -16296,7 +16303,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "BsolhR-sij9pSn2dFE6w9Ck-8YR8Jj0EhPo2kC_ULisbw7knFxv-NSAlMBLYD_SeEnll3RhpLQFtv0N4P4oXDw"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16356,7 +16363,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "WXERnpVdJlSw0wq3QuGH1E5c_HxtfFzFPo7UJXItYwzxToIOfEGNj-V8mFxmFPS1g0dPDJ7N_HOUvvnOYUBEDw"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16417,7 +16424,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.qa-inspector#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "cHd6_U3YYQaETz-8zIg3Ib6qlSK8eMWiG87iXJARrqwKMhLcLWAdA1971aqH9I_rx4JC0ttEih5NRonbpgTMAw"
         },
         "payload": {
           "type": "com.example.delivery/confirmed",
@@ -16444,7 +16451,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "NSvVu-4Gxe2MYzuwUQTkLZlC5x-8DTGOBbKQbnsmnu6oVrt02w9RSWHNpUEIvU2bZTfhrukcyAJyd58r4MVYDQ"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16481,7 +16488,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "_nL_SyZa-kiQEBipdBL2OIoBYqo_sbjhf2NPUMSzVjnEUMkeZMDbj_uk4Ux04rIcrl8d1LO1BnIfz1GGwxnKCw"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16510,7 +16517,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "emuvPxkaJ_MpTVJJSdG6Q_AaDDwgEIXfnEuB9DKYIBKv4Xzsc0yXOuz6HvDmIgi3g2MmwmG76cvYWsPd0v4JBg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16539,7 +16546,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "pB3lKiva-AzAIIIEzeA0UAezo88ASwscMKDK7fFhkGSrwz6rPTjGyyJ_vPLGvJ2ERe1WZ_Un7QCDQAiijes2Cg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16568,7 +16575,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "4pdqLJjbzaf5q7lrACzx0Do4HT5NcgeYRzTFfVmWHaz9FQms1EpoONWaFl-wF2Ybk4Nz9MrCyHVqrEobv20iBQ"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16597,7 +16604,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "EDHHFeDqMYrQrgLCWVH0Sn76nOwTnZFa5WFf_q1AzivdNF2ZmdTju4K2KtobQtQyV18e1VrCk1DLU446Z42QBA"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16632,7 +16639,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "yNDL7Ui1E2kK9ZFu2RO9DrlbbNgU7rAc763u6DB5VXoG72IOfbeMO5_ie-P79xXRdMTvG0z_u5eXjnukds2eDQ"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16664,7 +16671,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "dcKF2tYbUQhZUccZyUMf6EwL29MFZs9AW6ni2Z2lWbcJpAmfqprIwlfx19uqPm73icMRmSQMve0lWgCxAo-XCw"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -16695,7 +16702,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "KSPVNNaXXAzwtapnhEOf_x4EjWCEOjxG8U453gGiwuzT_t4eN1WO0HtJjcyvWWG3h7yPCOEttQa0EXNB1-7tBg"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -16726,7 +16733,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "OVmkp3QIgJl_pmIEy2jXK8LjMrPthxE36wMj8k6d3t7D7pB9-nuzEFweUm_TxKPalNJH0fCtZtcSEuO-0X-1Ag"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-dispute",
@@ -16754,7 +16761,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "NCrH6EbkyWJOdJGEeeB-_Gj8uJuRa5_ArmY6bMixDktvsl2JDCdMhdbW1dbh2Ia7NSTKeQNDZIikyKz9aJhDCg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16816,7 +16823,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "UALuL2Y9VENR01TlV9hOba39NZ6sblQIcu1HN0eEMQtGdOcZJDqSPjUB_AuBZSdkEQtuiBWIqKKCn2wtrvAfDg"
         },
         "payload": {
           "type": "arsiaprotocol.error",
@@ -16881,7 +16888,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.compliance-agent#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "XBYC_2RIl-L3r74SSGKp2WJ2n_TuAPbebcZTkA758ug1KvkbVondiw59gT7an_R6bLntoXouqGoBX9NDuMp5Cw"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-cancel",
@@ -16911,7 +16918,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.compliance-agent#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "MYkJVDgk3qpUr89Sgfjzq9-VcHsB3nakefYMl6I0UGCmfuNnCkYtqLFSMbR2ESV1AuaPNJAd6GUHeChQRsp2Bg"
         },
         "payload": {
           "type": "arsiaprotocol.assets/escrow-cancel",
@@ -16940,7 +16947,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "sCfxcZkpoGrVAp95C1mESJ4Meip2LYWsHDMpe1Uu4O6ngspgzaL9gzxkGyPRIOWbjif7YZ_XTE1vtBFG8OhJCA"
         },
         "payload": {
           "type": "arsiaprotocol.oversight/pending",
@@ -17103,7 +17110,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "bIYoBSX1UUTQyVI_Zb7ALzm-iVjDfgDl5UJ3YsWw3295KkhiWZWNmDYrm3PcNQg0uQXGi8hpmmUa6u9PfGHqAA"
         },
         "payload": {
           "type": "arsiaprotocol.oversight/pending",
@@ -17269,6 +17276,9 @@
         "from": "agent:acme.senior-compliance",
         "to": "agent:acme.transfer-processor",
         "intent": "approval_decision",
+        "capabilities": [
+          "arsiaprotocol.oversight.approve"
+        ],
         "correlation_id": "e5000402-0000-4000-a000-000000000002",
         "payload": {
           "type": "arsiaprotocol.oversight/decision",
@@ -17310,7 +17320,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.transfer-processor#key1",
-          "sig": "placeholder-signature-for-schema-validation"
+          "sig": "zxAxZo2n67PkvZFd4JP74bjVy5FlqUNhvcFbJiLHOMYj2tZOR-ajcbcJib70hp3OPlnZqmOSQQ65qDKEQa_xBw"
         },
         "payload": {
           "type": "arsiaprotocol.assets/transfer-receipt",
@@ -18100,10 +18110,15 @@
         "security": {
           "alg": "RS256",
           "kid": "agent:acme.legacy-system#rsa1024",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "Kd90pd6QvB31iyn5wEMjuJOWwB9DsLrBuWFlYycUvtDKCpectcStrU10qMbCSdjNqB9f9XF24oZDi1LiPpn9j31bl_sErGrAUdK46q3_CKGdyYIyMqDdzYqCNQbyHGmViys4Eo8XNWxLNG0jxgA5OG_PZycqu93rqzFxvVyS0wg"
         }
       },
-      "expected_error": "unauthorized"
+      "expected_error": "unauthorized",
+      "signature_expectation": {
+        "result": "invalid",
+        "cause": "key",
+        "condition": "size"
+      }
     },
     {
       "id": "ITV-426",
@@ -18131,7 +18146,12 @@
           "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         }
       },
-      "expected_error": "unauthorized"
+      "expected_error": "unauthorized",
+      "signature_expectation": {
+        "result": "invalid",
+        "cause": "signature",
+        "condition": "length"
+      }
     },
     {
       "id": "ITV-427",
@@ -18151,7 +18171,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "5d_qFRbOnfx7yapeSfxNIpHCqgsvmtEAgcE2vLSVhVBj3g1BW_sx9rsxBKaUX2k9cOvInfQAYECWflcuKFIcBQ",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -18180,7 +18200,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "zifx9N0BEBqb35oYDOV6zfawqOEERx58E0J4JIWLNeNLYL0q8DGlDzR6oyNtAu3peNp0dm21mtIoyZYntdvyAQ",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -18206,7 +18226,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXItZm9yLWVuY3J5cHRlZC1tZXNzYWdlLXZlY3Rvcg",
+          "sig": "GtyJfD2XhsgPvFVnkuEvGIbrO4MX_EvUnyijgAC_JiJJlddu_12VgbLFMT7N4xZNNFumgybkL68BcTrYh6l8AA",
           "encrypted": true,
           "enc_alg": "ECDH-ES",
           "enc_method": "A256GCM"
@@ -18263,7 +18283,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.shipping#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "u08AcHOYRcUbtf9xRNZ_tWCAC9nZVZY5FgJ8E-433WX-soSpKVwcceWKD6m93ZKV2UidPZ0iTt_AOkaJBFBcDQ"
         }
       },
       "expected_error": "unauthorized"
@@ -18295,7 +18315,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "H8WsuQTPgPuKfZh_8jEiMlsPHmR4d_K-db82c2Qmdk1KmQMQSvdV4ovx9ULDu67sGlKNZxb3Yk5e3ufxQM1HCw"
         }
       },
       "expected_error": "unauthorized"
@@ -18329,7 +18349,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "sUjcgTfmduRaPM6QlcL0wrLhwRUePLZJPlrkaMKjKWZBmiWceIH850gLitiI7BGoR5ipaPII7q-18ZcEdpH2DA"
         }
       },
       "expected_error": "forbidden"
@@ -18362,7 +18382,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "Y9pIG6KPkSrIugXn0AMzpdg_JXuMzoeOUdeTwr8JlzCwGnWf5P_wunvmqmvbKoUBWT8BXcxrtOXh70ZzzVfhDA"
         }
       },
       "expected_error": "unauthorized"
@@ -18395,7 +18415,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "FTgjT9C_FYh1EKvQgz_M15rHuziw_mMAJEKE3trOJX0hGcm_j9i1pViNmHlkZV1Wg2Zz6d5nsE3s_9nuh3zFAQ"
         }
       },
       "expected_error": "unauthorized"
@@ -18428,7 +18448,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "p-uwM3E0Zb-0g8gZjiyNs3Ca8reLMykQohKwZRZ_rIvZk16PDRBYOGZ51z3Af0fo2HitE0-PxifKkavWyo3mBg"
         }
       },
       "expected_error": "unauthorized"
@@ -18461,7 +18481,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtcGxhY2Vob2xkZXI"
+          "sig": "vkdR1SeWwrwIIYRY97pcRPddkIZo-0ivFI3RMiTD8YhU1PgyBMZhDNjdyhJuD92RjPIgDiIpoj5cCqNZrXFqBw"
         }
       },
       "expected_error": "unauthorized"
@@ -18658,7 +18678,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "ew9huM8p7PuNmXED-VR2ZCQg6eDQPUuC9L54Dofw_QgvzlaS36fPzikVkabq2ywPsMIzPumWt2aalIh40Ti2Cw"
         }
       },
       "expected_error": null
@@ -18691,10 +18711,15 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:contoso.crm#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "Vs1tC3TsJV4X9Iv27BXFKXUwX5hhhs3yBoufFVzM1AW6Bjs0UdJWJD52baXxZAC7zFW1PQu_qc2X5OGIkYPRBA"
         }
       },
-      "expected_error": "unauthorized"
+      "expected_error": "unauthorized",
+      "signature_expectation": {
+        "result": "invalid",
+        "cause": "kid",
+        "condition": "binding"
+      }
     },
     {
       "id": "ITV-446",
@@ -18724,7 +18749,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "H0CGXeQWpDFz8UwDBWHd4XViZw1aupgy_NihThfTh0obPWjYwZQAQ0TTr2njPzKonCXv1HPNjdIOyTcpHKa_AA"
         },
         "compliance": {
           "profile": "EU-AI-ACT-HIGH-RISK",
@@ -18776,7 +18801,7 @@
       "schema_ref": "arsia-jwt-claims.schema.json",
       "expected": "valid",
       "skip_schema": true,
-      "skip_reason": "Runtime constraint — nbf temporal validation not enforceable by JSON Schema; schema does not define nbf field (additionalProperties: false rejects it)",
+      "skip_reason": "Runtime constraint — nbf temporal validation not enforceable by JSON Schema; the claims schema does not define nbf but accepts additional claims, so the vector is structurally valid; the not-before check is not executed here",
       "data": {
         "iss": "agent:arsialabs.demo.gateway",
         "sub": "agent:acme.echo-client",
@@ -19597,7 +19622,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "mQfEZbZVt5SkdaTKnx9VYjx1uEgFlqt9Mkv793CHx8vQlS4Qb1LjyJSbO5osTewbNCJ4BkNsuauqCvboUT1TDg"
         },
         "root_request_id": "d0900478-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -19765,7 +19790,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "JSSS5nISkyY35T2fnZPUuVNZKmdxsTXeR0b_UgMPLoXtuTyawYagLRXY1MYZ8uYUb9nVHMjeq8mcH2gnNClSAw"
         },
         "root_request_id": "00000000-0000-4000-8000-000000000000"
       },
@@ -19931,7 +19956,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "d-dVlvJTwvHTGqxGNCbVcBsK6sIEClEvb-SloYfS6qUfb859fI-dQVno34fHS644cEowaf3Dbpd5F2eTMfsyAg"
         },
         "root_request_id": "d0900480-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -20096,7 +20121,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "Ye41G1dhzR-0BV3gG6v8cf7gIwtXeVED6lNC7QZrWHQHNKbScSEICPQods06pwfg1-R29bUc2CY1C0ODvXEhAg"
         },
         "root_request_id": "d0900481-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -20386,7 +20411,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "h1feF8gutXiTfxovC2eXlBwdOrP_X6A0x8wPi0m1dy1yfNCc_jKWZR61EdiQ3EABIBEKIcpOrGyVvtnDLl2lBg"
         },
         "authorization": {
           "token_hash": "sha-256:434f66a84f54e802ea47c4fa352a304349c20fa038aa54cab283fec3c7c0ee1f",
@@ -20489,7 +20514,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "9U6qmKDCB2ggrtpdoj7a8kDifQSBjk46UVopXqUKSyxtnYLLMPs1exPsUjg1_49twzKSKcew8aMKpHL8Mu7kAg"
         },
         "authorization": {
           "token_hash": "sha-256:2ba6aae7af32d76927fb0f6511fb0e05d27bb924428422be56ea02c9c51ccc89",
@@ -20529,7 +20554,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "teKvUzNexb1EYCitKnL7FEFWtbCRrLVpAyNmYTyKNEs4zXwOJozq1ocs1OPyEAc0Tivxbty0A7cZER5sfJd2Cg"
         },
         "authorization": {
           "token_hash": "sha-256:7dfcc37289c6610ae790927cb0622f9829e54d20c540ff35c9c695993d846399",
@@ -20595,7 +20620,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.payments#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "LaKPho2_J83wD0zy-Y76MdbytTJSVTkTwQORITnH07RJghLIGVkfOIXg4ZbFvcQNn5XcKNb6CJ0UBolRNbeKAQ"
         },
         "root_request_id": "d0a00497-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -20603,13 +20628,15 @@
     },
     {
       "id": "ITV-498",
-      "description": "Routing §4.1.9: Message with expires_at in the past MUST NOT be processed — expires_at 10 minutes before ts demonstrates runtime expiry rejection pattern",
+      "description": "Routing §4.1.9, Core §4.2.2: INVALID (runtime) — a message whose expires_at (5 minutes after ts, as \"strictly greater than ts\" requires) has passed: received 10 minutes after expires_at, beyond the 300-second tolerance, it MUST NOT be processed. Rejected for expiry only.",
       "category": "routing",
-      "valid": true,
+      "valid": false,
+      "skip_schema": true,
+      "skip_reason": "Runtime expiry validation — schema cannot compare expires_at against the recipient's clock (Core §4.2.2)",
       "message": {
         "v": "2.0",
         "id": "d0a00498-b1c2-4a3d-8e4f-567890abcdef",
-        "ts": "2026-04-30T10:10:00.000Z",
+        "ts": "2026-04-30T09:55:00.000Z",
         "from": "agent:acme.echo-client",
         "to": "agent:acme.echo-server",
         "intent": "request",
@@ -20626,10 +20653,27 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "nwrVAZW8tXpC-mFYjFLbxnhd_rY-tMVRjSK56bUwIUD2jtuTZayjonMOYD8xyNmt2hNfEGTdATxuJKmrE7G-Bg"
         }
       },
-      "expected_error": null
+      "expected_error": "invalid_request",
+      "test_metadata": {
+        "scenario": "timing",
+        "input": {
+          "recipient_time": "2026-04-30T10:10:00.000Z"
+        },
+        "expect": {
+          "tolerance_seconds": 300,
+          "tolerance_source": "default",
+          "ts_offset_seconds": -900,
+          "ts_within_tolerance": false,
+          "expired": true,
+          "outcome": "rejected",
+          "causes": [
+            "expired"
+          ]
+        }
+      }
     },
     {
       "id": "ITV-499",
@@ -20688,7 +20732,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "mkH1gb1uCtDrpyL4BQ4hMSX3nOX6951tzKTyjj-orn9B_MI_u86_64XwiZPL7fC5ZITWT5fkLT-UbgpRO7XKDA"
         },
         "authorization": {
           "token_hash": "sha-256:bdf7b6ab25f55931ba878c23db2e62e5ae81f362b6ae6d27735f6114bdbb9c50",
@@ -20747,7 +20791,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "q3wbSBifavee-JGOjfxfIRqU16uA7w1PPTiUwo_3QB3eYhhhcuNs9PDBHSg_7qkQEX2JyfWXX5jhqVHn49nxCg"
         }
       },
       "expected_error": null
@@ -20780,7 +20824,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "TLwHZzQSAJIeBpY-LaEvcIajOff0CP11QQwd4q6hXwoXW_WG7xYVTnj2KOe2MA94lwX3kSq7eRQz5V99JlOjAA"
         }
       },
       "expected_error": null
@@ -20808,7 +20852,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "u4W2paNqHsamu5su7SyhvLD6hhFp9lPiwFWeIFQO8jNDvx50zpcFofF34vzjyJ7VmXon1MEW3e_uMfvitvZyDQ"
         },
         "root_request_id": "d0a00504-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -20950,7 +20994,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "otko7pgKgYhgfH2hzITxfX9hmnrxQyleTwZz6FPJ4zSdNAKtM5o1eK1KqfDLrFeG50jtj7ae6vC8leTNDQo6Bg"
         },
         "authorization": {
           "token_hash": "sha-256:fef01ded44e19c1316b1cf2d7717cdfb61bc7135674974f7f26ffcd6a69217cc",
@@ -21019,7 +21063,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.data-processor#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "k1nM4cmqb_IHAfSXBpVR0i-i2N_xChXE6jbs4Be-G5-0gIKZSgSH55Ja7SHTh5QLLBkQmveCYmXeMo-pT6M9BA"
         },
         "authorization": {
           "token_hash": "sha-256:87fdaa9b1012ebd9da30c987c55bd96a6c8430e3bcf836ed8f06147c9b43564e",
@@ -21058,7 +21102,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:contoso.risk-assessor#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "dGTRohDzKntx3NRo9eh2eN_gB_RqRDWhVNhdV_L6s1LBGrU1sbfDn0eHxDJcUj3UeoLueFVzRYVUhggU7y0TBg"
         },
         "authorization": {
           "token_hash": "sha-256:50f572037feebb0f234372925d257bf6c6346b3cf6b6b1563f1dd5c368c300ff",
@@ -21099,7 +21143,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "DASKZEnHjQcMHRJw2S9YCtUIzZIJ-Oa7cNIcSy5-xvmCsn25uz8uhKzL-SN_Hgj_v9Upa2feOVHVIdwP0LokAA"
         },
         "authorization": {
           "token_hash": "sha-256:32ab9b8bc3576d37dca43b706137d0e180e1dc993430885baf52ad002739b6a6",
@@ -21164,7 +21208,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.compliance-checker#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "zMl178vv5VtoVzQR6WWh2TuDvYKMRXtZcNDQdAgCxnYaGc5OXKqZZH8OoWcZPlPA6zcjw1iM0clj-ZTYsp16BQ"
         },
         "root_request_id": "d0a00516-ffff-4a3d-8e4f-567890abcdef"
       },
@@ -21201,13 +21245,15 @@
     },
     {
       "id": "ITV-518",
-      "description": "Routing §8: Conformance test MUST use expires_at > 300s in past to guarantee rejection regardless of clock skew tolerance — expires_at 1200s before ts",
+      "description": "Routing §8: INVALID (runtime) — an expiration conformance case uses an expires_at more than 300 s in the past at the recipient (here 1200 s), guaranteeing rejection regardless of the clock-skew tolerance; expires_at is 5 minutes after ts. Rejected for expiry only.",
       "category": "routing",
-      "valid": true,
+      "valid": false,
+      "skip_schema": true,
+      "skip_reason": "Runtime expiry validation — schema cannot compare expires_at against the recipient's clock (Core §4.2.2)",
       "message": {
         "v": "2.0",
         "id": "d0a00518-b1c2-4a3d-8e4f-567890abcdef",
-        "ts": "2026-04-30T10:30:00.000Z",
+        "ts": "2026-04-30T10:05:00.000Z",
         "from": "agent:acme.echo-client",
         "to": "agent:acme.echo-server",
         "intent": "request",
@@ -21224,10 +21270,27 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "base64url-placeholder-sig"
+          "sig": "TQw_JuVkFXKmrfAmEd12iexsfNzJYQJ0RUJX28G7fDrM1SaXX5ODO3eFpVgk17ze5406Uy95rbA4nzX1c1wNDg"
         }
       },
-      "expected_error": null
+      "expected_error": "invalid_request",
+      "test_metadata": {
+        "scenario": "timing",
+        "input": {
+          "recipient_time": "2026-04-30T10:30:00.000Z"
+        },
+        "expect": {
+          "tolerance_seconds": 300,
+          "tolerance_source": "default",
+          "ts_offset_seconds": -1500,
+          "ts_within_tolerance": false,
+          "expired": true,
+          "outcome": "rejected",
+          "causes": [
+            "expired"
+          ]
+        }
+      }
     },
     {
       "id": "ITV-519",
@@ -21543,7 +21606,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "Y87IQdoHyj0_drTYpOXdNnW0kCkGQH_OWiAmgr_t91SfEUdgDs1b0ktEuD3I0trmc5ce8Kr5C8iZ9Ot4sSWEBw"
         },
         "compliance": {
           "profile": "MIFID-II",
@@ -22174,7 +22237,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "2rpv5aCh7VmWtMJIvFcYrTn9DgoP-nk6Perd3zLcpniM0XP2Me1J2zXjaJszgwVN-HoaLng5pY4B1ai0-bpsCQ"
         },
         "root_request_id": "48ce29e7-d7b7-400d-a43e-2843aa0b9d2c"
       },
@@ -22218,7 +22281,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "1LcKYJGkkpHBC2_XKJC7yUZUXS3gA0tp3zuKqhwNCCMwSokZcNp82Hfz49jzsUM1k1Bt9-GfPQIUD8o6ysynAQ"
         },
         "root_request_id": "3b62ac07-386f-44e7-a286-47bc27a5f9a0"
       },
@@ -22264,7 +22327,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.rate-limiter#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "W6a4fpvLEHFe6GjhaZc0ZyEAhfNrO4cEv0lCg86IqpkdNYEE2BblN4Qr3N5h7DHs3_RViOOvV9F-xGudfoSHAQ"
         },
         "root_request_id": "b2000534-0000-4000-b000-000000000534"
       },
@@ -22297,7 +22360,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.gateway#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "jRx8S2O-NrzoW2t3no57HJM-5qeNf3dTTSsAmsqKDoHHb1Sttxr3j23S343UA3yut6R7eZaI-cykljAjJ1pQCA"
         },
         "root_request_id": "b2000535-0000-4000-b000-000000000535"
       },
@@ -23088,7 +23151,7 @@
         "security": {
           "alg": "ES256",
           "kid": "agent:arsialabs.demo.sender#key-es256",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "0IzyYf0Nc8gL7eS2uWYEcqjWmQj1uKRINL1aORtnJJH3tjtcdnIuCzW7L02eUipA0AtVqpn0CQhmb6jjGo1GXg"
         }
       },
       "expected_error": null
@@ -23114,7 +23177,7 @@
         "security": {
           "alg": "RS256",
           "kid": "agent:arsialabs.demo.sender#key-rsa2048",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "hwrfKUpf5xeEyRZ4FS4HtrwV0rViSrekFI9TYvHqpimq8KpEUwkN0qHHKwcJdGuUbkrRk5hv7mih_H-F8BBFPvIvpcdjKJI_d4r5jZLe0TppEdnsgay0Yjr1eR1u9PjenwG9cj1KTPfe6HKtu9mpi_xqmJ0IfgY86sggcI2oCUq8maL0O4N3rYsHF4kSkZoGTXUNukPBNIhIeWDC7vuRdyqxAehK0pB7ABPCSw3eMLU3XJs9gVxyJ95jzgaHNI6NNDT3ZMX2aLdYM-rI_1TgsDjg4lXEtur7L0ZQtRfXu3cjYF-DDbNfgN2TlA9juNmbkvPCpK6dbUkcsZpj_sPyyQ"
         }
       },
       "expected_error": null
@@ -23126,7 +23189,7 @@
       "expected": "invalid",
       "data": {
         "v": "2.0",
-        "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+        "id": "c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f",
         "ts": "2026-04-27T12:04:00.000Z",
         "from": "agent:arsialabs.demo.sender",
         "to": "agent:arsialabs.demo.receiver",
@@ -23143,7 +23206,12 @@
           "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
         }
       },
-      "expected_error": "enum"
+      "expected_error": "enum",
+      "signature_expectation": {
+        "result": "invalid",
+        "cause": "alg",
+        "condition": "not-allowed"
+      }
     },
     {
       "id": "INV-15",
@@ -23733,43 +23801,18 @@
     },
     {
       "id": "INV-21",
-      "description": "State §2.1.11: INVALID — SET with pii_classification 'sensitive' but pii_special_categories absent. Schema conditional requires pii_special_categories when pii_classification is 'sensitive'.",
+      "description": "State §2.1.10, §2.1.11: INVALID — SET arguments with pii_classification 'sensitive' but pii_special_categories absent; the set-args schema conditional requires pii_special_categories when pii_classification is 'sensitive'.",
       "category": "state",
-      "valid": false,
-      "message": {
-        "v": "2.0",
-        "id": "d0557001-b1c2-4a3d-8e4f-567890abcdef",
-        "ts": "2026-05-01T10:00:00.000Z",
-        "from": "agent:acme.health-processor",
-        "to": "agent:acme.health-store",
-        "intent": "request",
-        "expires_at": "2026-05-01T10:00:30.000Z",
-        "capabilities": [
-          "arsiaprotocol.state.write"
-        ],
-        "payload": {
-          "type": "arsiaprotocol.state/set",
-          "args": {
-            "key": "agent:acme.health-processor/agent/patient-record-557",
-            "value": {
-              "blood_type": "B+"
-            },
-            "scope": "agent",
-            "pii_classification": "sensitive",
-            "data_residency": "EU"
-          }
+      "schema_ref": "arsia-state-operations.schema.json#/$defs/set-args",
+      "expected": "invalid",
+      "data": {
+        "key": "agent:acme.health-processor/agent/patient-record-557",
+        "value": {
+          "blood_type": "B+"
         },
-        "compliance": {
-          "profile": "GDPR-STANDARD",
-          "pii_involved": true,
-          "legal_basis": "health_medicine",
-          "audit_required": true,
-          "data_residency": "EU"
-        },
-        "authorization": {
-          "token_hash": "sha-256:c670261bbbdd038ee69b4f6a6fb8eb8a33e597ee928754ce8313ac9f09002d5c",
-          "proof_type": "bearer"
-        }
+        "scope": "agent",
+        "pii_classification": "sensitive",
+        "data_residency": "EU"
       },
       "expected_error": "pii_special_categories required when pii_classification is sensitive — State §2.1.11"
     },
@@ -23860,7 +23903,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.gdpr-agent#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "7x6asBt06JBcIIshWWDzMHn-WgjGlh5IHMdLZ3VIg680iIJ1q89tRcdM0HlZvQ9G61zGkIRM7szkLqMLYOkMDg"
         }
       },
       "test_metadata": {
@@ -23898,7 +23941,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.audit-inspector#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "WZtGdp5eZvMVBdxMzYEi14o_ZN-oYHYbNxw76fMl08ba2YJae0aEjij1MEI3hOLs-A6_kzk9O1NSN_VUzAEgBA"
         }
       },
       "test_metadata": {
@@ -24096,7 +24139,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.chatbot-service#key1",
-          "sig": "PLACEHOLDER_SIGNATURE"
+          "sig": "UD4SZbMUs-NpTxvOAO2k7oj_Zpf5BvVCMwyJbCb6wYLbcXtcikR0CZ3OtsqGY8bTsleFQ_MolPnsHZ7rGYcPDQ"
         }
       },
       "expected_error": null
@@ -24143,7 +24186,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.content-moderator#key1",
-          "sig": "PLACEHOLDER_SIGNATURE"
+          "sig": "nv9juFGzM5G47Vn-HPjPCrEOQ9Bh6qd4fZ5wXGd5r1nWxudUgR0e2505NT17ri_a2r9BvPuPFvHLn8eIKn4BDw"
         }
       },
       "expected_error": null
@@ -24190,7 +24233,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.ict-incident-handler#key1",
-          "sig": "PLACEHOLDER_SIGNATURE"
+          "sig": "aoWqOVYGX9RtFOYOfllIFk3WRXAEtrfDZiZveVlBYjlIia15NsBuaENVs-LuagKDCNIs5qqCdUpK24uUfSBKAw"
         },
         "authorization": {
           "token_hash": "sha-256:b4749f35057e0c1e661b62363dc5edd22fe0e3084f76bdef4e7c78736da24f3d",
@@ -24334,7 +24377,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "f1e7UkYmUHS3HasEoczxA5d_Y2pExgyH2kMPgEzUWdDq6HbQow6JhgVtIKzbYdDbYZvz256LXSOZfm5knG--CA"
         }
       },
       "expected_error": "capabilities items must match capability-name (concrete, no wildcard) — Core §4.2.3"
@@ -24364,7 +24407,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "OqbSzVt4HSNC1Df_AcfdKvTa1CLSuCZoEk4WGsSgAhwLfPUzkddoSgsreaCww2v8FmO5mCuUQe6cpFTPx3fjAg"
         }
       },
       "expected_error": "capabilities items must match capability-name — Actions §1.1 Rule 4"
@@ -24394,7 +24437,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "JuP5cbO6Lypyj2zQdcbb6eOHsrzPTGpVcGt3RuLMUx-MyRshDuAGXRGwnW_mSLJCOSsf3B5eh4Ci-xQ2rx7qAw"
         }
       },
       "expected_error": "capabilities items must match capability-name — Actions §1.1"
@@ -24427,7 +24470,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "t5a8YJTuNLndUAypJkEi_cjnaCioN9r9o0OveNCLygoqPaRe_s5oznLjv-1yCUrh8QghVVI-61deffgW8fouCQ"
         }
       },
       "expected_error": null
@@ -24459,7 +24502,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "C_5X9yWbrPHyz5Py1wxIwM1-UpR2RYi5xSLEb4Y8r3hKVwhloEfK_bD5y8Jla5Bj7ICgmMWw5TgO28N7VSVsAw"
         }
       },
       "expected_error": null
@@ -24491,7 +24534,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.billing#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "DiDjP0Y2udeBWnZgM3xLCV4tqDaq55NVObFX9k0qrwuoAGrxGooQKQfT5VynkDj_ad3X_NEuaWHRbnFUavW5Ag"
         }
       },
       "expected_error": null
@@ -24632,7 +24675,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#2026q1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "M8PNwzHdvsVhc7seEHyXxghfsaknGsmW3S3j60--9uK7vT8bn78Obi6jvl_EbWkLlzasRLoZ6PJEqC-LHiqVDg"
         }
       },
       "expected_error": "authorization_token_hash is a required property — Routing §7.4.1"
@@ -24660,7 +24703,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#2026q1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "V0iDNHElFuIEXutRGaGfbclaSVGooAzzkNH_BDGaZObx_ODnOMrqyCMAYEDWxsb1mlRONnOPhPciQImnDXDtBA"
         }
       },
       "expected_error": "envelope_hash must match pattern ^sha-256:[0-9a-f]{64}$ — Routing §7.4.1"
@@ -24784,7 +24827,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#2026q1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "lgzQCrchSdO07jEVLwvR7f57371dJZlj9fymEwIfxKrFH7v799AXXHmbkh4sQosKTxpFVnYj02d1uPisvuC1Bg"
         }
       },
       "expected_error": null
@@ -24814,7 +24857,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.broker.eu-west#2026q1",
-          "sig": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          "sig": "lgzQCrchSdO07jEVLwvR7f57371dJZlj9fymEwIfxKrFH7v799AXXHmbkh4sQosKTxpFVnYj02d1uPisvuC1Bg"
         }
       },
       "expected_error": null
@@ -25155,7 +25198,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.echo-client#key1",
-          "sig": "OnGht3pNUzR5AQmXkaAYYjXjsNluj94ApWBXtzTjQDQB9pwmqH9PSapA9xEv7ixXQljGxhNscfO_sDLj6_5-Ag"
+          "sig": "dDVjBb91_pE8zFXAgceJrl62m1CvbHXVFOAILceT744dud7U9DCkRJjTGPMt7KenM7nbvhgeT4OwoBbnd6wMAw"
         },
         "root_request_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
       },
@@ -25190,7 +25233,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "j6CpUAuXLC2IPda3zztervC2jlqMKvkiqlDjPiuh_hBz6yvatv_HkPrNT7MGnVRYAHpx4ldEV9VL1u3bN_ukAg"
         }
       },
       "expected_error": "root_request_id is required for response/error/pending_approval/approval_decision — Core §4.2.4"
@@ -25240,7 +25283,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "qWaIT1j8HGA5UtRmvGY7yXD82-n68AgBMTDBAck_mJ6Tbd79d-Krm0kOfuOGAPHObnYsBG1sK-tUNHnJVJomCQ"
         }
       },
       "expected_error": "context.trace_id MUST NOT be the all-zero value — Core §4.3.3"
@@ -25267,7 +25310,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.tracer#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "oAqPhG3Zi9MtK53wrwpPC8mDzIx2a5YJRpZZ84nFLoqQg0UiwPuQEPv-KGJqD5XB10R5bPQrhcjeEKgU4T6GCw"
         }
       },
       "expected_error": "context.span_id MUST NOT be the all-zero value — Core §4.3.3"
@@ -30468,7 +30511,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "nBQ9rRergmAy-42KiRRDTrtS6_PTMFjEDQtYS_6wtZiMaJd0lo0mKZ2YCsD1vVBMj9skE2bl2zlyWNziNb5UCA"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -30622,7 +30665,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "47WoWNxayHTTmGUZ-JAHLLA1Di5xZuIBwi4ZpV7KIt1dkirDPD8hoxSzZCaAAhIum9wxtHQbI7crP163MhoKAg"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -30692,7 +30735,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.executor#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "j8sk9U-z63LmhUIsAAm9yt6tRId0t2IBzyG-dHOi9cVuI015b1AxiGntnW1GLqwHZFDf9Tji31BwORYpvtRoBg"
         },
         "root_request_id": "a1000002-0000-4000-a000-000000000002"
       },
@@ -30759,7 +30802,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.oversight-panel#key1",
-          "sig": "dGVzdC1zaWduYXR1cmUtZm9yLXNjaGVtYS12YWxpZGF0aW9u"
+          "sig": "UwAOu9tRI1u8Ny0Tj8FQfYCew2SCTQZOgTimSU_3uNOZN8RqxxrMpRIZsGzrdvJCZMSHxR8NJX25-8BMWXnqBQ"
         },
         "root_request_id": "3b62ac07-386f-44e7-a286-47bc27a5f9a0"
       },
@@ -30918,7 +30961,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.compliance-checker#key1",
-          "sig": "HwWL0A2hZK4dmywkJPyeplhESzcZ8lgaPWGzsDYwZkT-KiaRnEvomnYI-6k7W6e4WFORFnsZ3rG4Cfz1Y-_qDQ"
+          "sig": "y8ytuZX5H_RcgDOeP7CptX7-65QgR6uZzsC87Z1NcygVwp_hn2L4_u3y3sLzMmDZ7djf1HrhOv1F8DeLeVTTDQ"
         }
       },
       "expected_error": "capabilities is required on a review decision — Actions §3.9.3"
@@ -30952,7 +30995,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.compliance-checker#key1",
-          "sig": "HwWL0A2hZK4dmywkJPyeplhESzcZ8lgaPWGzsDYwZkT-KiaRnEvomnYI-6k7W6e4WFORFnsZ3rG4Cfz1Y-_qDQ"
+          "sig": "3B6CkEM7aq7ZEFBPO9LVKennETJqC80Hqlvx-gscm4FbXDyLD47BoE7hMZh3llAy6FhqNNWujflWlis7LYXhDA"
         }
       },
       "expected_error": "correlation_id is required on a review decision — Actions §3.9.3"
@@ -30997,7 +31040,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "odvx33RdZb6-pOkx1O_wSFsbYdLHG9kpTCfvA2fjjiIiJI91NUf-uTdS4syvD6k5uwAgx61v8CuBIP9BlXTVDg"
+          "sig": "DBkWOnyzRTgz2saCWKNCBjydbwQaSiUjueuXj8b7lUEN-K8qVRudyu4ExAknr_LOwxn1qXO7p8XwH8BRkcLyBA"
         }
       },
       "expected_error": "review-pending data has an additional property — Actions §3.9.3"
@@ -31041,7 +31084,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:arsialabs.demo.risk-assessor#key1",
-          "sig": "odvx33RdZb6-pOkx1O_wSFsbYdLHG9kpTCfvA2fjjiIiJI91NUf-uTdS4syvD6k5uwAgx61v8CuBIP9BlXTVDg"
+          "sig": "ZvgyqmN4qZlMz1Uz4CvSIswl4bigcJGH9T8zUpizbgPwzjHW8XxmaqK91cvklJZDa47B8wes44kC-KbBdPXYAQ"
         }
       },
       "expected_error": "intent must be event for arsiaprotocol.oversight/review-pending — Actions §3.9.3"

@@ -256,6 +256,46 @@ alignments, listed for the GitHub Issue (CONTRIBUTING §4).
   text demonstrates the obsolescence and no new protocol rule is chosen (owner's bounded
   authorisation).
 
+
+**Addendum — 2026-11-06 (owner decisions for the Draft-01.1 port, under DR-0).**
+- **Sequence.** The Draft-01.1 corrections that the Draft-02 corpus still lacked are
+  ported in their own cycle before the main branch is merged. The merge then records
+  each correction as equivalent, fixed in the port commit.
+- **Keys.** The catalog imports from the Draft-01.1 catalog only the entries whose kid a
+  Draft-02 vector uses and the Draft-02 catalog lacks, unchanged and with their origin
+  recorded. It never overwrites: the five kids whose public key differs keep their
+  Draft-02 key. Two keys no catalog had are generated, one of them an RSA-1024 key
+  deliberately below the Core §5.1 minimum for the key-size negative.
+- **Signature expectation.** A vector without a crypto block may declare
+  `signature_expectation` (`result` `invalid`, a `cause` among `kid`, `alg`, `key`,
+  `signature`, with a `condition`). Without it, a present signature verifies
+  mathematically with its kid's catalog key. Kid binding to `from` is not part of that
+  default rule, and attestations are signed by their broker. A declared negative must
+  fail for its cause while every other condition holds; no generic exception counts as
+  proof. INV-01, ITV-427 and INV-32 are re-signed, not exempted.
+- **Point fixes.** Each corrects the accidental defect and keeps the intended
+  expectation:
+  - ITV-498/518: an expiry scenario with `expires_at` after `ts`, executed by R16;
+  - ITV-550: a valid UUID, the rejected alg kept;
+  - ITV-402: the capability, no security block;
+  - CTV-03: AssetTransferRequest arguments;
+  - INV-21: validated against set-args, so its announced cause is executed;
+  - ITV-449: an accurate skip reason.
+- **Dependency search.** Old signatures and envelope hashes are located by vector and
+  path and classified as repeated placeholder, coherent copy or derived link. Only an
+  untreated real dependency stops the cycle; equal values are never replaced globally.
+- **Ledger.** The defects are new findings, registered and closed by the port. A-53 and
+  A-64 are not reopened, because the new evidence does not contradict their criteria.
+- **Owner double check.** Before the commit, four corrections were made inside the approved
+  contract:
+  - the guard requires canonical base64url without padding before any cause, so that a
+    declared negative never carries an extra encoding defect;
+  - the meta-schema states the whole presence condition of `signature_expectation`;
+  - ITV-402 and ITV-550 join INV-21 as single-cause checks;
+  - A-99's criterion covers signatures outside crypto blocks and the 23 crypto blocks the
+    port covered. INV-04 keeps its malformed, unpublished kid by disposition; no key is
+    published under a malformed identifier.
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

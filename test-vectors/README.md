@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-923 test vectors (487 schema-valid, 215 expected-invalid, 202 runtime-only, 19 raw parse vectors — validator classification) for
+923 test vectors (485 schema-valid, 215 expected-invalid, 204 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -12,7 +12,7 @@ verification outcome (`crypto.expect_signature`).
 | File | Description |
 |------|-------------|
 | [arsia-test-vectors.json](arsia-test-vectors.json) | 923 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
-| [keypairs.json](keypairs.json) | 17 test keypairs: 15 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle and the two added in coverage SC1 is stated in the file) |
+| [keypairs.json](keypairs.json) | 53 test keypairs: 48 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 34 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses; 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
 
 ## Vector Formats
 
@@ -22,8 +22,8 @@ fields of every other format, both ways:
 
 | Format | Count | Description |
 |--------|-------|-------------|
-| `message-only` | 344 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 556 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `message-only` | 343 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
+| `schema-ref` | 557 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 | `raw` | 19 | Exact received bytes, checked only by the Core §5.2 pipeline steps 2–4. Uses `raw_hex` + `expected_parse` fields. |
 
@@ -73,7 +73,7 @@ shows that the binding holds, not that the vector's message is accepted (the vec
 be invalid for another reason). `token_binding` and `attestation` scenarios state the
 presented token explicitly.
 
-202 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+204 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally
@@ -130,6 +130,38 @@ signed message) and `event` (the vector's message as a key-revocation event, Ide
 §2.5) — and expects each step's result, including `invalidated` for an event. A
 schema-valid vector may also carry a scenario.
 
+### Signatures outside a crypto block
+
+A signed object (a `message`, or the `data` of an `arsia-message` or
+`arsia-relay-attestation` schema-ref) that carries `security.sig` but no `crypto` block
+has a signature that verifies mathematically, under the Draft-02 profile, with the key
+`keypairs.json` publishes for its `kid`. The exception is a vector that declares
+`signature_expectation`:
+
+```json
+"signature_expectation": { "result": "invalid", "cause": "kid", "condition": "binding" }
+```
+
+It may appear only on a vector without `crypto` whose signed object carries
+`security.sig` as a string; the meta-schema enforces both conditions. It does not change
+`valid`, `expected` or `expected_error`. Every `security.sig` outside a crypto block, declared
+or not, is canonical base64url without padding (the URL-safe alphabet only, no `=`, unused
+trailing bits zero); the guard checks the encoding before any cause, so a declared negative
+never carries an additional encoding defect. The causes are these, and `check_consistency.py`
+demonstrates the declared one while every other condition holds:
+- `kid`: `binding`, where the kid's agent differs from `from` (or, for an attestation, from
+  `broker_id`) while the signature verifies; or `unresolved`, where no key is published;
+- `alg`: `not-allowed`, outside the allowlist; or `incompatible` with the key;
+- `key`: `size`, an available RSA key below 2048 bits, under which the signature verifies;
+- `signature`: `length`, a validly encoded signature of the wrong decoded length; or
+  `mismatch`, a well-formed signature that does not verify.
+
+A missing key does not prove a weak one, and a malformed signature does not prove a
+wrong binding. The declared negatives are INV-11 and ITV-445 (`kid`/`binding`), ITV-425
+(`key`/`size`), ITV-426 (`signature`/`length`, 32 bytes) and ITV-550 (`alg`/`not-allowed`).
+`scripts/regen_v2.py --catalog --ids …` re-signs vectors without a crypto block. It refuses
+a vector that declares `signature_expectation` or that has no `security.sig`.
+
 ### Posture
 
 A vector whose expected outcome rests on an option the protocol permits but does not
@@ -159,6 +191,7 @@ the vector; a conformance runner should report such a vector as not applicable.
 | `skip_reason` | string | dep | Required when `skip_schema` is `true` |
 | `test_metadata` | object | no | Auxiliary context for runtime-only vectors (e.g., token scope, authorization context, reference requests, harness scenarios) |
 | `posture` | object | no | Option the expectation assumes (see Posture) |
+| `signature_expectation` | object | no | Declared signature negative of a vector without `crypto` (see Signatures outside a crypto block) |
 
 ## Validation
 

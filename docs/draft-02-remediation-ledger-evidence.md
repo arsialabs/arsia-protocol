@@ -1517,3 +1517,72 @@ conformance guards.
 - Findings register 99 rows: open 2 → 0, closed 97 → 99; disposition per DR or cycle
   addendum 37 → 39, recorded 16, pending 46 → 44. Coverage register 24 rows: open 2 → 0,
   closed 22 → 24.
+
+## 27. Draft-01.1 port closure evidence
+
+Execution baseline `acef2e4`. Owner decisions are in the design record (DR-0 addendum,
+Draft-01.1 port). No key value was printed at any step; keys are named by kid only.
+Mutations ran on a scratch copy: `git archive acef2e4` with the full candidate diff and
+the untracked files applied (tree identical to the working tree), the unmutated copy first
+passing the whole battery, and the candidate restored between cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-97 | Every signature outside a crypto block verifies with its kid's catalog key, or the vector declares and demonstrates its signature cause | **Inventory method:** every vector without `crypto` whose signed object (`message`, or the `data` of an arsia-message / arsia-relay-attestation schema-ref) carries `security.sig`; the key comes from the Draft-02 catalog, else the Draft-01.1 one; verification is mathematical under the Draft-02 profile.<br>**Groups:** P (positive expectation) 124; N (negative, other cause) 50; S (cause mentions signature, kid, alg or key) 8. INV-01, ITV-427 and INV-32 moved from S to N, so 177 were re-signed by `regen_v2.py --catalog` (`catalog_eligibility` l.147, `catalog_resign` l.165); only `security.sig` changed. Declared negatives: INV-11 and ITV-445 (`kid`/`binding`, mathematically valid with their kid's key), ITV-425 (`key`/`size`, signed with the published RSA-1024 key), ITV-426 (`signature`/`length`, 32 bytes), ITV-550 (`alg`/`not-allowed`).<br>**Guard:** `signature_problems` (`check_consistency.py` l.1699) first requires `security.sig` to be canonical base64url without padding (`strict_b64url` l.1636: URL-safe alphabet only, no `=`, no length ≡ 1 mod 4, unused bits zero). The validator's decoder skips characters outside the alphabet, so it is not used here. Self-tests: l.1755 (each other failure, encoding defects included, is rejected) and l.1825 (meta-schema). The meta-schema admits `signature_expectation` only without `crypto` and on a `message`, or on `data` of arsia-message / arsia-relay-attestation, whose `security.sig` is a string. | (a) a P vector back to its old signature; (b) INV-11 also corrupted; (c) ITV-425 re-keyed with RSA-2048 (also caught by the catalog guard); (d) ITV-426 with 64 bytes; (e) the field on a crypto vector; (l) any failure accepted as the declared cause → self-test; (m), (m2), (m3) `!!!!` appended to the signature of INV-11, ITV-445, ITV-426; (n) the lenient decoder restored in the guard → self-test; (o) the meta-schema condition reduced to the `crypto` exclusion → self-test; (o2) CTV-11 (raw) and (o3) ITV-358 (no `security.sig`) carrying the field → `--check-meta` (exit 1) and guard | yes |
+| A-98 | Each point defect corrected with its intended expectation, and a regression guard | ITV-498: `ts` 09:55, `expires_at` 10:00, recipient 10:10. ITV-518: `ts` 10:05, `expires_at` 10:10, recipient 10:30. Both are `timing` scenarios rejected by R16 for `expired` only. ITV-550: `id` `…-4c9d-8e1f-…`. ITV-402: `capabilities` added, still no `security`. CTV-03: AssetTransferRequest args, re-signed through its crypto block. INV-21: schema-ref `arsia-state-operations.schema.json#/$defs/set-args` failing only on `pii_special_categories`, with `resolve_schema` (`validate_vectors.py` l.204) keeping the document as the resolution context; the results of the 923 vectors are identical before and after that change. ITV-449: skip reason. Guard `port_fixture_problems` l.1891: `expires_at` after `ts`; positive transfer-request args; ITV-426 a canonical encoding of exactly 32 bytes; `SINGLE_CAUSE` l.1882: INV-21 (`required` `pii_special_categories`), ITV-402 (`required` `security`) and ITV-550 (`enum` at `security/alg`) each fail with exactly that one error, validator, path and message. The general `--check-errors` comparator matches a keyword and accepts a second defect next to it | (h) ITV-498 back to `expires_at` < `ts`; (i) CTV-03 old args; (j) INV-21 message-only → guard; (j2) subschema extraction → `PointerToNowhere`, validator and consistency exit 1; (p) ITV-402 without `capabilities` again; (q) ITV-550 with its old id again → guard | yes |
+| A-99 | Every kid that a signature outside a crypto block uses, and the kid of each of the 23 crypto blocks the port covered, is published; no existing entry overwritten | `keypairs.json` 17 → 53. 34 entries imported unchanged from `origin/main` 17dcf33 (32 Ed25519, 1 P-256, 1 RSA); 2 generated: `agent:contoso.crm#key1`, Ed25519 derived from the kid, and `agent:acme.legacy-system#rsa1024`, below the minimum and declared. The 5 conflicting kids (`agent:acme.data-agent#key1`, `agent:acme.data-processor#key1`, `agent:acme.health-processor#key1`, `agent:acme.oversight-panel#key1`, `agent:arsialabs.aiact.hr-screener#key1`) keep their Draft-02 key; their 8 failing vectors (ITV-309, 310, 313, 314, 512, 533, ITV-532, INV-66) were re-signed with it. `provenance` records the sets and digests. Guard `catalog_problems` l.1858. The 23 crypto blocks with a formerly unpublished kid are unchanged.<br>**INV-04, by disposition.** After the port it is the only vector whose signing kid is not in the catalog. Its crypto block keeps the malformed kid `echo-client#key1`, without the `agent:` prefix, matching the malformed `from` that is its structural defect (Core §3.3). The block carries its own key, which equals the catalog key of `agent:acme.echo-client#key1`, and `--check-crypto` verifies it. Publishing a key under a malformed identifier, or changing the vector, would serve only a wider wording of the criterion, so the vector is unchanged | (f) a conflicting kid overwritten; (g) an imported entry altered → digest | yes |
+
+**Dependency search.** Before writing, every occurrence of each target's old signature and
+old `envelope_hash` was located by vector and JSON path: 10,963 occurrences. 10,956 are the
+target's placeholder repeated as another fixture's own `security.sig` (class 1, for
+example ITV-12, ITV-13 and ITV-14). The other 7 match a `crypto.signature_base64url` of
+another vector: the old signatures of INV-40 (= CTV-01, INV-37, INV-38), INV-68 and INV-69
+(= ITV-629), INV-70 and INV-71 (= ITV-628). Those negatives were derived from the valid
+vectors by copying the envelope with one structural change. They kept the original
+signature, so it did not verify, and their stated causes (`root_request_id`,
+`capabilities`, `correlation_id`, an extra member, a wrong intent) are structural. The
+originals keep their own signature over their own envelope. Nothing has to stay coherent
+and no crypto block changed, so the 7 are class 1 as well. No `envelope_hash` occurrence was
+found. No global replacement was made.
+
+**Re-signer contract.** `resigner_contract_problems` gains five cases for `--catalog`:
+- (k) a crypto vector, (l) a declared negative (INV-11), (m) a vector without
+  `security.sig` (ITV-358) and (n) a kid outside the catalog are each refused, with
+  nothing written;
+- (o) an edited envelope changes only its signature, which verifies with the catalog key.
+
+**Inventory after the port.** 186 vectors changed: the 177 re-signed, the three signed
+declared negatives (INV-11, ITV-445, ITV-425) and the point fixes. Fields other than
+`security.sig` changed only in CTV-03, INV-11, INV-21, ITV-402, ITV-425, ITV-426, ITV-445,
+ITV-449, ITV-498, ITV-518 and ITV-550. 186 undeclared signatures verify. The five declared
+negatives fail for their cause. The only crypto block that changed is CTV-03's. The
+validator's `--check-crypto` still checks 157 blocks.
+
+**Mutations.** 23 of 23 detected: (a)–(j), (j2), (k), (k2), (l), (m), (m2), (m3), (n), (o),
+(o2), (o3), (p) and (q), each by the check its table row names; (k) and (k2) are caught by
+the re-signer contract guard. The 23 coverage SC4 mutations still all detect on the same
+candidate. The unmutated copy passed first, and the tree was identical after each run.
+
+**Owner double check.** The first review of the port found three gaps in the checks and
+one closure statement that was too broad:
+- the guard decoded with the lenient decoder, so INV-11, ITV-445 and ITV-426 with `!!!!`
+  appended to the signature passed. The strict encoding check above now runs first;
+- the meta-schema did not express the presence condition, so CTV-11 (raw) and ITV-358
+  (no `security.sig`) with the field were accepted. The condition is now complete;
+- removing `capabilities` from ITV-402 again, or restoring ITV-550's old id, passed the
+  validator, `--check-errors` and the fixture guard. Both are now single-cause checks;
+- A-99's criterion said every signing kid is published, while INV-04 keeps an unpublished
+  malformed kid. The criterion is delimited, and INV-04's disposition is recorded.
+
+No vector or key changed as a result of the review.
+
+**Counts before → after.**
+- Vectors 923 (485 / 215 / 204 runtime / 19 raw; ITV-498 and ITV-518 became runtime);
+  formats message-only 344 → 343, schema-ref 556 → 557 (INV-21).
+- Skip classification 202 → 204 rows (temporal 14 → 16, `executed: R16`); ITV-449's reason
+  corrected.
+- Keypairs 17 → 53. Consistency checks 138 → 142. Harness R1-R22, 779 → 783 assertions (R16
+  executes ITV-498 and ITV-518).
+- RTM: ROUTE-§4.1.9-01 and ROUTE-§8-02 gain `exec:R16`.
+- Findings register 99 → 102 rows (A-97, A-98, A-99 registered and closed); open 0.
+  Coverage register 24 → 25 rows, all closed.

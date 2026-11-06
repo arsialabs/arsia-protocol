@@ -211,8 +211,13 @@ def resolve_schema(schema_ref: str, registry: Registry) -> dict:
     schema = resolved.contents
 
     if pointer:
+        # A fragment keeps its document as the resolution context: a {"$ref": "<document $id>#<pointer>"}
+        # resolved through the registry, so the fragment's own $refs (e.g. "#/$defs/state-key") resolve in
+        # the document that holds them (an extracted subschema would lose it).
+        node = schema
         for part in pointer.strip("/").split("/"):
-            schema = schema[part]
+            node = node[part]  # the pointer must exist
+        return {"$ref": f"{schema['$id']}#{pointer}"}
 
     return schema
 
