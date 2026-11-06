@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 14, token: 17, transport: 5, x509: 7 — total 196.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 14, token: 17, transport: 11, x509: 7 — total 202.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -114,7 +114,7 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-566 | Actions §1.2 | Runtime constraint — token-scope wildcard matching (Actions §1.2); token not part of the envelope | token | behavioural-runtime | — | equivalent: R3 "R3 wildcard valid (ITV-566)" |
 | ITV-567 | Actions §1.2 condition 3 | Runtime constraint — reserved-namespace exact-match rule (Actions §1.2 condition 3) | other | behavioural-runtime | — | equivalent: R3 "R3 reserved via wildcard (ITV-567)" |
 | ITV-568 | Actions §1.1 Rule 5 / §1.4 | Runtime constraint — reserved-registry membership (Actions §1.1 Rule 5 / §1.4) | capability | behavioural-runtime | — | equivalent: R4 "R4 unknown reserved rejected (ITV-568)" |
-| ITV-570 | Routing §7.4.1 | Runtime constraint — transport-header presence and recipient enforcement (Routing §7.4.1) | transport | integration | yes | none — integration (two communicating implementations) |
+| ITV-570 | Routing §7.4.1 step 1 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 | ITV-571 | Core §6.4, Routing §1.2.2 | Runtime constraint — token/transport behaviour outside the envelope (Core §6.4, Routing §1.2.2) | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-572 | Routing §1.2.2, Core §6.4/§6.5 | Runtime constraint — token audience/scope checks (Routing §1.2.2, Core §6.4/§6.5) | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-575 | Assets §3.1.1 | Runtime constraint — per-currency fixed scale requires the ISO 4217 catalog (Assets §3.1.1) | amount-scale | behavioural-runtime | — | equivalent: R5 "R5 EUR 1500.0 rejected (ITV-575)" |
@@ -233,6 +233,12 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-156 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-157 | Actions §3.4; Core §6.1 | Runtime constraint — executor oversight and post-execution review (Actions §3, §3.9; Core §4.3.10.2); input an | executor-oversight | behavioural-runtime | — | executed: R15 |
 | INV-171 | Core §8.3 | Runtime clock skew validation — schema cannot compare ts against current time or profile tolerance | temporal | behavioural-runtime | — | executed: R16 |
+| INV-172 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| INV-173 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| INV-174 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| INV-175 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| INV-176 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| INV-177 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 
 ## Residual risk statement
 

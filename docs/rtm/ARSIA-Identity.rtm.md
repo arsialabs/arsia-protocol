@@ -2,309 +2,307 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA-Identity — Requirements Traceability Matrix
 
-| ID | § | Modal | Layer | Kind | Requirement | Schema | Vector |
-|----|---|-------|-------|------|-------------|--------|--------|
-| IDENT-§1.1-01 | 1.1 | MUST | sdk | behavioural_positive | Identity three layers (technical, cryptographic, compliance) MUST all be present and consistent for full identification | arsia-identity-record, arsia-jwk-entry | — |
-| IDENT-§1.1-02 | 1.1 | MUST | sdk | behavioural_positive | Identity layers MUST be consistent: agent-id, signing key kid prefix, and IdentityRecord owner MUST all correspond | — | — |
-| IDENT-§1.1-03 | 1.1 | MUST | sdk | behavioural_positive | Message signature kid prefix MUST match the sending agent's agent-id | arsia-jwk-entry | ITV-444, ITV-445 |
-| IDENT-§1.1-04 | 1.1 | MUST | deployment | behavioural_positive | Agent signing key MUST be published at the JWKS endpoint of the origin resolved per ARSIA-Core.md §6.6 (never derived from identifier segments) | — | — |
-| IDENT-§1.1-05 | 1.1 | MUST | sdk | behavioural_positive | IdentityRecord MUST declare the owning legal entity via owner_id and owner_name fields | arsia-identity-record | — |
-| IDENT-§1.1-06 | 1.1 | MUST | sdk | behavioural_positive | Receiving agents MUST resolve every request from a high-risk agent using the high-risk requirement set (§4.2; Core §4.3.10.3), regardless of the declared compliance profile and including when compliance is absent | — | ITV-603, ITV-604, ITV-605, ITV-608, ITV-610, INV-07 |
-| IDENT-§1.1-07 | 1.1 | MUST | sdk | behavioural_negative | Receiving agent MUST reject or log a compliance warning when identity layer inconsistency is detected | — | ITV-445 |
-| IDENT-§1.2-01 | 1.2 | REQUIRED | sdk | structural | IdentityRecord agent_id field (string) is REQUIRED | arsia-identity-record | — |
-| IDENT-§1.2-02 | 1.2 | REQUIRED | sdk | structural | IdentityRecord owner_id field (string) is REQUIRED as a verifiable legal entity identifier | arsia-identity-record | — |
-| IDENT-§1.2-03 | 1.2 | MAY | sdk | informational | Agents MAY be owned by entities registered in any jurisdiction | — | — |
-| IDENT-§1.2-04 | 1.2 | MUST | sdk | structural | owner_id MUST be a verifiable legal entity ID (EU VAT, US EIN, LEI, DUNS, national registration, or URN) | arsia-identity-record | — |
-| IDENT-§1.2-05 | 1.2 | SHOULD | sdk_enabled | informational | Implementations SHOULD prefer LEI for owner_id when the entity has one | — | ITV-02 |
-| IDENT-§1.2-06 | 1.2 | REQUIRED | sdk | structural | IdentityRecord owner_name field (string) is REQUIRED | arsia-identity-record | — |
-| IDENT-§1.2-07 | 1.2 | MUST | sdk_enabled | structural | owner_name MUST be the registered legal name, not a trading name or brand | — | — |
-| IDENT-§1.2-08 | 1.2 | REQUIRED | sdk | structural | IdentityRecord jurisdiction field (string, ISO 3166-1 alpha-2) is REQUIRED | arsia-identity-record | — |
-| IDENT-§1.2-09 | 1.2 | REQUIRED | sdk | structural | IdentityRecord ai_system_classification field (string) is REQUIRED | arsia-identity-record | — |
-| IDENT-§1.2-10 | 1.2 | MUST | sdk | structural | ai_system_classification MUST be one of: minimal-risk, limited-risk, high-risk, or unacceptable-risk | arsia-identity-record | — |
-| IDENT-§1.2-11 | 1.2 | MAY | sdk | informational | Per-message ai_system_classification MAY equal or be lower than the IdentityRecord value; a lower value does not by itself reduce obligations derived from the IdentityRecord (Core §4.3.10.3) | arsia-compliance-field | ITV-612 |
-| IDENT-§1.2-12 | 1.2 | MUST | sdk | behavioural_negative | Per-message ai_system_classification MUST NOT exceed the IdentityRecord-level classification | — | ITV-418, ITV-446 |
-| IDENT-§1.2-13 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord deployer_id field (string) is OPTIONAL for split-responsibility deployments | arsia-identity-record | ITV-124 |
-| IDENT-§1.2-14 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord deployer_name field (string) is OPTIONAL but REQUIRED when deployer_id is set | arsia-identity-record | ITV-522 |
-| IDENT-§1.2-15 | 1.2 | MUST | sdk | behavioural_negative | deployer_name MUST be present whenever deployer_id is present | arsia-identity-record | ITV-01, ITV-522 |
-| IDENT-§1.2-16 | 1.2 | REQUIRED | sdk | structural | deployer_name is conditionally REQUIRED when deployer_id is set | arsia-identity-record | ITV-522 |
-| IDENT-§1.2-17 | 1.2 | REQUIRED | sdk | structural | IdentityRecord created_at field (string, RFC 3339 with ms precision) is REQUIRED | arsia-identity-record | ITV-124 |
-| IDENT-§1.2-18 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord valid_until field (string, RFC 3339 with ms precision) is OPTIONAL | arsia-identity-record | ITV-124 |
-| IDENT-§1.2-19 | 1.2 | MUST | operational_policy | procedural | Agent operator MUST refresh the IdentityRecord after valid_until timestamp expires | — | — |
-| IDENT-§1.2-20 | 1.2 | RECOMMENDED | operational_policy | informational | valid_until RECOMMENDED value is 90 days from created_at | — | — |
-| IDENT-§1.2-21 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord contact_email field (string) is OPTIONAL, RECOMMENDED for high-risk agents | arsia-identity-record | ITV-124 |
-| IDENT-§1.2-22 | 1.2 | RECOMMENDED | sdk_enabled | informational | contact_email is RECOMMENDED for agents classified as high-risk | — | — |
-| IDENT-§1.2-23 | 1.2 | MUST | sdk_enabled | structural | contact_email MUST be a role-based address, not a personal address | arsia-identity-record | — |
-| IDENT-§1.3-01 | 1.3 | MUST | deployment | behavioural_positive | Agent MUST serve IdentityRecord at GET /.well-known/arsia/identity | — | — |
-| IDENT-§1.3-02 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint MUST be available alongside the ARSIA-Core §7.1 discovery endpoint | — | — |
-| IDENT-§1.3-03 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint MUST be served over TLS 1.3 or higher | — | — |
-| IDENT-§1.3-04 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint response MUST include X-ARSIA-Sig header with Ed25519 signature over SHA-256 of body | — | — |
-| IDENT-§1.3-05 | 1.3 | MUST | sdk | behavioural_negative | IdentityRecord MUST be treated as untrusted if X-ARSIA-Sig verification fails | — | — |
-| IDENT-§1.3-06 | 1.3 | SHOULD | deployment | informational | Identity endpoint response SHOULD include Cache-Control and ETag headers | — | — |
-| IDENT-§1.3-07 | 1.3 | SHOULD | deployment | behavioural_positive | Clients SHOULD respect identity endpoint caching headers | — | — |
-| IDENT-§1.3-08 | 1.3 | SHOULD | deployment | behavioural_positive | Clients SHOULD refetch IdentityRecord on message signature verification failure | — | — |
-| IDENT-§2.1-01 | 2.1 | REQUIRED | sdk | behavioural_positive | Ed25519 (EdDSA over Curve25519) is the REQUIRED signing algorithm for ARSIA Protocol v1.0 | arsia-jwk-entry | ITV-35 |
-| IDENT-§2.1-02 | 2.1 | REQUIRED | sdk | behavioural_positive | Ed25519 is the only REQUIRED signing algorithm; no other algorithm is mandatory | arsia-jwk-entry | — |
-| IDENT-§2.1-03 | 2.1 | MAY | sdk | informational | Implementations MAY support additional signing algorithms listed in ARSIA-Core §5.1 | — | ITV-127, ITV-551, ITV-552 |
-| IDENT-§2.1-04 | 2.1 | MUST | sdk | behavioural_positive | All implementations MUST support Ed25519 signing | arsia-jwk-entry | ITV-35 |
-| IDENT-§2.1-05 | 2.1 | MUST_NOT | deployment | behavioural_negative | Private keys MUST NOT be stored in plaintext on disk in production | — | — |
-| IDENT-§2.1-06 | 2.1 | RECOMMENDED | deployment | informational | HSM or cloud KMS (AWS KMS, GCP Cloud KMS, Azure Key Vault) is RECOMMENDED for private key storage | — | — |
-| IDENT-§2.1-07 | 2.1 | MAY | deployment | informational | Development environments MAY use environment variables for private key storage | — | — |
-| IDENT-§2.1-08 | 2.1 | MUST_NOT | deployment | behavioural_negative | Environment-variable private key storage MUST NOT be used in production | — | — |
-| IDENT-§2.1-09 | 2.1 | MUST | deployment | behavioural_positive | Agent public key MUST be published at /.well-known/arsia/jwks.json per ARSIA-Core §7.3 | — | — |
-| IDENT-§2.2-01 | 2.2 | MUST | sdk | structural | JWK kid field MUST follow the pattern {agent-id}#{key-index} | arsia-jwk-entry | — |
-| IDENT-§2.2-02 | 2.2 | MUST | sdk | structural | kid MUST be globally unique within the agent's JWKS | arsia-jwk-entry | — |
-| IDENT-§2.2-03 | 2.2 | MUST_NOT | deployment | behavioural_negative | kid MUST NOT be reused after the corresponding key is retired, even with identical key material | — | — |
-| IDENT-§2.2-04 | 2.2 | SHOULD | sdk | informational | Generating a new key with identical material as a retired key SHOULD be avoided | — | — |
-| IDENT-§2.3-01 | 2.3 | MUST | sdk | structural | Each Ed25519 JWK entry MUST contain kty, crv, kid, x, and use fields | arsia-jwk-entry | ITV-35, ITV-37 |
-| IDENT-§2.3-02 | 2.3 | REQUIRED | sdk | structural | JWK use field value sig is REQUIRED for Ed25519 key entries | arsia-jwk-entry | ITV-35 |
-| IDENT-§2.4-01 | 2.4 | MUST | deployment | procedural | Key rotation MUST follow the prescribed procedure: generate, add to JWKS, overlap, switch signing, remove old key | — | — |
-| IDENT-§2.4-02 | 2.4 | MUST | operational_policy | procedural | Both old and new keys MUST be present in the JWKS simultaneously during the overlap period | — | — |
-| IDENT-§2.4-03 | 2.4 | MUST | operational_policy | behavioural_positive | Key rotation overlap period MUST be at least 24 hours | — | — |
-| IDENT-§2.4-04 | 2.4 | RECOMMENDED | operational_policy | informational | 72-hour key rotation overlap period is RECOMMENDED | — | — |
-| IDENT-§2.4-05 | 2.4 | MUST | sdk | behavioural_positive | Recipients MUST accept signatures from both old and new keys during the overlap period | — | — |
-| IDENT-§2.4-06 | 2.4 | SHOULD | operational_policy | informational | Key rotation SHOULD be automated via triggers such as age, compromise, or policy change | — | — |
-| IDENT-§2.4-07 | 2.4 | RECOMMENDED | operational_policy | informational | Maximum key lifetime of 90 days is RECOMMENDED as a rotation trigger | — | — |
-| IDENT-§2.5-01 | 2.5 | SHOULD | sdk_enabled | procedural | Implementations SHOULD achieve key revocation by removing the compromised key from JWKS and rotating immediately | — | — |
-| IDENT-§2.5-02 | 2.5 | RECOMMENDED | operational_policy | informational | Short key validity periods (90 days RECOMMENDED) limit revocation exposure | — | — |
-| IDENT-§2.5-03 | 2.5 | SHOULD | deployment | behavioural_positive | On compromise the agent SHOULD additionally emit a signed key-revocation event to known counterparties naming the revoked kid and the effective instant | arsia-key-revocation | ITV-700 |
-| IDENT-§2.5-04 | 2.5 | RECOMMENDED | sdk | behavioural_positive | JWKS cache TTL RECOMMENDED maximum is 1 hour | — | — |
-| IDENT-§2.5-05 | 2.5 | MAY | sdk | informational | Future protocol versions MAY define a formal key revocation mechanism (CRL or OCSP-like) | — | — |
-| IDENT-§2.5-06 | 2.5 | REQUIRED | sdk | structural | key-revocation payload.data contains exactly revoked_kid (a kid of from) and effective_at | arsia-key-revocation | ITV-699, INV-145, INV-146, INV-147 |
-| IDENT-§2.5-07 | 2.5 | MUST | sdk | behavioural_negative | A recipient acts on a key-revocation event only after authenticating it — signing key of from, published, distinct from revoked_kid; revoked_kid of from — otherwise unauthorized | — | INV-148, INV-149, INV-150, INV-151 |
-| IDENT-§2.5-08 | 2.5 | MUST | sdk | behavioural_positive | For an authenticated key-revocation event the recipient MUST invalidate the cached key at once; effective_at never delays the invalidation | — | ITV-700, ITV-701, ITV-702 |
-| IDENT-§2.5-09 | 2.5 | MUST_NOT | sdk | behavioural_negative | An unauthenticated key-revocation event MUST NOT cause the invalidation its payload names; ordinary JWKS refreshes caused by resolving its signing key are unaffected | — | INV-148, INV-149, INV-150, INV-151 |
-| IDENT-§3.1-01 | 3.1 | MUST | sdk | structural | Every ARSIA message MUST carry a security object with alg, kid, and sig fields | arsia-message | — |
-| IDENT-§3.1-02 | 3.1 | MUST | sdk | procedural | Recipient MUST verify message signature using the 10-step verification procedure (step 9: declared, allowlisted alg coherent with the key, per ARSIA-Core.md §5.2 Step 5) | — | ITV-551, ITV-552 |
-| IDENT-§3.1-03 | 3.1 | SHOULD | sdk | behavioural_positive | Recipients SHOULD cache JWKS responses for up to 1 hour, respecting Cache-Control headers | — | — |
-| IDENT-§3.1-04 | 3.1 | SHOULD | sdk | behavioural_positive | Recipient SHOULD refetch JWKS once on verification failure before rejecting the message | — | — |
-| IDENT-§3.1-05 | 3.1 | MAY | sdk | behavioural_positive | Sandbox/development implementations MAY relax EdDSA verification for non-production environments | — | — |
-| IDENT-§3.1-06 | 3.1 | MUST | sdk | behavioural_positive | Relaxed-verification implementations MUST log a warning for each unverified request | — | — |
-| IDENT-§3.1-07 | 3.1 | MUST_NOT | deployment | behavioural_negative | Production deployments MUST NOT use open registration mode | — | — |
-| IDENT-§3.1-08 | 3.1 | MUST | sdk | behavioural_negative | Step 9: security.alg MUST be allowlisted and compatible with the key's kty/crv; unknown, disallowed or mismatched alg rejected with unauthorized | — | ITV-551, INV-37, INV-38, INV-39, INV-111, INV-112 |
-| IDENT-§3.2-01 | 3.2 | MUST | sdk | behavioural_positive | Request-intent messages MUST include a Bearer or DPoP-bound access token per ARSIA-Core §6 | arsia-jwt-claims | — |
-| IDENT-§3.2-02 | 3.2 | MUST | sdk | procedural | Receiving agent MUST verify access tokens using the 7-step OAuth 2.0 verification procedure | — | — |
-| IDENT-§3.2-03 | 3.2 | MUST | external | behavioural_positive | Access token MUST be issued by a trusted Authorization Server | — | — |
-| IDENT-§3.2-04 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token exp claim MUST NOT be expired at verification time | arsia-jwt-claims | — |
-| IDENT-§3.2-05 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token iat claim MUST NOT be in the future beyond the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-447, ITV-448 |
-| IDENT-§3.2-06 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token MUST NOT be used before the nbf (not-before) claim time | — | ITV-449, ITV-450 |
-| IDENT-§3.3-01 | 3.3 | RECOMMENDED | sdk_enabled | interoperability | DPoP (RFC 9449) is RECOMMENDED for all token presentations to prevent theft and replay | arsia-dpop-proof | — |
-| IDENT-§3.3-02 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify the DPoP proof per §3.3 and reject with error unauthorized when any check fails, except the nonce cases answered with the nonce challenge | — | ITV-451 |
-| IDENT-§3.3-03 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST find exactly one DPoP header field whose value is a single well-formed JWT (checks 1-2) | — | — |
-| IDENT-§3.3-04 | 3.3 | MUST | sdk | structural | DPoP proof MUST contain jti, htm, htu, iat and ath, and nonce when the receiving agent requires one (check 3) | arsia-dpop-proof | ITV-33, INV-107 |
-| IDENT-§3.3-05 | 3.3 | MUST | sdk | structural | DPoP proof typ header MUST be dpop+jwt (check 4) | arsia-dpop-proof | ITV-126, INV-105 |
-| IDENT-§3.3-06 | 3.3 | MUST | sdk | structural | DPoP proof alg MUST be a registered asymmetric algorithm other than none; ARSIA profile: EdDSA with an Ed25519 jwk (check 5) | arsia-dpop-proof | ITV-126, INV-106 |
-| IDENT-§3.3-07 | 3.3 | MUST | sdk | behavioural_negative | DPoP proof signature MUST verify with the public key of its jwk header (check 6) | — | — |
-| IDENT-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | DPoP proof jwk header MUST NOT contain a private key (check 7) | arsia-dpop-proof | INV-104 |
-| IDENT-§3.3-09 | 3.3 | MUST | sdk | structural | DPoP htm MUST match the request method; ARSIA inbox delivery uses POST (check 8) | arsia-dpop-proof | ITV-33, ITV-34 |
-| IDENT-§3.3-10 | 3.3 | MUST | sdk | behavioural_negative | DPoP htu MUST match the request URI, ignoring query and fragment (check 9) | — | — |
-| IDENT-§3.3-11 | 3.3 | SHOULD | sdk | interoperability | Receiving agent SHOULD apply RFC 3986 syntax-based and scheme-based normalisation before comparing htu | — | — |
-| IDENT-§3.3-12 | 3.3 | MUST | sdk | behavioural_negative | When the receiving agent provided a nonce, the DPoP nonce claim MUST match it (check 10) | arsia-dpop-proof | ITV-580, INV-45 |
-| IDENT-§3.3-13 | 3.3 | MUST | sdk | behavioural_negative | DPoP iat MUST be within the Core §8.3 clock skew tolerance of the receiving agent (check 11) | — | — |
-| IDENT-§3.3-14 | 3.3 | MAY | sdk | informational | A receiving agent that provides nonces MAY bound proof lifetime by the server time its nonce encodes | — | — |
-| IDENT-§3.3-15 | 3.3 | MUST | sdk | behavioural_negative | DPoP ath MUST equal the hash of the presented token, and the token's cnf.jkt MUST be the thumbprint of the proof key (check 12) | — | ITV-451 |
-| IDENT-§3.3-16 | 3.3 | MUST | sdk | behavioural_negative | A receiving agent requiring a nonce MUST answer a request lacking an acceptable nonce, the first included, with the nonce challenge rather than a generic unauthorized | — | — |
-| IDENT-§3.3-17 | 3.3 | MUST_NOT | sdk | behavioural_negative | A DPoP jti already accepted for the same target URI (query and fragment excluded) MUST NOT be accepted again (check 13, ARSIA requirement) | — | — |
-| IDENT-§3.3-18 | 3.3 | MUST | deployment | behavioural_negative | jti check and recording MUST be one atomic operation shared by every instance serving the endpoint | — | — |
-| IDENT-§3.3-19 | 3.3 | MUST | sdk | behavioural_positive | A jti MUST remain recorded at least until iat plus the clock skew tolerance, not for a fixed period from first receipt | — | — |
-| IDENT-§3.3-20 | 3.3 | MAY | sdk | informational | Receiving agent MAY record a hash of the jti instead of its value | — | — |
-| IDENT-§3.3-21 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY require a nonce, provided by HTTP 401 with WWW-Authenticate DPoP error use_dpop_nonce and a DPoP-Nonce header | — | — |
-| IDENT-§3.3-22 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY provide a new nonce in DPoP-Nonce on any later response | — | — |
-| IDENT-§3.3-23 | 3.3 | MUST_NOT | sdk | behavioural_negative | Once a nonce was provided for a DPoP key, a proof made with that key without nonce MUST NOT be accepted | — | — |
-| IDENT-§3.3-24 | 3.3 | MUST | sdk | behavioural_positive | A sender retransmitting a request MUST present a new DPoP proof with a new jti and a current iat | — | — |
-| IDENT-§3.3-25 | 3.3 | MAY | sdk | informational | A retransmitting sender MAY resend the envelope unchanged, keeping its id and idempotency.key | — | — |
-| IDENT-§4.1-01 | 4.1 | MUST | deployment | behavioural_positive | Both sender and receiver owner_id MUST be retrievable via /.well-known/arsia/identity when audit_required is true | — | — |
-| IDENT-§4.1-02 | 4.1 | MUST | sdk | behavioural_positive | Both parties' owner_id MUST be included in the corresponding audit record | arsia-audit-record | — |
-| IDENT-§4.1-03 | 4.1 | SHOULD | sdk | behavioural_positive | Implementations SHOULD cache identity records for up to 1 hour, same policy as JWKS | — | — |
-| IDENT-§4.1-04 | 4.1 | MUST | deployment | behavioural_positive | Audit records MUST use the identity record retrieved at message processing time, not a stale cache | — | — |
-| IDENT-§4.2-01 | 4.2 | MAY | sdk | informational | A high-risk agent MAY declare any compliance profile (including MIFID-II); its requests are resolved with the high-risk requirement set whatever the profile (Core §4.3.10.3) | arsia-compliance-field | ITV-610, INV-07 |
-| IDENT-§4.2-04 | 4.2 | MUST_NOT | operational_policy | behavioural_negative | Agents classified as unacceptable-risk MUST NOT be deployed | — | — |
-| IDENT-§4.2-05 | 4.2 | MUST | sdk | behavioural_negative | Receiving agent MUST reject all messages from agents classified as unacceptable-risk with error forbidden | arsia-identity-record | — |
-| IDENT-§4.3-01 | 4.3 | MUST | deployment | behavioural_positive | Cross-border agents' IdentityRecords MUST be independently verifiable via their respective endpoints | — | — |
-| IDENT-§4.4-01 | 4.4 | MUST | sdk | behavioural_positive | Both deployer_id and owner_id MUST be recorded in audit events for split-responsibility agents | arsia-audit-record | ITV-453, ITV-588 |
-| IDENT-§5-01 | 5 | MUST | sdk | interoperability | Conformant implementations MUST pass all identity conformance tests at their applicable level | — | — |
-| IDENT-§5-02 | 5 | MAY | sdk | behavioural_positive | Receiving agent MAY reject high-risk classification-mismatched messages with invalid_request error | — | ITV-454 |
-| IDENT-§6-01 | 6 | MUST | sdk | behavioural_positive | All implementations MUST support Level 1 (self-signed) certificate trust | — | ITV-455 |
-| IDENT-§6-02 | 6 | SHOULD | sdk | behavioural_positive | Implementations SHOULD support Level 2 (CA-signed) certificate trust | — | ITV-456 |
-| IDENT-§6-03 | 6 | MAY | sdk | informational | Implementations MAY support Level 3 (eIDAS qualified) certificate trust | — | — |
-| IDENT-§6.2-01 | 6.2 | MUST | sdk | structural | Leaf certificate in the chain MUST satisfy all Level 2 structural requirements | — | ITV-457 |
-| IDENT-§6.2-02 | 6.2 | MUST | sdk | structural | Leaf certificate SAN MUST contain the agent's agent_id as a URI (format agent:{domain}.{name}) | — | ITV-458 |
-| IDENT-§6.2-03 | 6.2 | MUST | sdk | structural | Leaf certificate Subject Organization (O) MUST match the IdentityRecord owner_name or owner_id | arsia-identity-record | — |
-| IDENT-§6.2-04 | 6.2 | MUST | sdk | structural | Leaf certificate Key Usage digitalSignature bit MUST be set | — | ITV-459 |
-| IDENT-§6.2-05 | 6.2 | MUST_NOT | sdk | behavioural_negative | Leaf certificate Key Usage keyCertSign bit MUST NOT be set (end-entity only) | — | ITV-460 |
-| IDENT-§6.2-06 | 6.2 | MUST | sdk | structural | Leaf certificate Basic Constraints MUST set CA:FALSE with the critical flag | — | ITV-461 |
-| IDENT-§6.2-07 | 6.2 | MUST | sdk | behavioural_positive | Certificate public key MUST be identical to the Ed25519 key at the agent's JWKS endpoint | — | ITV-462 |
-| IDENT-§6.2-08 | 6.2 | OPTIONAL | sdk | informational | Extended Key Usage id-kp-serverAuth is OPTIONAL in leaf certificates | — | — |
-| IDENT-§6.2-09 | 6.2 | SHOULD_NOT | sdk | informational | Implementations SHOULD NOT require id-kp-serverAuth Extended Key Usage | — | — |
-| IDENT-§6.2-10 | 6.2 | MUST | sdk | behavioural_positive | Raw 32-byte certificate public key MUST equal the base64url-decoded JWKS x field value | — | ITV-463 |
-| IDENT-§6.3-01 | 6.3 | MUST | external | structural | Level 3 leaf certificate MUST include QcStatements extension per ETSI EN 319 412-5 with id-etsi-qcs-QcCompliance (clause 4.2.1) and id-etsi-qcs-QcType id-etsi-qct-eseal (clause 4.2.3) | — | ITV-02 |
-| IDENT-§6.3-02 | 6.3 | MUST | external | behavioural_positive | Level 3 issuing CA MUST be a QTSP listed on a Member State Trusted List | — | ITV-02 |
-| IDENT-§6.3-03 | 6.3 | MUST | external | behavioural_positive | Level 3 owner_id MUST be verifiable against official registers (VIES for VAT, GLEIF for LEI) | — | ITV-02 |
-| IDENT-§6.4.1-01 | 6.4.1 | MUST | sdk | procedural | Verifier MUST execute the step-by-step verification procedure for every peer message | — | — |
-| IDENT-§6.4.1-02 | 6.4.1 | MUST | sdk | behavioural_positive | Certificate and JWKS raw 32-byte Ed25519 public keys MUST be identical (step 4d) | — | ITV-464 |
-| IDENT-§6.4.1-03 | 6.4.1 | MUST | sdk | behavioural_positive | Leaf certificate SAN URI MUST match the peer's IdentityRecord agent_id (step 4e) | — | ITV-465 |
-| IDENT-§6.4.1-04 | 6.4.1 | MUST | deployment | procedural | Verifier MUST check Level 3 certificate revocation status via OCSP or CRL (step 4h) | — | — |
-| IDENT-§6.4.1-05 | 6.4.1 | RECOMMENDED | deployment | informational | OCSP stapling is RECOMMENDED to reduce Level 3 revocation-check latency | — | — |
-| IDENT-§6.4.1-06 | 6.4.1 | SHOULD | sdk | behavioural_positive | Verifier SHOULD treat a certificate as potentially revoked when OCSP and CRL are both unavailable | — | — |
-| IDENT-§6.4.1-07 | 6.4.1 | MAY | sdk | behavioural_positive | Verifier MAY downgrade a Level 3 certificate to Level 2 when revocation status is unavailable | — | — |
-| IDENT-§6.4.2-01 | 6.4.2 | MUST | deployment | behavioural_positive | Agents supporting Level 2+ verification MUST maintain a local trust store of CA certificates | — | — |
-| IDENT-§6.4.2-02 | 6.4.2 | SHOULD | sdk_enabled | behavioural_positive | Trust store SHOULD support PEM directory, OS trust store, or config-based CA certificates | — | — |
-| IDENT-§6.4.2-03 | 6.4.2 | MAY | sdk_enabled | behavioural_positive | Agent MAY enforce a minimum trust level policy, rejecting below-threshold agents | — | — |
-| IDENT-§6.4.2-04 | 6.4.2 | MUST_NOT | sdk | behavioural_negative | Agent MUST NOT reject Level 1 messages unless a minimum trust level policy is explicitly configured | — | ITV-466 |
-| IDENT-§6.4.2-05 | 6.4.2 | MUST | sdk | behavioural_positive | Default behaviour MUST accept messages at all trust levels | — | ITV-467 |
-| IDENT-§6.4.3-01 | 6.4.3 | MUST | sdk | structural | Certificate error responses MUST include a details object with a human-readable reason string | arsia-message | ITV-14, ITV-76, ITV-77, ITV-78, ITV-468, ITV-469, ITV-470 |
-| IDENT-§6.4.3-02 | 6.4.3 | SHOULD | sdk | behavioural_positive | Certificate error responses SHOULD be signed with the receiving agent's own key | — | — |
-| IDENT-§6.5.1-01 | 6.5.1 | OPTIONAL | sdk | structural | IdentityRecord certificate_chain field (array of PEM strings) is OPTIONAL | arsia-identity-record | ITV-01 |
-| IDENT-§6.5.1-02 | 6.5.1 | MUST | sdk | structural | certificate_chain MUST be ordered: leaf at index 0, intermediates next, root last | arsia-identity-record | ITV-01 |
-| IDENT-§6.5.1-03 | 6.5.1 | MAY | sdk | informational | Root CA certificate MAY be omitted if it is well-known and expected in verifier trust stores | — | — |
-| IDENT-§6.5.1-04 | 6.5.1 | MUST | sdk | structural | Each certificate_chain entry MUST be complete PEM with BEGIN/END CERTIFICATE markers | arsia-identity-record | ITV-01 |
-| IDENT-§6.5.1-05 | 6.5.1 | MUST | deployment | behavioural_positive | All certificates in the chain MUST be valid when the IdentityRecord is served | — | — |
-| IDENT-§6.5.1-06 | 6.5.1 | MUST_NOT | deployment | behavioural_negative | Agent MUST NOT serve an IdentityRecord containing expired certificates | — | — |
-| IDENT-§6.5.1-07 | 6.5.1 | SHOULD | operational_policy | behavioural_positive | Agent SHOULD update its IdentityRecord when any certificate is within 30 days of expiry | — | — |
-| IDENT-§6.5.2-01 | 6.5.2 | MUST_NOT | sdk | behavioural_negative | Agents MUST NOT include a trust_level field in their IdentityRecord | arsia-identity-record | — |
-| IDENT-§6.5.2-02 | 6.5.2 | MAY | sdk | behavioural_positive | Verifier MAY cache computed trust level for the IdentityRecord Cache-Control duration | — | — |
-| IDENT-§6.5.2-03 | 6.5.2 | MUST | deployment | behavioural_positive | Verifier MUST recompute trust level when the IdentityRecord is refreshed | — | — |
-| IDENT-§6.5.3-01 | 6.5.3 | OPTIONAL | sdk | structural | certificate_chain schema property is OPTIONAL; the required array is unchanged | arsia-identity-record | — |
-| IDENT-§6.6-01 | 6.6 | MUST | sdk | interoperability | Level 2 conformant implementations MUST pass tests IDENTITY-09 through IDENTITY-12 | — | — |
-| IDENT-§6.7.1-01 | 6.7.1 | MUST_NOT | deployment | behavioural_negative | Sandbox CA certificates MUST NOT be trusted outside the sandbox environment | — | — |
-| IDENT-§6.7.1-02 | 6.7.1 | MUST | deployment | behavioural_positive | Production deployments MUST use a properly operated CA with appropriate certificate policies | — | — |
-| IDENT-§6.8-01 | 6.8 | SHOULD_NOT | deployment | informational | Level 1 (self-signed) SHOULD NOT be relied upon for identity verification in production | — | — |
-| IDENT-§6.8-02 | 6.8 | SHOULD | operational_policy | informational | Level 2 relying agents SHOULD understand their CA's issuance practices | — | — |
-| IDENT-§6.8-03 | 6.8 | RECOMMENDED | deployment | informational | Certificate pinning is RECOMMENDED for Level 2 production deployments | — | — |
-| IDENT-§6.8-04 | 6.8 | MUST_NOT | sdk | behavioural_negative | Private key MUST NOT be transmitted or included in any protocol message or IdentityRecord | arsia-jwk-entry | ITV-471 |
-| IDENT-§6.8-05 | 6.8 | RECOMMENDED | deployment | informational | OCSP stapling is RECOMMENDED for Level 3 to reduce privacy risk and verification latency | — | — |
-| IDENT-§6.8-06 | 6.8 | SHOULD | operational_policy | procedural | Agents SHOULD monitor certificate validity and initiate renewal before expiry | — | — |
-| IDENT-§6.8-07 | 6.8 | SHOULD | operational_policy | procedural | Agents SHOULD update IdentityRecord with the new certificate chain before the old one expires | — | — |
-| IDENT-§7.1.1-01 | 7.1.1 | MUST | deployment | behavioural_positive | External agent MUST serve all ARSIA-Core §7 discovery endpoints (discovery, JWKS, identity) | — | — |
-| IDENT-§7.1.1-02 | 7.1.1 | MUST | sdk | behavioural_positive | External agent MUST have a valid IdentityRecord with all REQUIRED fields including ai_system_classification | arsia-identity-record | — |
-| IDENT-§7.1.1-03 | 7.1.1 | SHOULD | deployment | behavioural_positive | External agent SHOULD expose an audit trail query endpoint at /v1/arsia/audit | — | — |
-| IDENT-§7.1.1-04 | 7.1.1 | MUST | sdk | behavioural_positive | Onboarding gateway MUST declare arsiaprotocol.onboarding.evaluate in its discovery response | arsia-capability-descriptor | — |
-| IDENT-§7.1.1-05 | 7.1.1 | MUST | deployment | behavioural_positive | Onboarding gateway MUST be authorized to issue scoped access tokens for the organization | — | ITV-03 |
-| IDENT-§7.1.1-06 | 7.1.1 | MUST | sdk | procedural | Gateway MUST record all onboarding decisions as ArsiaAuditRecords | arsia-audit-record | — |
-| IDENT-§7.1.1-07 | 7.1.1 | MUST | deployment | procedural | Infrastructure router MUST verify Bearer tokens via the gateway's /v1/arsia/verify-token endpoint | — | — |
-| IDENT-§7.1.1-08 | 7.1.1 | MUST | deployment | behavioural_negative | Router MUST reject requests whose capabilities are not present in the token scope with error forbidden | — | ITV-472 |
-| IDENT-§7.1.1-09 | 7.1.1 | MUST_NOT | sdk | behavioural_negative | Router MUST NOT accept messages from agents that have not completed onboarding | — | ITV-473 |
-| IDENT-§7.1.1-10 | 7.1.1 | REQUIRED | sdk | behavioural_positive | External agent IdentityRecord MUST include ai_system_classification among all REQUIRED fields | arsia-identity-record | — |
-| IDENT-§7.1.2-01 | 7.1.2 | MUST_NOT | sdk | behavioural_negative | Gateway MUST NOT grant trust based on out-of-band information (email, verbal, manual config) | — | — |
-| IDENT-§7.1.2-02 | 7.1.2 | MUST | sdk | procedural | All onboarding trust decisions MUST be traceable through the audit trail | — | — |
-| IDENT-§7.1.3-01 | 7.1.3 | MAY | sdk_enabled | informational | Implementations MAY extend onboarding with additional checks if the six normative phases execute in order | — | — |
-| IDENT-§7.2-01 | 7.2 | MUST | sdk | procedural | Gateway MUST proceed to Phase 5 denial if any of Phases 1–4 fails | arsia-onboarding-decision | ITV-04 |
-| IDENT-§7.2-02 | 7.2 | MUST_NOT | sdk | procedural | Onboarding phases MUST NOT be reordered or skipped | — | — |
-| IDENT-§7.2-03 | 7.2 | MUST | sdk | procedural | Gateway MUST perform Phase 1 identity verification steps in order | — | — |
-| IDENT-§7.2-04 | 7.2 | MUST | sdk | structural | Discovery response MUST include agent_id, protocol_version, and capabilities fields | arsia-discovery-response | — |
-| IDENT-§7.2-05 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with discovery_failed when discovery fetch fails or response is invalid | — | ITV-474 |
-| IDENT-§7.2-06 | 7.2 | MUST | deployment | behavioural_positive | Identity endpoint response MUST include the X-ARSIA-Sig header | — | — |
-| IDENT-§7.2-07 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when identity fetch fails or schema is invalid | arsia-identity-record | — |
-| IDENT-§7.2-08 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when JWKS fetch fails or no Ed25519 key found | arsia-jwk-entry | ITV-04 |
-| IDENT-§7.2-09 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when X-ARSIA-Sig verification fails | — | ITV-475 |
-| IDENT-§7.2-10 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when no JWKS kid prefix matches the agent_id | — | ITV-476 |
-| IDENT-§7.2-11 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with unacceptable_risk_classification when agent is classified unacceptable-risk | arsia-identity-record | — |
-| IDENT-§7.2-12 | 7.2 | MUST_NOT | operational_policy | behavioural_negative | Agents classified as unacceptable-risk MUST NOT be deployed | — | — |
-| IDENT-§7.2-13 | 7.2 | MUST | sdk | behavioural_positive | Gateway MUST retain the raw signed body bytes of the IdentityRecord used to prepare the authenticated context (Step 7; Core §4.3.10.2) | arsia-onboarding-decision | ITV-130, ITV-589 |
-| IDENT-§7.3-01 | 7.3 | MUST | sdk | structural | Conformance check status field MUST be one of pass, fail, or skip | arsia-onboarding-decision | — |
-| IDENT-§7.3-02 | 7.3 | MAY | sdk | behavioural_positive | Conformance check MAY be skipped only when its preconditions are not met | arsia-onboarding-decision | — |
-| IDENT-§7.3-03 | 7.3 | MUST | sdk | structural | CHECK-01: response MUST have intent set to response | arsia-message | — |
-| IDENT-§7.3-04 | 7.3 | MUST | sdk | behavioural_positive | CHECK-01: response MUST have correlation_id set to the request's id | arsia-message | — |
-| IDENT-§7.3-05 | 7.3 | MUST | sdk | structural | CHECK-01: response id field MUST be a valid UUID | arsia-message | — |
-| IDENT-§7.3-06 | 7.3 | MUST | sdk | structural | CHECK-01: response MUST include v, ts, from, and to fields | arsia-message | — |
-| IDENT-§7.3-07 | 7.3 | MUST | deployment | behavioural_positive | CHECK-01: response from field MUST match the external agent's agent_id | — | ITV-477 |
-| IDENT-§7.3-08 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: with a probe token (sub gateway, aud external agent, arsia_oversight listing the capability, issuer trusted by the agent), the external agent MUST respond with pending_approval for oversight-required capabilities | — | ITV-478, ITV-670, ITV-671 |
-| IDENT-§7.3-09 | 7.3 | MUST | sdk | structural | CHECK-03: pending_approval message MUST have intent set to pending_approval | arsia-message | — |
-| IDENT-§7.3-10 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval correlation_id MUST match the request's id | — | ITV-479 |
-| IDENT-§7.3-11 | 7.3 | SHOULD | sdk | structural | CHECK-03: pending_approval payload.type SHOULD be arsiaprotocol.oversight/pending | arsia-message | ITV-480 |
-| IDENT-§7.3-12 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval expires_at MUST be present and set to a future timestamp | arsia-message | ITV-481 |
-| IDENT-§7.3-13 | 7.3 | MUST | sdk | structural | CHECK-04: audit endpoint response MUST be the ARSIA-State.md §7.4 response object whose records array contains the audit records | arsia-audit-record | — |
-| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include the ArsiaAuditRecord fields listed (ARSIA-State.md §7.1 required fields, incl. declared_retention and retention_source, and the §7.2 chain fields) | arsia-audit-record | — |
-| IDENT-§7.3-15 | 7.3 | MUST | sdk | behavioural_positive | CHECK-04: audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — |
-| IDENT-§7.3-16 | 7.3 | RECOMMENDED | sdk_enabled | informational | Audit trail endpoint is RECOMMENDED but not REQUIRED at Core Conformance level | — | — |
-| IDENT-§7.3-17 | 7.3 | MUST | sdk | procedural | All conformance checks MUST achieve pass or skip status for Phase 2 to pass | arsia-onboarding-decision | ITV-623, ITV-624, ITV-625 |
-| IDENT-§7.3-18 | 7.3 | MUST | sdk | behavioural_negative | Gateway MUST deny with conformance_failed when any conformance check has fail status | arsia-onboarding-decision | ITV-131 |
-| IDENT-§7.3-19 | 7.3 | MUST | sdk | behavioural_negative | CHECK-04: the gateway MUST retrieve each chain present by chain_id and verify it per ARSIA-State.md §7.2 (internal consistency) | arsia-audit-record, arsia-audit-chain-tombstone | harness R14 (b)-(h) |
-| IDENT-§7.3-20 | 7.3 | SHOULD | sdk_enabled | behavioural_positive | When the audit endpoint is served at Core Conformance level, its records SHOULD carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | — |
-| IDENT-§7.3-21 | 7.3 | MUST | sdk | behavioural_positive | At Compliance and Full levels, served audit records MUST carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596 |
-| IDENT-§7.3-22 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval request_payload_hash MUST be the hash of the request's payload, and obligation_resolution MUST record the capability-policy source of the probe token's claim | arsia-message | ITV-478, ITV-670 |
-| IDENT-§7.4-01 | 7.4 | MAY | sdk | informational | Allowed-status capabilities MAY be invoked without additional oversight | arsia-capability-policy | — |
-| IDENT-§7.4-02 | 7.4 | MAY | sdk | behavioural_positive | Oversight-required capabilities MAY be invoked; each invocation is subject to prior approval carried by the token's arsia_oversight claim | arsia-capability-policy | ITV-642 |
-| IDENT-§7.4-04 | 7.4 | MUST_NOT | sdk | behavioural_negative | Prohibited-status capabilities MUST NOT be invoked by the agent | arsia-capability-policy | — |
-| IDENT-§7.4-05 | 7.4 | MUST | sdk | behavioural_negative | Infrastructure router MUST reject prohibited-capability requests with error forbidden | arsia-capability-policy | — |
-| IDENT-§7.4-06 | 7.4 | MUST | sdk | procedural | Gateway MUST partition effective capabilities into freely_allowed and oversight_required lists | arsia-onboarding-decision | — |
-| IDENT-§7.5-01 | 7.5 | MUST | sdk | procedural | Gateway MUST record identity_created_at, earliest_audit_record, and provenance_verified | arsia-onboarding-decision | ITV-130 |
-| IDENT-§7.5-02 | 7.5 | SHOULD | sdk | behavioural_positive | Gateway SHOULD log a warning when provenance_verified is false | arsia-onboarding-decision | ITV-130 |
-| IDENT-§7.5-03 | 7.5 | MUST_NOT | sdk | behavioural_negative | Failed provenance verification MUST NOT automatically deny onboarding | — | — |
-| IDENT-§7.5-04 | 7.5 | MAY | operational_policy | informational | Organization's human oversight process MAY use provenance as an input to approval | — | — |
-| IDENT-§7.6-01 | 7.6 | MUST | sdk | structural | Onboarding decision message MUST conform to the §7.6 decision structure (request intent, arsiaprotocol.onboarding/decision payload) | arsia-onboarding-decision | ITV-03, ITV-04, ITV-38, ITV-130 |
-| IDENT-§7.6-02 | 7.6 | REQUIRED | sdk | structural | Decision message compliance field is REQUIRED with the organization's applicable profile | arsia-onboarding-decision | — |
-| IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | ITV-482 |
-| IDENT-§7.6-04 | 7.6 | MUST | sdk | behavioural_positive | Approval token MUST be a valid JWT with scope matching effective_capabilities | arsia-jwt-claims, arsia-onboarding-decision | ITV-38, ITV-130 |
-| IDENT-§7.6-05 | 7.6 | MUST | sdk | structural | Approval decision token_expires_at MUST be present in RFC 3339 format | arsia-onboarding-decision | ITV-130 |
-| IDENT-§7.6-06 | 7.6 | MUST | sdk | structural | Approval decision effective_capabilities, freely_allowed, and oversight_required MUST be present; effective_capabilities MUST be non-empty (freely_allowed or oversight_required MAY be empty) | arsia-onboarding-decision | ITV-130, ITV-589 |
-| IDENT-§7.6-07 | 7.6 | MUST | sdk | structural | Denial decision denial_reason field MUST be present | arsia-onboarding-decision | ITV-04, ITV-131 |
-| IDENT-§7.6-08 | 7.6 | MUST_NOT | sdk | behavioural_negative | Denial decision MUST NOT include a token field | arsia-onboarding-decision | ITV-04, ITV-131 |
-| IDENT-§7.6-09 | 7.6 | SHOULD | sdk | behavioural_positive | Denial decision SHOULD include conformance_result for operator feedback | arsia-onboarding-decision | ITV-131 |
-| IDENT-§7.6-10 | 7.6 | MUST | sdk | procedural | Gateway MUST record the onboarding decision as an ArsiaAuditRecord with event_type approval_decision | arsia-audit-record | — |
-| IDENT-§7.6-11 | 7.6 | MUST | sdk | structural | An approved decision MUST carry authenticated_context: the context prepared in Phase 1 Step 7 and verified by CHECK-05, unchanged, with context_sha256 computed by the Step 7 formula | arsia-onboarding-decision | ITV-03, ITV-130, ITV-589, INV-61 |
-| IDENT-§7.6-12 | 7.6 | MUST | sdk | procedural | Gateway MUST record the association of the issued token (jti), the decision id and the context_id | — | ITV-610, ITV-615, ITV-616 |
-| IDENT-§7.6-13 | 7.6 | MUST | sdk | structural | An approved decision MUST carry policy_version and policy_sha256 identifying the CapabilityPolicy applied in Phase 3 | arsia-onboarding-decision | ITV-130, ITV-589, INV-78 |
-| IDENT-§7.7-01 | 7.7 | MUST | sdk | behavioural_positive | External agent MUST present the onboarding token as a Bearer token in the Authorization header | arsia-jwt-claims | — |
-| IDENT-§7.7-02 | 7.7 | MUST | sdk_enabled | procedural | Infrastructure router MUST verify the token on every request via the gateway's verify-token endpoint | — | — |
-| IDENT-§7.7-03 | 7.7 | MUST | deployment | structural | Token verification request body MUST contain the token to be verified | arsia-jwt-claims | ITV-483, ITV-484 |
-| IDENT-§7.7-04 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error unauthorized when the token is invalid, expired, or revoked | — | ITV-485 |
-| IDENT-§7.7-05 | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that requested message capabilities are a subset of the token scope | arsia-jwt-claims | — |
-| IDENT-§7.7-06 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden when message requests out-of-scope capabilities | — | ITV-486 |
-| IDENT-§7.7-06a | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that the invoked action's risk_level does not exceed the capability's max_risk_level constraint | arsia-capability-policy | — |
-| IDENT-§7.7-06b | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden and details.risk_level_exceeded when action risk_level exceeds max_risk_level | — | — |
-| IDENT-§7.7-09 | 7.7 | SHOULD | sdk_enabled | interoperability | External agents SHOULD use DPoP when presenting tokens to the infrastructure router | arsia-dpop-proof | — |
-| IDENT-§7.7-10 | 7.7 | SHOULD | sdk_enabled | behavioural_positive | Router SHOULD verify DPoP proofs when presented by external agents | — | — |
-| IDENT-§7.7-11 | 7.7 | MAY | sdk | informational | External agent MAY re-initiate onboarding to obtain a new token before expiry | — | — |
-| IDENT-§7.7-12 | 7.7 | MAY | sdk_enabled | informational | Implementations MAY provide a lightweight token renewal skipping Phases 1–4 | — | — |
-| IDENT-§7.7-13 | 7.7 | MUST | sdk | structural | For a valid token, the verification response MUST return the bound authenticated_context and the id of its onboarding decision | — | ITV-610 |
-| IDENT-§7.7-14 | 7.7 | MUST | sdk_enabled | behavioural_positive | Router MUST verify that the context is bound to the token's own decision (context_sha256), that its agent_id is the token subject and the message's from, and that it is usable | — | ITV-610, ITV-614, ITV-615, ITV-616 |
-| IDENT-§7.7-15 | 7.7 | MUST | sdk_enabled | procedural | Router MUST resolve each request's obligations per Core §4.3.10, with the context's facts as identity-record source, before forwarding | — | ITV-610 |
-| IDENT-§7.7-16 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | With a missing, invalid, unusable, foreign-agent or foreign-admission context the router MUST NOT forward the request and MUST reject it with unauthorized | — | ITV-613, ITV-614, ITV-615, ITV-616, ITV-626, ITV-627 |
-| IDENT-§7.7-17 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | Router MUST NOT treat an agent without a usable context as having a lower classification | — | ITV-613 |
-| IDENT-§7.7-18 | 7.7 | MUST | sdk | behavioural_positive | Every renewal, lightweight or full, MUST bind a valid context (IdentityRecord re-verified as in Phase 1, new context, bound to the new token) | — | — |
-| IDENT-§7.7-19 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with unauthorized a token whose scope includes a bound oversight_required capability unless arsia_oversight lists it with the decision's policy identification | — | ITV-669 |
-| IDENT-§7.7-20 | 7.7 | MUST | sdk | behavioural_positive | An internal token issued by the router MUST carry the arsia_oversight requirement and policy identification for every remaining listed capability | arsia-jwt-claims | ITV-668 |
-| IDENT-§8.1-01 | 8.1 | MUST | sdk | structural | CapabilityPolicy MUST include policy_version, token_lifetime_seconds, and capabilities fields | arsia-capability-policy | ITV-10 |
-| IDENT-§8.1-02 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy policy_version field (string) is REQUIRED | arsia-capability-policy | — |
-| IDENT-§8.1-03 | 8.1 | SHOULD | sdk_enabled | informational | policy_version SHOULD use a semantically meaningful version string | — | — |
-| IDENT-§8.1-04 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy token_lifetime_seconds field (integer) is REQUIRED | arsia-capability-policy | ITV-03, ITV-10 |
-| IDENT-§8.1-05 | 8.1 | RECOMMENDED | sdk_enabled | informational | token_lifetime_seconds RECOMMENDED minimum is 900 seconds (15 minutes) | — | — |
-| IDENT-§8.1-06 | 8.1 | RECOMMENDED | sdk_enabled | informational | token_lifetime_seconds RECOMMENDED maximum is 86400 seconds (24 hours) | — | ITV-65 |
-| IDENT-§8.1-07 | 8.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued with lifetime exceeding token_lifetime_seconds | arsia-capability-policy | — |
-| IDENT-§8.1-08 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy capabilities field (array of CapabilityRule) is REQUIRED | arsia-capability-policy | — |
-| IDENT-§8.1-09 | 8.1 | MUST_NOT | operational_policy | behavioural_negative | A gateway MUST NOT apply two different policies under the same policy_version | — | — |
-| IDENT-§8.2-01 | 8.2 | REQUIRED | sdk | structural | CapabilityRule capability field (string) is REQUIRED | arsia-capability-policy | — |
-| IDENT-§8.2-02 | 8.2 | MUST | sdk | structural | CapabilityRule MUST specify an exact capability string, no wildcards | arsia-capability-policy | ITV-11 |
-| IDENT-§8.2-03 | 8.2 | REQUIRED | sdk | structural | CapabilityRule status field (string: allowed, oversight_required, or prohibited) is REQUIRED | arsia-capability-policy | — |
-| IDENT-§8.2-04 | 8.2 | OPTIONAL | sdk | structural | CapabilityRule max_risk_level field (integer 0–10) is OPTIONAL | arsia-capability-policy | — |
-| IDENT-§8.2-05 | 8.2 | MUST | sdk | behavioural_negative | Invocation MUST be treated as prohibited when action risk level exceeds max_risk_level | arsia-capability-policy | — |
-| IDENT-§8.2-06 | 8.2 | OPTIONAL | sdk | structural | CapabilityRule conditions field (string, human-readable) is OPTIONAL and not machine-enforced | arsia-capability-policy | — |
-| IDENT-§8.3-01 | 8.3 | MUST | sdk | procedural | Gateway MUST evaluate CapabilityPolicy against the agent's declared capabilities using the evaluation procedure defined in §8.3; output includes max_risk_level constraints per capability | arsia-capability-policy, arsia-capability-descriptor | — |
-| IDENT-§8.3-02 | 8.3 | SHOULD | sdk | behavioural_negative | Gateway SHOULD deny with no_permitted_capabilities when effective capabilities is empty | arsia-onboarding-decision | — |
-| IDENT-§9.1-01 | 9.1 | MUST | sdk | behavioural_positive | Gateway tokens MUST be scoped to exactly the effective_capabilities from Phase 3 | arsia-jwt-claims, arsia-onboarding-decision | ITV-03 |
-| IDENT-§9.1-02 | 9.1 | MUST | sdk | behavioural_positive | Token scope claim MUST contain the union of freely_allowed and oversight_required capabilities | arsia-jwt-claims | — |
-| IDENT-§9.1-03 | 9.1 | MUST | sdk | behavioural_positive | Tokens MUST have exp claim set to current time plus policy.token_lifetime_seconds | arsia-jwt-claims | — |
-| IDENT-§9.1-04 | 9.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued without an expiry time | arsia-jwt-claims | — |
-| IDENT-§9.1-05 | 9.1 | MUST | sdk | behavioural_positive | Token sub claim MUST be the external agent's agent-id | arsia-jwt-claims | — |
-| IDENT-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Token iss claim MUST be the gateway's agent-id | arsia-jwt-claims | — |
-| IDENT-§9.1-07 | 9.1 | SHOULD | sdk | behavioural_positive | Token aud claim SHOULD be the infrastructure router's agent-id (a single agent-id; wildcard audiences are not defined by the protocol — §9.1, Core §6.4) | arsia-jwt-claims | — |
-| IDENT-§9.1-08 | 9.1 | MUST | sdk | behavioural_positive | A token whose scope includes an oversight_required capability MUST carry arsia_oversight listing every such capability with requirement required_before_execution and the policy identification | arsia-jwt-claims | ITV-639 |
-| IDENT-§9.1-09 | 9.1 | MUST | sdk | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 |
-| IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — |
-| IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — |
-| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request | — | — |
-| IDENT-§9.2-04 | 9.2 | MUST | sdk | behavioural_positive | DPoP-bound token MUST contain a cnf claim binding it to the agent's Ed25519 key | arsia-jwt-claims | — |
-| IDENT-§9.2-05 | 9.2 | SHOULD | sdk_enabled | behavioural_positive | High-security organizations SHOULD mandate DPoP for all external agents | — | — |
-| IDENT-§9.3-01 | 9.3 | MUST | sdk | procedural | All onboarding events MUST be recorded as ArsiaAuditRecord entries | arsia-audit-record | — |
-| IDENT-§9.3-02 | 9.3 | MUST | sdk | procedural | Onboarding initiation, identity, conformance, capabilities, decision, and revocation MUST be audited | arsia-audit-record | — |
-| IDENT-§9.3-03 | 9.3 | MUST | sdk | behavioural_positive | Onboarding audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — |
-| IDENT-§9.3-04 | 9.3 | MUST | deployment | behavioural_positive | Onboarding audit records MUST be retained for at least the compliance profile's retention | — | — |
-| IDENT-§9.4-01 | 9.4 | MAY | operational_policy | informational | Organization MAY revoke an external agent's token at any time | — | — |
-| IDENT-§9.4-02 | 9.4 | MUST | deployment | procedural | Gateway MUST record an arsiaprotocol.onboarding/revocation audit event on token revocation | arsia-audit-record | — |
-| IDENT-§9.4-03 | 9.4 | MUST | deployment | behavioural_positive | Gateway verify-token endpoint MUST return invalid/revoked status for revoked tokens | — | ITV-487 |
-| IDENT-§9.4-04 | 9.4 | MUST | deployment | behavioural_negative | Router MUST reject requests presenting a revoked token with error unauthorized | — | ITV-488 |
-| IDENT-§9.4-05 | 9.4 | MUST | deployment | behavioural_positive | Audit trail for an agent's operational period MUST be retained after token revocation | — | — |
-| IDENT-§10-01 | 10 | MUST | sdk | interoperability | Conformant implementations MUST pass all onboarding conformance tests (IDENTITY-13 through IDENTITY-20) | — | — |
+| ID | § | Modal | Layer | Kind | Requirement | Schema | Vector | Evidence |
+|----|---|-------|-------|------|-------------|--------|--------|----------|
+| IDENT-§1.1-01 | 1.1 | MUST | sdk | behavioural_positive | Identity three layers (technical, cryptographic, compliance) MUST all be present and consistent for full identification | arsia-identity-record, arsia-jwk-entry | — | schema-ref:arsia-identity-record; schema-ref:arsia-jwk-entry; untested(structural-only) |
+| IDENT-§1.1-02 | 1.1 | MUST | sdk | behavioural_positive | Identity layers MUST be consistent: agent-id, signing key kid prefix, and IdentityRecord owner MUST all correspond | — | — | untested(no-reference-model) |
+| IDENT-§1.1-03 | 1.1 | MUST | sdk | behavioural_positive | Message signature kid prefix MUST match the sending agent's agent-id | arsia-jwk-entry | ITV-444, ITV-445 | schema-ref:arsia-jwk-entry; struct:ITV-444, ITV-445; untested(structural-only) |
+| IDENT-§1.1-04 | 1.1 | MUST | deployment | behavioural_positive | Agent signing key MUST be published at the JWKS endpoint of the origin resolved per ARSIA-Core.md §6.6 (never derived from identifier segments) | — | — | out-of-repo(infrastructure) |
+| IDENT-§1.1-05 | 1.1 | MUST | sdk | behavioural_positive | IdentityRecord MUST declare the owning legal entity via owner_id and owner_name fields | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§1.1-06 | 1.1 | MUST | sdk | behavioural_positive | Receiving agents MUST resolve every request from a high-risk agent using the high-risk requirement set (§4.2; Core §4.3.10.3), regardless of the declared compliance profile and including when compliance is absent | — | ITV-603, ITV-604, ITV-605, ITV-608, ITV-610, INV-07 | struct:ITV-603, ITV-604, ITV-605, ITV-608, ITV-610, INV-07; crypto:INV-07; exec:R10:ITV-603, ITV-604, ITV-605, ITV-608, ITV-610, INV-07 |
+| IDENT-§1.1-07 | 1.1 | MUST | sdk | behavioural_negative | Receiving agent MUST reject or log a compliance warning when identity layer inconsistency is detected | — | ITV-445 | struct:ITV-445; untested(structural-only) |
+| IDENT-§1.2-01 | 1.2 | REQUIRED | sdk | structural | IdentityRecord agent_id field (string) is REQUIRED | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-02 | 1.2 | REQUIRED | sdk | structural | IdentityRecord owner_id field (string) is REQUIRED as a verifiable legal entity identifier | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-03 | 1.2 | MAY | sdk | informational | Agents MAY be owned by entities registered in any jurisdiction | — | — | — |
+| IDENT-§1.2-04 | 1.2 | MUST | sdk | structural | owner_id MUST be a verifiable legal entity ID (EU VAT, US EIN, LEI, DUNS, national registration, or URN) | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-05 | 1.2 | SHOULD | sdk_enabled | informational | Implementations SHOULD prefer LEI for owner_id when the entity has one | — | ITV-02 | — |
+| IDENT-§1.2-06 | 1.2 | REQUIRED | sdk | structural | IdentityRecord owner_name field (string) is REQUIRED | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-07 | 1.2 | MUST | sdk_enabled | structural | owner_name MUST be the registered legal name, not a trading name or brand | — | — | out-of-repo(operator) |
+| IDENT-§1.2-08 | 1.2 | REQUIRED | sdk | structural | IdentityRecord jurisdiction field (string, ISO 3166-1 alpha-2) is REQUIRED | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-09 | 1.2 | REQUIRED | sdk | structural | IdentityRecord ai_system_classification field (string) is REQUIRED | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-10 | 1.2 | MUST | sdk | structural | ai_system_classification MUST be one of: minimal-risk, limited-risk, high-risk, or unacceptable-risk | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.2-11 | 1.2 | MAY | sdk | informational | Per-message ai_system_classification MAY equal or be lower than the IdentityRecord value; a lower value does not by itself reduce obligations derived from the IdentityRecord (Core §4.3.10.3) | arsia-compliance-field | ITV-612 | — |
+| IDENT-§1.2-12 | 1.2 | MUST | sdk | behavioural_negative | Per-message ai_system_classification MUST NOT exceed the IdentityRecord-level classification | — | ITV-418, ITV-446 | struct:ITV-418, ITV-446; crypto:ITV-418 |
+| IDENT-§1.2-13 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord deployer_id field (string) is OPTIONAL for split-responsibility deployments | arsia-identity-record | ITV-124 | — |
+| IDENT-§1.2-14 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord deployer_name field (string) is OPTIONAL but REQUIRED when deployer_id is set | arsia-identity-record | ITV-522 | — |
+| IDENT-§1.2-15 | 1.2 | MUST | sdk | behavioural_negative | deployer_name MUST be present whenever deployer_id is present | arsia-identity-record | ITV-01, ITV-522 | schema-ref:arsia-identity-record; struct:ITV-01, ITV-522; crypto:ITV-01 |
+| IDENT-§1.2-16 | 1.2 | REQUIRED | sdk | structural | deployer_name is conditionally REQUIRED when deployer_id is set | arsia-identity-record | ITV-522 | schema-ref:arsia-identity-record; struct:ITV-522 |
+| IDENT-§1.2-17 | 1.2 | REQUIRED | sdk | structural | IdentityRecord created_at field (string, RFC 3339 with ms precision) is REQUIRED | arsia-identity-record | ITV-124 | schema-ref:arsia-identity-record; struct:ITV-124 |
+| IDENT-§1.2-18 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord valid_until field (string, RFC 3339 with ms precision) is OPTIONAL | arsia-identity-record | ITV-124 | — |
+| IDENT-§1.2-19 | 1.2 | MUST | operational_policy | procedural | Agent operator MUST refresh the IdentityRecord after valid_until timestamp expires | — | — | out-of-repo(operator) |
+| IDENT-§1.2-20 | 1.2 | RECOMMENDED | operational_policy | informational | valid_until RECOMMENDED value is 90 days from created_at | — | — | — |
+| IDENT-§1.2-21 | 1.2 | OPTIONAL | sdk | structural | IdentityRecord contact_email field (string) is OPTIONAL, RECOMMENDED for high-risk agents | arsia-identity-record | ITV-124 | — |
+| IDENT-§1.2-22 | 1.2 | RECOMMENDED | sdk_enabled | informational | contact_email is RECOMMENDED for agents classified as high-risk | — | — | — |
+| IDENT-§1.2-23 | 1.2 | MUST | sdk_enabled | structural | contact_email MUST be a role-based address, not a personal address | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§1.3-01 | 1.3 | MUST | deployment | behavioural_positive | Agent MUST serve IdentityRecord at GET /.well-known/arsia/identity | — | — | out-of-repo(infrastructure) |
+| IDENT-§1.3-02 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint MUST be available alongside the ARSIA-Core §7.1 discovery endpoint | — | — | out-of-repo(infrastructure) |
+| IDENT-§1.3-03 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint MUST be served over TLS 1.3 or higher | — | — | out-of-repo(transport) |
+| IDENT-§1.3-04 | 1.3 | MUST | deployment | behavioural_positive | Identity endpoint response MUST include X-ARSIA-Sig header with Ed25519 signature over SHA-256 of body | — | — | out-of-repo(infrastructure) |
+| IDENT-§1.3-05 | 1.3 | MUST | sdk | behavioural_negative | IdentityRecord MUST be treated as untrusted if X-ARSIA-Sig verification fails | — | — | untested(integration) |
+| IDENT-§1.3-06 | 1.3 | SHOULD | deployment | informational | Identity endpoint response SHOULD include Cache-Control and ETag headers | — | — | — |
+| IDENT-§1.3-07 | 1.3 | SHOULD | deployment | behavioural_positive | Clients SHOULD respect identity endpoint caching headers | — | — | — |
+| IDENT-§1.3-08 | 1.3 | SHOULD | deployment | behavioural_positive | Clients SHOULD refetch IdentityRecord on message signature verification failure | — | — | — |
+| IDENT-§2.1-01 | 2.1 | REQUIRED | sdk | behavioural_positive | Ed25519 (EdDSA over Curve25519) is the REQUIRED signing algorithm for ARSIA Protocol v1.0 | arsia-jwk-entry | ITV-35 | schema-ref:arsia-jwk-entry; struct:ITV-35; untested(structural-only) |
+| IDENT-§2.1-02 | 2.1 | REQUIRED | sdk | behavioural_positive | Ed25519 is the only REQUIRED signing algorithm; no other algorithm is mandatory | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry; untested(structural-only) |
+| IDENT-§2.1-03 | 2.1 | MAY | sdk | informational | Implementations MAY support additional signing algorithms listed in ARSIA-Core §5.1 | — | ITV-127, ITV-551, ITV-552 | — |
+| IDENT-§2.1-04 | 2.1 | MUST | sdk | behavioural_positive | All implementations MUST support Ed25519 signing | arsia-jwk-entry | ITV-35 | schema-ref:arsia-jwk-entry; struct:ITV-35; untested(structural-only) |
+| IDENT-§2.1-05 | 2.1 | MUST_NOT | deployment | behavioural_negative | Private keys MUST NOT be stored in plaintext on disk in production | — | — | out-of-repo(infrastructure) |
+| IDENT-§2.1-06 | 2.1 | RECOMMENDED | deployment | informational | HSM or cloud KMS (AWS KMS, GCP Cloud KMS, Azure Key Vault) is RECOMMENDED for private key storage | — | — | — |
+| IDENT-§2.1-07 | 2.1 | MAY | deployment | informational | Development environments MAY use environment variables for private key storage | — | — | — |
+| IDENT-§2.1-08 | 2.1 | MUST_NOT | deployment | behavioural_negative | Environment-variable private key storage MUST NOT be used in production | — | — | out-of-repo(infrastructure) |
+| IDENT-§2.1-09 | 2.1 | MUST | deployment | behavioural_positive | Agent public key MUST be published at /.well-known/arsia/jwks.json per ARSIA-Core §7.3 | — | — | out-of-repo(infrastructure) |
+| IDENT-§2.2-01 | 2.2 | MUST | sdk | structural | JWK kid field MUST follow the pattern {agent-id}#{key-index} | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| IDENT-§2.2-02 | 2.2 | MUST | sdk | structural | kid MUST be globally unique within the agent's JWKS | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| IDENT-§2.2-03 | 2.2 | MUST_NOT | deployment | behavioural_negative | kid MUST NOT be reused after the corresponding key is retired, even with identical key material | — | — | out-of-repo(infrastructure) |
+| IDENT-§2.2-04 | 2.2 | SHOULD | sdk | informational | Generating a new key with identical material as a retired key SHOULD be avoided | — | — | — |
+| IDENT-§2.3-01 | 2.3 | MUST | sdk | structural | Each Ed25519 JWK entry MUST contain kty, crv, kid, x, and use fields | arsia-jwk-entry | ITV-35, ITV-37 | schema-ref:arsia-jwk-entry; struct:ITV-35, ITV-37 |
+| IDENT-§2.3-02 | 2.3 | REQUIRED | sdk | structural | JWK use field value sig is REQUIRED for Ed25519 key entries | arsia-jwk-entry | ITV-35 | schema-ref:arsia-jwk-entry; struct:ITV-35 |
+| IDENT-§2.4-01 | 2.4 | MUST | deployment | procedural | Key rotation MUST follow the prescribed procedure: generate, add to JWKS, overlap, switch signing, remove old key | — | — | out-of-repo(infrastructure) |
+| IDENT-§2.4-02 | 2.4 | MUST | operational_policy | procedural | Both old and new keys MUST be present in the JWKS simultaneously during the overlap period | — | — | out-of-repo(operator) |
+| IDENT-§2.4-03 | 2.4 | MUST | operational_policy | behavioural_positive | Key rotation overlap period MUST be at least 24 hours | — | — | out-of-repo(operator) |
+| IDENT-§2.4-04 | 2.4 | RECOMMENDED | operational_policy | informational | 72-hour key rotation overlap period is RECOMMENDED | — | — | — |
+| IDENT-§2.4-05 | 2.4 | MUST | sdk | behavioural_positive | Recipients MUST accept signatures from both old and new keys during the overlap period | — | — | check:`R13 revoked kid within window accepted (bounded exposure)`; untested(no-reference-model) |
+| IDENT-§2.4-06 | 2.4 | SHOULD | operational_policy | informational | Key rotation SHOULD be automated via triggers such as age, compromise, or policy change | — | — | — |
+| IDENT-§2.4-07 | 2.4 | RECOMMENDED | operational_policy | informational | Maximum key lifetime of 90 days is RECOMMENDED as a rotation trigger | — | — | — |
+| IDENT-§2.5-01 | 2.5 | SHOULD | sdk_enabled | procedural | Implementations SHOULD achieve key revocation by removing the compromised key from JWKS and rotating immediately | — | — | — |
+| IDENT-§2.5-02 | 2.5 | RECOMMENDED | operational_policy | informational | Short key validity periods (90 days RECOMMENDED) limit revocation exposure | — | — | — |
+| IDENT-§2.5-03 | 2.5 | SHOULD | deployment | behavioural_positive | On compromise the agent SHOULD additionally emit a signed key-revocation event to known counterparties naming the revoked kid and the effective instant | arsia-key-revocation | ITV-700 | — |
+| IDENT-§2.5-06 | 2.5 | REQUIRED | sdk | structural | key-revocation payload.data contains exactly revoked_kid (a kid of from) and effective_at | arsia-key-revocation | ITV-699, INV-145, INV-146, INV-147 | schema-ref:arsia-key-revocation; struct:ITV-699, INV-145, INV-146, INV-147 |
+| IDENT-§2.5-07 | 2.5 | MUST | sdk | behavioural_negative | A recipient acts on a key-revocation event only after authenticating it — signing key of from, published, distinct from revoked_kid; revoked_kid of from — otherwise unauthorized | — | INV-148, INV-149, INV-150, INV-151 | struct:INV-148, INV-149, INV-150, INV-151; crypto:INV-148, INV-149, INV-150, INV-151; exec:R13:INV-148, INV-149, INV-150, INV-151 |
+| IDENT-§2.5-08 | 2.5 | MUST | sdk | behavioural_positive | For an authenticated key-revocation event the recipient MUST invalidate the cached key at once; effective_at never delays the invalidation | — | ITV-700, ITV-701, ITV-702 | struct:ITV-700, ITV-701, ITV-702; crypto:ITV-700, ITV-701, ITV-702; exec:R13:ITV-700, ITV-701, ITV-702 |
+| IDENT-§2.5-09 | 2.5 | MUST_NOT | sdk | behavioural_negative | An unauthenticated key-revocation event MUST NOT cause the invalidation its payload names; ordinary JWKS refreshes caused by resolving its signing key are unaffected | — | INV-148, INV-149, INV-150, INV-151 | struct:INV-148, INV-149, INV-150, INV-151; crypto:INV-148, INV-149, INV-150, INV-151; exec:R13:INV-148, INV-149, INV-150, INV-151 |
+| IDENT-§3.1-01 | 3.1 | MUST | sdk | structural | Every ARSIA message MUST carry a security object with alg, kid, and sig fields | arsia-message | — | schema-ref:arsia-message |
+| IDENT-§3.1-02 | 3.1 | MUST | sdk | procedural | Recipient MUST verify message signature using the 10-step verification procedure (step 9: declared, allowlisted alg coherent with the key, per ARSIA-Core.md §5.2 Step 5) | — | ITV-551, ITV-552 | struct:ITV-551, ITV-552; crypto:ITV-551, ITV-552 |
+| IDENT-§3.1-03 | 3.1 | MAY | sdk | behavioural_positive | Recipients MAY cache JWKS responses subject to the normative bounds of ARSIA-Core.md §5.2 (refresh on unknown kid, on Cache-Control expiry, at least every 3600 seconds) | — | — | — |
+| IDENT-§3.1-04 | 3.1 | SHOULD | sdk | behavioural_positive | Recipient SHOULD refetch JWKS once on verification failure before rejecting the message | — | — | — |
+| IDENT-§3.1-05 | 3.1 | MAY | sdk | behavioural_positive | Sandbox/development implementations MAY relax EdDSA verification for non-production environments | — | — | — |
+| IDENT-§3.1-06 | 3.1 | MUST | sdk | behavioural_positive | Relaxed-verification implementations MUST log a warning for each unverified request | — | — | untested(no-reference-model) |
+| IDENT-§3.1-07 | 3.1 | MUST_NOT | deployment | behavioural_negative | Production deployments MUST NOT use open registration mode | — | — | out-of-repo(infrastructure) |
+| IDENT-§3.1-08 | 3.1 | MUST | sdk | behavioural_negative | Step 9: security.alg MUST be allowlisted and compatible with the key's kty/crv; unknown, disallowed or mismatched alg rejected with unauthorized | — | ITV-551, INV-37, INV-38, INV-39, INV-111, INV-112 | struct:ITV-551, INV-37, INV-38, INV-39, INV-111, INV-112; crypto:ITV-551, INV-37, INV-38, INV-39, INV-111, INV-112 |
+| IDENT-§3.2-01 | 3.2 | MUST | sdk | behavioural_positive | Request-intent messages MUST include a Bearer or DPoP-bound access token per ARSIA-Core §6 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§3.2-02 | 3.2 | MUST | sdk | procedural | Receiving agent MUST verify access tokens using the 7-step OAuth 2.0 verification procedure | — | — | check:`R11 trusted issuer`; check:`R11 unknown issuer rejected`; check:`R11 audience policy`; check:`R11 alg allowlist`; untested(no-reference-model) |
+| IDENT-§3.2-03 | 3.2 | MUST | external | behavioural_positive | Access token MUST be issued by a trusted Authorization Server | — | — | out-of-repo(external-party) |
+| IDENT-§3.2-04 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token exp claim MUST NOT be expired at verification time | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§3.2-05 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token iat claim MUST NOT be in the future beyond the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-447, ITV-448 | struct:ITV-447, ITV-448; untested(structural-only) |
+| IDENT-§3.2-06 | 3.2 | MUST_NOT | sdk | behavioural_negative | Access token MUST NOT be used before the nbf (not-before) claim time | — | ITV-449, ITV-450 | struct:ITV-449, ITV-450; untested(structural-only) |
+| IDENT-§3.3-01 | 3.3 | RECOMMENDED | sdk_enabled | interoperability | DPoP (RFC 9449) is RECOMMENDED for all token presentations to prevent theft and replay | arsia-dpop-proof | — | — |
+| IDENT-§3.3-02 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify the DPoP proof per §3.3 and reject with error unauthorized when any check fails, except the nonce cases answered with the nonce challenge | — | ITV-451 | struct:ITV-451; untested(structural-only) |
+| IDENT-§3.3-03 | 3.3 | MUST | sdk | behavioural_negative | Receiving agent MUST find exactly one DPoP header field whose value is a single well-formed JWT (checks 1-2) | — | — | check:`R20 (b) check 1 failure is rejected by check 1 with a generic unauthorized`; check:`R20 (b) check 2 failure is rejected by check 2 with a generic unauthorized`; check:`R20 (b) zero DPoP header fields fail check 1` |
+| IDENT-§3.3-04 | 3.3 | MUST | sdk | structural | DPoP proof MUST contain jti, htm, htu, iat and ath, and nonce when the receiving agent requires one (check 3) | arsia-dpop-proof | ITV-33, INV-107 | schema-ref:arsia-dpop-proof; struct:ITV-33, INV-107 |
+| IDENT-§3.3-05 | 3.3 | MUST | sdk | structural | DPoP proof typ header MUST be dpop+jwt (check 4) | arsia-dpop-proof | ITV-126, INV-105 | schema-ref:arsia-dpop-proof; struct:ITV-126, INV-105 |
+| IDENT-§3.3-06 | 3.3 | MUST | sdk | structural | DPoP proof alg MUST be a registered asymmetric algorithm other than none; ARSIA profile: EdDSA with an Ed25519 jwk (check 5) | arsia-dpop-proof | ITV-126, INV-106 | schema-ref:arsia-dpop-proof; struct:ITV-126, INV-106 |
+| IDENT-§3.3-07 | 3.3 | MUST | sdk | behavioural_negative | DPoP proof signature MUST verify with the public key of its jwk header (check 6) | — | — | check:`R20 (b) check 6 failure is rejected by check 6 with a generic unauthorized` |
+| IDENT-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | DPoP proof jwk header MUST NOT contain a private key (check 7) | arsia-dpop-proof | INV-104 | schema-ref:arsia-dpop-proof; struct:INV-104 |
+| IDENT-§3.3-09 | 3.3 | MUST | sdk | structural | DPoP htm MUST match the request method; ARSIA inbox delivery uses POST (check 8) | arsia-dpop-proof | ITV-33, ITV-34 | schema-ref:arsia-dpop-proof; struct:ITV-33, ITV-34 |
+| IDENT-§3.3-10 | 3.3 | MUST | sdk | behavioural_negative | DPoP htu MUST match the request URI, ignoring query and fragment (check 9) | — | — | check:`R20 (b) check 9 failure is rejected by check 9 with a generic unauthorized`; check:`R20 (c) a request URI with query and fragment matches htu` |
+| IDENT-§3.3-11 | 3.3 | SHOULD | sdk | interoperability | Receiving agent SHOULD apply RFC 3986 syntax-based and scheme-based normalisation before comparing htu | — | — | — |
+| IDENT-§3.3-12 | 3.3 | MUST | sdk | behavioural_negative | When the receiving agent provided a nonce, the DPoP nonce claim MUST match it (check 10) | arsia-dpop-proof | ITV-580, INV-45 | schema-ref:arsia-dpop-proof; struct:ITV-580, INV-45; untested(structural-only) |
+| IDENT-§3.3-13 | 3.3 | MUST | sdk | behavioural_negative | DPoP iat MUST be within the Core §8.3 clock skew tolerance of the receiving agent (check 11) | — | — | check:`R20 (b) check 11 failure is rejected by check 11 with a generic unauthorized`; check:`R20 (f) after iat + S the proof fails the acceptance window (check 11)` |
+| IDENT-§3.3-14 | 3.3 | MAY | sdk | informational | A receiving agent that provides nonces MAY bound proof lifetime by the server time its nonce encodes | — | — | — |
+| IDENT-§3.3-15 | 3.3 | MUST | sdk | behavioural_negative | DPoP ath MUST equal the hash of the presented token, and the token's cnf.jkt MUST be the thumbprint of the proof key (check 12) | — | ITV-451 | struct:ITV-451; untested(structural-only) |
+| IDENT-§3.3-16 | 3.3 | MUST | sdk | behavioural_negative | A receiving agent requiring a nonce MUST answer a request lacking an acceptable nonce, the first included, with the nonce challenge rather than a generic unauthorized | — | — | check:`R20 (g) 1 the first request without a nonce is answered with the nonce challenge (401, both headers)`; check:`R20 (g) 3 a nonce the agent does not accept gets the challenge` |
+| IDENT-§3.3-17 | 3.3 | MUST_NOT | sdk | behavioural_negative | A DPoP jti already accepted for the same target URI (query and fragment excluded) MUST NOT be accepted again (check 13, ARSIA requirement) | — | — | check:`R20 (d) the same jti is rejected again for the same target URI`; check:`R20 (d) a query or fragment variant does not open a new scope for the same jti`; check:`R20 (b) check 13: a replayed jti is rejected with a generic unauthorized` |
+| IDENT-§3.3-18 | 3.3 | MUST | deployment | behavioural_negative | jti check and recording MUST be one atomic operation shared by every instance serving the endpoint | — | — | check:`R20 (k) two concurrent requests with the same jti and URI: exactly one is accepted`; out-of-repo(infrastructure) |
+| IDENT-§3.3-19 | 3.3 | MUST | sdk | behavioural_positive | A jti MUST remain recorded at least until iat plus the clock skew tolerance, not for a fixed period from first receipt | — | — | check:`R20 (e) a proof with iat = t0 + S, first received at t0, is still rejected as a replay at t0 + S + 1` |
+| IDENT-§3.3-20 | 3.3 | MAY | sdk | informational | Receiving agent MAY record a hash of the jti instead of its value | — | — | — |
+| IDENT-§3.3-21 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY require a nonce, provided by HTTP 401 with WWW-Authenticate DPoP error use_dpop_nonce and a DPoP-Nonce header | — | — | — |
+| IDENT-§3.3-22 | 3.3 | MAY | sdk | interoperability | Receiving agent MAY provide a new nonce in DPoP-Nonce on any later response | — | — | — |
+| IDENT-§3.3-23 | 3.3 | MUST_NOT | sdk | behavioural_negative | Once a nonce was provided for a DPoP key, a proof made with that key without nonce MUST NOT be accepted | — | — | check:`R20 (g) 2 a proof without nonce after one was provided gets the challenge, not a generic unauthorized` |
+| IDENT-§3.3-24 | 3.3 | MUST | sdk | behavioural_positive | A sender retransmitting a request MUST present a new DPoP proof with a new jti and a current iat | — | — | check:`R20 (h) a retransmission with a new proof is accepted; the re-sent proof is rejected` |
+| IDENT-§3.3-25 | 3.3 | MAY | sdk | informational | A retransmitting sender MAY resend the envelope unchanged, keeping its id and idempotency.key | — | — | — |
+| IDENT-§4.1-01 | 4.1 | MUST | deployment | behavioural_positive | Both sender and receiver owner_id MUST be retrievable via /.well-known/arsia/identity when audit_required is true | — | — | out-of-repo(infrastructure) |
+| IDENT-§4.1-02 | 4.1 | MUST | sdk | behavioural_positive | Both parties' owner_id MUST be included in the corresponding audit record | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§4.1-03 | 4.1 | SHOULD | sdk | behavioural_positive | Implementations SHOULD cache identity records for up to 1 hour, same policy as JWKS | — | — | — |
+| IDENT-§4.1-04 | 4.1 | MUST | deployment | behavioural_positive | Audit records MUST use the identity record retrieved at message processing time, not a stale cache | — | — | out-of-repo(infrastructure) |
+| IDENT-§4.2-01 | 4.2 | MAY | sdk | informational | A high-risk agent MAY declare any compliance profile (including MIFID-II); its requests are resolved with the high-risk requirement set whatever the profile (Core §4.3.10.3) | arsia-compliance-field | ITV-610, INV-07 | — |
+| IDENT-§4.2-04 | 4.2 | MUST_NOT | operational_policy | behavioural_negative | Agents classified as unacceptable-risk MUST NOT be deployed | — | — | out-of-repo(operator) |
+| IDENT-§4.2-05 | 4.2 | MUST | sdk | behavioural_negative | Receiving agent MUST reject all messages from agents classified as unacceptable-risk with error forbidden | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§4.3-01 | 4.3 | MUST | deployment | behavioural_positive | Cross-border agents' IdentityRecords MUST be independently verifiable via their respective endpoints | — | — | out-of-repo(infrastructure) |
+| IDENT-§4.4-01 | 4.4 | MUST | sdk | behavioural_positive | Both deployer_id and owner_id MUST be recorded in audit events for split-responsibility agents | arsia-audit-record | ITV-453, ITV-588 | schema-ref:arsia-audit-record; struct:ITV-453, ITV-588; untested(structural-only) |
+| IDENT-§5-01 | 5 | MUST | sdk | interoperability | Conformant implementations MUST pass all identity conformance tests at their applicable level | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
+| IDENT-§5-02 | 5 | MAY | sdk | behavioural_positive | Receiving agent MAY reject high-risk classification-mismatched messages with invalid_request error | — | ITV-454 | — |
+| IDENT-§6-01 | 6 | MUST | sdk | behavioural_positive | All implementations MUST support Level 1 (self-signed) certificate trust | — | ITV-455 | struct:ITV-455; untested(structural-only) |
+| IDENT-§6-02 | 6 | SHOULD | sdk | behavioural_positive | Implementations SHOULD support Level 2 (CA-signed) certificate trust | — | ITV-456 | — |
+| IDENT-§6-03 | 6 | MAY | sdk | informational | Implementations MAY support Level 3 (eIDAS qualified) certificate trust | — | — | — |
+| IDENT-§6.2-01 | 6.2 | MUST | sdk | structural | Leaf certificate in the chain MUST satisfy all Level 2 structural requirements | — | ITV-457 | struct:ITV-457 |
+| IDENT-§6.2-02 | 6.2 | MUST | sdk | structural | Leaf certificate SAN MUST contain the agent's agent_id as a URI (format agent:{domain}.{name}) | — | ITV-458 | struct:ITV-458 |
+| IDENT-§6.2-03 | 6.2 | MUST | sdk | structural | Leaf certificate Subject Organization (O) MUST match the IdentityRecord owner_name or owner_id | arsia-identity-record | — | schema-ref:arsia-identity-record |
+| IDENT-§6.2-04 | 6.2 | MUST | sdk | structural | Leaf certificate Key Usage digitalSignature bit MUST be set | — | ITV-459 | struct:ITV-459 |
+| IDENT-§6.2-05 | 6.2 | MUST_NOT | sdk | behavioural_negative | Leaf certificate Key Usage keyCertSign bit MUST NOT be set (end-entity only) | — | ITV-460 | struct:ITV-460; untested(structural-only) |
+| IDENT-§6.2-06 | 6.2 | MUST | sdk | structural | Leaf certificate Basic Constraints MUST set CA:FALSE with the critical flag | — | ITV-461 | struct:ITV-461 |
+| IDENT-§6.2-07 | 6.2 | MUST | sdk | behavioural_positive | Certificate public key MUST be identical to the Ed25519 key at the agent's JWKS endpoint | — | ITV-462 | struct:ITV-462; untested(structural-only) |
+| IDENT-§6.2-08 | 6.2 | OPTIONAL | sdk | informational | Extended Key Usage id-kp-serverAuth is OPTIONAL in leaf certificates | — | — | — |
+| IDENT-§6.2-09 | 6.2 | SHOULD_NOT | sdk | informational | Implementations SHOULD NOT require id-kp-serverAuth Extended Key Usage | — | — | — |
+| IDENT-§6.2-10 | 6.2 | MUST | sdk | behavioural_positive | Raw 32-byte certificate public key MUST equal the base64url-decoded JWKS x field value | — | ITV-463 | struct:ITV-463; untested(structural-only) |
+| IDENT-§6.3-01 | 6.3 | MUST | external | structural | Level 3 leaf certificate MUST include QcStatements extension per ETSI EN 319 412-5 with id-etsi-qcs-QcCompliance (clause 4.2.1) and id-etsi-qcs-QcType id-etsi-qct-eseal (clause 4.2.3) | — | ITV-02 | struct:ITV-02; crypto:ITV-02 |
+| IDENT-§6.3-02 | 6.3 | MUST | external | behavioural_positive | Level 3 issuing CA MUST be a QTSP listed on a Member State Trusted List | — | ITV-02 | struct:ITV-02; crypto:ITV-02 |
+| IDENT-§6.3-03 | 6.3 | MUST | external | behavioural_positive | Level 3 owner_id MUST be verifiable against official registers (VIES for VAT, GLEIF for LEI) | — | ITV-02 | struct:ITV-02; crypto:ITV-02 |
+| IDENT-§6.4.1-01 | 6.4.1 | MUST | sdk | procedural | Verifier MUST execute the step-by-step verification procedure for every peer message | — | — | untested(no-reference-model) |
+| IDENT-§6.4.1-02 | 6.4.1 | MUST | sdk | behavioural_positive | Certificate and JWKS raw 32-byte Ed25519 public keys MUST be identical (step 4d) | — | ITV-464 | struct:ITV-464; untested(structural-only) |
+| IDENT-§6.4.1-03 | 6.4.1 | MUST | sdk | behavioural_positive | Leaf certificate SAN URI MUST match the peer's IdentityRecord agent_id (step 4e) | — | ITV-465 | struct:ITV-465; untested(structural-only) |
+| IDENT-§6.4.1-04 | 6.4.1 | MUST | deployment | procedural | Verifier MUST check Level 3 certificate revocation status via OCSP or CRL (step 4h) | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.4.1-05 | 6.4.1 | RECOMMENDED | deployment | informational | OCSP stapling is RECOMMENDED to reduce Level 3 revocation-check latency | — | — | — |
+| IDENT-§6.4.1-06 | 6.4.1 | SHOULD | sdk | behavioural_positive | Verifier SHOULD treat a certificate as potentially revoked when OCSP and CRL are both unavailable | — | — | — |
+| IDENT-§6.4.1-07 | 6.4.1 | MAY | sdk | behavioural_positive | Verifier MAY downgrade a Level 3 certificate to Level 2 when revocation status is unavailable | — | — | — |
+| IDENT-§6.4.2-01 | 6.4.2 | MUST | deployment | behavioural_positive | Agents supporting Level 2+ verification MUST maintain a local trust store of CA certificates | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.4.2-02 | 6.4.2 | SHOULD | sdk_enabled | behavioural_positive | Trust store SHOULD support PEM directory, OS trust store, or config-based CA certificates | — | — | — |
+| IDENT-§6.4.2-03 | 6.4.2 | MAY | sdk_enabled | behavioural_positive | Agent MAY enforce a minimum trust level policy, rejecting below-threshold agents | — | — | — |
+| IDENT-§6.4.2-04 | 6.4.2 | MUST_NOT | sdk | behavioural_negative | Agent MUST NOT reject Level 1 messages unless a minimum trust level policy is explicitly configured | — | ITV-466 | struct:ITV-466; untested(structural-only) |
+| IDENT-§6.4.2-05 | 6.4.2 | MUST | sdk | behavioural_positive | Default behaviour MUST accept messages at all trust levels | — | ITV-467 | struct:ITV-467; untested(structural-only) |
+| IDENT-§6.4.3-01 | 6.4.3 | MUST | sdk | structural | Certificate error responses MUST include a details object with a human-readable reason string | arsia-message | ITV-14, ITV-76, ITV-77, ITV-78, ITV-468, ITV-469, ITV-470 | schema-ref:arsia-message; struct:ITV-14, ITV-76, ITV-77, ITV-78, ITV-468, ITV-469, ITV-470 |
+| IDENT-§6.4.3-02 | 6.4.3 | SHOULD | sdk | behavioural_positive | Certificate error responses SHOULD be signed with the receiving agent's own key | — | — | — |
+| IDENT-§6.5.1-01 | 6.5.1 | OPTIONAL | sdk | structural | IdentityRecord certificate_chain field (array of PEM strings) is OPTIONAL | arsia-identity-record | ITV-01 | — |
+| IDENT-§6.5.1-02 | 6.5.1 | MUST | sdk | structural | certificate_chain MUST be ordered: leaf at index 0, intermediates next, root last | arsia-identity-record | ITV-01 | schema-ref:arsia-identity-record; struct:ITV-01; crypto:ITV-01 |
+| IDENT-§6.5.1-03 | 6.5.1 | MAY | sdk | informational | Root CA certificate MAY be omitted if it is well-known and expected in verifier trust stores | — | — | — |
+| IDENT-§6.5.1-04 | 6.5.1 | MUST | sdk | structural | Each certificate_chain entry MUST be complete PEM with BEGIN/END CERTIFICATE markers | arsia-identity-record | ITV-01 | schema-ref:arsia-identity-record; struct:ITV-01; crypto:ITV-01 |
+| IDENT-§6.5.1-05 | 6.5.1 | MUST | deployment | behavioural_positive | All certificates in the chain MUST be valid when the IdentityRecord is served | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.5.1-06 | 6.5.1 | MUST_NOT | deployment | behavioural_negative | Agent MUST NOT serve an IdentityRecord containing expired certificates | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.5.1-07 | 6.5.1 | SHOULD | operational_policy | behavioural_positive | Agent SHOULD update its IdentityRecord when any certificate is within 30 days of expiry | — | — | — |
+| IDENT-§6.5.2-01 | 6.5.2 | MUST_NOT | sdk | behavioural_negative | Agents MUST NOT include a trust_level field in their IdentityRecord | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§6.5.2-02 | 6.5.2 | MAY | sdk | behavioural_positive | Verifier MAY cache computed trust level for the IdentityRecord Cache-Control duration | — | — | — |
+| IDENT-§6.5.2-03 | 6.5.2 | MUST | deployment | behavioural_positive | Verifier MUST recompute trust level when the IdentityRecord is refreshed | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.5.3-01 | 6.5.3 | OPTIONAL | sdk | structural | certificate_chain schema property is OPTIONAL; the required array is unchanged | arsia-identity-record | — | — |
+| IDENT-§6.6-01 | 6.6 | MUST | sdk | interoperability | Level 2 conformant implementations MUST pass tests IDENTITY-09 through IDENTITY-12 | — | — | untested(no-reference-model) → docs/draft-02-conformance-tests.md |
+| IDENT-§6.7.1-01 | 6.7.1 | MUST_NOT | deployment | behavioural_negative | Sandbox CA certificates MUST NOT be trusted outside the sandbox environment | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.7.1-02 | 6.7.1 | MUST | deployment | behavioural_positive | Production deployments MUST use a properly operated CA with appropriate certificate policies | — | — | out-of-repo(infrastructure) |
+| IDENT-§6.8-01 | 6.8 | SHOULD_NOT | deployment | informational | Level 1 (self-signed) SHOULD NOT be relied upon for identity verification in production | — | — | — |
+| IDENT-§6.8-02 | 6.8 | SHOULD | operational_policy | informational | Level 2 relying agents SHOULD understand their CA's issuance practices | — | — | — |
+| IDENT-§6.8-03 | 6.8 | RECOMMENDED | deployment | informational | Certificate pinning is RECOMMENDED for Level 2 production deployments | — | — | — |
+| IDENT-§6.8-04 | 6.8 | MUST_NOT | sdk | behavioural_negative | Private key MUST NOT be transmitted or included in any protocol message or IdentityRecord | arsia-jwk-entry | ITV-471 | schema-ref:arsia-jwk-entry; struct:ITV-471; untested(structural-only) |
+| IDENT-§6.8-05 | 6.8 | RECOMMENDED | deployment | informational | OCSP stapling is RECOMMENDED for Level 3 to reduce privacy risk and verification latency | — | — | — |
+| IDENT-§6.8-06 | 6.8 | SHOULD | operational_policy | procedural | Agents SHOULD monitor certificate validity and initiate renewal before expiry | — | — | — |
+| IDENT-§6.8-07 | 6.8 | SHOULD | operational_policy | procedural | Agents SHOULD update IdentityRecord with the new certificate chain before the old one expires | — | — | — |
+| IDENT-§7.1.1-01 | 7.1.1 | MUST | deployment | behavioural_positive | External agent MUST serve all ARSIA-Core §7 discovery endpoints (discovery, JWKS, identity) | — | — | out-of-repo(infrastructure) |
+| IDENT-§7.1.1-02 | 7.1.1 | MUST | sdk | behavioural_positive | External agent MUST have a valid IdentityRecord with all REQUIRED fields including ai_system_classification | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§7.1.1-03 | 7.1.1 | SHOULD | deployment | behavioural_positive | External agent SHOULD expose an audit trail query endpoint at /v1/arsia/audit | — | — | — |
+| IDENT-§7.1.1-04 | 7.1.1 | MUST | sdk | behavioural_positive | Onboarding gateway MUST declare arsiaprotocol.onboarding.evaluate in its discovery response | arsia-capability-descriptor | — | schema-ref:arsia-capability-descriptor; untested(structural-only) |
+| IDENT-§7.1.1-05 | 7.1.1 | MUST | deployment | behavioural_positive | Onboarding gateway MUST be authorized to issue scoped access tokens for the organization | — | ITV-03 | struct:ITV-03; crypto:ITV-03 |
+| IDENT-§7.1.1-06 | 7.1.1 | MUST | sdk | procedural | Gateway MUST record all onboarding decisions as ArsiaAuditRecords | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§7.1.1-07 | 7.1.1 | MUST | deployment | procedural | Infrastructure router MUST verify Bearer tokens via the gateway's /v1/arsia/verify-token endpoint | — | — | out-of-repo(infrastructure) |
+| IDENT-§7.1.1-08 | 7.1.1 | MUST | deployment | behavioural_negative | Router MUST reject requests whose capabilities are not present in the token scope with error forbidden | — | ITV-472 | struct:ITV-472; untested(structural-only) |
+| IDENT-§7.1.1-09 | 7.1.1 | MUST_NOT | sdk | behavioural_negative | Router MUST NOT accept messages from agents that have not completed onboarding | — | ITV-473 | struct:ITV-473; untested(structural-only) |
+| IDENT-§7.1.1-10 | 7.1.1 | REQUIRED | sdk | behavioural_positive | External agent IdentityRecord MUST include ai_system_classification among all REQUIRED fields | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§7.1.2-01 | 7.1.2 | MUST_NOT | sdk | behavioural_negative | Gateway MUST NOT grant trust based on out-of-band information (email, verbal, manual config) | — | — | out-of-repo(operator) |
+| IDENT-§7.1.2-02 | 7.1.2 | MUST | sdk | procedural | All onboarding trust decisions MUST be traceable through the audit trail | — | — | untested(no-reference-model) |
+| IDENT-§7.1.3-01 | 7.1.3 | MAY | sdk_enabled | informational | Implementations MAY extend onboarding with additional checks if the six normative phases execute in order | — | — | — |
+| IDENT-§7.2-01 | 7.2 | MUST | sdk | procedural | Gateway MUST proceed to Phase 5 denial if any of Phases 1–4 fails | arsia-onboarding-decision | ITV-04 | schema-ref:arsia-onboarding-decision; struct:ITV-04; crypto:ITV-04 |
+| IDENT-§7.2-02 | 7.2 | MUST_NOT | sdk | procedural | Onboarding phases MUST NOT be reordered or skipped | — | — | untested(no-reference-model) |
+| IDENT-§7.2-03 | 7.2 | MUST | sdk | procedural | Gateway MUST perform Phase 1 identity verification steps in order | — | — | untested(no-reference-model) |
+| IDENT-§7.2-04 | 7.2 | MUST | sdk | structural | Discovery response MUST include agent_id, protocol_version, and capabilities fields | arsia-discovery-response | — | schema-ref:arsia-discovery-response |
+| IDENT-§7.2-05 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with discovery_failed when discovery fetch fails or response is invalid | — | ITV-474 | struct:ITV-474; untested(structural-only) |
+| IDENT-§7.2-06 | 7.2 | MUST | deployment | behavioural_positive | Identity endpoint response MUST include the X-ARSIA-Sig header | — | — | out-of-repo(infrastructure) |
+| IDENT-§7.2-07 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when identity fetch fails or schema is invalid | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§7.2-08 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when JWKS fetch fails or no Ed25519 key found | arsia-jwk-entry | ITV-04 | schema-ref:arsia-jwk-entry; struct:ITV-04; crypto:ITV-04 |
+| IDENT-§7.2-09 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when X-ARSIA-Sig verification fails | — | ITV-475 | struct:ITV-475; untested(structural-only) |
+| IDENT-§7.2-10 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with identity_verification_failed when no JWKS kid prefix matches the agent_id | — | ITV-476 | struct:ITV-476; untested(structural-only) |
+| IDENT-§7.2-11 | 7.2 | MUST | sdk | behavioural_negative | Gateway MUST deny with unacceptable_risk_classification when agent is classified unacceptable-risk | arsia-identity-record | — | schema-ref:arsia-identity-record; untested(structural-only) |
+| IDENT-§7.2-12 | 7.2 | MUST_NOT | operational_policy | behavioural_negative | Agents classified as unacceptable-risk MUST NOT be deployed | — | — | out-of-repo(operator) |
+| IDENT-§7.2-13 | 7.2 | MUST | sdk | behavioural_positive | Gateway MUST retain the raw signed body bytes of the IdentityRecord used to prepare the authenticated context (Step 7; Core §4.3.10.2) | arsia-onboarding-decision | ITV-130, ITV-589 | schema-ref:arsia-onboarding-decision; struct:ITV-130, ITV-589; untested(structural-only) |
+| IDENT-§7.3-01 | 7.3 | MUST | sdk | structural | Conformance check status field MUST be one of pass, fail, or skip | arsia-onboarding-decision | — | schema-ref:arsia-onboarding-decision |
+| IDENT-§7.3-02 | 7.3 | MAY | sdk | behavioural_positive | Conformance check MAY be skipped only when its preconditions are not met | arsia-onboarding-decision | — | — |
+| IDENT-§7.3-03 | 7.3 | MUST | sdk | structural | CHECK-01: response MUST have intent set to response | arsia-message | — | schema-ref:arsia-message |
+| IDENT-§7.3-04 | 7.3 | MUST | sdk | behavioural_positive | CHECK-01: response MUST have correlation_id set to the request's id | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| IDENT-§7.3-05 | 7.3 | MUST | sdk | structural | CHECK-01: response id field MUST be a valid UUID | arsia-message | — | schema-ref:arsia-message |
+| IDENT-§7.3-06 | 7.3 | MUST | sdk | structural | CHECK-01: response MUST include v, ts, from, and to fields | arsia-message | — | schema-ref:arsia-message |
+| IDENT-§7.3-07 | 7.3 | MUST | deployment | behavioural_positive | CHECK-01: response from field MUST match the external agent's agent_id | — | ITV-477 | struct:ITV-477; crypto:ITV-477 |
+| IDENT-§7.3-08 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: with a probe token (sub gateway, aud external agent, arsia_oversight listing the capability, issuer trusted by the agent), the external agent MUST respond with pending_approval for oversight-required capabilities | — | ITV-478, ITV-670, ITV-671 | struct:ITV-478, ITV-670, ITV-671; exec:R15:ITV-670, ITV-671 |
+| IDENT-§7.3-09 | 7.3 | MUST | sdk | structural | CHECK-03: pending_approval message MUST have intent set to pending_approval | arsia-message | — | schema-ref:arsia-message |
+| IDENT-§7.3-10 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval correlation_id MUST match the request's id | — | ITV-479 | struct:ITV-479; untested(structural-only) |
+| IDENT-§7.3-11 | 7.3 | SHOULD | sdk | structural | CHECK-03: pending_approval payload.type SHOULD be arsiaprotocol.oversight/pending | arsia-message | ITV-480 | — |
+| IDENT-§7.3-12 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval expires_at MUST be present and set to a future timestamp | arsia-message | ITV-481 | schema-ref:arsia-message; struct:ITV-481; untested(structural-only) |
+| IDENT-§7.3-13 | 7.3 | MUST | sdk | structural | CHECK-04: audit endpoint response MUST be the ARSIA-State.md §7.4 response object whose records array contains the audit records | arsia-audit-record | — | schema-ref:arsia-audit-record |
+| IDENT-§7.3-14 | 7.3 | MUST | sdk | structural | CHECK-04: each audit record MUST include the ArsiaAuditRecord fields listed (ARSIA-State.md §7.1 required fields, incl. declared_retention and retention_source, and the §7.2 chain fields) | arsia-audit-record | — | schema-ref:arsia-audit-record |
+| IDENT-§7.3-15 | 7.3 | MUST | sdk | behavioural_positive | CHECK-04: audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§7.3-16 | 7.3 | RECOMMENDED | sdk_enabled | informational | Audit trail endpoint is RECOMMENDED but not REQUIRED at Core Conformance level | — | — | — |
+| IDENT-§7.3-17 | 7.3 | MUST | sdk | procedural | All conformance checks MUST achieve pass or skip status for Phase 2 to pass | arsia-onboarding-decision | ITV-623, ITV-624, ITV-625 | schema-ref:arsia-onboarding-decision; struct:ITV-623, ITV-624, ITV-625; exec:R10:ITV-623, ITV-624, ITV-625 |
+| IDENT-§7.3-18 | 7.3 | MUST | sdk | behavioural_negative | Gateway MUST deny with conformance_failed when any conformance check has fail status | arsia-onboarding-decision | ITV-131 | schema-ref:arsia-onboarding-decision; struct:ITV-131; untested(structural-only) |
+| IDENT-§7.3-19 | 7.3 | MUST | sdk | behavioural_negative | CHECK-04: the gateway MUST retrieve each chain present by chain_id and verify it per ARSIA-State.md §7.2 (internal consistency) | arsia-audit-record, arsia-audit-chain-tombstone | — | schema-ref:arsia-audit-record; schema-ref:arsia-audit-chain-tombstone; check:`R14 (b) approver_id changed (ITV-597) rejected: chain value mismatch`; check:`R14 (b) pre-DR-5 construction blind to the same change (A-8 reproduction)`; check:`R14 (c) mid-chain record removed rejected: position gap`; check:`R14 (d) two records reordered rejected: chain value mismatch`; check:`R14 (e) foreign chain_id (ITV-598) rejected`; check:`R14 (f) Compliance-level record without chain fields fails the mandate`; check:`R14 (f) Full-level record without chain fields fails the mandate`; check:`R14 (f) Core-level record without chain fields is allowed`; check:`R14 (f) chained record satisfies the Compliance mandate`; check:`R14 (f) partial chain fields fail at every level`; check:`R14 (g) tombstone previous value wrong (ITV-599) rejected`; check:`R14 (h) head value mismatch rejected` |
+| IDENT-§7.3-20 | 7.3 | SHOULD | sdk_enabled | behavioural_positive | When the audit endpoint is served at Core Conformance level, its records SHOULD carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | — | — |
+| IDENT-§7.3-21 | 7.3 | MUST | sdk | behavioural_positive | At Compliance and Full levels, served audit records MUST carry the hash chain of ARSIA-State.md §7.2 | arsia-audit-record | ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596 | schema-ref:arsia-audit-record; struct:ITV-95, ITV-592, ITV-593, ITV-594, ITV-595, ITV-596; exec:R14:ITV-95, ITV-592 |
+| IDENT-§7.3-22 | 7.3 | MUST | sdk | behavioural_positive | CHECK-03: pending_approval request_payload_hash MUST be the hash of the request's payload, and obligation_resolution MUST record the capability-policy source of the probe token's claim | arsia-message | ITV-478, ITV-670 | schema-ref:arsia-message; struct:ITV-478, ITV-670; exec:R15:ITV-670 |
+| IDENT-§7.4-01 | 7.4 | MAY | sdk | informational | Allowed-status capabilities MAY be invoked without additional oversight | arsia-capability-policy | — | — |
+| IDENT-§7.4-02 | 7.4 | MAY | sdk | behavioural_positive | Oversight-required capabilities MAY be invoked; each invocation is subject to prior approval carried by the token's arsia_oversight claim | arsia-capability-policy | ITV-642 | — |
+| IDENT-§7.4-04 | 7.4 | MUST_NOT | sdk | behavioural_negative | Prohibited-status capabilities MUST NOT be invoked by the agent | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
+| IDENT-§7.4-05 | 7.4 | MUST | sdk | behavioural_negative | Infrastructure router MUST reject prohibited-capability requests with error forbidden | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
+| IDENT-§7.4-06 | 7.4 | MUST | sdk | procedural | Gateway MUST partition effective capabilities into freely_allowed and oversight_required lists | arsia-onboarding-decision | — | schema-ref:arsia-onboarding-decision; untested(structural-only) |
+| IDENT-§7.5-01 | 7.5 | MUST | sdk | procedural | Gateway MUST record identity_created_at, earliest_audit_record, and provenance_verified | arsia-onboarding-decision | ITV-130 | schema-ref:arsia-onboarding-decision; struct:ITV-130; untested(structural-only) |
+| IDENT-§7.5-02 | 7.5 | SHOULD | sdk | behavioural_positive | Gateway SHOULD log a warning when provenance_verified is false | arsia-onboarding-decision | ITV-130 | — |
+| IDENT-§7.5-03 | 7.5 | MUST_NOT | sdk | behavioural_negative | Failed provenance verification MUST NOT automatically deny onboarding | — | — | untested(no-reference-model) |
+| IDENT-§7.5-04 | 7.5 | MAY | operational_policy | informational | Organization's human oversight process MAY use provenance as an input to approval | — | — | — |
+| IDENT-§7.6-01 | 7.6 | MUST | sdk | structural | Onboarding decision message MUST conform to the §7.6 decision structure (request intent, arsiaprotocol.onboarding/decision payload) | arsia-onboarding-decision | ITV-03, ITV-04, ITV-38, ITV-130 | schema-ref:arsia-onboarding-decision; struct:ITV-03, ITV-04, ITV-38, ITV-130; crypto:ITV-03, ITV-04 |
+| IDENT-§7.6-02 | 7.6 | REQUIRED | sdk | structural | Decision message compliance field is REQUIRED with the organization's applicable profile | arsia-onboarding-decision | — | schema-ref:arsia-onboarding-decision |
+| IDENT-§7.6-03 | 7.6 | REQUIRED | sdk | behavioural_positive | Decision message security field is REQUIRED, signed with the gateway's Ed25519 key | arsia-message | ITV-482 | schema-ref:arsia-message; struct:ITV-482; untested(structural-only) |
+| IDENT-§7.6-04 | 7.6 | MUST | sdk | behavioural_positive | Approval token MUST be a valid JWT with scope matching effective_capabilities | arsia-jwt-claims, arsia-onboarding-decision | ITV-38, ITV-130 | schema-ref:arsia-jwt-claims; schema-ref:arsia-onboarding-decision; struct:ITV-38, ITV-130; untested(structural-only) |
+| IDENT-§7.6-05 | 7.6 | MUST | sdk | structural | Approval decision token_expires_at MUST be present in RFC 3339 format | arsia-onboarding-decision | ITV-130 | schema-ref:arsia-onboarding-decision; struct:ITV-130 |
+| IDENT-§7.6-06 | 7.6 | MUST | sdk | structural | Approval decision effective_capabilities, freely_allowed, and oversight_required MUST be present; effective_capabilities MUST be non-empty (freely_allowed or oversight_required MAY be empty) | arsia-onboarding-decision | ITV-130, ITV-589 | schema-ref:arsia-onboarding-decision; struct:ITV-130, ITV-589 |
+| IDENT-§7.6-07 | 7.6 | MUST | sdk | structural | Denial decision denial_reason field MUST be present | arsia-onboarding-decision | ITV-04, ITV-131 | schema-ref:arsia-onboarding-decision; struct:ITV-04, ITV-131; crypto:ITV-04 |
+| IDENT-§7.6-08 | 7.6 | MUST_NOT | sdk | behavioural_negative | Denial decision MUST NOT include a token field | arsia-onboarding-decision | ITV-04, ITV-131 | schema-ref:arsia-onboarding-decision; struct:ITV-04, ITV-131; crypto:ITV-04 |
+| IDENT-§7.6-09 | 7.6 | SHOULD | sdk | behavioural_positive | Denial decision SHOULD include conformance_result for operator feedback | arsia-onboarding-decision | ITV-131 | — |
+| IDENT-§7.6-10 | 7.6 | MUST | sdk | procedural | Gateway MUST record the onboarding decision as an ArsiaAuditRecord with event_type approval_decision | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§7.6-11 | 7.6 | MUST | sdk | structural | An approved decision MUST carry authenticated_context: the context prepared in Phase 1 Step 7 and verified by CHECK-05, unchanged, with context_sha256 computed by the Step 7 formula | arsia-onboarding-decision | ITV-03, ITV-130, ITV-589, INV-61 | schema-ref:arsia-onboarding-decision; struct:ITV-03, ITV-130, ITV-589, INV-61; crypto:ITV-03 |
+| IDENT-§7.6-12 | 7.6 | MUST | sdk | procedural | Gateway MUST record the association of the issued token (jti), the decision id and the context_id | — | ITV-610, ITV-615, ITV-616 | struct:ITV-610, ITV-615, ITV-616; exec:R10:ITV-610, ITV-615, ITV-616 |
+| IDENT-§7.6-13 | 7.6 | MUST | sdk | structural | An approved decision MUST carry policy_version and policy_sha256 identifying the CapabilityPolicy applied in Phase 3 | arsia-onboarding-decision | ITV-130, ITV-589, INV-78 | schema-ref:arsia-onboarding-decision; struct:ITV-130, ITV-589, INV-78 |
+| IDENT-§7.7-01 | 7.7 | MUST | sdk | behavioural_positive | External agent MUST present the onboarding token as a Bearer token in the Authorization header | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§7.7-02 | 7.7 | MUST | sdk_enabled | procedural | Infrastructure router MUST verify the token on every request via the gateway's verify-token endpoint | — | — | untested(integration) |
+| IDENT-§7.7-03 | 7.7 | MUST | deployment | structural | Token verification request body MUST contain the token to be verified | arsia-jwt-claims | ITV-483, ITV-484 | schema-ref:arsia-jwt-claims; struct:ITV-483, ITV-484 |
+| IDENT-§7.7-04 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error unauthorized when the token is invalid, expired, or revoked | — | ITV-485 | struct:ITV-485; untested(structural-only) |
+| IDENT-§7.7-05 | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that requested message capabilities are a subset of the token scope | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§7.7-06 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden when message requests out-of-scope capabilities | — | ITV-486 | struct:ITV-486; untested(structural-only) |
+| IDENT-§7.7-06a | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that the invoked action's risk_level does not exceed the capability's max_risk_level constraint | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
+| IDENT-§7.7-06b | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden and details.risk_level_exceeded when action risk_level exceeds max_risk_level | — | — | untested(no-reference-model) |
+| IDENT-§7.7-09 | 7.7 | SHOULD | sdk_enabled | interoperability | External agents SHOULD use DPoP when presenting tokens to the infrastructure router | arsia-dpop-proof | — | — |
+| IDENT-§7.7-10 | 7.7 | SHOULD | sdk_enabled | behavioural_positive | Router SHOULD verify DPoP proofs when presented by external agents | — | — | — |
+| IDENT-§7.7-11 | 7.7 | MAY | sdk | informational | External agent MAY re-initiate onboarding to obtain a new token before expiry | — | — | — |
+| IDENT-§7.7-12 | 7.7 | MAY | sdk_enabled | informational | Implementations MAY provide a lightweight token renewal skipping Phases 1–4 | — | — | — |
+| IDENT-§7.7-13 | 7.7 | MUST | sdk | structural | For a valid token, the verification response MUST return the bound authenticated_context and the id of its onboarding decision | — | ITV-610 | struct:ITV-610; exec:R10:ITV-610 |
+| IDENT-§7.7-14 | 7.7 | MUST | sdk_enabled | behavioural_positive | Router MUST verify that the context is bound to the token's own decision (context_sha256), that its agent_id is the token subject and the message's from, and that it is usable | — | ITV-610, ITV-614, ITV-615, ITV-616 | struct:ITV-610, ITV-614, ITV-615, ITV-616; exec:R10:ITV-610, ITV-614, ITV-615, ITV-616 |
+| IDENT-§7.7-15 | 7.7 | MUST | sdk_enabled | procedural | Router MUST resolve each request's obligations per Core §4.3.10, with the context's facts as identity-record source, before forwarding | — | ITV-610 | struct:ITV-610; exec:R10:ITV-610 |
+| IDENT-§7.7-16 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | With a missing, invalid, unusable, foreign-agent or foreign-admission context the router MUST NOT forward the request and MUST reject it with unauthorized | — | ITV-613, ITV-614, ITV-615, ITV-616, ITV-626, ITV-627 | struct:ITV-613, ITV-614, ITV-615, ITV-616, ITV-626, ITV-627; exec:R10:ITV-613, ITV-614, ITV-615, ITV-616, ITV-626, ITV-627 |
+| IDENT-§7.7-17 | 7.7 | MUST_NOT | sdk_enabled | behavioural_negative | Router MUST NOT treat an agent without a usable context as having a lower classification | — | ITV-613 | struct:ITV-613; exec:R10:ITV-613 |
+| IDENT-§7.7-18 | 7.7 | MUST | sdk | behavioural_positive | Every renewal, lightweight or full, MUST bind a valid context (IdentityRecord re-verified as in Phase 1, new context, bound to the new token) | — | — | untested(no-reference-model) |
+| IDENT-§7.7-19 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with unauthorized a token whose scope includes a bound oversight_required capability unless arsia_oversight lists it with the decision's policy identification | — | ITV-669 | struct:ITV-669; exec:R15:ITV-669 |
+| IDENT-§7.7-20 | 7.7 | MUST | sdk | behavioural_positive | An internal token issued by the router MUST carry the arsia_oversight requirement and policy identification for every remaining listed capability | arsia-jwt-claims | ITV-668 | schema-ref:arsia-jwt-claims; struct:ITV-668; exec:R15:ITV-668 |
+| IDENT-§8.1-01 | 8.1 | MUST | sdk | structural | CapabilityPolicy MUST include policy_version, token_lifetime_seconds, and capabilities fields | arsia-capability-policy | ITV-10 | schema-ref:arsia-capability-policy; struct:ITV-10 |
+| IDENT-§8.1-02 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy policy_version field (string) is REQUIRED | arsia-capability-policy | — | schema-ref:arsia-capability-policy |
+| IDENT-§8.1-03 | 8.1 | SHOULD | sdk_enabled | informational | policy_version SHOULD use a semantically meaningful version string | — | — | — |
+| IDENT-§8.1-04 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy token_lifetime_seconds field (integer) is REQUIRED | arsia-capability-policy | ITV-03, ITV-10 | schema-ref:arsia-capability-policy; struct:ITV-03, ITV-10; crypto:ITV-03 |
+| IDENT-§8.1-05 | 8.1 | RECOMMENDED | sdk_enabled | informational | token_lifetime_seconds RECOMMENDED minimum is 900 seconds (15 minutes) | — | — | — |
+| IDENT-§8.1-06 | 8.1 | RECOMMENDED | sdk_enabled | informational | token_lifetime_seconds RECOMMENDED maximum is 86400 seconds (24 hours) | — | ITV-65 | — |
+| IDENT-§8.1-07 | 8.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued with lifetime exceeding token_lifetime_seconds | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
+| IDENT-§8.1-08 | 8.1 | REQUIRED | sdk | structural | CapabilityPolicy capabilities field (array of CapabilityRule) is REQUIRED | arsia-capability-policy | — | schema-ref:arsia-capability-policy |
+| IDENT-§8.1-09 | 8.1 | MUST_NOT | operational_policy | behavioural_negative | A gateway MUST NOT apply two different policies under the same policy_version | — | — | check:`(gateway, policy_version) -> one policy digest (Identity §8.1)`; out-of-repo(operator) |
+| IDENT-§8.2-01 | 8.2 | REQUIRED | sdk | structural | CapabilityRule capability field (string) is REQUIRED | arsia-capability-policy | — | schema-ref:arsia-capability-policy |
+| IDENT-§8.2-02 | 8.2 | MUST | sdk | structural | CapabilityRule MUST specify an exact capability string, no wildcards | arsia-capability-policy | ITV-11 | schema-ref:arsia-capability-policy; struct:ITV-11 |
+| IDENT-§8.2-03 | 8.2 | REQUIRED | sdk | structural | CapabilityRule status field (string: allowed, oversight_required, or prohibited) is REQUIRED | arsia-capability-policy | — | schema-ref:arsia-capability-policy |
+| IDENT-§8.2-04 | 8.2 | OPTIONAL | sdk | structural | CapabilityRule max_risk_level field (integer 0–10) is OPTIONAL | arsia-capability-policy | — | — |
+| IDENT-§8.2-05 | 8.2 | MUST | sdk | behavioural_negative | Invocation MUST be treated as prohibited when action risk level exceeds max_risk_level | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
+| IDENT-§8.2-06 | 8.2 | OPTIONAL | sdk | structural | CapabilityRule conditions field (string, human-readable) is OPTIONAL and not machine-enforced | arsia-capability-policy | — | — |
+| IDENT-§8.3-01 | 8.3 | MUST | sdk | procedural | Gateway MUST evaluate CapabilityPolicy against the agent's declared capabilities using the evaluation procedure defined in §8.3; output includes max_risk_level constraints per capability | arsia-capability-policy, arsia-capability-descriptor | — | schema-ref:arsia-capability-policy; schema-ref:arsia-capability-descriptor; untested(structural-only) |
+| IDENT-§8.3-02 | 8.3 | SHOULD | sdk | behavioural_negative | Gateway SHOULD deny with no_permitted_capabilities when effective capabilities is empty | arsia-onboarding-decision | — | — |
+| IDENT-§9.1-01 | 9.1 | MUST | sdk | behavioural_positive | Gateway tokens MUST be scoped to exactly the effective_capabilities from Phase 3 | arsia-jwt-claims, arsia-onboarding-decision | ITV-03 | schema-ref:arsia-jwt-claims; schema-ref:arsia-onboarding-decision; struct:ITV-03; crypto:ITV-03 |
+| IDENT-§9.1-02 | 9.1 | MUST | sdk | behavioural_positive | Token scope claim MUST contain the union of freely_allowed and oversight_required capabilities | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.1-03 | 9.1 | MUST | sdk | behavioural_positive | Tokens MUST have exp claim set to current time plus policy.token_lifetime_seconds | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.1-04 | 9.1 | MUST_NOT | sdk | behavioural_negative | Tokens MUST NOT be issued without an expiry time | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.1-05 | 9.1 | MUST | sdk | behavioural_positive | Token sub claim MUST be the external agent's agent-id | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Token iss claim MUST be the gateway's agent-id | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.1-07 | 9.1 | SHOULD | sdk | behavioural_positive | Token aud claim SHOULD be the infrastructure router's agent-id (a single agent-id; wildcard audiences are not defined by the protocol — §9.1, Core §6.4) | arsia-jwt-claims | — | — |
+| IDENT-§9.1-08 | 9.1 | MUST | sdk | behavioural_positive | A token whose scope includes an oversight_required capability MUST carry arsia_oversight listing every such capability with requirement required_before_execution and the policy identification | arsia-jwt-claims | ITV-639 | schema-ref:arsia-jwt-claims; struct:ITV-639; untested(structural-only) |
+| IDENT-§9.1-09 | 9.1 | MUST | sdk | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 | schema-ref:arsia-jwt-claims; struct:ITV-668; exec:R15:ITV-668 |
+| IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — | — |
+| IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — | schema-ref:arsia-dpop-proof; untested(structural-only) |
+| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request | — | — | check:`R20 (a) a valid DPoP proof is accepted`; untested(integration) |
+| IDENT-§9.2-04 | 9.2 | MUST | sdk | behavioural_positive | DPoP-bound token MUST contain a cnf claim binding it to the agent's Ed25519 key | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§9.2-05 | 9.2 | SHOULD | sdk_enabled | behavioural_positive | High-security organizations SHOULD mandate DPoP for all external agents | — | — | — |
+| IDENT-§9.3-01 | 9.3 | MUST | sdk | procedural | All onboarding events MUST be recorded as ArsiaAuditRecord entries | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§9.3-02 | 9.3 | MUST | sdk | procedural | Onboarding initiation, identity, conformance, capabilities, decision, and revocation MUST be audited | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§9.3-03 | 9.3 | MUST | sdk | behavioural_positive | Onboarding audit records MUST use payload_hash, not raw payload content | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§9.3-04 | 9.3 | MUST | deployment | behavioural_positive | Onboarding audit records MUST be retained for at least the compliance profile's retention | — | — | out-of-repo(infrastructure) |
+| IDENT-§9.4-01 | 9.4 | MAY | operational_policy | informational | Organization MAY revoke an external agent's token at any time | — | — | — |
+| IDENT-§9.4-02 | 9.4 | MUST | deployment | procedural | Gateway MUST record an arsiaprotocol.onboarding/revocation audit event on token revocation | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| IDENT-§9.4-03 | 9.4 | MUST | deployment | behavioural_positive | Gateway verify-token endpoint MUST return invalid/revoked status for revoked tokens | — | ITV-487 | struct:ITV-487; untested(structural-only) |
+| IDENT-§9.4-04 | 9.4 | MUST | deployment | behavioural_negative | Router MUST reject requests presenting a revoked token with error unauthorized | — | ITV-488 | struct:ITV-488; untested(structural-only) |
+| IDENT-§9.4-05 | 9.4 | MUST | deployment | behavioural_positive | Audit trail for an agent's operational period MUST be retained after token revocation | — | — | out-of-repo(infrastructure) |
+| IDENT-§10-01 | 10 | MUST | sdk | interoperability | Conformant implementations MUST pass all onboarding conformance tests (IDENTITY-13 through IDENTITY-20) | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
 
 ## Coverage Gaps
 
@@ -314,23 +312,23 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 301 |
+| Total requirements | 299 |
 | Schema ≠ — | 132 |
-| Vector ≠ — | 111 |
-| Both ≠ — | 59 |
-| Both = — (gaps) | 117 |
+| Vector ≠ — | 110 |
+| Both ≠ — | 58 |
+| Both = — (gaps) | 115 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 19 | 13 | 9 | 15 |
-| 2 | 31 | 9 | 10 | 6 | 18 |
+| 2 | 29 | 9 | 10 | 6 | 16 |
 | 3 | 39 | 10 | 12 | 6 | 23 |
 | 4 | 9 | 4 | 2 | 2 | 5 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |
-| 7 | 90 | 53 | 43 | 25 | 19 |
+| 7 | 90 | 53 | 42 | 24 | 19 |
 | 8 | 17 | 13 | 4 | 3 | 3 |
 | 9 | 23 | 16 | 5 | 3 | 5 |
 | 10 | 1 | 0 | 0 | 0 | 1 |

@@ -2,422 +2,417 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA-Core — Requirements Traceability Matrix
 
-| ID | § | Modal | Layer | Kind | Requirement | Schema | Vector |
-|----|---|-------|-------|------|-------------|--------|--------|
-| CORE-§1.3-01 | 1.3 | MAY | sdk_enabled | interoperability | MCP/A2A agents MAY add ARSIA compliance by including the compliance field in the envelope | — | — |
-| CORE-§2.2-01 | 2.2 | MUST | sdk | behavioural_positive | Agents MUST produce/consume ARSIA envelopes, verify signatures, and respond to discovery | arsia-message | — |
-| CORE-§2.2-02 | 2.2 | MUST | sdk | behavioural_positive | Receiving agent MUST apply profile defaults for unset compliance fields when profile is referenced | arsia-compliance-field | — |
-| CORE-§2.2-03 | 2.2 | MUST_NOT | external | behavioural_negative | Compliance broker MUST NOT modify message envelope contents | — | — |
-| CORE-§2.2-04 | 2.2 | MUST | external | behavioural_positive | Compliance broker MUST append an audit record for every relayed message | arsia-audit-record | — |
-| CORE-§2.2-05 | 2.2 | MAY | external | informational | A single authorization server MAY serve multiple agents within an organisation | — | — |
-| CORE-§2.2-06 | 2.2 | MAY | deployment | informational | Each agent MAY use a dedicated authorization server | — | — |
-| CORE-§2.2-07 | 2.2 | MUST | sdk | behavioural_positive | Each agent MUST expose exactly one inbox endpoint for receiving messages | arsia-discovery-response | — |
-| CORE-§2.2-08 | 2.2 | MUST | sdk | behavioural_positive | Response/error/pending_approval/approval_decision messages MUST include correlation_id matching the original request id | arsia-message | CTV-08 |
-| CORE-§2.2-09 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST store idempotency keys for the duration in idempotency.expires_at | — | — |
-| CORE-§2.2-10 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST return the original response for any duplicate idempotency key within the retention window | — | — |
-| CORE-§2.2-11 | 2.2 | MUST | deployment | structural | Data residency zone MUST be an ISO 3166-1 alpha-2 code or supranational ID where processing occurs | arsia-compliance-field | ITV-23 |
-| CORE-§2.2-12 | 2.2 | MUST | deployment | procedural | Messages with data_residency MUST route through a compliance broker within the declared zone | — | — |
-| CORE-§3.1-01 | 3.1 | MUST | sdk | structural | Agent ID org-segment MUST contain only ASCII letters, digits, or hyphens | arsia-message | — |
-| CORE-§3.1-02 | 3.1 | MUST_NOT | sdk | structural | Agent ID org-segment MUST NOT begin or end with a hyphen | arsia-message | — |
-| CORE-§3.3-01 | 3.3 | MUST_NOT | sdk | structural | Agent identifier MUST NOT exceed 256 characters including the agent: prefix | arsia-message | ITV-178 |
-| CORE-§3.3-02 | 3.3 | MUST | operational_policy | behavioural_positive | Agent identifier MUST be globally unique within a deployment | — | — |
-| CORE-§3.3-03 | 3.3 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD use a registry or namespace authority to prevent ID collisions | — | — |
-| CORE-§3.3-04 | 3.3 | MUST_NOT | operational_policy | behavioural_negative | Agent identifier MUST NOT contain personally identifiable information (PII) | — | — |
-| CORE-§3.3-05 | 3.3 | SHOULD | sdk | interoperability | Implementations SHOULD use lowercase agent identifiers to avoid confusion | arsia-message | ITV-430 |
-| CORE-§3.3-06 | 3.3 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT normalise case when comparing agent identifiers | — | — |
-| CORE-§3.3-07 | 3.3 | MUST | sdk | structural | The agent: prefix MUST be present in all contexts — envelope fields, token claims, discovery, and errors | arsia-message | INV-04 |
-| CORE-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | The org-segment and each sub-segment MUST NOT begin or end with a hyphen | arsia-message | — |
-| CORE-§3.3-09 | 3.3 | MUST_NOT | sdk | structural | Agent ID resource-segment, if present, MUST NOT be empty (no trailing slash) | arsia-message | — |
-| CORE-§3.3-10 | 3.3 | MAY | sdk | informational | Implementations MAY use the specified regex for agent identifier validation | — | — |
-| CORE-§4.1-01 | 4.1 | MUST | sdk | structural | Every ARSIA envelope MUST include v, id, ts, from, to, and intent fields | arsia-message | INV-01 |
-| CORE-§4.1-02 | 4.1 | MUST | sdk | behavioural_negative | Messages missing any required field MUST be rejected with error invalid_request | arsia-message | INV-01, INV-02, INV-03 |
-| CORE-§4.1.1-01 | 4.1.1 | MUST | sdk | behavioural_negative | Implementations MUST reject messages with unsupported major version | — | ITV-404 |
-| CORE-§4.1.1-02 | 4.1.1 | MUST | sdk | behavioural_positive | Minor version differences within the same major version MUST be handled gracefully | — | ITV-405 |
-| CORE-§4.1.1-03 | 4.1.1 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored | — | ITV-406 |
-| CORE-§4.1.2-01 | 4.1.2 | MUST | sdk | structural | Message id MUST be a UUID v4 in canonical 8-4-4-4-12 hexadecimal format | arsia-message | INV-02, ITV-407 |
-| CORE-§4.1.2-02 | 4.1.2 | SHOULD | sdk | interoperability | Message id hex digits SHOULD be lowercase | arsia-message | ITV-407 |
-| CORE-§4.1.2-03 | 4.1.2 | MUST | sdk | behavioural_positive | Message id UUID MUST be generated using a CSPRNG | — | — |
-| CORE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | Message identifiers MUST NOT be sequential or predictable | — | — |
-| CORE-§4.1.3-01 | 4.1.3 | MUST | sdk | structural | Timestamp ts MUST be RFC 3339 UTC with exactly millisecond precision (Z suffix) | arsia-message | INV-03 |
-| CORE-§4.1.3-02 | 4.1.3 | MUST_NOT | sdk | behavioural_negative | Timestamp ts MUST NOT use local timezone offsets | arsia-message | — |
-| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408, INV-171 |
-| CORE-§4.1.4-01 | 4.1.4 | MUST | sdk | structural | The from field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — |
-| CORE-§4.1.4-02 | 4.1.4 | MUST | sdk | behavioural_positive | The from field MUST match the access token sub claim | — | ITV-409 |
-| CORE-§4.1.4-03 | 4.1.4 | MUST | sdk | behavioural_negative | Mismatched from vs. token sub MUST cause rejection with error unauthorized | — | ITV-409 |
-| CORE-§4.1.5-01 | 4.1.5 | MUST | sdk | structural | The to field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — |
-| CORE-§4.1.5-02 | 4.1.5 | MUST | sdk | behavioural_positive | The to field MUST match the access token aud claim | — | ITV-410 |
-| CORE-§4.1.5-03 | 4.1.5 | MUST | sdk | behavioural_negative | Mismatched to vs. token aud MUST cause rejection with error unauthorized | — | ITV-410 |
-| CORE-§4.1.6-01 | 4.1.6 | SHOULD_NOT | sdk | informational | Event intent sender SHOULD NOT expect a response | arsia-message | CTV-06, CTV-07 |
-| CORE-§4.1.6-02 | 4.1.6 | MUST | sdk | structural | Error intent messages MUST include payload.error object | arsia-message | CTV-05 |
-| CORE-§4.2-01 | 4.2 | REQUIRED | sdk | structural | Conditional fields (correlation_id, expires_at, capabilities) are REQUIRED when their condition holds | arsia-message | — |
-| CORE-§4.2-02 | 4.2 | MUST | sdk | behavioural_negative | Messages missing a conditionally required field MUST be rejected with error invalid_request | arsia-message | — |
-| CORE-§4.2.1-01 | 4.2.1 | REQUIRED | sdk | structural | correlation_id is REQUIRED when intent is response, error, pending_approval, or approval_decision | arsia-message | CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14 |
-| CORE-§4.2.1-02 | 4.2.1 | MUST | sdk | behavioural_positive | correlation_id MUST equal the original request message id | — | CTV-04, CTV-10 |
-| CORE-§4.2.1-03 | 4.2.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD log unmatched correlation_id in response/error messages | — | — |
-| CORE-§4.2.1-04 | 4.2.1 | MAY | sdk_enabled | behavioural_negative | Agents MAY discard response/error messages with unmatched correlation_id | — | — |
-| CORE-§4.2.1-05 | 4.2.1 | MUST | sdk | procedural | For an approval_decision or a post-execution review decision, the log that correlation rules 1–3 require is the decision_rejected audit record | arsia-audit-record | INV-136, INV-138, ITV-656 |
-| CORE-§4.2.2-01 | 4.2.2 | REQUIRED | sdk | structural | expires_at is REQUIRED when intent is request or pending_approval | arsia-message | CTV-01, CTV-08, INV-05 |
-| CORE-§4.2.2-02 | 4.2.2 | MUST_NOT | sdk | behavioural_negative | Messages MUST NOT be processed after their expires_at timestamp | — | — |
-| CORE-§4.2.2-03 | 4.2.2 | MUST | sdk | structural | expires_at value MUST be strictly greater than the message ts value | — | CTV-01 |
-| CORE-§4.2.2-04 | 4.2.2 | MUST | sdk | behavioural_negative | Recipients MUST reject messages with past expires_at (after the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) as invalid_request | — | ITV-411 |
-| CORE-§4.2.3-01 | 4.2.3 | REQUIRED | sdk | structural | capabilities array is REQUIRED when intent is request or approval_decision | arsia-message | CTV-01, ITV-532, ITV-533 |
-| CORE-§4.2.3-02 | 4.2.3 | MUST | sdk | structural | capabilities array MUST contain at least one element | arsia-message | — |
-| CORE-§4.2.3-03 | 4.2.3 | MUST | sdk | structural | Each capability string MUST be unique within the capabilities array | arsia-message | — |
-| CORE-§4.2.3-04 | 4.2.3 | MUST | sdk | behavioural_positive | Receiving agent MUST verify that the access token scope covers all listed capabilities | — | ITV-412 |
-| CORE-§4.2.3-05 | 4.2.3 | MUST | sdk | behavioural_negative | Uncovered capabilities in token scope MUST cause rejection with error forbidden | — | ITV-412 |
-| CORE-§4.2.3-06 | 4.2.3 | MUST | sdk | structural | Each capability string MUST be a concrete capability (concrete-cap per Actions §1.1); wildcard capabilities are not permitted in the message capabilities field | arsia-message | — |
-| CORE-§4.3-01 | 4.3 | OPTIONAL | sdk | structural | Envelope optional fields (min_v, idempotency, context, payload, security, compliance) MAY be absent | arsia-message | — |
-| CORE-§4.3-02 | 4.3 | MUST | sdk | structural | Optional fields, when present, MUST conform to their defined format and constraints | arsia-message | ITV-176 |
-| CORE-§4.3.1-01 | 4.3.1 | MUST | sdk | behavioural_negative | Recipients MUST reject with not_implemented if their max version is below min_v | — | ITV-413 |
-| CORE-§4.3.2-01 | 4.3.2 | REQUIRED | sdk | structural | idempotency.key field (string) is REQUIRED within the idempotency object | arsia-message | CTV-02 |
-| CORE-§4.3.2-02 | 4.3.2 | MUST | sdk | structural | idempotency.key MUST be 1–128 characters in length | arsia-message | ITV-177 |
-| CORE-§4.3.2-03 | 4.3.2 | MUST | sdk | behavioural_positive | idempotency.key MUST be unique per (from, to, payload.type) tuple | — | — |
-| CORE-§4.3.2-04 | 4.3.2 | MAY | sdk | structural | idempotency.key MAY contain any printable ASCII (0x20–0x7E) | arsia-message | — |
-| CORE-§4.3.2-05 | 4.3.2 | REQUIRED | sdk | structural | idempotency.expires_at field (string) is REQUIRED within the idempotency object | arsia-message | — |
-| CORE-§4.3.2-06 | 4.3.2 | MAY | sdk | behavioural_positive | Server MAY discard idempotency record after idempotency.expires_at timestamp | — | — |
-| CORE-§4.3.2-07 | 4.3.2 | MUST | sdk | structural | idempotency.expires_at MUST be strictly greater than the message ts | — | ITV-414 |
-| CORE-§4.3.3-01 | 4.3.3 | OPTIONAL | sdk | structural | All fields within the context object (trace_id, span_id, flags, locale, priority) are OPTIONAL | arsia-message | ITV-66 |
-| CORE-§4.3.3-02 | 4.3.3 | MUST | sdk | structural | context.trace_id MUST be a 32-char lowercase hex string (W3C 128-bit trace ID) and MUST NOT be the all-zero value | arsia-message | ITV-24, INV-43 |
-| CORE-§4.3.3-03 | 4.3.3 | MUST | sdk | structural | context.span_id MUST be a 16-char lowercase hex string (W3C 64-bit span ID) and MUST NOT be the all-zero value | arsia-message | ITV-25, INV-44 |
-| CORE-§4.3.3-04 | 4.3.3 | MUST | sdk | structural | context.flags MUST be an integer 0–255 (8-bit W3C trace flags) | arsia-message | ITV-26 |
-| CORE-§4.3.3-05 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.locale to select error/output language | — | — |
-| CORE-§4.3.3-06 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.priority for queue ordering without guarantee | — | ITV-27 |
-| CORE-§4.3.5-01 | 4.3.5 | REQUIRED | sdk | structural | security object, when present, MUST include alg, kid, and sig fields | arsia-message | — |
-| CORE-§4.3.5-02 | 4.3.5 | MUST | sdk | structural | security.alg MUST be one of EdDSA, ES256, or RS256 | arsia-message | ITV-548, ITV-549, ITV-550 |
-| CORE-§4.3.5-03 | 4.3.5 | MUST | sdk | interoperability | Conformant implementations MUST support EdDSA (Ed25519) | — | — |
-| CORE-§4.3.5-04 | 4.3.5 | SHOULD | sdk | interoperability | Conformant implementations SHOULD support ES256 (ECDSA P-256) | — | ITV-548 |
-| CORE-§4.3.5-05 | 4.3.5 | MAY | sdk | interoperability | Conformant implementations MAY support RS256 for legacy interoperability only | — | ITV-549 |
-| CORE-§4.3.5-06 | 4.3.5 | MUST | sdk | behavioural_positive | security.kid MUST correspond to a key in the sender JWKS endpoint | — | INV-11 |
-| CORE-§4.3.5-07 | 4.3.5 | MUST | sdk | structural | security.kid format MUST be {agent-id}#{keyN} | arsia-jwk-entry | — |
-| CORE-§4.3.5-08 | 4.3.5 | REQUIRED | sdk | structural | security.enc_alg is REQUIRED when security.encrypted is true | arsia-message | ITV-12, ITV-13, ITV-163 |
-| CORE-§4.3.5-09 | 4.3.5 | REQUIRED | sdk | structural | security.enc_method is REQUIRED when security.encrypted is true | arsia-message | ITV-12, ITV-163 |
-| CORE-§4.3.5-10 | 4.3.5 | OPTIONAL | sdk | structural | security.encrypted (boolean, OPTIONAL) indicates payload encryption; defaults to false | arsia-message | — |
-| CORE-§4.3.6-01 | 4.3.6 | OPTIONAL | sdk | structural | The compliance object is OPTIONAL in every ARSIA message envelope | arsia-message, arsia-compliance-field | ITV-135, ITV-137 |
-| CORE-§4.3.6.1-01 | 4.3.6.1 | SHOULD | sdk | behavioural_positive | Unknown compliance profile names SHOULD trigger a compliance warning | — | ITV-415 |
-| CORE-§4.3.6.1-02 | 4.3.6.1 | MUST | sdk | behavioural_negative | In strict mode, unknown profile names MUST be rejected with invalid_request | — | ITV-416 |
-| CORE-§4.3.6.2-01 | 4.3.6.2 | MUST | deployment | behavioural_positive | data_residency declares the geographic zone where the message MUST be processed and stored | arsia-compliance-field | — |
-| CORE-§4.3.6.2-02 | 4.3.6.2 | MUST | deployment | procedural | data_residency, when set, MUST trigger brokered routing through an in-zone Compliance Broker | — | — |
-| CORE-§4.3.6.3-01 | 4.3.6.3 | MUST | sdk | behavioural_positive | audit_required declares whether the message MUST generate an ArsiaAuditRecord | arsia-compliance-field | — |
-| CORE-§4.3.6.3-02 | 4.3.6.3 | MUST | sdk_enabled | behavioural_positive | When audit_required is true, receiver MUST persist an audit record before acknowledging | — | — |
-| CORE-§4.3.6.3-03 | 4.3.6.3 | OPTIONAL | sdk | informational | When audit_required is false, audit record generation is OPTIONAL | arsia-compliance-field | — |
-| CORE-§4.3.6.4-01 | 4.3.6.4 | MUST | sdk | behavioural_positive | retention specifies the minimum days the audit record MUST be retained | arsia-compliance-field | ITV-419, ITV-28 |
-| CORE-§4.3.6.4-02 | 4.3.6.4 | MUST_NOT | sdk | behavioural_negative | Per-message retention MUST NOT be less than the profile minimum | arsia-compliance-field | — |
-| CORE-§4.3.6.4-03 | 4.3.6.4 | MUST | sdk | behavioural_positive | Receiving agent MUST use the profile minimum when per-message retention is lower | — | — |
-| CORE-§4.3.6.4-04 | 4.3.6.4 | SHOULD | sdk | behavioural_positive | Receiving agent SHOULD log a compliance warning when overriding retention | — | — |
-| CORE-§4.3.6.5-02 | 4.3.6.5 | MUST_NOT | sdk_enabled | behavioural_negative | human_oversight required_before_execution: action MUST NOT execute until human approves | arsia-compliance-field | CTV-02 |
-| CORE-§4.3.6.6-01 | 4.3.6.6 | MUST | sdk | behavioural_positive | explainability_required declares whether responses MUST include payload.explanation | arsia-compliance-field | — |
-| CORE-§4.3.6.6-02 | 4.3.6.6 | MUST | sdk | behavioural_positive | When explainability_required is true, response MUST include reasoning, confidence, and inputs_used | arsia-explanation | — |
-| CORE-§4.3.6.7-01 | 4.3.6.7 | MUST | sdk | structural | When pii_involved is true, legal_basis MUST be set | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
-| CORE-§4.3.6.7-02 | 4.3.6.7 | MUST | sdk | behavioural_positive | Agents MUST apply GDPR Art. 5(1)(f) data protection for pii_involved messages | — | — |
-| CORE-§4.3.6.7-03 | 4.3.6.7 | SHOULD | sdk | behavioural_positive | PII data SHOULD be encrypted in transit and at rest | — | — |
-| CORE-§4.3.6.8-01 | 4.3.6.8 | REQUIRED | sdk | structural | legal_basis field is REQUIRED when pii_involved is true | arsia-compliance-field | CTV-02, ITV-18, ITV-19, ITV-161, ITV-162 |
-| CORE-§4.3.6.8-02 | 4.3.6.8 | MUST | sdk | behavioural_negative | When pii_classification is "sensitive", legal_basis MUST be an Art. 9(2) ground | arsia-compliance-field | ITV-555, INV-20 |
-| CORE-§4.3.6.9-01 | 4.3.6.9 | MAY | sdk | informational | High-risk agent MAY send a minimal-risk message (downgrade allowed) | arsia-compliance-field | ITV-136 |
-| CORE-§4.3.6.9-02 | 4.3.6.9 | MUST_NOT | sdk | behavioural_negative | Minimal-risk agent MUST NOT send a high-risk message (escalation prohibited) | — | ITV-418 |
-| CORE-§4.3.7-01 | 4.3.7 | MUST | sdk | behavioural_negative | Classification escalation MUST cause rejection with invalid_request and classification_escalation detail | — | ITV-418 |
-| CORE-§4.3.7-02 | 4.3.7 | MUST | sdk | behavioural_positive | Per-message retention below profile minimum MUST default to the profile minimum | — | — |
-| CORE-§4.3.7-03 | 4.3.7 | SHOULD | sdk | behavioural_positive | Implementations SHOULD log a compliance warning when retention override occurs | — | — |
-| CORE-§4.3.8-01 | 4.3.8 | MUST | sdk | procedural | Receiving agents MUST validate the compliance field before processing | — | — |
-| CORE-§4.3.8-02 | 4.3.8 | MUST | sdk | procedural | Compliance validation MUST occur after signature verification and before payload processing | — | — |
-| CORE-§4.3.8-03 | 4.3.8 | MUST | sdk | behavioural_negative | Messages failing compliance validation MUST be rejected with the rule-specific error code | — | — |
-| CORE-§4.3.8-04 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 1: compliance.profile MUST be a known name from ARSIA-State.md §6 | arsia-compliance-profiles | CTV-03, ITV-415 |
-| CORE-§4.3.8-05 | 4.3.8 | MUST | sdk | behavioural_positive | Non-strict mode: unknown profile MUST log warning and apply GDPR-STANDARD defaults | — | ITV-415 |
-| CORE-§4.3.8-06 | 4.3.8 | MUST | sdk | behavioural_negative | Strict mode: unknown profile MUST reject with invalid_request | — | ITV-416 |
-| CORE-§4.3.8-07 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 2: pii_involved=true without legal_basis MUST reject with invalid_request | arsia-message, arsia-compliance-field | INV-06, ITV-420 |
-| CORE-§4.3.8-08 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 3: for a request under the high-risk requirement set, the composed oversight set MUST contain a mode other than not_required; a valid mode filled from a profile default counts | arsia-compliance-field | ITV-421, ITV-579, ITV-610, ITV-611 |
-| CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | A high-risk request whose composed set has no mode other than not_required, or that explicitly declares not_required, MUST be rejected with invalid_request and details high_risk_missing_oversight (declared, sources) | — | ITV-579, ITV-603, ITV-604, ITV-605, ITV-608, INV-07, ITV-452, ITV-454 |
-| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 days (profile floor) | arsia-compliance-field | CTV-03, ITV-417 |
-| CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 |
-| CORE-§4.3.8-12 | 4.3.8 | MUST | deployment | procedural | Rule 5: data_residency MUST trigger routing through an in-zone Compliance Broker | — | — |
-| CORE-§4.3.8-13 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 6: per-message ai_system_classification MUST NOT exceed agent-level classification | — | ITV-418 |
-| CORE-§4.3.8-14 | 4.3.8 | MUST | sdk | behavioural_negative | Classification escalation MUST reject with invalid_request and classification_escalation detail | — | ITV-418 |
-| CORE-§4.3.8-15 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 7: when pii_involved is true, effective audit_required MUST be true (silent override) | arsia-compliance-field | ITV-553, ITV-554 |
-| CORE-§4.3.8-16 | 4.3.8 | SHOULD | sdk | behavioural_positive | Rule 7: when audit_required is overridden, agent SHOULD log a compliance_warning event | — | ITV-553 |
-| CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations | ITV-555, INV-20 |
-| CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | — | INV-20 |
-| CORE-§4.3.9-01 | 4.3.9 | MUST | sdk | behavioural_negative | When authorization is present, the receiving agent MUST compute SHA-256 over the exact octets of the presented access token and reject with unauthorized when it differs from authorization.token_hash | arsia-message | ITV-692, INV-113, INV-114 (and the 40 corpus bindings, synthetic-token:<ID>) |
-| CORE-§4.3.10-01 | 4.3.10.4 | MUST | sdk | procedural | Receiving agent MUST resolve a message's obligations in order: fill, collect, compose, evaluate, record (sufficiency evaluated on the composed result) | arsia-obligation-rules | ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 |
-| CORE-§4.3.10-02 | 4.3.10.2 | MUST | sdk | behavioural_positive | Receiving agent MUST retain the raw signed IdentityRecord body bytes, retrievable by signed_body_sha256, while any referencing audit record is retained | — | — |
-| CORE-§4.3.10-03 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of a profile catalog and of arsia-obligation-rules.json MUST keep every published revision retrievable by its digest | arsia-obligation-rules | — |
-| CORE-§4.3.10-04 | 4.3.10.6 | MUST | sdk | behavioural_negative | Every rejection produced by compliance evaluation, for a message of any intent, MUST produce an audit record (rejection_cause compliance) correlated with the rejected message, whatever audit_required declares | arsia-audit-record | ITV-600, ITV-603, ITV-622, INV-56, INV-58, INV-62 |
-| CORE-§4.3.10-05 | 4.3.10.7 | MUST | sdk | behavioural_positive | Receiving agent MUST record the resolution inline in obligation_resolution on covered records of accepted requests and on the audit record of every rejection | arsia-audit-record | ITV-600, ITV-601, ITV-55, INV-54 |
-| CORE-§4.3.10-06 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of ActionDescriptors and CapabilityPolicies MUST keep published revisions retrievable by digest, and executing agents MUST retain risk-assessment records retrievable by digest, while referenced | — | — |
-| CORE-§4.3.10-07 | 4.3.10.7 | MUST | sdk | behavioural_positive | Executing agent MUST carry the resolution in payload.obligation_resolution of its pending_approval and of the response or error reporting the outcome | arsia-message | ITV-631, ITV-640, ITV-644 |
-| CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 |
-| CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — |
-| CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — |
-| CORE-§4.4.1-02 | 4.4.1 | MAY | sdk | structural | payload.type MAY use additional /-separated segments for sub-actions | arsia-message | — |
-| CORE-§4.4.1-03 | 4.4.1 | MUST | sdk | behavioural_negative | Unrecognised payload.type MUST be rejected with error not_implemented | — | ITV-422 |
-| CORE-§4.4.2-01 | 4.4.2 | SHOULD | sdk | interoperability | Senders SHOULD include payload.version when recipient may support multiple schema versions | arsia-message | — |
-| CORE-§4.4.3-01 | 4.4.3 | SHOULD | sdk | structural | payload.args SHOULD be present when intent is request or pending_approval | arsia-message | — |
-| CORE-§4.4.4-01 | 4.4.4 | SHOULD | sdk | structural | payload.result SHOULD be present when intent is response | arsia-message | CTV-04 |
-| CORE-§4.4.5-01 | 4.4.5 | SHOULD | sdk | structural | payload.data SHOULD be present when intent is event | arsia-message | CTV-06, CTV-07 |
-| CORE-§4.4.6-01 | 4.4.6 | REQUIRED | sdk | structural | payload.error object is REQUIRED when intent is error | arsia-message | — |
-| CORE-§4.4.6-02 | 4.4.6 | REQUIRED | sdk | structural | payload.error.code (string) is REQUIRED; must be a standard error code from §11.2 | arsia-message | — |
-| CORE-§4.4.6-03 | 4.4.6 | REQUIRED | sdk | structural | payload.error.description (string) is REQUIRED; human-readable error description | arsia-message | — |
-| CORE-§4.4.6-04 | 4.4.6 | MUST_NOT | sdk | behavioural_negative | Error description MUST NOT contain stack traces, DB queries, or credentials | — | — |
-| CORE-§4.4.6-05 | 4.4.6 | MUST | sdk | structural | Forbidden error details MUST include required_capabilities and provided_capabilities arrays | arsia-message | CTV-05 |
-| CORE-§4.4.6-06 | 4.4.6 | MUST | sdk | structural | not_implemented error details MUST include supported_versions | arsia-message | — |
-| CORE-§4.4.6-07 | 4.4.6 | SHOULD | sdk | structural | rate_limited error details SHOULD include retry_after_seconds | arsia-message | — |
-| CORE-§4.4.6-08 | 4.4.6 | OPTIONAL | sdk | structural | payload.error.details (object, OPTIONAL) provides structured error context | arsia-message | — |
-| CORE-§4.4.7-01 | 4.4.7 | SHOULD | sdk | structural | Only one of args, result, data, or error SHOULD be present per message | arsia-message | ITV-423 |
-| CORE-§4.4.7-02 | 4.4.7 | SHOULD | sdk | behavioural_positive | Implementations SHOULD log a warning if multiple content fields are present | — | — |
-| CORE-§4.4.7-03 | 4.4.7 | MUST | sdk | behavioural_positive | Implementations MUST process the content field matching the message intent | — | — |
-| CORE-§4.4.7-04 | 4.4.7 | MUST | sdk | behavioural_positive | Implementations MUST ignore content fields not matching the message intent | — | — |
-| CORE-§4.4.8-01 | 4.4.8 | REQUIRED | sdk | structural | obligation_resolution is REQUIRED on pending_approval and on the response or error reporting the outcome of a resolved action | arsia-message | INV-65, ITV-631 |
-| CORE-§4.4.8-02 | 4.4.8 | MUST | sdk | behavioural_positive | A message carrying obligation_resolution MUST be signed by the executing agent, whatever its intent | arsia-message | INV-67, ITV-631 |
-| CORE-§4.4.8-03 | 4.4.8 | MUST | sdk | behavioural_negative | Receiver MUST verify the signature before relying on obligation_resolution and MUST treat an unsigned or unverifiable resolution as absent | — | — |
-| CORE-§4.5-01 | 4.5 | MAY | sdk | behavioural_positive | Implementations MAY increase the 1 MiB default message size limit | — | — |
-| CORE-§4.5-02 | 4.5 | MUST | sdk | behavioural_positive | Agent max message size MUST be advertised via max_message_bytes in discovery | arsia-discovery-response | — |
-| CORE-§4.5-03 | 4.5 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD check recipient max_message_bytes before sending large messages | — | — |
-| CORE-§4.5-04 | 4.5 | MUST | sdk | behavioural_negative | Messages exceeding the advertised size limit MUST be rejected with payload_too_large | — | ITV-424 |
-| CORE-§4.5-05 | 4.5 | SHOULD | sdk_enabled | interoperability | Large payloads SHOULD use a reference pattern (URL/ID) instead of embedding content | — | — |
-| CORE-§5.1-01 | 5.1 | MUST | sdk | interoperability | Implementations MUST use a standards-compliant Ed25519 implementation | — | — |
-| CORE-§5.1-02 | 5.1 | MUST | sdk | procedural | Message signing MUST follow the normative 6-step procedure (clone, remove only security.sig, JCS per RFC 8785 with UTF-16 code-unit member order, sign, b64url, populate) | — | CTV-01, ITV-551, ITV-552, ITV-590 |
-| CORE-§5.1-03 | 5.1 | MUST | sdk | interoperability | All conformant implementations MUST support Ed25519 signature generation and verification | — | — |
-| CORE-§5.1-04 | 5.1 | RECOMMENDED | sdk | interoperability | ES256 support is RECOMMENDED for ECDSA interoperability | — | ITV-551, INV-18 |
-| CORE-§5.1-05 | 5.1 | MUST_NOT | sdk | behavioural_negative | RS256 MUST NOT be used for new deployments; legacy interoperability only | — | ITV-552, INV-19 |
-| CORE-§5.1-06 | 5.1 | MUST | sdk | behavioural_positive | RS256 key MUST be at least 2048 bits | — | ITV-425, ITV-552 |
-| CORE-§5.2-01 | 5.2 | MUST | sdk | behavioural_positive | Receivers MUST verify signatures on request, response, pending_approval, and approval_decision intents | arsia-message | CTV-08, CTV-09, CTV-10, INV-15, INV-16, INV-17 |
-| CORE-§5.2-02 | 5.2 | RECOMMENDED | sdk | behavioural_positive | Signature verification on event messages is RECOMMENDED but not required | — | CTV-06 |
-| CORE-§5.2-03 | 5.2 | RECOMMENDED | sdk | behavioural_positive | Signature verification on error messages is RECOMMENDED | — | — |
-| CORE-§5.2-04 | 5.2 | MUST | sdk | procedural | Signature verification MUST follow the normative 6-step procedure (extract, resolve key, clone-strip, JCS, verify, accept/reject) | — | ITV-551, ITV-552 |
-| CORE-§5.2-05 | 5.2 | MUST | sdk | behavioural_positive | Ed25519 signature decoding MUST produce exactly 64 bytes | — | ITV-426 |
-| CORE-§5.2-06 | 5.2 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD cache JWKS responses per Cache-Control headers | — | — |
-| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112, INV-37, INV-38, INV-39 |
-| CORE-§5.2-08 | 5.2 | SHOULD_NOT | sdk | behavioural_negative | Signature failure error SHOULD NOT include verification failure details | — | — |
-| CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — |
-| CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — |
-| CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on an unknown kid, on expired Cache-Control max-age, and at least every 3600 seconds | — | ITV-701, ITV-703, ITV-704 |
-| CORE-§5.2-12 | 5.2 | REQUIRED | sdk | behavioural_positive | Signature verification is REQUIRED for an error carrying obligation_resolution and for the post-execution review events | arsia-message | ITV-657 |
-| CORE-§5.2-13 | 5.2 | MUST | sdk | behavioural_negative | security.alg MUST be compatible with the resolved key type (EdDSA–OKP/Ed25519, ES256–EC/P-256, RS256–RSA); a mismatch MUST be rejected with unauthorized (Step 5) | — | INV-111, INV-112, INV-155 |
-| CORE-§5.2-14 | 5.2 | MUST | sdk | behavioural_negative | After a refresh no longer finds a kid, signatures by that key MUST be rejected, including messages already queued but not yet verified | — | ITV-703, ITV-704, INV-154 |
-| CORE-§5.2-15 | 5.2 | MUST | sdk | behavioural_positive | Recipients that authenticate a key-revocation event MUST invalidate the cached key at once rather than waiting for the next refresh | — | ITV-700, ITV-701, ITV-702 |
-| CORE-§5.2-16 | 5.2 | MUST | sdk | structural | The audit record of a compliance-relevant message whose signature was verified MUST carry verified_kid and jwks_fetched_at (the fetch instant, also when served from the cache); a record of an unverified or failed signature carries neither | arsia-audit-record | ITV-694, ITV-697, INV-127, INV-141, INV-142, ITV-708 |
-| CORE-§5.2-17 | 5.2 | MUST | sdk | behavioural_negative | A document that is not UTF-8, or not JSON (NaN and Infinity included), MUST be rejected with invalid_request (pipeline step 2) | — | INV-161, INV-162, INV-163, INV-169, INV-170 |
-| CORE-§5.2-18 | 5.2 | MUST | sdk | behavioural_negative | A document whose member names or strings, literal or escaped, at any depth, contain a surrogate outside a valid pair or a noncharacter MUST be rejected with invalid_request (pipeline step 3, [RFC 7493] §2.1); a valid escaped or literal pair is accepted | — | INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 |
-| CORE-§5.2-19 | 5.2 | MUST | sdk | behavioural_negative | A document with duplicate member names at any depth, compared after escape processing, MUST be rejected with invalid_request (pipeline step 4, [RFC 7493] §2.3) | — | INV-158, INV-159, INV-160, CTV-14 |
-| CORE-§5.2-20 | 5.2 | MUST | sdk | procedural | Pipeline steps 2-4 run in order and establish only well-formed I-JSON text, not a valid, authenticated or authorized message; they add no limit on JSON numbers beyond RFC 8785 and field constraints | — | CTV-11, CTV-15, CTV-16 |
-| CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — |
-| CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — |
-| CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 |
-| CORE-§5.3-04 | 5.3 | MUST | sdk | behavioural_positive | JWE MUST use the algorithms in security.enc_alg and security.enc_method | — | ITV-427 |
-| CORE-§5.3-05 | 5.3 | RECOMMENDED | sdk | interoperability | ECDH-ES is the RECOMMENDED key encryption algorithm for payload encryption | — | ITV-12 |
-| CORE-§5.3-06 | 5.3 | RECOMMENDED | sdk | interoperability | A256GCM is the RECOMMENDED content encryption method for payload encryption | — | ITV-12 |
-| CORE-§5.3-07 | 5.3 | MUST | sdk | behavioural_positive | Recipient encryption key MUST be obtained from their JWKS endpoint (use: enc) | — | — |
-| CORE-§5.3-08 | 5.3 | MUST | sdk | procedural | Decryption: receiver MUST verify signature before decrypting payload | — | — |
-| CORE-§5.3-09 | 5.3 | MUST | sdk | procedural | Receiver MUST decrypt payload JWE using their private key and specified algorithms | — | — |
-| CORE-§5.3-10 | 5.3 | MUST | sdk | behavioural_positive | Decrypted payload MUST be parsed as a JSON object conforming to §4.4 | — | — |
-| CORE-§5.3-11 | 5.3 | MUST | sdk | behavioural_negative | Failed decryption MUST reject with error unauthorized | — | ITV-429 |
-| CORE-§5.3-12 | 5.3 | MAY | sdk | interoperability | ECDH-ES+A256KW with A256GCM MAY be used for multi-recipient encryption | — | ITV-64 |
-| CORE-§5.3-13 | 5.3 | MAY | sdk | interoperability | RSA-OAEP-256 with A256GCM MAY be used for legacy encryption interoperability | — | ITV-63 |
-| CORE-§5.3.1-01 | 5.3.1 | MUST | sdk | structural | payload_hash MUST be SHA-256(UTF-8(payload)) where payload is the JWE Compact Serialization string when security.encrypted is true | arsia-audit-record | ITV-525 |
-| CORE-§5.3.1-02 | 5.3.1 | SHOULD | sdk | behavioural_positive | Sender SHOULD include plaintext_hash in its audit record when security.encrypted is true | arsia-audit-record | ITV-525 |
-| CORE-§5.3.1-03 | 5.3.1 | SHOULD | sdk | behavioural_positive | Recipient SHOULD include plaintext_hash in its audit record after decryption | arsia-audit-record | — |
-| CORE-§5.3.1-04 | 5.3.1 | MUST_NOT | sdk | behavioural_negative | plaintext_hash MUST NOT be present when security.encrypted is false or absent | — | ITV-526 |
-| CORE-§6.1-01 | 6.1 | REQUIRED | external | structural | JWT iss claim MUST identify the Authorization Server that issued the token | arsia-jwt-claims | — |
-| CORE-§6.1-02 | 6.1 | REQUIRED | sdk | structural | JWT sub claim MUST contain the requesting agent's identifier per §3 | arsia-jwt-claims | — |
-| CORE-§6.1-03 | 6.1 | REQUIRED | sdk | structural | JWT aud claim MUST contain the target agent's identifier per §3 | arsia-jwt-claims | — |
-| CORE-§6.1-04 | 6.1 | REQUIRED | sdk | structural | JWT exp claim MUST be a NumericDate expiration time per RFC 7519 §2 | arsia-jwt-claims | — |
-| CORE-§6.1-05 | 6.1 | REQUIRED | sdk | structural | JWT iat claim MUST be a NumericDate issued-at time per RFC 7519 §2 | arsia-jwt-claims | — |
-| CORE-§6.1-06 | 6.1 | REQUIRED | sdk | structural | JWT jti claim MUST be a UUID v4 unique token identifier | arsia-jwt-claims | ITV-31 |
-| CORE-§6.1-07 | 6.1 | REQUIRED | sdk | structural | JWT scope claim MUST be a space-separated list of capability strings | arsia-jwt-claims | ITV-32 |
-| CORE-§6.1-08 | 6.1 | OPTIONAL | sdk | structural | JWT cnf claim MAY contain a proof-of-possession confirmation per RFC 9449 | arsia-jwt-claims | ITV-31 |
-| CORE-§6.1-09 | 6.1 | MUST | sdk | behavioural_positive | Access token sub claim MUST match the from field of messages presented with that token | — | ITV-431 |
-| CORE-§6.1-10 | 6.1 | MUST | sdk | behavioural_positive | Access token aud claim MUST match the to field of messages presented with that token | — | ITV-432 |
-| CORE-§6.1-11 | 6.1 | MUST | sdk | behavioural_positive | Access token scope MUST cover all capabilities listed in the message capabilities field | — | ITV-433 |
-| CORE-§6.1-12 | 6.1 | SHOULD | sdk | behavioural_positive | Access token lifetime SHOULD be short (max 3600 seconds recommended) | — | — |
-| CORE-§6.1-13 | 6.1 | RECOMMENDED | sdk | behavioural_positive | Access token lifetime of 3600 seconds (1 hour) maximum is RECOMMENDED | — | — |
-| CORE-§6.1-14 | 6.1 | RECOMMENDED | sdk | behavioural_positive | High-risk compliance profiles SHOULD use a token lifetime of 300 seconds (5 minutes) maximum | — | — |
-| CORE-§6.1-15 | 6.1 | MUST | external | behavioural_positive | Authorization Server MUST sign access tokens using EdDSA, ES256, or RS256 per §5.1 | — | — |
-| CORE-§6.1-16 | 6.1 | MUST | external | behavioural_positive | Authorization Server signing key MUST be discoverable via a standard JWKS endpoint | — | — |
-| CORE-§6.1-17 | 6.1 | MUST | sdk | procedural | Token recipients MUST verify the JWT signature before extracting claims | — | — |
-| CORE-§6.1-18 | 6.1 | OPTIONAL | sdk | structural | arsia_oversight claim: requirement, capabilities and policy (issuer, version, sha256) | arsia-jwt-claims | ITV-639, INV-76 |
-| CORE-§6.1-19 | 6.1 | MUST | external | behavioural_positive | A token whose scope includes a capability under the policy's oversight requirement MUST carry arsia_oversight listing it | arsia-jwt-claims | ITV-642, ITV-669 |
-| CORE-§6.1-20 | 6.1 | MUST | external | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 |
-| CORE-§6.2-01 | 6.2 | MUST | sdk | structural | Token request grant_type parameter MUST be "client_credentials" | arsia-jwt-claims | — |
-| CORE-§6.2-02 | 6.2 | REQUIRED | sdk | structural | Token request MUST include client_id with the requesting agent's identifier, URL-encoded | arsia-jwt-claims | — |
-| CORE-§6.2-03 | 6.2 | REQUIRED | sdk | structural | Token request MUST include scope with space-separated requested capabilities | arsia-jwt-claims | — |
-| CORE-§6.2-04 | 6.2 | REQUIRED | sdk | structural | Token request MUST include audience with the target agent's identifier, URL-encoded | arsia-jwt-claims | — |
-| CORE-§6.2-05 | 6.2 | RECOMMENDED | sdk | interoperability | Private key JWT per RFC 7523 §2.2 is RECOMMENDED for client authentication | — | — |
-| CORE-§6.2-06 | 6.2 | REQUIRED | external | structural | Token response MUST include access_token containing the JWT | arsia-jwt-claims | ITV-125 |
-| CORE-§6.2-07 | 6.2 | MUST | external | structural | Token response token_type MUST be "Bearer" or "DPoP" | arsia-jwt-claims | — |
-| CORE-§6.2-08 | 6.2 | REQUIRED | external | structural | Token response MUST include expires_in with the token lifetime in seconds | arsia-jwt-claims | — |
-| CORE-§6.2-09 | 6.2 | REQUIRED | external | structural | Token response MUST include scope with granted capabilities (may differ from requested) | arsia-jwt-claims | — |
-| CORE-§6.3-01 | 6.3 | RECOMMENDED | sdk | interoperability | DPoP proof-of-possession is RECOMMENDED for high-security deployments or intermediary traversal | arsia-dpop-proof | ITV-33, ITV-34, ITV-126 |
-| CORE-§6.3-02 | 6.3 | SHOULD | sdk | interoperability | Implementations SHOULD use DPoP when the compliance profile requires high-risk controls | arsia-dpop-proof | — |
-| CORE-§6.3-03 | 6.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify DPoP proofs as specified in Identity §3.3 (RFC 9449 §4.3 checks and the ARSIA profile) and reject failures as specified there: unauthorized, or the nonce challenge under its exception | arsia-dpop-proof | ITV-451, INV-104, INV-105, INV-106, INV-107 |
-| CORE-§6.3-04 | 6.3 | MAY | sdk | interoperability | A receiving agent MAY require a server-provided DPoP nonce (Identity §3.3) | arsia-dpop-proof | ITV-580 |
-| CORE-§6.4-01 | 6.4 | MUST | sdk | procedural | Receiving agent MUST enforce capability-based authorization for every request message | — | — |
-| CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-434 |
-| CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-435, ITV-447, ITV-448 |
-| CORE-§6.4-04 | 6.4 | MUST | sdk | behavioural_positive | Token sub claim MUST equal the message from field during enforcement | — | ITV-436 |
-| CORE-§6.4-05 | 6.4 | MUST | sdk | behavioural_positive | Token aud claim MUST equal the message to field (receiving agent's identifier) | — | ITV-437 |
-| CORE-§6.4-06 | 6.4 | MUST | sdk | structural | Capability-denied error MUST include required_capabilities and provided_capabilities in details | arsia-message | — |
-| CORE-§7.1-01 | 7.1 | MUST | sdk | behavioural_positive | Every ARSIA agent MUST expose a discovery endpoint at GET /.well-known/arsia | arsia-discovery-response | ITV-45, ITV-46 |
-| CORE-§7.1-02 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery endpoint SHOULD set Cache-Control, ETag, Content-Type, and CORS headers | — | — |
-| CORE-§7.1-03 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery Cache-Control SHOULD use a max-age appropriate for metadata change rate | — | — |
-| CORE-§7.1-04 | 7.1 | RECOMMENDED | sdk | behavioural_positive | Discovery endpoint Cache-Control max-age=3600 (1 hour) is RECOMMENDED | — | — |
-| CORE-§7.1-05 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery endpoint SHOULD set an ETag header to enable conditional requests | — | — |
-| CORE-§7.1-06 | 7.1 | SHOULD | deployment | behavioural_positive | Discovery clients SHOULD use If-None-Match to avoid unnecessary data transfer | — | — |
-| CORE-§7.1-07 | 7.1 | MUST | sdk | behavioural_positive | Discovery endpoint Content-Type MUST be application/json | — | — |
-| CORE-§7.1-08 | 7.1 | SHOULD | deployment | behavioural_positive | Discovery endpoint SHOULD set Access-Control-Allow-Origin for browser-based agents | — | — |
-| CORE-§7.1-09 | 7.1 | SHOULD | deployment | behavioural_positive | Restricted agents SHOULD list specific origins in Access-Control-Allow-Origin | — | — |
-| CORE-§7.2-01 | 7.2 | SHOULD | sdk | behavioural_positive | Agents SHOULD expose a capability discovery endpoint at GET /.well-known/arsia/capabilities | arsia-capability-descriptor | — |
-| CORE-§7.2-02 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include capability as the identifier string | arsia-capability-descriptor | ITV-57 |
-| CORE-§7.2-03 | 7.2 | OPTIONAL | sdk | structural | Capability descriptor MAY include rate_limit as requests per minute | arsia-capability-descriptor | — |
-| CORE-§7.2-04 | 7.2 | MUST | sdk | behavioural_positive | Prerequisite capabilities listed in requires MUST be present in the request capabilities array | arsia-capability-descriptor | — |
-| CORE-§7.2-05 | 7.2 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD handle pending_approval responses when human_oversight_required is true | arsia-capability-descriptor | — |
-| CORE-§7.2-06 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include description as a human-readable string | arsia-capability-descriptor | — |
-| CORE-§7.2-07 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include risk_level as an integer from 0 (no risk) to 10 (critical) | arsia-capability-descriptor | ITV-58 |
-| CORE-§7.2-08 | 7.2 | OPTIONAL | sdk | structural | Capability descriptor MAY include requires as an array of prerequisite capability strings | arsia-capability-descriptor | — |
-| CORE-§7.2-09 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include human_oversight_required as a boolean | arsia-capability-descriptor | — |
-| CORE-§7.3-01 | 7.3 | MUST | sdk | behavioural_positive | Every ARSIA agent MUST expose a JWKS endpoint at GET /.well-known/arsia/jwks.json | arsia-jwk-entry | — |
-| CORE-§7.3-02 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK kty field MUST be "OKP" (Octet Key Pair) | arsia-jwk-entry | ITV-35, ITV-37 |
-| CORE-§7.3-03 | 7.3 | REQUIRED | sdk | structural | P-256 JWK kty field MUST be "EC" | arsia-jwk-entry | ITV-127 |
-| CORE-§7.3-04 | 7.3 | MUST | sdk | structural | JWK kid format MUST be {agent-id}#{keyN} for global uniqueness | arsia-jwk-entry | — |
-| CORE-§7.3-05 | 7.3 | MUST | sdk | behavioural_positive | Agents supporting encryption MUST publish encryption public keys in JWKS with use "enc" | arsia-jwk-entry | ITV-36, ITV-129 |
-| CORE-§7.3-06 | 7.3 | MUST | sdk | procedural | Agents MUST support key rotation to limit key compromise impact | — | — |
-| CORE-§7.3-07 | 7.3 | MUST | sdk_enabled | procedural | Key rotation MUST publish both old and new keys in JWKS for minimum 24-hour overlap | — | — |
-| CORE-§7.3-08 | 7.3 | MAY | sdk | behavioural_positive | Old signing key MAY be removed from JWKS after the 24-hour overlap period | — | — |
-| CORE-§7.3-09 | 7.3 | SHOULD | operational_policy | procedural | Agents SHOULD generate new signing keys at least every 90 days | — | — |
-| CORE-§7.3-10 | 7.3 | MUST | sdk_enabled | procedural | Compromised key MUST be removed from JWKS immediately, overriding the 24-hour overlap | — | — |
-| CORE-§7.3-11 | 7.3 | MUST | sdk_enabled | behavioural_negative | Tokens and signatures produced with a compromised key MUST be considered invalid | — | — |
-| CORE-§7.3-12 | 7.3 | SHOULD | sdk | behavioural_positive | JWKS endpoint SHOULD set Cache-Control: max-age=3600 for caching efficiency | — | — |
-| CORE-§7.3-13 | 7.3 | SHOULD | sdk | behavioural_positive | Emergency key rotation SHOULD temporarily reduce the JWKS Cache-Control max-age | — | — |
-| CORE-§7.3-14 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK crv field MUST be "Ed25519" | arsia-jwk-entry | — |
-| CORE-§7.3-15 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK kid field MUST be a unique key identifier within the JWKS | arsia-jwk-entry | — |
-| CORE-§7.3-16 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK x field MUST be a base64url-encoded 32-byte public key without padding | arsia-jwk-entry | — |
-| CORE-§7.3-17 | 7.3 | REQUIRED | sdk | structural | Ed25519 signing JWK use field MUST be "sig" | arsia-jwk-entry | — |
-| CORE-§7.3-18 | 7.3 | REQUIRED | sdk | structural | P-256 JWK crv field MUST be "P-256" | arsia-jwk-entry | ITV-127, ITV-128 |
-| CORE-§7.3-19 | 7.3 | REQUIRED | sdk | structural | P-256 JWK kid field MUST be a unique key identifier | arsia-jwk-entry | — |
-| CORE-§7.3-20 | 7.3 | REQUIRED | sdk | structural | P-256 JWK x field MUST be the base64url-encoded x-coordinate | arsia-jwk-entry | — |
-| CORE-§7.3-21 | 7.3 | REQUIRED | sdk | structural | P-256 JWK y field MUST be the base64url-encoded y-coordinate | arsia-jwk-entry | — |
-| CORE-§7.3-22 | 7.3 | REQUIRED | sdk | structural | P-256 signing JWK use field MUST be "sig" | arsia-jwk-entry | — |
-| CORE-§7.4-01 | 7.4 | MUST | sdk | behavioural_negative | Version negotiation failure MUST return not_implemented error with supported_versions in details | arsia-message | — |
-| CORE-§7.4-02 | 7.4 | MUST | sdk | behavioural_positive | Agents MUST accept messages with v within their supported range, ignoring unknown fields | — | ITV-406 |
-| CORE-§7.4-03 | 7.4 | MUST | sdk | interoperability | Unknown fields from a later minor version MUST be preserved when forwarding messages | — | ITV-439 |
-| CORE-§7.4-04 | 7.4 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored during processing | — | ITV-406, ITV-439 |
-| CORE-§7.4-05 | 7.4 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT send messages with v higher than the recipient's server_max | — | — |
-| CORE-§7.4-06 | 7.4 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD query the recipient's discovery endpoint before first contact and cache it | — | — |
-| CORE-§8-01 | 8 | REQUIRED | deployment | interoperability | HTTP/2 transport binding is REQUIRED for all ARSIA implementations | — | — |
-| CORE-§8-02 | 8 | OPTIONAL | sdk_enabled | interoperability | WebSocket transport binding is OPTIONAL for ARSIA implementations | arsia-websocket-frame | — |
-| CORE-§8-03 | 8 | MAY | sdk_enabled | interoperability | Additional transport bindings MAY be defined if they preserve the envelope and enforce §5/§6 security | — | — |
-| CORE-§8.1-01 | 8.1 | MUST | deployment | interoperability | All conformant implementations MUST support the HTTP/2 transport binding | — | — |
-| CORE-§8.1-02 | 8.1 | MUST | sdk | behavioural_negative | Requests with unsupported Content-Type MUST be rejected with HTTP 415 | — | — |
-| CORE-§8.1-03 | 8.1 | MUST | sdk | behavioural_positive | HTTP response body MUST be an ARSIA envelope with intent response/error/pending_approval | arsia-message | CTV-08 |
-| CORE-§8.1-04 | 8.1 | MUST | sdk_enabled | behavioural_positive | Async status endpoint MUST return 202 (in-progress), 200 (complete), or 410 (expired) | — | — |
-| CORE-§8.1-05 | 8.1 | MUST | deployment | interoperability | All ARSIA HTTP connections MUST use TLS 1.3 or later | — | — |
-| CORE-§8.1-06 | 8.1 | MAY | deployment | interoperability | TLS 1.2 MAY be accepted as a fallback for HTTP connections | — | — |
-| CORE-§8.1-07 | 8.1 | MUST | deployment | interoperability | TLS 1.3 MUST be preferred over TLS 1.2 when both are supported | — | — |
-| CORE-§8.1-08 | 8.1 | RECOMMENDED | deployment | interoperability | HTTP Strict Transport Security (HSTS) per RFC 6797 is RECOMMENDED | — | — |
-| CORE-§8.1-09 | 8.1 | SHOULD | deployment | behavioural_positive | HSTS header SHOULD include max-age=31536000 and includeSubDomains | — | — |
-| CORE-§8.1-10 | 8.1 | MUST_NOT | deployment | behavioural_negative | Plaintext HTTP connections MUST NOT be accepted for any ARSIA endpoint | — | — |
-| CORE-§8.2-01 | 8.2 | MUST | deployment | interoperability | WebSocket connections MUST use the wss:// scheme (TLS-encrypted) | — | — |
-| CORE-§8.2-02 | 8.2 | MUST_NOT | deployment | behavioural_negative | Plaintext ws:// connections MUST NOT be used for ARSIA | — | — |
-| CORE-§8.2-03 | 8.2 | MUST | deployment | interoperability | WebSocket sub-protocol "arsia-v1" MUST be declared during the HTTP upgrade handshake | — | — |
-| CORE-§8.2-04 | 8.2 | MUST | deployment | behavioural_positive | Server MUST respond with "arsia-v1" as the selected WebSocket sub-protocol | — | — |
-| CORE-§8.2-05 | 8.2 | MUST | sdk_enabled | procedural | WebSocket client MUST authenticate via auth frame before sending ARSIA messages | arsia-websocket-frame | ITV-59, ITV-62, ITV-141 |
-| CORE-§8.2-06 | 8.2 | MUST | deployment | behavioural_negative | Failed WebSocket auth MUST close connection with code 4001 within 5 seconds | arsia-websocket-frame | ITV-61 |
-| CORE-§8.2-07 | 8.2 | MUST_NOT | deployment | behavioural_negative | Binary WebSocket frames MUST NOT be used for ARSIA messages | — | — |
-| CORE-§8.2-08 | 8.2 | MUST | deployment | procedural | WebSocket client MUST send a ping heartbeat frame every 30 seconds | arsia-websocket-frame | ITV-142 |
-| CORE-§8.2-09 | 8.2 | MUST | deployment | behavioural_positive | Server MUST respond to WebSocket ping with pong within 5 seconds | arsia-websocket-frame | ITV-143 |
-| CORE-§8.2-10 | 8.2 | SHOULD | deployment | behavioural_positive | Server SHOULD close WebSocket with code 4002 if no ping received within 60 seconds | — | — |
-| CORE-§8.2-11 | 8.2 | SHOULD | deployment | behavioural_positive | Client SHOULD close and reconnect if no pong received within 10 seconds of ping | — | — |
-| CORE-§8.2-12 | 8.2 | SHOULD | sdk_enabled | procedural | Lost WebSocket connections SHOULD reconnect using exponential backoff (max 30 seconds) | — | — |
-| CORE-§8.2-13 | 8.2 | RECOMMENDED | sdk_enabled | interoperability | Reconnection backoff jitter of ±25% is RECOMMENDED to avoid thundering herd | — | — |
-| CORE-§8.2-14 | 8.2 | MUST | sdk_enabled | procedural | WebSocket client MUST re-authenticate after every reconnection | — | — |
-| CORE-§8.2-15 | 8.2 | MUST_NOT | deployment | behavioural_negative | Server MUST NOT assume a reconnected WebSocket client retains prior auth state | — | — |
-| CORE-§8.2-16 | 8.2 | MUST | deployment | behavioural_negative | Oversized WebSocket frames MUST cause closure with code 4003 (Message Too Large) | — | — |
-| CORE-§8.2-17 | 8.2 | MUST | sdk_enabled | procedural | WebSocket agents MUST use idempotency.key envelope field (not HTTP header) as sole idempotency mechanism | arsia-message | ITV-543 |
-| CORE-§8.2-18 | 8.2 | MUST | deployment | behavioural_positive | WebSocket duplicate detection MUST return stored response envelope as JSON text frame | — | ITV-544 |
-| CORE-§8.3-01 | 8.3 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD set their client timeout to match the recipient's request_timeout_ms | — | — |
-| CORE-§8.3-02 | 8.3 | SHOULD | sdk_enabled | behavioural_positive | Sender SHOULD treat request as failed if no synchronous response within the timeout period | — | — |
-| CORE-§8.3-03 | 8.3 | SHOULD_NOT | sdk_enabled | behavioural_negative | Sender SHOULD NOT retry immediately after a request timeout (see §11.3) | — | — |
-| CORE-§8.3-04 | 8.3 | MAY | sdk_enabled | behavioural_positive | Sender MAY check the async status URL after timeout if one was provided | — | — |
-| CORE-§8.3-05 | 8.3 | SHOULD | deployment | behavioural_positive | Idle WebSocket connections (no frames for 60 seconds) SHOULD be closed by the server | — | — |
-| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected; a terminal result retrieved from result_url is not compared with the current time (Actions §4.3) | — | ITV-440, ITV-665 |
-| CORE-§8.3-07 | 8.3 | SHOULD | deployment | behavioural_positive | Implementations SHOULD synchronise clocks using NTP or equivalent time protocol | — | — |
-| CORE-§8.3-08 | 8.3 | SHOULD | deployment | behavioural_positive | Compliance-sensitive agents SHOULD use multiple NTP sources and log drift exceeding 10 seconds | — | — |
-| CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171 |
-| CORE-§8.3-10 | 8.3 | MUST_NOT | schema | constraint | Profile clock_skew_seconds MUST NOT exceed 300 seconds (maximum: 300 in schema enforces this) | arsia-compliance-profiles | — |
-| CORE-§9.1-01 | 9.1 | MUST | sdk | interoperability | Direct routing alone MUST be sufficient for Core conformance (§12.1) | — | — |
-| CORE-§9.1-02 | 9.1 | MUST | sdk_enabled | procedural | Sender MUST resolve the recipient's inbox URL via the discovery endpoint (§7.1) | — | — |
-| CORE-§9.1-03 | 9.1 | MUST | sdk_enabled | procedural | Sender MUST present a valid access token per §6.3 with each request | — | — |
-| CORE-§9.1-04 | 9.1 | MUST | sdk | procedural | Sender MUST sign every outgoing message per §5.1 | — | — |
-| CORE-§9.1-05 | 9.1 | MUST | sdk | procedural | Receiver MUST verify signature (§5.2), validate access token (§6.4), and process the message | — | — |
-| CORE-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Receiver MUST return response synchronously (HTTP 200) or accept async (HTTP 202) | — | — |
-| CORE-§9.2-01 | 9.2 | OPTIONAL | sdk | informational | Compliance brokers are OPTIONAL in the ARSIA protocol | — | — |
-| CORE-§9.2-02 | 9.2 | REQUIRED | sdk | behavioural_positive | Broker routing is REQUIRED when compliance.data_residency is set in the message | — | — |
-| CORE-§9.2-03 | 9.2 | MUST | sdk_enabled | procedural | Sender MUST route through a broker whose servers reside in the declared residency zone | — | — |
-| CORE-§9.2-04 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT bypass broker routing even if direct connectivity is available | — | — |
-| CORE-§9.2-05 | 9.2 | MUST_NOT | external | behavioural_negative | Compliance brokers MUST NOT modify message envelope contents | — | — |
-| CORE-§9.2-06 | 9.2 | MUST | external | interoperability | Broker-forwarded message MUST be byte-identical to original after JSON canonicalization | — | — |
-| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every message received for relay, including messages they do not forward | arsia-audit-record | ITV-508, ITV-688, ITV-689 |
-| CORE-§9.2-08 | 9.2 | MUST | external | behavioural_positive | Broker audit record MUST include message id, from, to, ts, broker id, relay timestamp, and zone | arsia-audit-record | — |
-| CORE-§9.2-09 | 9.2 | MAY | deployment | informational | Broker discovery endpoint MAY be hosted by any ARSIA infrastructure service | — | — |
-| CORE-§9.2-10 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT send the message if no broker is available for the required residency zone | — | — |
-| CORE-§9.2-11 | 9.2 | MUST | sdk | behavioural_negative | Missing broker MUST produce service_unavailable error with data_residency_violation details | arsia-message | — |
-| CORE-§9.3-01 | 9.3 | MUST | external | behavioural_positive | Compliance broker servers MUST physically reside within the declared residency zone | arsia-broker-entry | — |
-| CORE-§9.3-02 | 9.3 | OPTIONAL | sdk | informational | Federated (multi-hop) routing topology is OPTIONAL and out of scope for ARSIA v1.0 | — | — |
-| CORE-§9.4-01 | 9.4 | MUST | sdk | procedural | Sending agents MUST implement the topology determination procedure defined in ARSIA-Routing §1.3 (or equivalent) for routing | — | — |
-| CORE-§9.4-02 | 9.4 | MAY | sdk | behavioural_positive | Broker selection MAY use advanced strategies (load balancing, failover) if within required zone | — | — |
-| CORE-§10.1-01 | 10.1 | MUST | sdk | behavioural_positive | Idempotency key MUST be unique within the (from, to, payload.type) tuple scope | arsia-message | — |
-| CORE-§10.1-02 | 10.1 | MAY | sdk | structural | Idempotency key MAY contain any printable ASCII character (0x20–0x7E), 1–128 chars | arsia-message | — |
-| CORE-§10.1-03 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Idempotency keys SHOULD be domain-meaningful identifiers (invoice number, UUID, etc.) | — | — |
-| CORE-§10.2-01 | 10.2 | MUST | sdk | procedural | Idempotency support is REQUIRED for Core conformance; agents MUST implement key storage | — | — |
-| CORE-§10.2-02 | 10.2 | MUST | sdk | behavioural_positive | Server MUST store the idempotency key-to-response mapping scoped by (from, to, payload.type) | — | — |
-| CORE-§10.2-03 | 10.2 | MUST | sdk | behavioural_positive | Stored idempotency mapping MUST be retained until idempotency.expires_at | — | — |
-| CORE-§10.2-04 | 10.2 | MUST | sdk | behavioural_positive | Header-only idempotency key MUST be retained for a minimum of 24 hours | — | — |
-| CORE-§10.2-05 | 10.2 | MUST | deployment | behavioural_positive | Idempotency storage MUST survive server restarts within the retention window in production | — | — |
-| CORE-§10.2-06 | 10.2 | MAY | sdk | behavioural_positive | Server MAY delete stored idempotency mappings after the retention window expires | — | — |
-| CORE-§10.3-01 | 10.3 | MUST | sdk | behavioural_positive | Duplicate idempotency key MUST return the stored response without re-executing | — | — |
-| CORE-§10.3-02 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response HTTP status code MUST be identical to the original response | — | — |
-| CORE-§10.3-03 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response body MUST be the exact ARSIA envelope from original processing | — | — |
-| CORE-§10.3-04 | 10.3 | SHOULD | sdk | behavioural_positive | In-progress duplicate SHOULD return HTTP 409 (Conflict) with Retry-After header | — | — |
-| CORE-§10.4-01 | 10.4 | MUST | sdk | behavioural_positive | HTTP Idempotency-Key header takes precedence over envelope idempotency.key for detection (HTTP transport only) | — | — |
-| CORE-§10.4-02 | 10.4 | SHOULD | sdk | behavioural_positive | Server SHOULD log discrepancies between header and envelope idempotency key values | — | — |
-| CORE-§11.1-01 | 11.1 | MUST | sdk | structural | Error response envelope intent field MUST be "error" | arsia-message | — |
-| CORE-§11.1-02 | 11.1 | MUST | sdk | behavioural_positive | Error response correlation_id MUST match the id of the original message | arsia-message | — |
-| CORE-§11.1-03 | 11.1 | SHOULD | sdk | behavioural_positive | Error payload.type SHOULD match the original request type, or default to "arsiaprotocol.error" | — | ITV-441 |
-| CORE-§11.1-04 | 11.1 | MUST | sdk | structural | Error response envelope MUST include a payload.error object per §4.4.6 | arsia-message | — |
-| CORE-§11.1-05 | 11.1 | REQUIRED | sdk | structural | payload.error.code (string) is REQUIRED; MUST be a standard error code from §11.2 | arsia-message | — |
-| CORE-§11.1-06 | 11.1 | REQUIRED | sdk | structural | payload.error.description (string) is REQUIRED; human-readable error message | arsia-message | — |
-| CORE-§11.1-07 | 11.1 | OPTIONAL | sdk | structural | payload.error.details (object) is OPTIONAL; provides structured error context | arsia-message | — |
-| CORE-§11.1-08 | 11.1 | MUST | sdk | behavioural_positive | Error description text MUST be written in English | — | — |
-| CORE-§11.1-09 | 11.1 | MUST_NOT | sdk | behavioural_negative | Error description MUST NOT contain stack traces, DB queries, file paths, or credentials | — | — |
-| CORE-§11.1.1-01 | 11.1.1 | MAY | sdk_enabled | interoperability | Transport-level HTTP errors (401, 403) MAY use plain JSON without ARSIA envelope or signing | arsia-message | — |
-| CORE-§11.1.1-02 | 11.1.1 | SHOULD | sdk | behavioural_positive | Transport-level error responses SHOULD include at least a status and reason field | arsia-message | — |
-| CORE-§11.2-01 | 11.2 | MUST | sdk | interoperability | Implementations MUST use the standard error codes for their defined conditions | arsia-message | ITV-73, ITV-74, ITV-75, ITV-79, ITV-83, ITV-84, ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160, ITV-14 |
-| CORE-§11.2-02 | 11.2 | MAY | sdk | interoperability | Implementations MAY define custom error codes using reverse domain notation | — | — |
-| CORE-§11.2-03 | 11.2 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT redefine the meaning of standard ARSIA error codes | — | — |
-| CORE-§11.2-04 | 11.2 | MUST | sdk | structural | Forbidden (403) error details MUST include required_capabilities and provided_capabilities | arsia-message | — |
-| CORE-§11.2-05 | 11.2 | MUST | sdk | structural | not_implemented (501) error details MUST include supported_versions with min and max | arsia-message | ITV-15, ITV-155 |
-| CORE-§11.2-06 | 11.2 | SHOULD | sdk | structural | not_implemented caused by unsupported payload type SHOULD include unsupported_type in details | arsia-message | ITV-155 |
-| CORE-§11.2-07 | 11.2 | SHOULD | sdk | structural | rate_limited (429) error details SHOULD include retry_after_seconds, limit, remaining, and reset_at | arsia-message | ITV-83, ITV-153, ITV-534 |
-| CORE-§11.2-08 | 11.2 | SHOULD | sdk | structural | payload_too_large (413) error details SHOULD include max_message_bytes and actual_bytes | arsia-message | ITV-84, ITV-152, ITV-535 |
-| CORE-§11.2-09 | 11.2 | MUST | sdk | structural | service_unavailable from data residency violation MUST include data_residency_violation and required_zone | arsia-message | ITV-156 |
-| CORE-§11.3-01 | 11.3 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT retry non-retryable errors (4xx except 429) without modifying the request. Exception: conflict (409) with Retry-After header for idempotent in-progress requests — agent SHOULD retry identical request per §10.3 | — | — |
-| CORE-§11.3-02 | 11.3 | MUST_NOT | sdk_enabled | behavioural_negative | Agent MUST NOT retry immediately after receiving a rate_limited (429) error | — | — |
-| CORE-§11.3-03 | 11.3 | MUST | sdk_enabled | behavioural_positive | Agent MUST honour the Retry-After header before retrying a rate_limited error | — | — |
-| CORE-§11.3-04 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Agent SHOULD use retry_after_seconds from error details when no Retry-After header is present | — | — |
-| CORE-§11.3-05 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Agent SHOULD wait at least 60 seconds before retrying when no retry timing is provided | — | — |
-| CORE-§11.3-06 | 11.3 | SHOULD | sdk | behavioural_positive | 5xx errors SHOULD be retried using exponential backoff (1s base, 2x multiplier, 32s max, 3 retries) | — | — |
-| CORE-§11.3-07 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Retry jitter of ±25% of the computed delay is RECOMMENDED for exponential backoff | — | — |
-| CORE-§11.3-08 | 11.3 | MUST | sdk | behavioural_positive | Agent MUST abandon the request and report failure after 3 failed retries | — | — |
-| CORE-§11.3-09 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Failure report SHOULD include the error code and description from the last retry attempt | — | — |
-| CORE-§11.3-10 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Retry jitter is RECOMMENDED to prevent thundering herd on a recovering server | — | — |
-| CORE-§11.3-11 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD use uniform random jitter: base_delay × (0.75 + random() × 0.5) | — | — |
-| CORE-§12.1-01 | 12.1 | MUST | external | interoperability | Core conformance MUST implement agent-id, envelope, EdDSA, auth, discovery, JWKS, HTTP/2, routing, idempotency, and errors | — | — |
-| CORE-§12.1-02 | 12.1 | SHOULD | external | behavioural_positive | Core-conformance implementations that produce audit records SHOULD chain them per ARSIA-State.md §7.2 | arsia-audit-record | harness R14 (f) |
-| CORE-§12.2-01 | 12.2 | MUST | external | interoperability | Compliance conformance MUST meet Core plus compliance fields, profiles, audit trail, audit hash chain, oversight, and broker routing | — | — |
-| CORE-§12.3-01 | 12.3 | MUST | external | interoperability | Full conformance MUST implement Compliance requirements plus all 5 primitives, WebSocket, encryption, and ES256 | — | — |
-| CORE-§12.4-01 | 12.4 | MUST | external | interoperability | Compliance-level implementations MUST pass all compliance field conformance tests in §12.4 | — | — |
-| CORE-§13.3-01 | 13.3 | MUST_NOT | deployment | behavioural_negative | Distributed tracing infrastructure MUST NOT be required for protocol compliance | — | — |
-| CORE-§13.3-02 | 13.3 | MUST_NOT | operational_policy | behavioural_negative | Agent identifiers MUST NOT contain personally identifiable information | — | — |
-| CORE-§13.3-03 | 13.3 | OPTIONAL | sdk | structural | context.trace_id and context.span_id fields are OPTIONAL; agents MAY omit them | arsia-message | — |
-| CORE-§14.1-01 | 14.1 | MUST | sdk | behavioural_positive | Recipients MUST verify the Content-Type v parameter equals the major version component of the envelope v field | — | ITV-442 |
-| CORE-§14.1-02 | 14.1 | SHOULD | sdk | behavioural_negative | Content-Type v parameter mismatch SHOULD be treated as an invalid_request error | — | ITV-442, ITV-443 |
+| ID | § | Modal | Layer | Kind | Requirement | Schema | Vector | Evidence |
+|----|---|-------|-------|------|-------------|--------|--------|----------|
+| CORE-§1.3-01 | 1.3 | MAY | sdk_enabled | interoperability | MCP/A2A agents MAY add ARSIA compliance by including the compliance field in the envelope | — | — | — |
+| CORE-§2.2-01 | 2.2 | MUST | sdk | behavioural_positive | Agents MUST produce/consume ARSIA envelopes, verify signatures, and respond to discovery | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§2.2-02 | 2.2 | MUST | sdk | behavioural_positive | Receiving agent MUST apply profile defaults for unset compliance fields when profile is referenced | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
+| CORE-§2.2-03 | 2.2 | MUST_NOT | external | behavioural_negative | Compliance broker MUST NOT modify message envelope contents | — | — | out-of-repo(external-party) |
+| CORE-§2.2-04 | 2.2 | MUST | external | behavioural_positive | Compliance broker MUST append an audit record for every relayed message | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| CORE-§2.2-05 | 2.2 | MAY | external | informational | A single authorization server MAY serve multiple agents within an organisation | — | — | — |
+| CORE-§2.2-06 | 2.2 | MAY | deployment | informational | Each agent MAY use a dedicated authorization server | — | — | — |
+| CORE-§2.2-07 | 2.2 | MUST | sdk | behavioural_positive | Each agent MUST expose exactly one inbox endpoint for receiving messages | arsia-discovery-response | — | schema-ref:arsia-discovery-response; untested(structural-only) |
+| CORE-§2.2-08 | 2.2 | MUST | sdk | behavioural_positive | Response/error/pending_approval/approval_decision messages MUST include correlation_id matching the original request id | arsia-message | CTV-08 | schema-ref:arsia-message; struct:CTV-08; crypto:CTV-08 |
+| CORE-§2.2-09 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST store idempotency keys for the duration in idempotency.expires_at | — | — | untested(no-reference-model) |
+| CORE-§2.2-10 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST return the original response for any duplicate idempotency key within the retention window | — | — | check:`R6 replay with fresh header still dedupes`; untested(no-reference-model) |
+| CORE-§2.2-11 | 2.2 | MUST | deployment | structural | Data residency zone MUST be an ISO 3166-1 alpha-2 code or supranational ID where processing occurs | arsia-compliance-field | ITV-23 | schema-ref:arsia-compliance-field; struct:ITV-23 |
+| CORE-§2.2-12 | 2.2 | MUST | deployment | procedural | Messages with data_residency MUST route through a compliance broker within the declared zone | — | — | out-of-repo(infrastructure) |
+| CORE-§3.1-01 | 3.1 | MUST | sdk | structural | Agent ID org-segment MUST contain only ASCII letters, digits, or hyphens | arsia-message | — | schema-ref:arsia-message |
+| CORE-§3.1-02 | 3.1 | MUST_NOT | sdk | structural | Agent ID org-segment MUST NOT begin or end with a hyphen | arsia-message | — | schema-ref:arsia-message |
+| CORE-§3.3-01 | 3.3 | MUST_NOT | sdk | structural | Agent identifier MUST NOT exceed 256 characters including the agent: prefix | arsia-message | ITV-178 | schema-ref:arsia-message; struct:ITV-178; crypto:ITV-178 |
+| CORE-§3.3-02 | 3.3 | MUST | operational_policy | behavioural_positive | Agent identifier MUST be globally unique within a deployment | — | — | out-of-repo(operator) |
+| CORE-§3.3-03 | 3.3 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD use a registry or namespace authority to prevent ID collisions | — | — | — |
+| CORE-§3.3-04 | 3.3 | MUST_NOT | operational_policy | behavioural_negative | Agent identifier MUST NOT contain personally identifiable information (PII) | — | — | out-of-repo(operator) |
+| CORE-§3.3-05 | 3.3 | SHOULD | sdk | interoperability | Implementations SHOULD use lowercase agent identifiers to avoid confusion | arsia-message | ITV-430 | — |
+| CORE-§3.3-06 | 3.3 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT normalise case when comparing agent identifiers | — | — | untested(no-reference-model) |
+| CORE-§3.3-07 | 3.3 | MUST | sdk | structural | The agent: prefix MUST be present in all contexts — envelope fields, token claims, discovery, and errors | arsia-message | INV-04 | schema-ref:arsia-message; struct:INV-04; crypto:INV-04 |
+| CORE-§3.3-08 | 3.3 | MUST_NOT | sdk | structural | The org-segment and each sub-segment MUST NOT begin or end with a hyphen | arsia-message | — | schema-ref:arsia-message |
+| CORE-§3.3-09 | 3.3 | MUST_NOT | sdk | structural | Agent ID resource-segment, if present, MUST NOT be empty (no trailing slash) | arsia-message | — | schema-ref:arsia-message |
+| CORE-§3.3-10 | 3.3 | MAY | sdk | informational | Implementations MAY use the specified regex for agent identifier validation | — | — | — |
+| CORE-§4.1-01 | 4.1 | MUST | sdk | structural | Every ARSIA envelope MUST include v, id, ts, from, to, and intent fields | arsia-message | INV-01 | schema-ref:arsia-message; struct:INV-01 |
+| CORE-§4.1-02 | 4.1 | MUST | sdk | behavioural_negative | Messages missing any required field MUST be rejected with error invalid_request | arsia-message | INV-01, INV-02, INV-03 | schema-ref:arsia-message; struct:INV-01, INV-02, INV-03; crypto:INV-02, INV-03 |
+| CORE-§4.1.1-01 | 4.1.1 | MUST | sdk | behavioural_negative | Implementations MUST reject messages with unsupported major version | — | ITV-404 | struct:ITV-404; untested(structural-only) |
+| CORE-§4.1.1-02 | 4.1.1 | MUST | sdk | behavioural_positive | Minor version differences within the same major version MUST be handled gracefully | — | ITV-405 | struct:ITV-405; untested(structural-only) |
+| CORE-§4.1.1-03 | 4.1.1 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored | — | ITV-406 | — |
+| CORE-§4.1.2-01 | 4.1.2 | MUST | sdk | structural | Message id MUST be a UUID v4 in canonical 8-4-4-4-12 hexadecimal format | arsia-message | INV-02, ITV-407 | schema-ref:arsia-message; struct:INV-02, ITV-407; crypto:INV-02 |
+| CORE-§4.1.2-02 | 4.1.2 | SHOULD | sdk | interoperability | Message id hex digits SHOULD be lowercase | arsia-message | ITV-407 | — |
+| CORE-§4.1.2-03 | 4.1.2 | MUST | sdk | behavioural_positive | Message id UUID MUST be generated using a CSPRNG | — | — | out-of-repo(implementation-internal) |
+| CORE-§4.1.2-04 | 4.1.2 | MUST_NOT | sdk | behavioural_negative | Message identifiers MUST NOT be sequential or predictable | — | — | out-of-repo(implementation-internal) |
+| CORE-§4.1.3-01 | 4.1.3 | MUST | sdk | structural | Timestamp ts MUST be RFC 3339 UTC with exactly millisecond precision (Z suffix) | arsia-message | INV-03 | schema-ref:arsia-message; struct:INV-03; crypto:INV-03 |
+| CORE-§4.1.3-02 | 4.1.3 | MUST_NOT | sdk | behavioural_negative | Timestamp ts MUST NOT use local timezone offsets | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408, INV-171 | — |
+| CORE-§4.1.4-01 | 4.1.4 | MUST | sdk | structural | The from field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.1.4-02 | 4.1.4 | MUST | sdk | behavioural_positive | The from field MUST match the access token sub claim | — | ITV-409 | struct:ITV-409; crypto:ITV-409 |
+| CORE-§4.1.4-03 | 4.1.4 | MUST | sdk | behavioural_negative | Mismatched from vs. token sub MUST cause rejection with error unauthorized | — | ITV-409 | struct:ITV-409; crypto:ITV-409 |
+| CORE-§4.1.5-01 | 4.1.5 | MUST | sdk | structural | The to field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.1.5-02 | 4.1.5 | MUST | sdk | behavioural_positive | The to field MUST match the access token aud claim | — | ITV-410 | struct:ITV-410; crypto:ITV-410 |
+| CORE-§4.1.5-03 | 4.1.5 | MUST | sdk | behavioural_negative | Mismatched to vs. token aud MUST cause rejection with error unauthorized | — | ITV-410 | struct:ITV-410; crypto:ITV-410 |
+| CORE-§4.1.6-01 | 4.1.6 | SHOULD_NOT | sdk | informational | Event intent sender SHOULD NOT expect a response | arsia-message | CTV-06, CTV-07 | — |
+| CORE-§4.1.6-02 | 4.1.6 | MUST | sdk | structural | Error intent messages MUST include payload.error object | arsia-message | CTV-05 | schema-ref:arsia-message; struct:CTV-05; crypto:CTV-05 |
+| CORE-§4.2-01 | 4.2 | REQUIRED | sdk | structural | Conditional fields (correlation_id, expires_at, capabilities) are REQUIRED when their condition holds | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.2-02 | 4.2 | MUST | sdk | behavioural_negative | Messages missing a conditionally required field MUST be rejected with error invalid_request | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§4.2.1-01 | 4.2.1 | REQUIRED | sdk | structural | correlation_id is REQUIRED when intent is response, error, pending_approval, or approval_decision | arsia-message | CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14 | schema-ref:arsia-message; struct:CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14; crypto:CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14 |
+| CORE-§4.2.1-02 | 4.2.1 | MUST | sdk | behavioural_positive | correlation_id MUST equal the original request message id | — | CTV-04, CTV-10 | struct:CTV-04, CTV-10; crypto:CTV-04, CTV-10 |
+| CORE-§4.2.1-03 | 4.2.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD log unmatched correlation_id in response/error messages | — | — | — |
+| CORE-§4.2.1-04 | 4.2.1 | MAY | sdk_enabled | behavioural_negative | Agents MAY discard response/error messages with unmatched correlation_id | — | — | — |
+| CORE-§4.2.1-05 | 4.2.1 | MUST | sdk | procedural | For an approval_decision or a post-execution review decision, the log that correlation rules 1–3 require is the decision_rejected audit record | arsia-audit-record | INV-136, INV-138, ITV-656 | schema-ref:arsia-audit-record; struct:INV-136, INV-138, ITV-656; exec:R15:INV-136, INV-138, ITV-656 |
+| CORE-§4.2.2-01 | 4.2.2 | REQUIRED | sdk | structural | expires_at is REQUIRED when intent is request or pending_approval | arsia-message | CTV-01, CTV-08, INV-05 | schema-ref:arsia-message; struct:CTV-01, CTV-08, INV-05; crypto:CTV-01, CTV-08, INV-05 |
+| CORE-§4.2.2-02 | 4.2.2 | MUST_NOT | sdk | behavioural_negative | Messages MUST NOT be processed after their expires_at timestamp | — | — | check:`R16 expiry honours the tolerance: 300 s after expires_at is not expired`; untested(no-reference-model) |
+| CORE-§4.2.2-03 | 4.2.2 | MUST | sdk | structural | expires_at value MUST be strictly greater than the message ts value | — | CTV-01 | struct:CTV-01; crypto:CTV-01 |
+| CORE-§4.2.2-04 | 4.2.2 | MUST | sdk | behavioural_negative | Recipients MUST reject messages with past expires_at (after the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) as invalid_request | — | ITV-411 | struct:ITV-411; crypto:ITV-411; exec:R16:ITV-411 |
+| CORE-§4.2.3-01 | 4.2.3 | REQUIRED | sdk | structural | capabilities array is REQUIRED when intent is request or approval_decision | arsia-message | CTV-01, ITV-532, ITV-533 | schema-ref:arsia-message; struct:CTV-01, ITV-532, ITV-533; crypto:CTV-01 |
+| CORE-§4.2.3-02 | 4.2.3 | MUST | sdk | structural | capabilities array MUST contain at least one element | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.2.3-03 | 4.2.3 | MUST | sdk | structural | Each capability string MUST be unique within the capabilities array | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.2.3-04 | 4.2.3 | MUST | sdk | behavioural_positive | Receiving agent MUST verify that the access token scope covers all listed capabilities | — | ITV-412 | struct:ITV-412; crypto:ITV-412 |
+| CORE-§4.2.3-05 | 4.2.3 | MUST | sdk | behavioural_negative | Uncovered capabilities in token scope MUST cause rejection with error forbidden | — | ITV-412 | struct:ITV-412; crypto:ITV-412 |
+| CORE-§4.2.3-06 | 4.2.3 | MUST | sdk | structural | Each capability string MUST be a concrete capability (concrete-cap per Actions §1.1); wildcard capabilities are not permitted in the message capabilities field | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.3-01 | 4.3 | OPTIONAL | sdk | structural | Envelope optional fields (min_v, idempotency, context, payload, security, compliance) MAY be absent | arsia-message | — | — |
+| CORE-§4.3-02 | 4.3 | MUST | sdk | structural | Optional fields, when present, MUST conform to their defined format and constraints | arsia-message | ITV-176 | schema-ref:arsia-message; struct:ITV-176; crypto:ITV-176 |
+| CORE-§4.3.1-01 | 4.3.1 | MUST | sdk | behavioural_negative | Recipients MUST reject with not_implemented if their max version is below min_v | — | ITV-413 | struct:ITV-413; crypto:ITV-413 |
+| CORE-§4.3.2-01 | 4.3.2 | REQUIRED | sdk | structural | idempotency.key field (string) is REQUIRED within the idempotency object | arsia-message | CTV-02 | schema-ref:arsia-message; struct:CTV-02; crypto:CTV-02 |
+| CORE-§4.3.2-02 | 4.3.2 | MUST | sdk | structural | idempotency.key MUST be 1–128 characters in length | arsia-message | ITV-177 | schema-ref:arsia-message; struct:ITV-177; crypto:ITV-177 |
+| CORE-§4.3.2-03 | 4.3.2 | MUST | sdk | behavioural_positive | idempotency.key MUST be unique per (from, to, payload.type) tuple | — | — | untested(no-reference-model) |
+| CORE-§4.3.2-04 | 4.3.2 | MAY | sdk | structural | idempotency.key MAY contain any printable ASCII (0x20–0x7E) | arsia-message | — | — |
+| CORE-§4.3.2-05 | 4.3.2 | REQUIRED | sdk | structural | idempotency.expires_at field (string) is REQUIRED within the idempotency object | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.3.2-06 | 4.3.2 | MAY | sdk | behavioural_positive | Server MAY discard idempotency record after idempotency.expires_at timestamp | — | — | — |
+| CORE-§4.3.2-07 | 4.3.2 | MUST | sdk | structural | idempotency.expires_at MUST be strictly greater than the message ts | — | ITV-414 | struct:ITV-414; crypto:ITV-414 |
+| CORE-§4.3.3-01 | 4.3.3 | OPTIONAL | sdk | structural | All fields within the context object (trace_id, span_id, flags, locale, priority) are OPTIONAL | arsia-message | ITV-66 | — |
+| CORE-§4.3.3-02 | 4.3.3 | MUST | sdk | structural | context.trace_id MUST be a 32-char lowercase hex string (W3C 128-bit trace ID) and MUST NOT be the all-zero value | arsia-message | ITV-24, INV-43 | schema-ref:arsia-message; struct:ITV-24, INV-43 |
+| CORE-§4.3.3-03 | 4.3.3 | MUST | sdk | structural | context.span_id MUST be a 16-char lowercase hex string (W3C 64-bit span ID) and MUST NOT be the all-zero value | arsia-message | ITV-25, INV-44 | schema-ref:arsia-message; struct:ITV-25, INV-44 |
+| CORE-§4.3.3-04 | 4.3.3 | MUST | sdk | structural | context.flags MUST be an integer 0–255 (8-bit W3C trace flags) | arsia-message | ITV-26 | schema-ref:arsia-message; struct:ITV-26 |
+| CORE-§4.3.3-05 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.locale to select error/output language | — | — | — |
+| CORE-§4.3.3-06 | 4.3.3 | MAY | sdk | informational | Implementations MAY use context.priority for queue ordering without guarantee | — | ITV-27 | — |
+| CORE-§4.3.5-01 | 4.3.5 | REQUIRED | sdk | structural | security object, when present, MUST include alg, kid, and sig fields | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.3.5-02 | 4.3.5 | MUST | sdk | structural | security.alg MUST be one of EdDSA, ES256, or RS256 | arsia-message | ITV-548, ITV-549, ITV-550 | schema-ref:arsia-message; struct:ITV-548, ITV-549, ITV-550 |
+| CORE-§4.3.5-03 | 4.3.5 | MUST | sdk | interoperability | Conformant implementations MUST support EdDSA (Ed25519) | — | — | untested(integration) |
+| CORE-§4.3.5-04 | 4.3.5 | SHOULD | sdk | interoperability | Conformant implementations SHOULD support ES256 (ECDSA P-256) | — | ITV-548 | — |
+| CORE-§4.3.5-05 | 4.3.5 | MAY | sdk | interoperability | Conformant implementations MAY support RS256 for legacy interoperability only | — | ITV-549 | — |
+| CORE-§4.3.5-06 | 4.3.5 | MUST | sdk | behavioural_positive | security.kid MUST correspond to a key in the sender JWKS endpoint | — | INV-11 | struct:INV-11; untested(structural-only) |
+| CORE-§4.3.5-07 | 4.3.5 | MUST | sdk | structural | security.kid format MUST be {agent-id}#{keyN} | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§4.3.5-08 | 4.3.5 | REQUIRED | sdk | structural | security.enc_alg is REQUIRED when security.encrypted is true | arsia-message | ITV-12, ITV-13, ITV-163 | schema-ref:arsia-message; struct:ITV-12, ITV-13, ITV-163; crypto:ITV-163 |
+| CORE-§4.3.5-09 | 4.3.5 | REQUIRED | sdk | structural | security.enc_method is REQUIRED when security.encrypted is true | arsia-message | ITV-12, ITV-163 | schema-ref:arsia-message; struct:ITV-12, ITV-163; crypto:ITV-163 |
+| CORE-§4.3.5-10 | 4.3.5 | OPTIONAL | sdk | structural | security.encrypted (boolean, OPTIONAL) indicates payload encryption; defaults to false | arsia-message | — | — |
+| CORE-§4.3.6-01 | 4.3.6 | OPTIONAL | sdk | structural | The compliance object is OPTIONAL in every ARSIA message envelope | arsia-message, arsia-compliance-field | ITV-135, ITV-137 | — |
+| CORE-§4.3.6.1-01 | 4.3.6.1 | SHOULD | sdk | behavioural_positive | Unknown compliance profile names SHOULD trigger a compliance warning | — | ITV-415 | — |
+| CORE-§4.3.6.1-02 | 4.3.6.1 | MUST | sdk | behavioural_negative | In strict mode, unknown profile names MUST be rejected with invalid_request | — | ITV-416 | struct:ITV-416; crypto:ITV-416 |
+| CORE-§4.3.6.2-01 | 4.3.6.2 | MUST | deployment | behavioural_positive | data_residency declares the geographic zone where the message MUST be processed and stored | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
+| CORE-§4.3.6.2-02 | 4.3.6.2 | MUST | deployment | procedural | data_residency, when set, MUST trigger brokered routing through an in-zone Compliance Broker | — | — | out-of-repo(infrastructure) |
+| CORE-§4.3.6.3-01 | 4.3.6.3 | MUST | sdk | behavioural_positive | audit_required declares whether the message MUST generate an ArsiaAuditRecord | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
+| CORE-§4.3.6.3-02 | 4.3.6.3 | MUST | sdk_enabled | behavioural_positive | When audit_required is true, receiver MUST persist an audit record before acknowledging | — | — | untested(no-reference-model) |
+| CORE-§4.3.6.3-03 | 4.3.6.3 | OPTIONAL | sdk | informational | When audit_required is false, audit record generation is OPTIONAL | arsia-compliance-field | — | — |
+| CORE-§4.3.6.4-01 | 4.3.6.4 | MUST | sdk | behavioural_positive | retention specifies the minimum days the audit record MUST be retained | arsia-compliance-field | ITV-419, ITV-28 | schema-ref:arsia-compliance-field; struct:ITV-419, ITV-28; crypto:ITV-419 |
+| CORE-§4.3.6.4-02 | 4.3.6.4 | MUST_NOT | sdk | behavioural_negative | Per-message retention MUST NOT be less than the profile minimum | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
+| CORE-§4.3.6.5-02 | 4.3.6.5 | MUST_NOT | sdk_enabled | behavioural_negative | human_oversight required_before_execution: action MUST NOT execute until human approves | arsia-compliance-field | CTV-02 | schema-ref:arsia-compliance-field; struct:CTV-02; crypto:CTV-02 |
+| CORE-§4.3.6.6-01 | 4.3.6.6 | MUST | sdk | behavioural_positive | explainability_required declares whether responses MUST include payload.explanation | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
+| CORE-§4.3.6.6-02 | 4.3.6.6 | MUST | sdk | behavioural_positive | When explainability_required is true, response MUST include reasoning, confidence, and inputs_used | arsia-explanation | — | schema-ref:arsia-explanation; untested(structural-only) |
+| CORE-§4.3.6.7-01 | 4.3.6.7 | MUST | sdk | structural | When pii_involved is true, legal_basis MUST be set | arsia-message, arsia-compliance-field | INV-06, ITV-420 | schema-ref:arsia-message; schema-ref:arsia-compliance-field; struct:INV-06, ITV-420; crypto:INV-06 |
+| CORE-§4.3.6.7-02 | 4.3.6.7 | MUST | sdk | behavioural_positive | Agents MUST apply GDPR Art. 5(1)(f) data protection for pii_involved messages | — | — | untested(no-reference-model) |
+| CORE-§4.3.6.7-03 | 4.3.6.7 | SHOULD | sdk | behavioural_positive | PII data SHOULD be encrypted in transit and at rest | — | — | — |
+| CORE-§4.3.6.8-01 | 4.3.6.8 | REQUIRED | sdk | structural | legal_basis field is REQUIRED when pii_involved is true | arsia-compliance-field | CTV-02, ITV-18, ITV-19, ITV-161, ITV-162 | schema-ref:arsia-compliance-field; struct:CTV-02, ITV-18, ITV-19, ITV-161, ITV-162; crypto:CTV-02, ITV-161, ITV-162 |
+| CORE-§4.3.6.8-02 | 4.3.6.8 | MUST | sdk | behavioural_negative | When pii_classification is "sensitive", legal_basis MUST be an Art. 9(2) ground | arsia-compliance-field | ITV-555, INV-20 | schema-ref:arsia-compliance-field; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| CORE-§4.3.6.9-01 | 4.3.6.9 | MAY | sdk | informational | High-risk agent MAY send a minimal-risk message (downgrade allowed) | arsia-compliance-field | ITV-136 | — |
+| CORE-§4.3.6.9-02 | 4.3.6.9 | MUST_NOT | sdk | behavioural_negative | Minimal-risk agent MUST NOT send a high-risk message (escalation prohibited) | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
+| CORE-§4.3.7-01 | 4.3.7 | MUST | sdk | behavioural_negative | Classification escalation MUST cause rejection with invalid_request and classification_escalation detail | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
+| CORE-§4.3.7-04 | 4.3.7 | MUST_NOT | sdk | behavioural_negative | Receiving agents MUST NOT silently raise a declared retention to the profile minimum; a declared value below the minimum is rejected per §4.3.8 Rule 4 | arsia-compliance-field | ITV-417 | schema-ref:arsia-compliance-field; struct:ITV-417; untested(structural-only) |
+| CORE-§4.3.8-01 | 4.3.8 | MUST | sdk | procedural | Receiving agents MUST validate the compliance field before processing | — | — | untested(no-reference-model) |
+| CORE-§4.3.8-02 | 4.3.8 | MUST | sdk | procedural | Compliance validation MUST occur after signature verification and before payload processing | — | — | untested(no-reference-model) |
+| CORE-§4.3.8-03 | 4.3.8 | MUST | sdk | behavioural_negative | Messages failing compliance validation MUST be rejected with the rule-specific error code | — | — | check:`R10 explicit not_required + high risk -> high_risk_missing_oversight`; untested(no-reference-model) |
+| CORE-§4.3.8-04 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 1: compliance.profile MUST be a known name from ARSIA-State.md §6 | arsia-compliance-profiles | CTV-03, ITV-415 | schema-ref:arsia-compliance-profiles; struct:CTV-03, ITV-415; crypto:CTV-03, ITV-415 |
+| CORE-§4.3.8-05 | 4.3.8 | MUST | sdk | behavioural_positive | Non-strict mode: unknown profile MUST log warning and apply GDPR-STANDARD defaults | — | ITV-415 | struct:ITV-415; crypto:ITV-415 |
+| CORE-§4.3.8-06 | 4.3.8 | MUST | sdk | behavioural_negative | Strict mode: unknown profile MUST reject with invalid_request | — | ITV-416 | struct:ITV-416; crypto:ITV-416 |
+| CORE-§4.3.8-07 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 2: pii_involved=true without legal_basis MUST reject with invalid_request | arsia-message, arsia-compliance-field | INV-06, ITV-420 | schema-ref:arsia-message; schema-ref:arsia-compliance-field; struct:INV-06, ITV-420; crypto:INV-06 |
+| CORE-§4.3.8-08 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 3: for a request under the high-risk requirement set, the composed oversight set MUST contain a mode other than not_required; a valid mode filled from a profile default counts | arsia-compliance-field | ITV-421, ITV-579, ITV-610, ITV-611 | schema-ref:arsia-compliance-field; struct:ITV-421, ITV-579, ITV-610, ITV-611; exec:R10:ITV-610, ITV-611 |
+| CORE-§4.3.8-09 | 4.3.8 | MUST | sdk | behavioural_negative | A high-risk request whose composed set has no mode other than not_required, or that explicitly declares not_required, MUST be rejected with invalid_request and details high_risk_missing_oversight (declared, sources) | — | ITV-579, ITV-603, ITV-604, ITV-605, ITV-608, INV-07, ITV-452, ITV-454 | struct:ITV-579, ITV-603, ITV-604, ITV-605, ITV-608, INV-07, ITV-452, ITV-454; crypto:INV-07; exec:R10:ITV-603, ITV-604, ITV-605, ITV-608, INV-07 |
+| CORE-§4.3.8-10 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 4: MIFID-II profile MUST have effective retention >= 1827 days (profile floor) | arsia-compliance-field | CTV-03, ITV-417 | schema-ref:arsia-compliance-field; struct:CTV-03, ITV-417; crypto:CTV-03 |
+| CORE-§4.3.8-11 | 4.3.8 | MUST | sdk | behavioural_negative | MIFID-II retention below 1827 MUST reject with invalid_request and insufficient_retention | arsia-compliance-field | ITV-417 | schema-ref:arsia-compliance-field; struct:ITV-417; untested(structural-only) |
+| CORE-§4.3.8-12 | 4.3.8 | MUST | deployment | procedural | Rule 5: data_residency MUST trigger routing through an in-zone Compliance Broker | — | — | out-of-repo(infrastructure) |
+| CORE-§4.3.8-13 | 4.3.8 | MUST_NOT | sdk | behavioural_negative | Rule 6: per-message ai_system_classification MUST NOT exceed agent-level classification | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
+| CORE-§4.3.8-14 | 4.3.8 | MUST | sdk | behavioural_negative | Classification escalation MUST reject with invalid_request and classification_escalation detail | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
+| CORE-§4.3.8-15 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 7: when pii_involved is true, effective audit_required MUST be true (silent override) | arsia-compliance-field | ITV-553, ITV-554 | schema-ref:arsia-compliance-field; struct:ITV-553, ITV-554; crypto:ITV-553, ITV-554 |
+| CORE-§4.3.8-16 | 4.3.8 | SHOULD | sdk | behavioural_positive | Rule 7: when audit_required is overridden, agent SHOULD log a compliance_warning event | — | ITV-553 | — |
+| CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-state-operations; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | — | INV-20 | struct:INV-20; crypto:INV-20 |
+| CORE-§4.3.9-01 | 4.3.9 | MUST | sdk | behavioural_negative | When authorization is present, the receiving agent MUST compute SHA-256 over the exact octets of the presented access token and reject with unauthorized when it differs from authorization.token_hash | arsia-message | ITV-692, INV-113, INV-114 | schema-ref:arsia-message; struct:ITV-692, INV-113, INV-114; crypto:ITV-692, INV-113, INV-114; exec:R21:ITV-692, INV-113, INV-114; check:`R21 (a) every authorization binding of the corpus matches its synthetic-token:<ID> (binding only)` |
+| CORE-§4.3.10-01 | 4.3.10.4 | MUST | sdk | procedural | Receiving agent MUST resolve a message's obligations in order: fill, collect, compose, evaluate, record (sufficiency evaluated on the composed result) | arsia-obligation-rules | ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 | schema-ref:arsia-obligation-rules; struct:ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621; exec:R10:ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 |
+| CORE-§4.3.10-02 | 4.3.10.2 | MUST | sdk | behavioural_positive | Receiving agent MUST retain the raw signed IdentityRecord body bytes, retrievable by signed_body_sha256, while any referencing audit record is retained | — | — | untested(no-reference-model) |
+| CORE-§4.3.10-03 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of a profile catalog and of arsia-obligation-rules.json MUST keep every published revision retrievable by its digest | arsia-obligation-rules | — | schema-ref:arsia-obligation-rules; untested(structural-only) |
+| CORE-§4.3.10-04 | 4.3.10.6 | MUST | sdk | behavioural_negative | Every rejection produced by compliance evaluation, for a message of any intent, MUST produce an audit record (rejection_cause compliance) correlated with the rejected message, whatever audit_required declares | arsia-audit-record | ITV-600, ITV-603, ITV-622, INV-56, INV-58, INV-62 | schema-ref:arsia-audit-record; struct:ITV-600, ITV-603, ITV-622, INV-56, INV-58, INV-62; exec:R10:ITV-603, ITV-622, INV-62 |
+| CORE-§4.3.10-05 | 4.3.10.7 | MUST | sdk | behavioural_positive | Receiving agent MUST record the resolution inline in obligation_resolution on covered records of accepted requests and on the audit record of every rejection | arsia-audit-record | ITV-600, ITV-601, ITV-55, INV-54 | schema-ref:arsia-audit-record; struct:ITV-600, ITV-601, ITV-55, INV-54; untested(structural-only) |
+| CORE-§4.3.10-06 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of ActionDescriptors and CapabilityPolicies MUST keep published revisions retrievable by digest, and executing agents MUST retain risk-assessment records retrievable by digest, while referenced | — | — | out-of-repo(operator) |
+| CORE-§4.3.10-07 | 4.3.10.7 | MUST | sdk | behavioural_positive | Executing agent MUST carry the resolution in payload.obligation_resolution of its pending_approval and of the response or error reporting the outcome | arsia-message | ITV-631, ITV-640, ITV-644 | schema-ref:arsia-message; struct:ITV-631, ITV-640, ITV-644; crypto:ITV-631; exec:R15:ITV-640, ITV-644 |
+| CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 | schema-ref:arsia-message; struct:CTV-07; crypto:CTV-07 |
+| CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — | — |
+| CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.4.1-02 | 4.4.1 | MAY | sdk | structural | payload.type MAY use additional /-separated segments for sub-actions | arsia-message | — | — |
+| CORE-§4.4.1-03 | 4.4.1 | MUST | sdk | behavioural_negative | Unrecognised payload.type MUST be rejected with error not_implemented | — | ITV-422 | struct:ITV-422; crypto:ITV-422 |
+| CORE-§4.4.2-01 | 4.4.2 | SHOULD | sdk | interoperability | Senders SHOULD include payload.version when recipient may support multiple schema versions | arsia-message | — | — |
+| CORE-§4.4.3-01 | 4.4.3 | SHOULD | sdk | structural | payload.args SHOULD be present when intent is request or pending_approval | arsia-message | — | — |
+| CORE-§4.4.4-01 | 4.4.4 | SHOULD | sdk | structural | payload.result SHOULD be present when intent is response | arsia-message | CTV-04 | — |
+| CORE-§4.4.5-01 | 4.4.5 | SHOULD | sdk | structural | payload.data SHOULD be present when intent is event | arsia-message | CTV-06, CTV-07 | — |
+| CORE-§4.4.6-01 | 4.4.6 | REQUIRED | sdk | structural | payload.error object is REQUIRED when intent is error | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.4.6-02 | 4.4.6 | REQUIRED | sdk | structural | payload.error.code (string) is REQUIRED; must be a standard error code from §11.2 | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.4.6-03 | 4.4.6 | REQUIRED | sdk | structural | payload.error.description (string) is REQUIRED; human-readable error description | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.4.6-04 | 4.4.6 | MUST_NOT | sdk | behavioural_negative | Error description MUST NOT contain stack traces, DB queries, or credentials | — | — | untested(no-reference-model) |
+| CORE-§4.4.6-05 | 4.4.6 | MUST | sdk | structural | Forbidden error details MUST include required_capabilities and provided_capabilities arrays | arsia-message | CTV-05 | schema-ref:arsia-message; struct:CTV-05; crypto:CTV-05 |
+| CORE-§4.4.6-06 | 4.4.6 | MUST | sdk | structural | not_implemented error details MUST include supported_versions | arsia-message | — | schema-ref:arsia-message |
+| CORE-§4.4.6-07 | 4.4.6 | SHOULD | sdk | structural | rate_limited error details SHOULD include retry_after_seconds | arsia-message | — | — |
+| CORE-§4.4.6-08 | 4.4.6 | OPTIONAL | sdk | structural | payload.error.details (object, OPTIONAL) provides structured error context | arsia-message | — | — |
+| CORE-§4.4.7-01 | 4.4.7 | MUST | sdk | structural | Exactly one of args, result, data, or error MUST be present per message | arsia-message | ITV-423 | schema-ref:arsia-message; struct:ITV-423 |
+| CORE-§4.4.7-05 | 4.4.7 | MUST | sdk | behavioural_negative | A payload with more than one content field, or with none, MUST be rejected with invalid_request | arsia-message | ITV-423 | schema-ref:arsia-message; struct:ITV-423; untested(structural-only) |
+| CORE-§4.4.8-01 | 4.4.8 | REQUIRED | sdk | structural | obligation_resolution is REQUIRED on pending_approval and on the response or error reporting the outcome of a resolved action | arsia-message | INV-65, ITV-631 | schema-ref:arsia-message; struct:INV-65, ITV-631; crypto:ITV-631 |
+| CORE-§4.4.8-02 | 4.4.8 | MUST | sdk | behavioural_positive | A message carrying obligation_resolution MUST be signed by the executing agent, whatever its intent | arsia-message | INV-67, ITV-631 | schema-ref:arsia-message; struct:INV-67, ITV-631; crypto:ITV-631 |
+| CORE-§4.4.8-03 | 4.4.8 | MUST | sdk | behavioural_negative | Receiver MUST verify the signature before relying on obligation_resolution and MUST treat an unsigned or unverifiable resolution as absent | — | — | untested(no-reference-model) |
+| CORE-§4.5-01 | 4.5 | MAY | sdk | behavioural_positive | Implementations MAY increase the 1 MiB default message size limit | — | — | — |
+| CORE-§4.5-02 | 4.5 | MUST | sdk | behavioural_positive | Agent max message size MUST be advertised via max_message_bytes in discovery | arsia-discovery-response | — | schema-ref:arsia-discovery-response; untested(structural-only) |
+| CORE-§4.5-03 | 4.5 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD check recipient max_message_bytes before sending large messages | — | — | — |
+| CORE-§4.5-04 | 4.5 | MUST | sdk | behavioural_negative | Messages exceeding the advertised size limit MUST be rejected with payload_too_large | — | ITV-424 | struct:ITV-424; crypto:ITV-424 |
+| CORE-§4.5-05 | 4.5 | SHOULD | sdk_enabled | interoperability | Large payloads SHOULD use a reference pattern (URL/ID) instead of embedding content | — | — | — |
+| CORE-§5.1-01 | 5.1 | MUST | sdk | interoperability | Implementations MUST use a standards-compliant Ed25519 implementation | — | — | untested(integration) |
+| CORE-§5.1-02 | 5.1 | MUST | sdk | procedural | Message signing MUST follow the normative 6-step procedure (clone, remove only security.sig, JCS per RFC 8785 with UTF-16 code-unit member order, sign, b64url, populate) | — | CTV-01, ITV-551, ITV-552, ITV-590 | struct:CTV-01, ITV-551, ITV-552, ITV-590; crypto:CTV-01, ITV-551, ITV-552, ITV-590 |
+| CORE-§5.1-03 | 5.1 | MUST | sdk | interoperability | All conformant implementations MUST support Ed25519 signature generation and verification | — | — | untested(integration) |
+| CORE-§5.1-04 | 5.1 | RECOMMENDED | sdk | interoperability | ES256 support is RECOMMENDED for ECDSA interoperability | — | ITV-551, INV-18 | — |
+| CORE-§5.1-05 | 5.1 | MUST_NOT | sdk | behavioural_negative | RS256 MUST NOT be used for new deployments; legacy interoperability only | — | ITV-552, INV-19 | struct:ITV-552, INV-19; crypto:ITV-552, INV-19 |
+| CORE-§5.1-06 | 5.1 | MUST | sdk | behavioural_positive | RS256 key MUST be at least 2048 bits | — | ITV-425, ITV-552 | struct:ITV-425, ITV-552; crypto:ITV-552 |
+| CORE-§5.2-01 | 5.2 | MUST | sdk | behavioural_positive | Receivers MUST verify signatures on request, response, pending_approval, and approval_decision intents | arsia-message | CTV-08, CTV-09, CTV-10, INV-15, INV-16, INV-17 | schema-ref:arsia-message; struct:CTV-08, CTV-09, CTV-10, INV-15, INV-16, INV-17; crypto:CTV-08, CTV-09, CTV-10, INV-15, INV-16, INV-17 |
+| CORE-§5.2-02 | 5.2 | RECOMMENDED | sdk | behavioural_positive | Signature verification on event messages is RECOMMENDED but not required | — | CTV-06 | — |
+| CORE-§5.2-03 | 5.2 | RECOMMENDED | sdk | behavioural_positive | Signature verification on error messages is RECOMMENDED | — | — | — |
+| CORE-§5.2-04 | 5.2 | MUST | sdk | procedural | Signature verification MUST follow the normative 6-step procedure (extract, resolve key, clone-strip, JCS, verify, accept/reject) | — | ITV-551, ITV-552 | struct:ITV-551, ITV-552; crypto:ITV-551, ITV-552 |
+| CORE-§5.2-05 | 5.2 | MUST | sdk | behavioural_positive | Ed25519 signature decoding MUST produce exactly 64 bytes | — | ITV-426 | struct:ITV-426; untested(structural-only) |
+| CORE-§5.2-06 | 5.2 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD cache JWKS responses per Cache-Control headers | — | — | — |
+| CORE-§5.2-07 | 5.2 | MUST | sdk | behavioural_negative | Failed signature verification MUST reject with error unauthorized | — | INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112, INV-37, INV-38, INV-39 | struct:INV-11, ITV-426, INV-18, INV-19, INV-111, INV-112, INV-37, INV-38, INV-39; crypto:INV-18, INV-19, INV-111, INV-112, INV-37, INV-38, INV-39 |
+| CORE-§5.2-08 | 5.2 | SHOULD_NOT | sdk | behavioural_negative | Signature failure error SHOULD NOT include verification failure details | — | — | — |
+| CORE-§5.2-09 | 5.2 | SHOULD | sdk | behavioural_positive | Signature failure SHOULD be logged with kid, algorithm, and sender for debugging | — | — | — |
+| CORE-§5.2-10 | 5.2 | MAY | sdk_enabled | behavioural_positive | Implementations MAY cache JWKS lookups and public key resolution | — | — | — |
+| CORE-§5.2-11 | 5.2 | MUST | sdk_enabled | behavioural_positive | Cached JWKS MUST be refreshed on an unknown kid, on expired Cache-Control max-age, and at least every 3600 seconds | — | ITV-701, ITV-703, ITV-704 | struct:ITV-701, ITV-703, ITV-704; crypto:ITV-701, ITV-703, ITV-704; exec:R13:ITV-701, ITV-703, ITV-704 |
+| CORE-§5.2-12 | 5.2 | REQUIRED | sdk | behavioural_positive | Signature verification is REQUIRED for an error carrying obligation_resolution and for the post-execution review events | arsia-message | ITV-657 | schema-ref:arsia-message; struct:ITV-657; exec:R15:ITV-657 |
+| CORE-§5.2-13 | 5.2 | MUST | sdk | behavioural_negative | security.alg MUST be compatible with the resolved key type (EdDSA–OKP/Ed25519, ES256–EC/P-256, RS256–RSA); a mismatch MUST be rejected with unauthorized (Step 5) | — | INV-111, INV-112, INV-155 | struct:INV-111, INV-112, INV-155; crypto:INV-111, INV-112; exec:R15:INV-155 |
+| CORE-§5.2-14 | 5.2 | MUST | sdk | behavioural_negative | After a refresh no longer finds a kid, signatures by that key MUST be rejected, including messages already queued but not yet verified | — | ITV-703, ITV-704, INV-154 | struct:ITV-703, ITV-704, INV-154; crypto:ITV-703, ITV-704; exec:R13:ITV-703, ITV-704; exec:R15:INV-154 |
+| CORE-§5.2-15 | 5.2 | MUST | sdk | behavioural_positive | Recipients that authenticate a key-revocation event MUST invalidate the cached key at once rather than waiting for the next refresh | — | ITV-700, ITV-701, ITV-702 | struct:ITV-700, ITV-701, ITV-702; crypto:ITV-700, ITV-701, ITV-702; exec:R13:ITV-700, ITV-701, ITV-702 |
+| CORE-§5.2-16 | 5.2 | MUST | sdk | structural | The audit record of a compliance-relevant message whose signature was verified MUST carry verified_kid and jwks_fetched_at (the fetch instant, also when served from the cache); a record of an unverified or failed signature carries neither | arsia-audit-record | ITV-694, ITV-697, INV-127, INV-141, INV-142, ITV-708 | schema-ref:arsia-audit-record; struct:ITV-694, ITV-697, INV-127, INV-141, INV-142, ITV-708; exec:R15:ITV-694, INV-127, ITV-708 |
+| CORE-§5.2-17 | 5.2 | MUST | sdk | behavioural_negative | A document that is not UTF-8, or not JSON (NaN and Infinity included), MUST be rejected with invalid_request (pipeline step 2) | — | INV-161, INV-162, INV-163, INV-169, INV-170 | raw:INV-161, INV-162, INV-163, INV-169, INV-170 |
+| CORE-§5.2-18 | 5.2 | MUST | sdk | behavioural_negative | A document whose member names or strings, literal or escaped, at any depth, contain a surrogate outside a valid pair or a noncharacter MUST be rejected with invalid_request (pipeline step 3, [RFC 7493] §2.1); a valid escaped or literal pair is accepted | — | INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 | raw:INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 |
+| CORE-§5.2-19 | 5.2 | MUST | sdk | behavioural_negative | A document with duplicate member names at any depth, compared after escape processing, MUST be rejected with invalid_request (pipeline step 4, [RFC 7493] §2.3) | — | INV-158, INV-159, INV-160, CTV-14 | raw:INV-158, INV-159, INV-160, CTV-14 |
+| CORE-§5.2-20 | 5.2 | MUST | sdk | procedural | Pipeline steps 2-4 run in order and establish only well-formed I-JSON text, not a valid, authenticated or authorized message; they add no limit on JSON numbers beyond RFC 8785 and field constraints | — | CTV-11, CTV-15, CTV-16 | raw:CTV-11, CTV-15, CTV-16 |
+| CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — | schema-ref:arsia-message |
+| CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — | schema-ref:arsia-message |
+| CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 | schema-ref:arsia-message; struct:ITV-428 |
+| CORE-§5.3-04 | 5.3 | MUST | sdk | behavioural_positive | JWE MUST use the algorithms in security.enc_alg and security.enc_method | — | ITV-427 | struct:ITV-427; untested(structural-only) |
+| CORE-§5.3-05 | 5.3 | RECOMMENDED | sdk | interoperability | ECDH-ES is the RECOMMENDED key encryption algorithm for payload encryption | — | ITV-12 | — |
+| CORE-§5.3-06 | 5.3 | RECOMMENDED | sdk | interoperability | A256GCM is the RECOMMENDED content encryption method for payload encryption | — | ITV-12 | — |
+| CORE-§5.3-07 | 5.3 | MUST | sdk | behavioural_positive | Recipient encryption key MUST be obtained from their JWKS endpoint (use: enc) | — | — | untested(no-reference-model) |
+| CORE-§5.3-08 | 5.3 | MUST | sdk | procedural | Decryption: receiver MUST verify signature before decrypting payload | — | — | untested(no-reference-model) |
+| CORE-§5.3-09 | 5.3 | MUST | sdk | procedural | Receiver MUST decrypt payload JWE using their private key and specified algorithms | — | — | untested(no-reference-model) |
+| CORE-§5.3-10 | 5.3 | MUST | sdk | behavioural_positive | Decrypted payload MUST be parsed as a JSON object conforming to §4.4 | — | — | untested(no-reference-model) |
+| CORE-§5.3-11 | 5.3 | MUST | sdk | behavioural_negative | Failed decryption MUST reject with error unauthorized | — | ITV-429 | struct:ITV-429; untested(structural-only) |
+| CORE-§5.3-12 | 5.3 | MAY | sdk | interoperability | ECDH-ES+A256KW with A256GCM MAY be used for multi-recipient encryption | — | ITV-64 | — |
+| CORE-§5.3-13 | 5.3 | MAY | sdk | interoperability | RSA-OAEP-256 with A256GCM MAY be used for legacy encryption interoperability | — | ITV-63 | — |
+| CORE-§5.3.1-01 | 5.3.1 | MUST | sdk | structural | payload_hash MUST be SHA-256(UTF-8(payload)) where payload is the JWE Compact Serialization string when security.encrypted is true | arsia-audit-record | ITV-525 | schema-ref:arsia-audit-record; struct:ITV-525 |
+| CORE-§5.3.1-02 | 5.3.1 | SHOULD | sdk | behavioural_positive | Sender SHOULD include plaintext_hash in its audit record when security.encrypted is true | arsia-audit-record | ITV-525 | — |
+| CORE-§5.3.1-03 | 5.3.1 | SHOULD | sdk | behavioural_positive | Recipient SHOULD include plaintext_hash in its audit record after decryption | arsia-audit-record | — | — |
+| CORE-§5.3.1-04 | 5.3.1 | MUST_NOT | sdk | behavioural_negative | plaintext_hash MUST NOT be present when security.encrypted is false or absent | — | ITV-526 | struct:ITV-526; untested(structural-only) |
+| CORE-§6.1-01 | 6.1 | REQUIRED | external | structural | JWT iss claim MUST identify the Authorization Server that issued the token | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.1-02 | 6.1 | REQUIRED | sdk | structural | JWT sub claim MUST contain the requesting agent's identifier per §3 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.1-03 | 6.1 | REQUIRED | sdk | structural | JWT aud claim MUST contain the target agent's identifier per §3 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.1-04 | 6.1 | REQUIRED | sdk | structural | JWT exp claim MUST be a NumericDate expiration time per RFC 7519 §2 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.1-05 | 6.1 | REQUIRED | sdk | structural | JWT iat claim MUST be a NumericDate issued-at time per RFC 7519 §2 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.1-06 | 6.1 | REQUIRED | sdk | structural | JWT jti claim MUST be a UUID v4 unique token identifier | arsia-jwt-claims | ITV-31 | schema-ref:arsia-jwt-claims; struct:ITV-31 |
+| CORE-§6.1-07 | 6.1 | REQUIRED | sdk | structural | JWT scope claim MUST be a space-separated list of capability strings | arsia-jwt-claims | ITV-32 | schema-ref:arsia-jwt-claims; struct:ITV-32 |
+| CORE-§6.1-08 | 6.1 | OPTIONAL | sdk | structural | JWT cnf claim MAY contain a proof-of-possession confirmation per RFC 9449 | arsia-jwt-claims | ITV-31 | — |
+| CORE-§6.1-09 | 6.1 | MUST | sdk | behavioural_positive | Access token sub claim MUST match the from field of messages presented with that token | — | ITV-431 | struct:ITV-431; untested(structural-only) |
+| CORE-§6.1-10 | 6.1 | MUST | sdk | behavioural_positive | Access token aud claim MUST match the to field of messages presented with that token | — | ITV-432 | struct:ITV-432; untested(structural-only) |
+| CORE-§6.1-11 | 6.1 | MUST | sdk | behavioural_positive | Access token scope MUST cover all capabilities listed in the message capabilities field | — | ITV-433 | struct:ITV-433; untested(structural-only) |
+| CORE-§6.1-12 | 6.1 | SHOULD | sdk | behavioural_positive | Access token lifetime SHOULD be short (max 3600 seconds recommended) | — | — | — |
+| CORE-§6.1-13 | 6.1 | RECOMMENDED | sdk | behavioural_positive | Access token lifetime of 3600 seconds (1 hour) maximum is RECOMMENDED | — | — | — |
+| CORE-§6.1-14 | 6.1 | RECOMMENDED | sdk | behavioural_positive | High-risk compliance profiles SHOULD use a token lifetime of 300 seconds (5 minutes) maximum | — | — | — |
+| CORE-§6.1-15 | 6.1 | MUST | external | behavioural_positive | Authorization Server MUST sign access tokens using EdDSA, ES256, or RS256 per §5.1 | — | — | out-of-repo(external-party) |
+| CORE-§6.1-16 | 6.1 | MUST | external | behavioural_positive | Authorization Server signing key MUST be discoverable via a standard JWKS endpoint | — | — | out-of-repo(external-party) |
+| CORE-§6.1-17 | 6.1 | MUST | sdk | procedural | Token recipients MUST verify the JWT signature before extracting claims | — | — | exec:R15:INV-153 |
+| CORE-§6.1-18 | 6.1 | OPTIONAL | sdk | structural | arsia_oversight claim: requirement, capabilities and policy (issuer, version, sha256) | arsia-jwt-claims | ITV-639, INV-76 | — |
+| CORE-§6.1-19 | 6.1 | MUST | external | behavioural_positive | A token whose scope includes a capability under the policy's oversight requirement MUST carry arsia_oversight listing it | arsia-jwt-claims | ITV-642, ITV-669 | schema-ref:arsia-jwt-claims; struct:ITV-642, ITV-669; exec:R15:ITV-642, ITV-669 |
+| CORE-§6.1-20 | 6.1 | MUST | external | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 | schema-ref:arsia-jwt-claims; struct:ITV-668; exec:R15:ITV-668 |
+| CORE-§6.2-01 | 6.2 | MUST | sdk | structural | Token request grant_type parameter MUST be "client_credentials" | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-02 | 6.2 | REQUIRED | sdk | structural | Token request MUST include client_id with the requesting agent's identifier, URL-encoded | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-03 | 6.2 | REQUIRED | sdk | structural | Token request MUST include scope with space-separated requested capabilities | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-04 | 6.2 | REQUIRED | sdk | structural | Token request MUST include audience with the target agent's identifier, URL-encoded | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-05 | 6.2 | RECOMMENDED | sdk | interoperability | Private key JWT per RFC 7523 §2.2 is RECOMMENDED for client authentication | — | — | — |
+| CORE-§6.2-06 | 6.2 | REQUIRED | external | structural | Token response MUST include access_token containing the JWT | arsia-jwt-claims | ITV-125 | schema-ref:arsia-jwt-claims; struct:ITV-125 |
+| CORE-§6.2-07 | 6.2 | MUST | external | structural | Token response token_type MUST be "Bearer" or "DPoP" | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-08 | 6.2 | REQUIRED | external | structural | Token response MUST include expires_in with the token lifetime in seconds | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.2-09 | 6.2 | REQUIRED | external | structural | Token response MUST include scope with granted capabilities (may differ from requested) | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
+| CORE-§6.3-01 | 6.3 | RECOMMENDED | sdk | interoperability | DPoP proof-of-possession is RECOMMENDED for high-security deployments or intermediary traversal | arsia-dpop-proof | ITV-33, ITV-34, ITV-126 | — |
+| CORE-§6.3-02 | 6.3 | SHOULD | sdk | interoperability | Implementations SHOULD use DPoP when the compliance profile requires high-risk controls | arsia-dpop-proof | — | — |
+| CORE-§6.3-03 | 6.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify DPoP proofs as specified in Identity §3.3 (RFC 9449 §4.3 checks and the ARSIA profile) and reject failures as specified there: unauthorized, or the nonce challenge under its exception | arsia-dpop-proof | ITV-451, INV-104, INV-105, INV-106, INV-107 | schema-ref:arsia-dpop-proof; struct:ITV-451, INV-104, INV-105, INV-106, INV-107; untested(structural-only) |
+| CORE-§6.3-04 | 6.3 | MAY | sdk | interoperability | A receiving agent MAY require a server-provided DPoP nonce (Identity §3.3) | arsia-dpop-proof | ITV-580 | — |
+| CORE-§6.4-01 | 6.4 | MUST | sdk | procedural | Receiving agent MUST enforce capability-based authorization for every request message | — | — | check:`R3 exact`; check:`R3 partial capability list`; untested(no-reference-model) |
+| CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-434 | struct:ITV-434; untested(structural-only) |
+| CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-435, ITV-447, ITV-448 | struct:ITV-435, ITV-447, ITV-448; untested(structural-only) |
+| CORE-§6.4-04 | 6.4 | MUST | sdk | behavioural_positive | Token sub claim MUST equal the message from field during enforcement | — | ITV-436 | struct:ITV-436; untested(structural-only) |
+| CORE-§6.4-05 | 6.4 | MUST | sdk | behavioural_positive | Token aud claim MUST equal the message to field (receiving agent's identifier) | — | ITV-437 | struct:ITV-437; untested(structural-only) |
+| CORE-§6.4-06 | 6.4 | MUST | sdk | structural | Capability-denied error MUST include required_capabilities and provided_capabilities in details | arsia-message | — | schema-ref:arsia-message |
+| CORE-§7.1-01 | 7.1 | MUST | sdk | behavioural_positive | Every ARSIA agent MUST expose a discovery endpoint at GET /.well-known/arsia | arsia-discovery-response | ITV-45, ITV-46 | schema-ref:arsia-discovery-response; struct:ITV-45, ITV-46; untested(structural-only) |
+| CORE-§7.1-02 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery endpoint SHOULD set Cache-Control, ETag, Content-Type, and CORS headers | — | — | — |
+| CORE-§7.1-03 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery Cache-Control SHOULD use a max-age appropriate for metadata change rate | — | — | — |
+| CORE-§7.1-04 | 7.1 | RECOMMENDED | sdk | behavioural_positive | Discovery endpoint Cache-Control max-age=3600 (1 hour) is RECOMMENDED | — | — | — |
+| CORE-§7.1-05 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery endpoint SHOULD set an ETag header to enable conditional requests | — | — | — |
+| CORE-§7.1-06 | 7.1 | SHOULD | deployment | behavioural_positive | Discovery clients SHOULD use If-None-Match to avoid unnecessary data transfer | — | — | — |
+| CORE-§7.1-07 | 7.1 | MUST | sdk | behavioural_positive | Discovery endpoint Content-Type MUST be application/json | — | — | out-of-repo(transport) |
+| CORE-§7.1-08 | 7.1 | SHOULD | deployment | behavioural_positive | Discovery endpoint SHOULD set Access-Control-Allow-Origin for browser-based agents | — | — | — |
+| CORE-§7.1-09 | 7.1 | SHOULD | deployment | behavioural_positive | Restricted agents SHOULD list specific origins in Access-Control-Allow-Origin | — | — | — |
+| CORE-§7.2-01 | 7.2 | SHOULD | sdk | behavioural_positive | Agents SHOULD expose a capability discovery endpoint at GET /.well-known/arsia/capabilities | arsia-capability-descriptor | — | — |
+| CORE-§7.2-02 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include capability as the identifier string | arsia-capability-descriptor | ITV-57 | schema-ref:arsia-capability-descriptor; struct:ITV-57 |
+| CORE-§7.2-03 | 7.2 | OPTIONAL | sdk | structural | Capability descriptor MAY include rate_limit as requests per minute | arsia-capability-descriptor | — | — |
+| CORE-§7.2-04 | 7.2 | MUST | sdk | behavioural_positive | Prerequisite capabilities listed in requires MUST be present in the request capabilities array | arsia-capability-descriptor | — | schema-ref:arsia-capability-descriptor; untested(structural-only) |
+| CORE-§7.2-05 | 7.2 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD handle pending_approval responses when human_oversight_required is true | arsia-capability-descriptor | — | — |
+| CORE-§7.2-06 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include description as a human-readable string | arsia-capability-descriptor | — | schema-ref:arsia-capability-descriptor |
+| CORE-§7.2-07 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include risk_level as an integer from 0 (no risk) to 10 (critical) | arsia-capability-descriptor | ITV-58 | schema-ref:arsia-capability-descriptor; struct:ITV-58 |
+| CORE-§7.2-08 | 7.2 | OPTIONAL | sdk | structural | Capability descriptor MAY include requires as an array of prerequisite capability strings | arsia-capability-descriptor | — | — |
+| CORE-§7.2-09 | 7.2 | REQUIRED | sdk | structural | Capability descriptor MUST include human_oversight_required as a boolean | arsia-capability-descriptor | — | schema-ref:arsia-capability-descriptor |
+| CORE-§7.3-01 | 7.3 | MUST | sdk | behavioural_positive | Every ARSIA agent MUST expose a JWKS endpoint at GET /.well-known/arsia/jwks.json | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry; untested(structural-only) |
+| CORE-§7.3-02 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK kty field MUST be "OKP" (Octet Key Pair) | arsia-jwk-entry | ITV-35, ITV-37 | schema-ref:arsia-jwk-entry; struct:ITV-35, ITV-37 |
+| CORE-§7.3-03 | 7.3 | REQUIRED | sdk | structural | P-256 JWK kty field MUST be "EC" | arsia-jwk-entry | ITV-127 | schema-ref:arsia-jwk-entry; struct:ITV-127 |
+| CORE-§7.3-04 | 7.3 | MUST | sdk | structural | JWK kid format MUST be {agent-id}#{keyN} for global uniqueness | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-05 | 7.3 | MUST | sdk | behavioural_positive | Agents supporting encryption MUST publish encryption public keys in JWKS with use "enc" | arsia-jwk-entry | ITV-36, ITV-129 | schema-ref:arsia-jwk-entry; struct:ITV-36, ITV-129; untested(structural-only) |
+| CORE-§7.3-06 | 7.3 | MUST | sdk | procedural | Agents MUST support key rotation to limit key compromise impact | — | — | check:`R13 new kid accepted via unknown-kid refresh`; untested(integration) |
+| CORE-§7.3-07 | 7.3 | MUST | sdk_enabled | procedural | Key rotation MUST publish both old and new keys in JWKS for minimum 24-hour overlap | — | — | untested(integration) |
+| CORE-§7.3-08 | 7.3 | MAY | sdk | behavioural_positive | Old signing key MAY be removed from JWKS after the 24-hour overlap period | — | — | — |
+| CORE-§7.3-09 | 7.3 | SHOULD | operational_policy | procedural | Agents SHOULD generate new signing keys at least every 90 days | — | — | — |
+| CORE-§7.3-10 | 7.3 | MUST | sdk_enabled | procedural | Compromised key MUST be removed from JWKS immediately, overriding the 24-hour overlap | — | — | untested(integration) |
+| CORE-§7.3-11 | 7.3 | MUST | sdk_enabled | behavioural_negative | Tokens and signatures produced with a compromised key MUST be considered invalid | — | — | check:`R13 revocation event: rejected at once, call 1`; check:`R13 revoked kid after ceiling, shared cache, call 1 rejected` |
+| CORE-§7.3-12 | 7.3 | SHOULD | sdk | behavioural_positive | JWKS endpoint SHOULD set Cache-Control: max-age=3600 for caching efficiency | — | — | — |
+| CORE-§7.3-13 | 7.3 | SHOULD | sdk | behavioural_positive | Emergency key rotation SHOULD temporarily reduce the JWKS Cache-Control max-age | — | — | — |
+| CORE-§7.3-14 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK crv field MUST be "Ed25519" | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-15 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK kid field MUST be a unique key identifier within the JWKS | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-16 | 7.3 | REQUIRED | sdk | structural | Ed25519 JWK x field MUST be a base64url-encoded 32-byte public key without padding | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-17 | 7.3 | REQUIRED | sdk | structural | Ed25519 signing JWK use field MUST be "sig" | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-18 | 7.3 | REQUIRED | sdk | structural | P-256 JWK crv field MUST be "P-256" | arsia-jwk-entry | ITV-127, ITV-128 | schema-ref:arsia-jwk-entry; struct:ITV-127, ITV-128 |
+| CORE-§7.3-19 | 7.3 | REQUIRED | sdk | structural | P-256 JWK kid field MUST be a unique key identifier | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-20 | 7.3 | REQUIRED | sdk | structural | P-256 JWK x field MUST be the base64url-encoded x-coordinate | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-21 | 7.3 | REQUIRED | sdk | structural | P-256 JWK y field MUST be the base64url-encoded y-coordinate | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.3-22 | 7.3 | REQUIRED | sdk | structural | P-256 signing JWK use field MUST be "sig" | arsia-jwk-entry | — | schema-ref:arsia-jwk-entry |
+| CORE-§7.4-01 | 7.4 | MUST | sdk | behavioural_negative | Version negotiation failure MUST return not_implemented error with supported_versions in details | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§7.4-02 | 7.4 | MUST | sdk | behavioural_positive | Agents MUST accept messages with v within their supported range, ignoring unknown fields | — | ITV-406 | struct:ITV-406; untested(structural-only) |
+| CORE-§7.4-03 | 7.4 | MUST | sdk | interoperability | Unknown fields from a later minor version MUST be preserved when forwarding messages | — | ITV-439 | struct:ITV-439 |
+| CORE-§7.4-04 | 7.4 | SHOULD | sdk | interoperability | Unknown fields from a later minor version SHOULD be ignored during processing | — | ITV-406, ITV-439 | — |
+| CORE-§7.4-05 | 7.4 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT send messages with v higher than the recipient's server_max | — | — | untested(no-reference-model) |
+| CORE-§7.4-06 | 7.4 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD query the recipient's discovery endpoint before first contact and cache it | — | — | — |
+| CORE-§8-01 | 8 | REQUIRED | deployment | interoperability | HTTP/2 transport binding is REQUIRED for all ARSIA implementations | — | — | out-of-repo(transport) |
+| CORE-§8-02 | 8 | OPTIONAL | sdk_enabled | interoperability | WebSocket transport binding is OPTIONAL for ARSIA implementations | arsia-websocket-frame | — | — |
+| CORE-§8-03 | 8 | MAY | sdk_enabled | interoperability | Additional transport bindings MAY be defined if they preserve the envelope and enforce §5/§6 security | — | — | — |
+| CORE-§8.1-01 | 8.1 | MUST | deployment | interoperability | All conformant implementations MUST support the HTTP/2 transport binding | — | — | out-of-repo(transport) |
+| CORE-§8.1-02 | 8.1 | MUST | sdk | behavioural_negative | Requests with unsupported Content-Type MUST be rejected with HTTP 415 | — | — | out-of-repo(transport) |
+| CORE-§8.1-03 | 8.1 | MUST | sdk | behavioural_positive | HTTP response body MUST be an ARSIA envelope with intent response/error/pending_approval | arsia-message | CTV-08 | schema-ref:arsia-message; struct:CTV-08; crypto:CTV-08 |
+| CORE-§8.1-04 | 8.1 | MUST | sdk_enabled | behavioural_positive | Async status endpoint MUST return 202 (in-progress), 200 (complete), or 410 (expired) | — | — | out-of-repo(transport) |
+| CORE-§8.1-05 | 8.1 | MUST | deployment | interoperability | All ARSIA HTTP connections MUST use TLS 1.3 or later | — | — | out-of-repo(transport) |
+| CORE-§8.1-06 | 8.1 | MAY | deployment | interoperability | TLS 1.2 MAY be accepted as a fallback for HTTP connections | — | — | — |
+| CORE-§8.1-07 | 8.1 | MUST | deployment | interoperability | TLS 1.3 MUST be preferred over TLS 1.2 when both are supported | — | — | out-of-repo(transport) |
+| CORE-§8.1-08 | 8.1 | RECOMMENDED | deployment | interoperability | HTTP Strict Transport Security (HSTS) per RFC 6797 is RECOMMENDED | — | — | — |
+| CORE-§8.1-09 | 8.1 | SHOULD | deployment | behavioural_positive | HSTS header SHOULD include max-age=31536000 and includeSubDomains | — | — | — |
+| CORE-§8.1-10 | 8.1 | MUST_NOT | deployment | behavioural_negative | Plaintext HTTP connections MUST NOT be accepted for any ARSIA endpoint | — | — | out-of-repo(transport) |
+| CORE-§8.2-01 | 8.2 | MUST | deployment | interoperability | WebSocket connections MUST use the wss:// scheme (TLS-encrypted) | — | — | out-of-repo(transport) |
+| CORE-§8.2-02 | 8.2 | MUST_NOT | deployment | behavioural_negative | Plaintext ws:// connections MUST NOT be used for ARSIA | — | — | out-of-repo(transport) |
+| CORE-§8.2-03 | 8.2 | MUST | deployment | interoperability | WebSocket sub-protocol "arsia-v1" MUST be declared during the HTTP upgrade handshake | — | — | out-of-repo(transport) |
+| CORE-§8.2-04 | 8.2 | MUST | deployment | behavioural_positive | Server MUST respond with "arsia-v1" as the selected WebSocket sub-protocol | — | — | out-of-repo(transport) |
+| CORE-§8.2-05 | 8.2 | MUST | sdk_enabled | procedural | WebSocket client MUST authenticate via auth frame before sending ARSIA messages | arsia-websocket-frame | ITV-59, ITV-62, ITV-141 | schema-ref:arsia-websocket-frame; struct:ITV-59, ITV-62, ITV-141; untested(structural-only) |
+| CORE-§8.2-06 | 8.2 | MUST | deployment | behavioural_negative | Failed WebSocket auth MUST close connection with code 4001 within 5 seconds | arsia-websocket-frame | ITV-61 | schema-ref:arsia-websocket-frame; struct:ITV-61; untested(structural-only) |
+| CORE-§8.2-07 | 8.2 | MUST_NOT | deployment | behavioural_negative | Binary WebSocket frames MUST NOT be used for ARSIA messages | — | — | out-of-repo(transport) |
+| CORE-§8.2-08 | 8.2 | MUST | deployment | procedural | WebSocket client MUST send a ping heartbeat frame every 30 seconds | arsia-websocket-frame | ITV-142 | schema-ref:arsia-websocket-frame; struct:ITV-142; untested(structural-only) |
+| CORE-§8.2-09 | 8.2 | MUST | deployment | behavioural_positive | Server MUST respond to WebSocket ping with pong within 5 seconds | arsia-websocket-frame | ITV-143 | schema-ref:arsia-websocket-frame; struct:ITV-143; untested(structural-only) |
+| CORE-§8.2-10 | 8.2 | SHOULD | deployment | behavioural_positive | Server SHOULD close WebSocket with code 4002 if no ping received within 60 seconds | — | — | — |
+| CORE-§8.2-11 | 8.2 | SHOULD | deployment | behavioural_positive | Client SHOULD close and reconnect if no pong received within 10 seconds of ping | — | — | — |
+| CORE-§8.2-12 | 8.2 | SHOULD | sdk_enabled | procedural | Lost WebSocket connections SHOULD reconnect using exponential backoff (max 30 seconds) | — | — | — |
+| CORE-§8.2-13 | 8.2 | RECOMMENDED | sdk_enabled | interoperability | Reconnection backoff jitter of ±25% is RECOMMENDED to avoid thundering herd | — | — | — |
+| CORE-§8.2-14 | 8.2 | MUST | sdk_enabled | procedural | WebSocket client MUST re-authenticate after every reconnection | — | — | out-of-repo(transport) |
+| CORE-§8.2-15 | 8.2 | MUST_NOT | deployment | behavioural_negative | Server MUST NOT assume a reconnected WebSocket client retains prior auth state | — | — | out-of-repo(transport) |
+| CORE-§8.2-16 | 8.2 | MUST | deployment | behavioural_negative | Oversized WebSocket frames MUST cause closure with code 4003 (Message Too Large) | — | — | out-of-repo(transport) |
+| CORE-§8.2-17 | 8.2 | MUST | sdk_enabled | procedural | WebSocket agents MUST use idempotency.key envelope field (not HTTP header) as sole idempotency mechanism | arsia-message | ITV-543 | schema-ref:arsia-message; struct:ITV-543; crypto:ITV-543 |
+| CORE-§8.2-18 | 8.2 | MUST | deployment | behavioural_positive | WebSocket duplicate detection MUST return stored response envelope as JSON text frame | — | ITV-544 | struct:ITV-544; crypto:ITV-544 |
+| CORE-§8.3-01 | 8.3 | SHOULD | sdk_enabled | behavioural_positive | Senders SHOULD set their client timeout to match the recipient's request_timeout_ms | — | — | — |
+| CORE-§8.3-02 | 8.3 | SHOULD | sdk_enabled | behavioural_positive | Sender SHOULD treat request as failed if no synchronous response within the timeout period | — | — | — |
+| CORE-§8.3-03 | 8.3 | SHOULD_NOT | sdk_enabled | behavioural_negative | Sender SHOULD NOT retry immediately after a request timeout (see §11.3) | — | — | — |
+| CORE-§8.3-04 | 8.3 | MAY | sdk_enabled | behavioural_positive | Sender MAY check the async status URL after timeout if one was provided | — | — | — |
+| CORE-§8.3-05 | 8.3 | SHOULD | deployment | behavioural_positive | Idle WebSocket connections (no frames for 60 seconds) SHOULD be closed by the server | — | — | — |
+| CORE-§8.3-06 | 8.3 | MAY | sdk | behavioural_positive | Messages with ts differing from recipient time by more than the tolerance (±300 s default, or the profile's clock_skew_seconds) MAY be rejected; a terminal result retrieved from result_url is not compared with the current time (Actions §4.3) | — | ITV-440, ITV-665 | — |
+| CORE-§8.3-07 | 8.3 | SHOULD | deployment | behavioural_positive | Implementations SHOULD synchronise clocks using NTP or equivalent time protocol | — | — | — |
+| CORE-§8.3-08 | 8.3 | SHOULD | deployment | behavioural_positive | Compliance-sensitive agents SHOULD use multiple NTP sources and log drift exceeding 10 seconds | — | — | — |
+| CORE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | When compliance profile defines clock_skew_seconds, that value MUST be used instead of the 300s default | arsia-compliance-profiles | ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171 | schema-ref:arsia-compliance-profiles; struct:ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171; crypto:ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171; exec:R16:ITV-545, ITV-546, ITV-547, ITV-709, ITV-710, INV-171 |
+| CORE-§8.3-10 | 8.3 | MUST_NOT | schema | constraint | Profile clock_skew_seconds MUST NOT exceed 300 seconds (maximum: 300 in schema enforces this) | arsia-compliance-profiles | — | schema-ref:arsia-compliance-profiles |
+| CORE-§9.1-01 | 9.1 | MUST | sdk | interoperability | Direct routing alone MUST be sufficient for Core conformance (§12.1) | — | — | untested(integration) |
+| CORE-§9.1-02 | 9.1 | MUST | sdk_enabled | procedural | Sender MUST resolve the recipient's inbox URL via the discovery endpoint (§7.1) | — | — | untested(integration) |
+| CORE-§9.1-03 | 9.1 | MUST | sdk_enabled | procedural | Sender MUST present a valid access token per §6.3 with each request | — | — | untested(integration) |
+| CORE-§9.1-04 | 9.1 | MUST | sdk | procedural | Sender MUST sign every outgoing message per §5.1 | — | — | untested(integration) |
+| CORE-§9.1-05 | 9.1 | MUST | sdk | procedural | Receiver MUST verify signature (§5.2), validate access token (§6.4), and process the message | — | — | untested(integration) |
+| CORE-§9.1-06 | 9.1 | MUST | sdk | behavioural_positive | Receiver MUST return response synchronously (HTTP 200) or accept async (HTTP 202) | — | — | out-of-repo(transport) |
+| CORE-§9.2-01 | 9.2 | OPTIONAL | sdk | informational | Compliance brokers are OPTIONAL in the ARSIA protocol | — | — | — |
+| CORE-§9.2-02 | 9.2 | REQUIRED | sdk | behavioural_positive | Broker routing is REQUIRED when compliance.data_residency is set in the message | — | — | untested(no-reference-model) |
+| CORE-§9.2-03 | 9.2 | MUST | sdk_enabled | procedural | Sender MUST route through a broker whose servers reside in the declared residency zone | — | — | untested(no-reference-model) |
+| CORE-§9.2-04 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT bypass broker routing even if direct connectivity is available | — | — | untested(no-reference-model) |
+| CORE-§9.2-05 | 9.2 | MUST_NOT | external | behavioural_negative | Compliance brokers MUST NOT modify message envelope contents | — | — | out-of-repo(external-party) |
+| CORE-§9.2-06 | 9.2 | MUST | external | interoperability | Broker-forwarded message MUST be byte-identical to original after JSON canonicalization | — | — | check:`R22 (d) envelope_hash is over the complete signed envelope (security.sig included), not the signing input`; out-of-repo(external-party) |
+| CORE-§9.2-07 | 9.2 | MUST | external | procedural | Compliance brokers MUST append an audit record for every message received for relay, including messages they do not forward | arsia-audit-record | ITV-508, ITV-688, ITV-689 | schema-ref:arsia-audit-record; struct:ITV-508, ITV-688, ITV-689; untested(structural-only) |
+| CORE-§9.2-08 | 9.2 | MUST | external | behavioural_positive | Broker audit record MUST include message id, from, to, ts, broker id, relay timestamp, and zone | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
+| CORE-§9.2-09 | 9.2 | MAY | deployment | informational | Broker discovery endpoint MAY be hosted by any ARSIA infrastructure service | — | — | — |
+| CORE-§9.2-10 | 9.2 | MUST_NOT | sdk_enabled | behavioural_negative | Sender MUST NOT send the message if no broker is available for the required residency zone | — | — | untested(no-reference-model) |
+| CORE-§9.2-11 | 9.2 | MUST | sdk | behavioural_negative | Missing broker MUST produce service_unavailable error with data_residency_violation details | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§9.3-01 | 9.3 | MUST | external | behavioural_positive | Compliance broker servers MUST physically reside within the declared residency zone | arsia-broker-entry | — | schema-ref:arsia-broker-entry; untested(structural-only) |
+| CORE-§9.3-02 | 9.3 | OPTIONAL | sdk | informational | Federated (multi-hop) routing topology is OPTIONAL and out of scope for ARSIA v1.0 | — | — | — |
+| CORE-§9.4-01 | 9.4 | MUST | sdk | procedural | Sending agents MUST implement the topology determination procedure defined in ARSIA-Routing §1.3 (or equivalent) for routing | — | — | untested(no-reference-model) |
+| CORE-§9.4-02 | 9.4 | MAY | sdk | behavioural_positive | Broker selection MAY use advanced strategies (load balancing, failover) if within required zone | — | — | — |
+| CORE-§10.1-01 | 10.1 | MUST | sdk | behavioural_positive | Idempotency key MUST be unique within the (from, to, payload.type) tuple scope | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§10.1-02 | 10.1 | MAY | sdk | structural | Idempotency key MAY contain any printable ASCII character (0x20–0x7E), 1–128 chars | arsia-message | — | — |
+| CORE-§10.1-03 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Idempotency keys SHOULD be domain-meaningful identifiers (invoice number, UUID, etc.) | — | — | — |
+| CORE-§10.2-01 | 10.2 | MUST | sdk | procedural | Idempotency support is REQUIRED for Core conformance; agents MUST implement key storage | — | — | untested(no-reference-model) |
+| CORE-§10.2-02 | 10.2 | MUST | sdk | behavioural_positive | Server MUST store the idempotency key-to-response mapping scoped by (from, to, payload.type) | — | — | untested(no-reference-model) |
+| CORE-§10.2-03 | 10.2 | MUST | sdk | behavioural_positive | Stored idempotency mapping MUST be retained until idempotency.expires_at | — | — | untested(no-reference-model) |
+| CORE-§10.2-04 | 10.2 | MUST | sdk | behavioural_positive | Header-only idempotency key MUST be retained for a minimum of 24 hours | — | — | check:`R6 header-only courtesy`; untested(no-reference-model) |
+| CORE-§10.2-05 | 10.2 | MUST | deployment | behavioural_positive | Idempotency storage MUST survive server restarts within the retention window in production | — | — | out-of-repo(infrastructure) |
+| CORE-§10.2-06 | 10.2 | MAY | sdk | behavioural_positive | Server MAY delete stored idempotency mappings after the retention window expires | — | — | — |
+| CORE-§10.3-01 | 10.3 | MUST | sdk | behavioural_positive | Duplicate idempotency key MUST return the stored response without re-executing | — | — | check:`R6 replay with fresh header still dedupes`; untested(no-reference-model) |
+| CORE-§10.3-02 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response HTTP status code MUST be identical to the original response | — | — | untested(no-reference-model) |
+| CORE-§10.3-03 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response body MUST be the exact ARSIA envelope from original processing | — | — | untested(no-reference-model) |
+| CORE-§10.3-04 | 10.3 | SHOULD | sdk | behavioural_positive | In-progress duplicate SHOULD return HTTP 409 (Conflict) with Retry-After header | — | — | — |
+| CORE-§10.4-01 | 10.4 | MUST | sdk | behavioural_positive | When both are present in an HTTP request, the signed envelope idempotency.key is authoritative for duplicate detection; a differing Idempotency-Key header MUST be ignored for deduplication and MUST NOT override the envelope value | — | — | check:`R6 envelope wins` |
+| CORE-§10.4-02 | 10.4 | SHOULD | sdk | behavioural_positive | Server SHOULD log discrepancies between header and envelope idempotency key values | — | — | — |
+| CORE-§11.1-01 | 11.1 | MUST | sdk | structural | Error response envelope intent field MUST be "error" | arsia-message | — | schema-ref:arsia-message |
+| CORE-§11.1-02 | 11.1 | MUST | sdk | behavioural_positive | Error response correlation_id MUST match the id of the original message | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| CORE-§11.1-03 | 11.1 | SHOULD | sdk | behavioural_positive | Error payload.type SHOULD match the original request type, or default to "arsiaprotocol.error" | — | ITV-441 | — |
+| CORE-§11.1-04 | 11.1 | MUST | sdk | structural | Error response envelope MUST include a payload.error object per §4.4.6 | arsia-message | — | schema-ref:arsia-message |
+| CORE-§11.1-05 | 11.1 | REQUIRED | sdk | structural | payload.error.code (string) is REQUIRED; MUST be a standard error code from §11.2 | arsia-message | — | schema-ref:arsia-message |
+| CORE-§11.1-06 | 11.1 | REQUIRED | sdk | structural | payload.error.description (string) is REQUIRED; human-readable error message | arsia-message | — | schema-ref:arsia-message |
+| CORE-§11.1-07 | 11.1 | OPTIONAL | sdk | structural | payload.error.details (object) is OPTIONAL; provides structured error context | arsia-message | — | — |
+| CORE-§11.1-08 | 11.1 | MUST | sdk | behavioural_positive | Error description text MUST be written in English | — | — | untested(no-reference-model) |
+| CORE-§11.1-09 | 11.1 | MUST_NOT | sdk | behavioural_negative | Error description MUST NOT contain stack traces, DB queries, file paths, or credentials | — | — | untested(no-reference-model) |
+| CORE-§11.1.1-01 | 11.1.1 | MAY | sdk_enabled | interoperability | Transport-level HTTP errors (401, 403) MAY use plain JSON without ARSIA envelope or signing | arsia-message | — | — |
+| CORE-§11.1.1-02 | 11.1.1 | SHOULD | sdk | behavioural_positive | Transport-level error responses SHOULD include at least a status and reason field | arsia-message | — | — |
+| CORE-§11.2-01 | 11.2 | MUST | sdk | interoperability | Implementations MUST use the standard error codes for their defined conditions | arsia-message | ITV-73, ITV-74, ITV-75, ITV-79, ITV-83, ITV-84, ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160, ITV-14 | schema-ref:arsia-message; struct:ITV-73, ITV-74, ITV-75, ITV-79, ITV-83, ITV-84, ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160, ITV-14; crypto:ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160 |
+| CORE-§11.2-02 | 11.2 | MAY | sdk | interoperability | Implementations MAY define custom error codes using reverse domain notation | — | — | — |
+| CORE-§11.2-03 | 11.2 | MUST_NOT | sdk | behavioural_negative | Implementations MUST NOT redefine the meaning of standard ARSIA error codes | — | — | untested(no-reference-model) |
+| CORE-§11.2-04 | 11.2 | MUST | sdk | structural | Forbidden (403) error details MUST include required_capabilities and provided_capabilities | arsia-message | — | schema-ref:arsia-message |
+| CORE-§11.2-05 | 11.2 | MUST | sdk | structural | not_implemented (501) error details MUST include supported_versions with min and max | arsia-message | ITV-15, ITV-155 | schema-ref:arsia-message; struct:ITV-15, ITV-155; crypto:ITV-155 |
+| CORE-§11.2-06 | 11.2 | SHOULD | sdk | structural | not_implemented caused by unsupported payload type SHOULD include unsupported_type in details | arsia-message | ITV-155 | — |
+| CORE-§11.2-07 | 11.2 | SHOULD | sdk | structural | rate_limited (429) error details SHOULD include retry_after_seconds, limit, remaining, and reset_at | arsia-message | ITV-83, ITV-153, ITV-534 | — |
+| CORE-§11.2-08 | 11.2 | SHOULD | sdk | structural | payload_too_large (413) error details SHOULD include max_message_bytes and actual_bytes | arsia-message | ITV-84, ITV-152, ITV-535 | — |
+| CORE-§11.2-09 | 11.2 | MUST | sdk | structural | service_unavailable from data residency violation MUST include data_residency_violation and required_zone | arsia-message | ITV-156 | schema-ref:arsia-message; struct:ITV-156; crypto:ITV-156 |
+| CORE-§11.3-01 | 11.3 | MUST_NOT | sdk_enabled | behavioural_negative | Agents MUST NOT retry non-retryable errors (4xx except 429) without modifying the request. Exception: conflict (409) with Retry-After header for idempotent in-progress requests — agent SHOULD retry identical request per §10.3 | — | — | untested(no-reference-model) |
+| CORE-§11.3-02 | 11.3 | MUST_NOT | sdk_enabled | behavioural_negative | Agent MUST NOT retry immediately after receiving a rate_limited (429) error | — | — | check:`R15 rate_limited waits Retry-After, not the backoff`; untested(no-reference-model) |
+| CORE-§11.3-03 | 11.3 | MUST | sdk_enabled | behavioural_positive | Agent MUST honour the Retry-After header before retrying a rate_limited error | — | — | check:`R15 rate_limited waits Retry-After, not the backoff`; untested(no-reference-model) |
+| CORE-§11.3-04 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Agent SHOULD use retry_after_seconds from error details when no Retry-After header is present | — | — | — |
+| CORE-§11.3-05 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Agent SHOULD wait at least 60 seconds before retrying when no retry timing is provided | — | — | — |
+| CORE-§11.3-06 | 11.3 | SHOULD | sdk | behavioural_positive | 5xx errors SHOULD be retried using exponential backoff (1s base, 2x multiplier, 32s max, 3 retries) | — | — | — |
+| CORE-§11.3-07 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Retry jitter of ±25% of the computed delay is RECOMMENDED for exponential backoff | — | — | — |
+| CORE-§11.3-08 | 11.3 | MUST | sdk | behavioural_positive | Agent MUST abandon the request and report failure after 3 failed retries | — | — | check:`R15 escalation exhausted after 3 retries`; untested(no-reference-model) |
+| CORE-§11.3-09 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Failure report SHOULD include the error code and description from the last retry attempt | — | — | — |
+| CORE-§11.3-10 | 11.3 | RECOMMENDED | sdk_enabled | behavioural_positive | Retry jitter is RECOMMENDED to prevent thundering herd on a recovering server | — | — | — |
+| CORE-§11.3-11 | 11.3 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD use uniform random jitter: base_delay × (0.75 + random() × 0.5) | — | — | — |
+| CORE-§12.1-01 | 12.1 | MUST | external | interoperability | Core conformance MUST implement agent-id, envelope, EdDSA, auth, discovery, JWKS, HTTP/2, routing, idempotency, and errors | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
+| CORE-§12.1-02 | 12.1 | SHOULD | external | behavioural_positive | Core-conformance implementations that produce audit records SHOULD chain them per ARSIA-State.md §7.2 | arsia-audit-record | — | — |
+| CORE-§12.2-01 | 12.2 | MUST | external | interoperability | Compliance conformance MUST meet Core plus compliance fields, profiles, audit trail, audit hash chain, oversight, and broker routing | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
+| CORE-§12.3-01 | 12.3 | MUST | external | interoperability | Full conformance MUST implement Compliance requirements plus all 5 primitives, WebSocket, encryption, and ES256 | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
+| CORE-§12.4-01 | 12.4 | MUST | external | interoperability | Compliance-level implementations MUST pass all compliance field conformance tests in §12.4 | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
+| CORE-§13.3-01 | 13.3 | MUST_NOT | deployment | behavioural_negative | Distributed tracing infrastructure MUST NOT be required for protocol compliance | — | — | out-of-repo(infrastructure) |
+| CORE-§13.3-02 | 13.3 | MUST_NOT | operational_policy | behavioural_negative | Agent identifiers MUST NOT contain personally identifiable information | — | — | out-of-repo(operator) |
+| CORE-§13.3-03 | 13.3 | OPTIONAL | sdk | structural | context.trace_id and context.span_id fields are OPTIONAL; agents MAY omit them | arsia-message | — | — |
+| CORE-§14.1-01 | 14.1 | MUST | sdk | behavioural_positive | Recipients MUST verify the Content-Type v parameter equals the major version component of the envelope v field | — | ITV-442 | struct:ITV-442; untested(structural-only) |
+| CORE-§14.1-02 | 14.1 | SHOULD | sdk | behavioural_negative | Content-Type v parameter mismatch SHOULD be treated as an invalid_request error | — | ITV-442, ITV-443 | — |
 
 ---
 
@@ -429,11 +424,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 414 |
-| Schema ≠ — | 183 |
-| Vector ≠ — | 160 |
-| Both ≠ — | 90 |
-| Both = — (gaps) | 161 |
+| Total requirements | 409 |
+| Schema ≠ — | 185 |
+| Vector ≠ — | 161 |
+| Both ≠ — | 91 |
+| Both = — (gaps) | 154 |
 
 ### Per-section breakdown
 
@@ -442,7 +437,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 143 | 80 | 79 | 47 | 31 |
+| 4 | 138 | 82 | 81 | 49 | 24 |
 | 5 | 43 | 9 | 29 | 6 | 11 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
@@ -450,7 +445,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 9 | 21 | 4 | 1 | 1 | 17 |
 | 10 | 15 | 2 | 0 | 0 | 13 |
 | 11 | 31 | 15 | 7 | 6 | 15 |
-| 12 | 5 | 1 | 1 | 1 | 4 |
+| 12 | 5 | 1 | 0 | 0 | 4 |
 | 13 | 3 | 1 | 0 | 0 | 2 |
 | 14 | 2 | 0 | 2 | 0 | 0 |
 
@@ -483,3 +478,14 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | algorithm coherence traced to discriminating negatives: declared alg incompatible with the key type, signature valid for the key's own algorithm (A-33); no normative change | §5.2 Step 5 | — | INV-111, INV-112; validate_vectors --check-crypto |
 | decision_rejected is the log of correlation rules 1–3 for decisions; stale-key evidence verified_kid + jwks_fetched_at; key-revocation event authenticated before invalidation (A-57, A-58) | §4.2.1, §5.2 | audit-record, key-revocation | ITV-694, ITV-697, ITV-700..704; harness R13, R15 |
 | pipeline steps 2-4: UTF-8, I-JSON (surrogates, noncharacters, literal or escaped, any depth) and duplicate names after escape processing, in order, rejected with invalid_request; numbers left to RFC 8785 and field constraints (A-61) | §5.2 | test-vectors meta (raw format) | CTV-11..16, INV-158..170 |
+
+## References outside the Vector column (non-mandatory rows)
+
+References to executed checks that the Vector column carried for rows outside the
+mandatory modals (MUST, MUST_NOT, REQUIRED). The Vector column holds only vector IDs;
+these references are kept here as they were, without making the row a mandatory
+coverage claim (coverage SC4).
+
+| Row | Modal | Reference (as it stood) | Check it designates |
+|---|---|---|---|
+| `CORE-§12.1-02` | SHOULD | harness R14 (f) | `R14 (f) …` checks: the chain-field mandate per conformance level |

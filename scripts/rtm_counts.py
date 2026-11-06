@@ -52,3 +52,18 @@ print(f"TOTAL no-schema-and-no-vector: {total['gaps']}")
 print("Modal totals:", dict(modal_total))
 must_like = modal_total.get('MUST',0) + modal_total.get('MUST_NOT',0)
 print(f"MUST + MUST_NOT total: {must_like}")
+mandatory = must_like + modal_total.get('REQUIRED', 0)
+print(f"MUST, MUST_NOT or REQUIRED total: {mandatory}")
+# Evidence column (coverage SC4): rows of the mandatory modals carrying each evidence kind
+ev_rows = collections.Counter()
+for path in sorted(glob.glob('docs/rtm/ARSIA-*.rtm.md')):
+    for r, _ in parse_rtm(path):
+        if r.get('modal', '').upper().replace(' ', '_') not in ('MUST', 'MUST_NOT', 'REQUIRED'):
+            continue
+        kinds = {re.match(r'[a-z-]+', t.strip()).group(0)
+                 for t in re.findall(r'(?:`[^`]*`|[^;`])+', r.get('evidence', '')) if t.strip() and t.strip() != '—'}
+        for k in kinds:
+            ev_rows[k] += 1
+        if kinds and not kinds & {'struct', 'raw', 'crypto', 'exec', 'check'}:
+            ev_rows['(no execution token)'] += 1
+print("Mandatory rows by evidence kind:", dict(sorted(ev_rows.items())))

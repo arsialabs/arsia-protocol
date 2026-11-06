@@ -370,7 +370,7 @@ recipient, even if direct connectivity is available.
    Content-Type: application/arsia+json; v=2
    Authorization: Bearer {T_e2e}                      (or "DPoP {T_e2e}")
    DPoP: {forwarded ARSIA-Recipient-DPoP proof}       (when proof_type is "dpop")
-   ARSIA-Relay-Attestation: {base64url-encoded signed attestation object}
+   ARSIA-Relay-Attestation: {base64url (no padding) signed attestation object}
 
    {ARSIA message envelope — byte-identical to the envelope received from the sender}
    ```
@@ -1071,7 +1071,7 @@ The broker forwards the message to the recipient's inbox using direct routing (�
    |---------------------------|----------|----------------------------------------------------|
    | `Authorization`           | REQUIRED | The sender's `T_e2e`, forwarded verbatim (`Bearer` or `DPoP` per `authorization.proof_type`). The broker obtains NO token of its own for the recipient. |
    | `DPoP`                    | COND.    | The forwarded `ARSIA-Recipient-DPoP` proof, when `proof_type` is `"dpop"`. |
-   | `ARSIA-Relay-Attestation` | REQUIRED | The base64url-encoded signed relay attestation (§7.4.1). |
+   | `ARSIA-Relay-Attestation` | REQUIRED | The signed relay attestation, base64url-encoded without padding (§7.4.1). |
 
 3. The message envelope is forwarded byte-identical — the broker does NOT re-sign
    the message, and the recipient's token validation (ARSIA-Core.md §6.4) runs
@@ -2239,13 +2239,21 @@ digest (ARSIA-Identity.md §2).
 **Recipient verification.** When `compliance.data_residency` is set on a received
 message, the recipient MUST:
 
-1. Require the `ARSIA-Relay-Attestation` header; a message with `data_residency`
-   set that arrives without a valid attestation MUST be rejected with
-   `service_unavailable` and details `{ "data_residency_violation": true,
-   "required_zone": "{zone}" }` — this makes a sender that bypasses the mandatory
-   broker detectable (ARSIA-Core.md §13.2).
-2. Verify the attestation signature against the broker's JWKS (broker origin
-   resolved per ARSIA-Core.md §6.6).
+1. Require the `ARSIA-Relay-Attestation` header. A message with `data_residency`
+   set that arrives without this header MUST be rejected with `service_unavailable`
+   and details `{ "data_residency_violation": true, "required_zone": "{zone}" }` —
+   this makes a sender that bypasses the mandatory broker detectable
+   (ARSIA-Core.md §13.2). A header that is present is processed by steps 2-5, even
+   when its value is empty.
+2. Decode and authenticate the attestation. The header value MUST be non-empty
+   base64url without padding: only the characters of the base64url alphabet
+   ([RFC 4648] §5), no `=` padding character (this specification does not use the
+   padding that [RFC 4648] §3.2 otherwise requires), and a length that decodes to
+   whole octets. The decoded octets MUST pass the checks of ARSIA-Core.md §5.2
+   steps 2-4 (UTF-8, I-JSON, no duplicate member names), and the decoded object
+   MUST validate against `schemas/arsia-relay-attestation.schema.json`. Then verify
+   the attestation signature against the broker's JWKS (broker origin resolved per
+   ARSIA-Core.md §6.6).
 3. Verify that the broker is an authorised Compliance Broker for the declared zone:
    its BrokerEntry/IdentityRecord jurisdiction satisfies the zone (§5.3) and it
    declares `arsiaprotocol.broker.relay`.
@@ -2255,7 +2263,10 @@ message, the recipient MUST:
 5. Verify `message_id`/`sender`/`recipient` match the envelope, and the acceptance
    window per the replay rules above.
 
-Any failure in steps 2-5 MUST be rejected with `unauthorized`.
+Any failure in steps 2-5 MUST be rejected with `unauthorized`. A failure of the
+ARSIA-Core.md §5.2 steps 2-4 checks on the decoded attestation is a step 2 failure:
+it is rejected with `unauthorized`, not with the `invalid_request` those steps give
+for the message envelope.
 
 The attestation object is machine-validated by
 `schemas/arsia-relay-attestation.schema.json`.
@@ -2514,6 +2525,9 @@ tests at the applicable conformance level.
 
 - **RFC 2119** — Bradner, S., "Key words for use in RFCs to Indicate Requirement
   Levels", BCP 14, March 1997.
+
+- **RFC 4648** — Josefsson, S., "The Base16, Base32, and Base64 Data Encodings",
+  October 2006.
 
 - **RFC 6455** — Fette, I. and A. Melnikov, "The WebSocket Protocol", December 2011.
 

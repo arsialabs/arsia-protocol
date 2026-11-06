@@ -1397,3 +1397,123 @@ reported, never passed over.
 - Findings register 99 rows: open 5 → 2, closed 94 → 97; disposition per DR or cycle
   addendum 34 → 37, recorded 16, pending 49 → 46. Coverage register 24 rows: open 6 →
   2, closed 18 → 22.
+
+## 26. Coverage SC4 closure evidence
+
+Execution baseline `94f96b6`. Owner decisions (A-53, A-64, Routing §7.4.1, base64url,
+corpus header) and the plan-review adjustments R1–R5 are in the design record (DR-0
+addendum, coverage SC4). Line references are to the files after the cycle. No key
+material was printed. Mutations ran on a scratch copy: `git archive 94f96b6` with the full
+candidate diff and the new file applied (tree identical to the working tree), the
+unmutated copy first passing the whole battery, and the candidate restored between cases.
+
+| Finding | Closure criterion (clause) | Evidence | Mutation → failing check | Met |
+|---|---|---|---|---|
+| A-53 | Executed runner for the named tests, or per-test disposition | `docs/draft-02-conformance-tests.md`: 89 tests (the 74 of the description is historical), each with the exercised preconditions, action and expected results, the executed evidence and the part not executed with its reason — integral 6, partial 43, equivalent 1, external 11, absent 28; CHECK-01..05 apart with their links. Guard `conformance_problems` (`check_consistency.py` l.1483) with self-test l.1535: the IDs equal the spec test headings, the class is in the closed vocabulary, every token resolves to an execution that passed in the same run (harness run once, l.1317; validator results), partial names its gap, equivalent its equivalence, external/absent claim no execution, the summary equals the rows. Assets §7: the runner executes only the parts identified as executed; "MUST pass all eight tests" unchanged | (i) a check that never ran → guard; (j) a test missing → guard; (j2) summary ≠ rows → guard | yes |
+| A-64 | RTM statistics: each MUST row mapped to evidence or disposition | Column `Evidence` in the six RTMs (`docs/rtm/README.md`); 1445 MUST, MUST_NOT and REQUIRED rows carry tokens, every other row `—`. Validator results per vector (`vector_results` l.505, `crypto_results` l.380 of `validate_vectors.py`; "approved" = observed equal to expected, a negative's rejection included). Guard `rtm_evidence_problems` l.1425 (tokens `token_problems` l.1381) with self-test l.1456; header-driven parser `rtm_requirement_rows` l.1338 (every requirement line read, stated totals equal); drift linter reads every row (l.1974). Declared limit in the ledger and the RTM README | (k) Evidence emptied → guard; (l) `exec:R22:ITV-570` without the run → guard; (l2) a negative's crypto result inverted → guard; (m) 8-column regex restored → linter-rows check; (n) schema-ref outside the Schema column → guard; (p) `untested()` → guard; (q) `DR-5` in the Vector column → guard | yes |
+| (coverage) ITV-570, Routing §7.4.1 step 1 | Step 1 executed (left from coverage SC1) | `receive_attestation` (`runtime_harness.py` l.3337): no `data_residency` → `not_required`; header absent → `service_unavailable`, step 1, residency details; otherwise `decode_attestation_header` (l.3312: non-empty, base64url alphabet, no `=`, length ≢ 1 mod 4, strict parse, attestation schema; every failure `unauthorized` at step 2, no exception) then `verify_attestation`. R22 (a) on ITV-570, ITV-711, ITV-712, INV-172..177; (e) derived headers of the earlier attestation vectors decode to exactly their data; (f) each header negative has a single defect (l.3362); (g) decoder pairs | (a) absent → unauthorized; (b) empty → absent; (c) padding stripped; (d) standard alphabet translated; (e) length ≡ 1 truncated; (f) duplicate last-wins; (g) no schema; (h) required without residency — each detected by R22 (a), and (c)–(e) also by R22 (g) | yes |
+
+**Header vectors (data = the delivered envelope, the ITV-569 message unless stated).**
+
+| ID | Header | Expected | Single-defect control (R22 (f)) |
+|---|---|---|---|
+| ITV-570 | absent (`null`) | `service_unavailable`, step 1, `{data_residency_violation: true, required_zone: "EU"}` | — |
+| ITV-711 | base64url (no padding) of the compact attestation JSON S, 1144 characters (≡ 0 mod 4) | `accept` | — |
+| ITV-712 | absent; envelope without `data_residency`, re-signed by its sender | `not_required` | — |
+| INV-172 | `""` | `unauthorized`, step 2 | — |
+| INV-173 | S followed by one space, base64url with its `==` padding (1148 characters) | `unauthorized`, step 2 | padding removed → accepted |
+| INV-174 | the attestation with `policy_ref` `fixture->>>???`, re-signed by the broker (its base64url has `-` and `_`), encoded in the standard alphabet without padding (1120 characters) | `unauthorized`, step 2 | standard-alphabet decoding → accepted |
+| INV-175 | the ITV-711 header plus `A` (1145 characters, ≡ 1 mod 4) | `unauthorized`, step 2 | last character dropped → accepted |
+| INV-176 | S with `attestation_id` repeated with the same value (1219 characters) | `unauthorized`, step 2 (not `invalid_request`) | last occurrence wins → accepted |
+| INV-177 | the attestation with an extra member `note`, re-signed by the broker over the object presented (1159 characters) | `unauthorized`, step 2 (schema) | without the schema check → accepted |
+
+**Named tests: final classification.** Integral (6): ACTIONS-16, 17, 19; STATE-17, 18;
+ROUTING-12 — each expected element of the test is compared by the cited execution. Equivalent (1): IDENTITY-23 — the three expected results are exercised by
+separate R20 sequences rather than one exchange. Every other test is partial, external or
+absent, with the part not executed named. Against the plan's provisional table: ACTIONS-05,
+06, ASSETS-06, IDENTITY-03, 04 and ROUTING-11 are partial (an expected element is not
+compared); ACTIONS-08, 09, CORE-COMPLIANCE-02, 05, STATE-01, 02, 06, 09, 11, 14, ASSETS-02,
+07, 08, IDENTITY-05, 13 and 15 are absent (only structural, or no scenario).
+
+**Owner review correction.** The owner's double check found the first version overstated
+its evidence in three ways. (1) The guard accepted `exec:Rn:ID` whenever the ID appeared in
+the name of a passing check; R2 tests fixed values and only names ITV-563..565, so
+`exec:R2:ITV-563` passed with an empty corpus. A passing harness check now declares the
+vectors it consumed (`check(..., executed=[…])`, printed `# executed <rule> <IDs>`; declared
+by R10, R13, R14, R15, R16, R17, R18, R21 and R22 where they read a vector's content), and
+`exec:` is verified against that record only; R2 and R3 evidence is cited as `check:`. The
+`check:` abbreviation, which accepted any unique prefix (`R6 envelope`), is limited to
+omitting a trailing parenthesised count; the STATE-§7.2-18 citation was completed. Both cases
+are in the self-tests. (2) Twelve `integral` classifications claimed more than the cited
+execution compares: CORE-COMPLIANCE-04 and STATE-13 (the R2 comparison, not the
+`invalid_request` and its details), STATE-08 (a different snapshot instant, `updated_at` not
+compared), IDENTITY-21 (the internal token's issuer, audience and signature not emitted) and
+IDENTITY-22 (the `denied`/`conformance_failed` decision not exercised), found by the owner;
+and, on re-reading every integral row against its vectors' expectations, ACTIONS-07 (the
+error description), ACTIONS-13 (`policy.sha256`), ACTIONS-14 (`late: false`, the response's
+resolution), ACTIONS-15 (the record's `late: true`), CORE-COMPLIANCE-09 (the identification
+of the terminal result) and STATE-16 (the second snapshot's value). They are partial, with
+the gap named; IDENTITY-23 is equivalent; ASSETS-03 no longer says the reference logic
+returns a stored response (R6 selects the key only). (3) The header adapter caught only
+`JsonRejected`: a 5000-digit integer reached a schema error message and raised `ValueError`,
+deep nesting raised `RecursionError`. Both are now step 2 rejections without exception, with
+R22 (h) regressions. The first report also stated 20 mutations for 19 labels; the campaign
+below states each label. A second owner check reproduced two more overstatements, now
+partial: ACTIONS-18 (ITV-663 compares the Path 3 error's code and `oversight_decision`
+only; an altered description passed R15) and IDENTITY-18 (ITV-642 compares the source in
+the scenario's internal resolution, not in the emitted `pending_approval`'s
+`payload.obligation_resolution`; an altered source in the message passed R15). ACTIONS-13,
+on the same fixture, states the same distinction.
+
+**RTM Evidence.** Mandatory rows 1445: 338 with a behavioural execution (exec, check,
+crypto or raw), 452 with structural execution only, 311 with a schema reference only (with
+or without a disposition), 344 with a disposition only. Disposition tokens: `untested` 619
+(structural-only 498, no-reference-model 96, integration 25), `out-of-repo` 244
+(infrastructure 114, transport 56, operator 36, external-party 35,
+implementation-internal 3). Review: the 140 sdk / sdk_enabled rows without evidence (141
+before CORE-§4.3.6.4-03 was retired) were read one by one: 28 received `check:` or `exec:`
+tokens where a passing check demonstrates the row or part of it (with a coded `untested`
+for the rest of the row where the demonstration is partial), the others a coded `untested`
+or `out-of-repo`; the 238 deployment, operational_policy and external rows
+without evidence received `out-of-repo` with the code of their subject (transport by the
+row's subject, otherwise by layer), and six of them also a demonstrating check (R20 (j),
+R20 (k), R22 (d), the Identity §8.1 policy check); the 121 rows whose vectors run in a rule
+received `exec:` after checking that the rule's domain is the row's; the 54 runtime-only
+citations keep `struct` and `untested(structural-only)` unless a rule executes the vector;
+no signature was added. Vector column normalised in 13 cells (CORE-§4.3.9-01,
+IDENT-§7.3-19, STATE-§7.2-08, -10, -11, -15, -17, -18, -21, -22, STATE-§11.4-01; the
+non-mandatory CORE-§12.1-02 and STATE-§7.2-09 moved to the section "References outside the
+Vector column" of their RTM). Obsolete rows: retired CORE-§4.3.7-02, -03, CORE-§4.4.7-02,
+-03, -04, IDENT-§2.5-04, -05, CORE-§4.3.6.4-03, -04; rewritten CORE-§4.4.7-01 (MUST: exactly
+one content field), IDENT-§3.1-03 (MAY, the Core §5.2 bounds), CORE-§10.4-01 (the signed
+envelope key is authoritative); added CORE-§4.3.7-04 (MUST NOT silently raise),
+CORE-§4.4.7-05 (more than one content field, or none, rejected), ROUTE-§7.4-27..29
+(§7.4.1 steps 1–2). CORE-§4.3.6.4-03, -04 and CORE-§10.4-01 were found during the review
+and treated under the owner's bounded authorisation.
+
+**Corpus header.** `version` `1.0.0` → `2.0.0`; `generated` `2026-04-10T00:00:00.000Z` →
+`2026-11-05T23:27:56.000Z`, fixed when the revision was prepared and not recomputed by
+any tool; `$schema` unchanged; `regen_v2.py` serialises the whole document and refuses
+files it would not reproduce, so it keeps the header. Guard `corpus_header_problems`
+l.1563; mutation (o) back to 1.0.1 → detected.
+
+**Mutations.** 23 of 23 detected, each by the check its row names: (a)–(h) by R22 (a)
+(and (c)–(e) also by R22 (g)); (i), (j), (j2) by the conformance guard; (k), (l), (l2), (n),
+(p), (q) by the RTM Evidence guard; (m) by the drift-linter row count; (o) by the corpus header
+guard; (r) the adapter catching only `JsonRejected` → R22 (h) both cases; (s) `exec:` accepted
+from a check name → both guard self-tests; (t) any unique prefix accepted → the RTM guard
+self-test; (u) R22 (a) no longer declaring the vectors it consumed → the RTM Evidence and
+conformance guards.
+
+**Counts before → after.**
+- Vectors 915 → 923 (validator 485 / 215 / 196 → 487 / 215 / 202, raw 19); formats
+  schema-ref 548 → 556; existing vectors changed: ITV-570 (rebuilt) and the corpus header
+  only; crypto 157 (145 verified, 9 negatives, 3 canonical only), unchanged.
+- Skip classification 196 → 202 rows (transport 5 → 11; ITV-570 none → `executed: R22`).
+- RTM 2049 / 1245 → 2045 / 1247 MUST + MUST_NOT; 1445 MUST, MUST_NOT or REQUIRED, each with
+  Evidence; coverage summaries recomputed; Routing Delta row added.
+- Consistency checks 131 → 138; harness R1-R22, 746 → 779 assertions.
+- Named tests classified 0 → 89.
+- Findings register 99 rows: open 2 → 0, closed 97 → 99; disposition per DR or cycle
+  addendum 37 → 39, recorded 16, pending 46 → 44. Coverage register 24 rows: open 2 → 0,
+  closed 22 → 24.

@@ -377,72 +377,48 @@ def crypto_envelope(vector: dict) -> dict | None:
     return None
 
 
-def run_crypto_checks(args: argparse.Namespace) -> int:
-    try:
-        import rfc8785
-    except ImportError:
-        # No fallback: a code-point-ordered serialization (json.dumps sort_keys) is
-        # not RFC 8785 and would silently diverge on non-BMP member names (Core §5.1).
-        print("ERROR: rfc8785 library required for --check-crypto", file=sys.stderr)
-        sys.exit(1)
-    try:
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: F401
-    except ImportError:
-        print("ERROR: cryptography library required for --check-crypto", file=sys.stderr)
-        sys.exit(1)
-
-    vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
-    data = strict_load(vectors_file)
-
-    vectors = data["vectors"]
-    checked = 0
-    failed = 0
-    verified_count = 0
-    negatives_asserted = 0
-    absent_count = 0
-    failures: list[str] = []
-
-    for vector in vectors:
+def crypto_results(data: dict, id_filter: str | None = None) -> list[dict]:
+    """Execute the crypto checks and return one record per vector with a crypto block:
+    {id, expect_signature, observed, passed, failure}. `observed` is "verified", "failed"
+    (signature verification failed), "canonical-only" (expect_signature "absent", canonical bytes
+    checked) or "error" (a check before verification failed). `passed` means the observed outcome is
+    the expected one: a signature negative passes when its verification FAILS (SC4, R1). The CLI and
+    the consistency guards use this same function."""
+    import rfc8785
+    out: list[dict] = []
+    for vector in data["vectors"]:
         crypto = vector.get("crypto")
         if not crypto:
             continue
-
         vid = vector["id"]
-        if args.filter and not fnmatch.fnmatch(vid, args.filter):
+        if id_filter and not fnmatch.fnmatch(vid, id_filter):
             continue
-
-        checked += 1
+        rec = {"id": vid, "expect_signature": crypto.get("expect_signature"), "observed": "error",
+               "passed": False, "failure": None}
+        out.append(rec)
         msg = crypto_envelope(vector)
         if msg is None:
-            failed += 1
-            failures.append(f"  FAIL {vid}: crypto block without an envelope (message, or data of "
-                            f"{', '.join(CRYPTO_DATA_SCHEMAS)})")
+            rec["failure"] = (f"crypto block without an envelope (message, or data of "
+                              f"{', '.join(CRYPTO_DATA_SCHEMAS)})")
             continue
         # The expected signature outcome is declared, never inferred from valid/expected or
         # expected_error: a vector rejected for authorization or compliance still carries a
         # signature that MUST verify (A-34).
         expectation = crypto.get("expect_signature")
         if expectation not in ("valid", "invalid", "absent"):
-            failed += 1
-            failures.append(f"  FAIL {vid}: crypto.expect_signature missing or unknown: {expectation!r}")
+            rec["failure"] = f"crypto.expect_signature missing or unknown: {expectation!r}"
             continue
-        signature_negative = expectation == "invalid"
 
         # CHECK 1 — canonical bytes (Draft-02 signing profile, Core §5.1:
         # security PRESENT, only the sig property removed)
         msg_copy = copy.deepcopy(msg)
         if isinstance(msg_copy.get("security"), dict):
             msg_copy["security"].pop("sig", None)
-        canonical = rfc8785.dumps(msg_copy)
+        actual_hex = rfc8785.dumps(msg_copy).hex()
         expected_hex = crypto["canonical_bytes_hex"]
-        actual_hex = canonical.hex()
         if actual_hex != expected_hex:
-            failed += 1
-            failures.append(
-                f"  FAIL {vid}: canonical bytes mismatch\n"
-                f"    expected: {expected_hex[:80]}...\n"
-                f"    actual:   {actual_hex[:80]}..."
-            )
+            rec["failure"] = (f"canonical bytes mismatch\n    expected: {expected_hex[:80]}...\n"
+                              f"    actual:   {actual_hex[:80]}...")
             continue
 
         # CHECK 2 — signature verification (Core §5.2). "absent" declares a message with no
@@ -451,14 +427,12 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
         has_security = isinstance(msg.get("security"), dict)
         if expectation == "absent":
             if has_security:
-                failed += 1
-                failures.append(f"  FAIL {vid}: expect_signature 'absent' but the message has a security object")
+                rec["failure"] = "expect_signature 'absent' but the message has a security object"
             else:
-                absent_count += 1
+                rec["observed"], rec["passed"] = "canonical-only", True
             continue
         if not has_security:
-            failed += 1
-            failures.append(f"  FAIL {vid}: expect_signature {expectation!r} without a security object")
+            rec["failure"] = f"expect_signature {expectation!r} without a security object"
             continue
         # CHECK 3 — sig field consistency, before verification so that it binds the signature
         # negatives too: the signature asserted here is the one the envelope carries.
@@ -471,73 +445,85 @@ def run_crypto_checks(args: argparse.Namespace) -> int:
             if sigs and isinstance(sigs, list):
                 embedded_sig = sigs[0].get("signature")
         if embedded_sig is None:
-            failed += 1
-            failures.append(f"  FAIL {vid}: expect_signature {expectation!r} without an embedded signature")
+            rec["failure"] = f"expect_signature {expectation!r} without an embedded signature"
             continue
         if embedded_sig != crypto["signature_base64url"]:
-            failed += 1
-            failures.append(
-                f"  FAIL {vid}: sig field mismatch\n"
-                f"    message.security.sig: {embedded_sig[:40]}...\n"
-                f"    crypto.signature:     {crypto['signature_base64url'][:40]}..."
-            )
+            rec["failure"] = (f"sig field mismatch\n    message.security.sig: {embedded_sig[:40]}...\n"
+                              f"    crypto.signature:     {crypto['signature_base64url'][:40]}...")
             continue
-        alg = msg["security"].get("alg")
-        pub_bytes = bytes.fromhex(crypto["public_key_hex"])
-        sig_bytes = _base64url_decode(crypto["signature_base64url"])
-        data_bytes = bytes.fromhex(crypto["canonical_bytes_hex"])
         try:
-            _verify_signature(alg, pub_bytes, sig_bytes, data_bytes)
-            verified, reason = True, None
+            _verify_signature(msg["security"].get("alg"), bytes.fromhex(crypto["public_key_hex"]),
+                              _base64url_decode(crypto["signature_base64url"]),
+                              bytes.fromhex(crypto["canonical_bytes_hex"]))
+            rec["observed"] = "verified"
         except Exception as exc:
-            verified, reason = False, exc
-        if signature_negative:
-            if verified:
-                failed += 1
-                failures.append(f"  FAIL {vid}: expected signature failure, but it verified")
-            else:
-                negatives_asserted += 1
-            continue
-        if not verified:
-            failed += 1
-            failures.append(f"  FAIL {vid}: signature verification failed — {reason}")
-            continue
-        verified_count += 1
+            rec["observed"], reason = "failed", exc
+        if expectation == "invalid":
+            rec["passed"] = rec["observed"] == "failed"
+            if not rec["passed"]:
+                rec["failure"] = "expected signature failure, but it verified"
+        else:
+            rec["passed"] = rec["observed"] == "verified"
+            if not rec["passed"]:
+                rec["failure"] = f"signature verification failed — {reason}"
+    return out
 
-    passed = checked - failed
-    if failures:
-        for f_msg in failures:
-            print(f_msg, file=sys.stderr)
-    print(f"Crypto: {checked} vectors checked, {passed} passed, {failed} failed "
+
+def run_crypto_checks(args: argparse.Namespace) -> int:
+    try:
+        import rfc8785  # noqa: F401
+    except ImportError:
+        # No fallback: a code-point-ordered serialization (json.dumps sort_keys) is
+        # not RFC 8785 and would silently diverge on non-BMP member names (Core §5.1).
+        print("ERROR: rfc8785 library required for --check-crypto", file=sys.stderr)
+        sys.exit(1)
+    try:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey  # noqa: F401
+    except ImportError:
+        print("ERROR: cryptography library required for --check-crypto", file=sys.stderr)
+        sys.exit(1)
+
+    vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
+    results = crypto_results(strict_load(vectors_file), args.filter)
+    failed = [r for r in results if not r["passed"]]
+    for r in failed:
+        print(f"  FAIL {r['id']}: {r['failure']}", file=sys.stderr)
+    if args.format == "tap":
+        for r in results:
+            if r["passed"]:
+                print(f"# crypto: ok {r['id']} ({r['expect_signature']}: {r['observed']})")
+    checked = len(results)
+    verified_count = sum(r["passed"] and r["observed"] == "verified" for r in results)
+    negatives_asserted = sum(r["passed"] and r["expect_signature"] == "invalid" for r in results)
+    absent_count = sum(r["passed"] and r["observed"] == "canonical-only" for r in results)
+    print(f"Crypto: {checked} vectors checked, {checked - len(failed)} passed, {len(failed)} failed "
           f"({verified_count} signatures verified, {negatives_asserted} signature negatives asserted, "
           f"{absent_count} without signature: canonical bytes only)")
     return 1 if failed else 0
 
 
-def run_validation(args: argparse.Namespace) -> int:
-    vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
-    data = strict_load(vectors_file)
-
-    if args.check_meta:
-        if not check_meta_schema(data):
-            return 1
-
-    vectors = data["vectors"]
-
+def vector_results(data: dict, check_errors: bool = False, id_filter: str | None = None,
+                   schema_filter: str | None = None) -> list[dict]:
+    """Execute schema and raw validation and return one record per vector (the CLI formats these
+    records; the consistency guards read them, SC4 R1). `approved` is the observed outcome equal to the
+    expected one: for a schema negative, rejected by the schema and, under check_errors, through the
+    expected error path; for a skip_schema vector, structurally valid (its runtime expectation is not
+    evaluated here); for a raw vector, accepted or rejected as `expected_parse` states."""
     registry = build_registry()
     results: list[dict] = []
+    vectors = data["vectors"]
 
     for vector in vectors:
         vid = vector["id"]
 
-        if args.filter and not fnmatch.fnmatch(vid, args.filter):
+        if id_filter and not fnmatch.fnmatch(vid, id_filter):
             continue
 
         fmt, schema_ref, payload = classify_vector(vector)
 
         if fmt == "raw":
             # Core §5.2 steps 2-4 only: accepting means well-formed I-JSON text, nothing more
-            if args.schema and args.schema not in schema_ref:
+            if schema_filter and schema_filter not in schema_ref:
                 continue
             expected_valid = vector["expected_parse"] == "accept"
             try:
@@ -557,7 +543,7 @@ def run_validation(args: argparse.Namespace) -> int:
             # A skip exempts only the runtime expectation the schema cannot express.
             # Everything else is still validated: the vector must be structurally valid
             # against its schema, whatever its runtime outcome (valid/expected) is.
-            if args.schema and args.schema not in schema_ref:
+            if schema_filter and schema_filter not in schema_ref:
                 continue
             schema = resolve_schema(schema_ref, registry)
             if schema_ref == MESSAGE_SCHEMA:
@@ -579,7 +565,7 @@ def run_validation(args: argparse.Namespace) -> int:
             })
             continue
 
-        if args.schema and args.schema not in schema_ref:
+        if schema_filter and schema_filter not in schema_ref:
             continue
 
         expected_valid = determine_expected(vector)
@@ -595,7 +581,7 @@ def run_validation(args: argparse.Namespace) -> int:
         error_msg = "; ".join(e.message for e in errors[:3]) if errors else None
 
         error_path = None
-        if args.check_errors and not expected_valid and errors:
+        if check_errors and not expected_valid and errors:
             expected_error = vector.get("expected_error", "")
             if expected_error:
                 error_path = check_error_path(expected_error, errors)
@@ -613,6 +599,22 @@ def run_validation(args: argparse.Namespace) -> int:
             "error_path": error_path,
             "procedure": procedure,
         })
+
+    for r in results:
+        ep = r.get("error_path")
+        r["approved"] = bool(r["passed"]) and not (ep and not ep[0])
+    return results
+
+
+def run_validation(args: argparse.Namespace) -> int:
+    vectors_file = Path(args.vectors) if args.vectors else VECTORS_FILE
+    data = strict_load(vectors_file)
+
+    if args.check_meta:
+        if not check_meta_schema(data):
+            return 1
+
+    results = vector_results(data, args.check_errors, args.filter, args.schema)
 
     check = args.check_errors
     if args.format == "summary":

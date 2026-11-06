@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-915 test vectors (485 schema-valid, 215 expected-invalid, 196 runtime-only, 19 raw parse vectors — validator classification) for
+923 test vectors (487 schema-valid, 215 expected-invalid, 202 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`).
@@ -11,7 +11,7 @@ verification outcome (`crypto.expect_signature`).
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 915 test vectors |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 923 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
 | [keypairs.json](keypairs.json) | 17 test keypairs: 15 Ed25519, 1 ES256, 1 RS256 (NOT secrets — committed intentionally; the derivation of the six added in the vector cycle and the two added in coverage SC1 is stated in the file) |
 
 ## Vector Formats
@@ -23,7 +23,7 @@ fields of every other format, both ways:
 | Format | Count | Description |
 |--------|-------|-------------|
 | `message-only` | 344 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 548 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `schema-ref` | 556 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 | `raw` | 19 | Exact received bytes, checked only by the Core §5.2 pipeline steps 2–4. Uses `raw_hex` + `expected_parse` fields. |
 
@@ -47,15 +47,15 @@ itself stops the tools.
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 710 |
-| `INV-` | Invalid (all specs) | 171 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 712 |
+| `INV-` | Invalid (all specs) | 177 |
 | `CTV-` | Core (envelope, intents, compliance, raw parsing) | 16 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-711** / **INV-172** / **CTV-17**
+Next available ID: **ITV-713** / **INV-178** / **CTV-17**
 
 ## Runtime-Only Vectors
 
@@ -73,7 +73,7 @@ shows that the binding holds, not that the vector's message is accepted (the vec
 be invalid for another reason). `token_binding` and `attestation` scenarios state the
 presented token explicitly.
 
-196 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+202 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally
@@ -108,7 +108,13 @@ store produces. A `token_binding` scenario (R21) gives the presented token
 (`input.presented_token`); an `attestation` scenario (R22) gives the received envelope,
 the presented token, the broker entry, a simulated JWKS, the recipient's clock and the
 attestations already seen (`input.envelope`, `presented_token`, `broker_entry`, `jwks`,
-`now`, `seen`), and expects `accept` or `unauthorized` with the Routing §7.4.1 step. In
+`now`, `seen`), and expects `accept` or `unauthorized` with the Routing §7.4.1 step. A
+vector whose `data` is the delivered envelope (schema `arsia-message.schema.json`) states the
+`ARSIA-Relay-Attestation` header as received in `input.attestation_header` (`null` = absent);
+an attestation vector without it is delivered with the base64url (no padding) encoding of its
+compact `data`. Such scenarios also expect `service_unavailable` at step 1 (header absent,
+with its `details`) or `not_required` (no `data_residency`); a header negative names in
+`input.permissive` the decoder that tolerates its single defect (R22 (f)). In
 an `execution` scenario with approvals (R15), each approval step may override the
 approver's signed access token (`issuer`, `scope`, `sub`, `aud`, `token_lifetime`,
 `token_tamper`, `token_drop`) or the decision (`capabilities`, `approver_id`,

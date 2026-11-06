@@ -153,6 +153,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Stale CORE-§4.3.7-02/-03 (observed in DR-3/DR-4, not fixed):** the rows describe a
   retention clamp and an override warning that Core §4.3.7 forbids ("MUST NOT silently
   raise"); they predate the cycle and are left for the RTM pass (A-64 domain).
+  Resolved in coverage SC4: both retired; successor CORE-§4.3.7-04 (MUST NOT silently
+  raise) and the Rule 4 rows; the warning obligation no longer exists.
 - **Stale profiles/README.md retention column (observed in DR-3/DR-4, not fixed):** it
   states day counts (e.g. 180 days for EU-AI-ACT-HIGH-RISK, 730 for DSA-VLOP) that differ
   from the catalog (P6M, P1096D); out of the cycle's scope.
@@ -190,6 +192,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Stale CORE-§4.4.7-01..04 (observed in DR-1/DR-2, not fixed):** the rows still trace
   the Draft-01 "warn and process" rule that Core §4.4.7 replaced with a hard rejection;
   they predate the cycle (A-64 domain).
+  Resolved in coverage SC4: CORE-§4.4.7-01 rewritten (MUST, exactly one content field);
+  -02, -03, -04 retired; CORE-§4.4.7-05 added (more than one content field, or none,
+  rejected with `invalid_request`).
 - **Removed RTM rows (DR-1/DR-2):** CORE-§4.3.6.5-01, -03, -04, -05 and -06 (autonomous
   execution, the 24 h review MUST and `oversight_timeout`), ACT-§2.1-22 and ACT-§3.7-04
   (descriptor as dispensation; re-registration as the only way to add oversight),
@@ -462,7 +467,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Draft-02 migration, is now stated in test-vectors/README.md and executed by R21.
 - **Routing §7.4.1 step 1 (coverage SC1, not covered):** a residency-constrained message
   arriving without an attestation → `service_unavailable` (ITV-570) is not executed; it
-  belongs to SC4.
+  belongs to SC4. Resolved in coverage SC4: ITV-570 rebuilt as an executed R22 scenario
+  (header absent), with ITV-711, ITV-712 and INV-172..177.
 - **Crypto blocks with an unpublished kid (observed in coverage SC1, not fixed):** 24
   pre-existing blocks name a kid absent from keypairs.json (e.g. INV-04, ITV-134..137);
   their signatures verify against the key in the block. The kid ↔ catalog guard applies
@@ -506,7 +512,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Stale RTM rows outside the cycle (observed in coverage SC2, not fixed):**
   IDENT-§2.5-04 and IDENT-§3.1-03 (a RECOMMENDED or SHOULD 1-hour cache TTL; the rule is
   the Core §5.2 3600 s MUST ceiling) and IDENT-§2.5-05 (a MAY about future revocation
-  mechanisms that §2.5 no longer states) belong to SC4.
+  mechanisms that §2.5 no longer states) belong to SC4. Resolved in coverage SC4:
+  IDENT-§2.5-04 retired (successor CORE-§5.2-11), IDENT-§2.5-05 retired (successors
+  IDENT-§2.5-06..09), IDENT-§3.1-03 rewritten as the MAY of Identity §3.1.
 - **Published counts after coverage SC3:** 34 schemas (incl. meta), 915 vectors
   (485 schema-valid / 215 expected-invalid / 196 runtime-only / 19 raw), 17 keypairs,
   RTM 2049 / 1245, 131 consistency checks, harness R1-R22; spec examples 82 blocks (77
@@ -534,6 +542,46 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   approval and review decision it builds; this exposed INV-134 (`capabilities: []`
   fails `minItems`, so pipeline step 11 would have pre-empted its `forbidden`), now
   `["test.unit"]`.
+
+- **Published counts after coverage SC4:** 34 schemas (incl. meta), 923 vectors
+  (487 schema-valid / 215 expected-invalid / 202 runtime-only / 19 raw), 17 keypairs,
+  RTM 2045 rows / 1247 MUST + MUST_NOT / 1445 MUST, MUST_NOT or REQUIRED, 138 consistency
+  checks, harness R1-R22; README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md and
+  test-vectors/README.md (ITV 712, INV 177, CTV 16; next ITV-713 / INV-178 / CTV-17)
+  updated. SECURITY.md still carries Draft-01 counts; it changed only on main and is
+  reconciled with the merge.
+- **Normative changes for the Issue (coverage SC4, CONTRIBUTING §4):** Routing §7.4.1 —
+  step 1 rejects a residency-constrained message without the `ARSIA-Relay-Attestation`
+  header (`service_unavailable`), and a present header, even empty, is processed by steps
+  2–5; step 2 requires non-empty base64url without padding (an explicit ARSIA rule against
+  RFC 4648 §3.2's default), the Core §5.2 steps 2–4 checks on the decoded octets and the
+  attestation schema before the signature; their failures are `unauthorized`, not
+  `invalid_request`. The header descriptions (§1.2.2 step 7, §7.3) say "without padding";
+  [RFC 4648] added to the Routing normative references.
+- **Assets §7 runner sentence (coverage SC4):** the runner "executes only the test parts
+  identified as executed in `docs/draft-02-conformance-tests.md`"; "MUST pass all eight
+  tests" unchanged. Not a change of conformance requirements.
+- **RTM format for consumers (coverage SC4):** the RTMs have a ninth column, `Evidence`
+  (vocabulary in docs/rtm/README.md); a consumer that parses them by position must read
+  the header. The Vector column now holds only vector IDs.
+- **Validator results for consumers (coverage SC4):** `vector_results` and `crypto_results`
+  in `scripts/validate_vectors.py` return the observed result per vector; the CLI output
+  is unchanged except `# crypto: ok …` comment lines in TAP mode.
+- **Corpus header (coverage SC4):** `version` 2.0.0 (the Draft-02 corpus; Draft-01 corpora
+  were 1.0.x) and `generated` 2026-11-05T23:27:56.000Z; consumers that pin the corpus by
+  version must expect the new major.
+- **Removed RTM rows (coverage SC4):** CORE-§4.3.7-02, -03, CORE-§4.3.6.4-03, -04 (clamp to
+  the floor and its warning; successor CORE-§4.3.7-04 and the Rule 4 rows),
+  CORE-§4.4.7-02, -03, -04 (warn and process; successor CORE-§4.4.7-05), IDENT-§2.5-04,
+  -05 (successors CORE-§5.2-11, IDENT-§2.5-06..09). Rewritten: CORE-§4.4.7-01,
+  IDENT-§3.1-03, CORE-§10.4-01 (the signed envelope key is authoritative). CORE-§4.3.6.4-03,
+  -04 and CORE-§10.4-01 were found in the review and treated under the owner's bounded
+  authorisation.
+- **Named tests not executed here (coverage SC4):** the absent and external classes of
+  `docs/draft-02-conformance-tests.md` (39 tests) and the unexecuted parts of the 43
+  partial ones and of the equivalent one remain conformance requirements for
+  implementations; models for QUERY, GRANT, escrow, X.509, onboarding phases and transport
+  were outside the cycle.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

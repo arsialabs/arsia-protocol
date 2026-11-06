@@ -1,0 +1,155 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
+
+# Draft-02 Named Conformance Tests — What the Repository Executes
+
+The specifications define 89 named conformance tests (Actions 19, Core §12.4 9, State 18,
+Assets 8, Identity 23, Routing 12). Implementations claiming conformance MUST pass them; this
+document does not change that. It records, test by test, which preconditions, actions and
+expected results the in-repo conformance runner (`scripts/validate_vectors.py`,
+`scripts/runtime_harness.py`, `scripts/check_consistency.py`) actually exercises, the executed
+check that is the evidence, and what remains unexecuted and why (coverage SC4, A-53).
+
+**Classes.**
+- `integral` — the test's preconditions, action and expected results are all exercised by the
+  cited executions, on reference logic.
+- `partial` — only part is exercised; the last column states the part that is not.
+- `equivalent` — an execution demonstrates the same expected result under another form; the
+  equivalence is stated.
+- `external` — the test requires execution against an implementation (real transport,
+  endpoint or runtime), outside this repository. The class records that requirement; it does
+  not state that such an execution has taken place.
+- `absent` — deterministic logic without a reference model here; the reason is stated.
+
+A test classified `integral` is executed on the reference logic of this repository, not on an
+implementation: an implementation still has to pass the test. A part not executed by the
+runner remains a conformance requirement.
+
+**Evidence tokens** (the vocabulary of the RTM `Evidence` column, `docs/rtm/README.md`):
+`exec:<Rn>:<IDs>` (a passing check of harness rule Rn consumed those vectors — it declares them,
+and the harness prints `# executed <Rn> <IDs>`; a vector ID that merely appears in a check's
+name is not an execution of that vector), `check:`<name>`` (a passing check of the harness or
+of `check_consistency.py`, named exactly; only a trailing parenthesised count may be omitted),
+`struct:<IDs>` / `raw:<IDs>` / `crypto:<IDs>` (the validator's structural, raw-parse or
+signature result, observed equal to the expected one). `check_consistency.py` verifies every
+token against the executions of the same run; a citation that did not run and pass fails the
+check.
+
+## Named tests
+
+| Test | § | Class | Exercised (preconditions / action / expected) | Evidence | Not executed and why |
+|---|---|---|---|---|---|
+| ACTIONS-01 | Actions §8 | external | — | — | Requires `GET /.well-known/arsia/actions` against a deployed agent (HTTP status, pagination, the registered descriptors). The descriptor and discovery-response schemas are validated by other vectors, not by this test's scenario. |
+| ACTIONS-02 | Actions §8 | partial | The capability decision: a scope that lacks the required capability does not satisfy it. | check:`R3 partial capability list`; check:`R3 different namespace` | The request/response exchange and the `forbidden` error with `required_capabilities`/`provided_capabilities` details: no reference model of request handling. |
+| ACTIONS-03 | Actions §8 | partial | The reference matching decision that the wildcard scope `notes.*` satisfies the specific capability `notes.read` (a fixed case of the capability matcher; the vector ITV-566 carries the same case but is not read). | check:`R3 wildcard valid (ITV-566)` | Acceptance of the request and its progress to execution or PENDING_APPROVAL. |
+| ACTIONS-04 | Actions §8 | partial | A descriptor with `human_oversight_required: true` makes the executor answer `pending_approval` without executing, with the `action-descriptor:` executor-policy source on the oversight axis; the emitted messages validate against the schema. | exec:R15:ITV-641 | The individual `payload.args` values (action_id, approver_capability, context, risk_level 9, request_payload_hash) and `expires_at` = `approval_deadline` are not compared for this test's request (ITV-339 is only validated structurally). |
+| ACTIONS-05 | Actions §8 | partial | An approved, verified decision is admitted, the action executes, and the audit trail holds request, pending_approval, approval_decision and response. | exec:R15:ITV-694; check:`R7 single-approval cycle: 4 records (ACTIONS-10)` | The response delivered to the original requester (correlation to R, result content) is not compared. |
+| ACTIONS-06 | Actions §8 | partial | An admitted denial blocks execution; the requester's error is `forbidden`, "Action denied by human oversight", `oversight_decision: "denied"` and the approver. | exec:R15:ITV-672, ITV-706 | The `reason` text carried from the decision into the details is not exercised (the reference decision carries none). |
+| ACTIONS-07 | Actions §8 | partial | No decision before the deadline: the flow is resolved by Path 3 at the deadline; the requester's error is compared on `code: "forbidden"`, `details.oversight_decision: "expired"` and `details.deadline` (ITV-673), and the expiry is recorded as `approval_expired` (ITV-663). | exec:R15:ITV-673, ITV-663 | The error `description` "Action approval deadline exceeded" is not compared. |
+| ACTIONS-08 | Actions §8 | absent | — | — | No reference model produces a response with `payload.explanation`; explanation objects are only validated structurally by other vectors. |
+| ACTIONS-09 | Actions §8 | absent | — | — | No reference model of rollback execution or the ROLLED_BACK transition. |
+| ACTIONS-10 | Actions §8 | partial | A full single-approval cycle yields exactly four records — request, pending_approval, approval_decision, response — in that order. | check:`R7 single-approval cycle: 4 records (ACTIONS-10)`; exec:R15:ITV-694 | Querying the audit trail through the endpoint, and the per-record `payload_hash`/`timestamp` values. |
+| ACTIONS-11 | Actions §8 | external | — | — | Container isolation, resource limits and egress restriction are properties of the agent's runtime; verified by inspecting a deployment. |
+| ACTIONS-12 | Actions §8 | absent | — | — | No reference model of capability downgrading (`effective_capabilities` in the response). |
+| ACTIONS-13 | Actions §8 | partial | A token's `arsia_oversight` claim (CapabilityPolicy) demands prior approval while the descriptor does not: the executor answers `pending_approval` and does not execute (path compared), and its internal resolution records, on the oversight axis, `required_before_execution` with the source `capability-policy:agent:corp.gateway/finco-2026-q1` (compared on the scenario's returned resolution). | exec:R15:ITV-642 | The provenance carried in the emitted `pending_approval`'s `payload.obligation_resolution` (source and the claim's `policy.sha256`) is not compared. |
+| ACTIONS-14 | Actions §8 | partial | `required_within_24h`: execution, then `review-pending` with `review_deadline` = execution + 24 h (ITV-645, compared); a decision before the deadline completes the review (`completed`, a `review_decision` record, execution records unchanged; ITV-650). | exec:R15:ITV-645, ITV-650 | The response's `payload.obligation_resolution` and the record's `late: false` are not compared in these vectors. |
+| ACTIONS-15 | Actions §8 | partial | (a) overdue at the deadline, `review_overdue` then `review_escalation` delivered after one retry, the late decision gives the review state `completed_late`, both records kept (ITV-653); (b) four failed attempts, `review_escalation` failed and `compliance_warning`, the review stays overdue (ITV-654). | exec:R15:ITV-653, ITV-654; check:`R15 C-09: within_24h overdue -> review_overdue + review_escalation, late decision completed_late` | The `review_decision` record's `late: true` is not compared on its own (only the review state derived from it). |
+| ACTIONS-16 | Actions §8 | integral | (a) and (b): `invalid_request` with the `obligation_conflict` details, `declared`/`fill` as stated, empty `sources`, nothing executed, the rejection audited. | exec:R15:ITV-647, ITV-648 | — |
+| ACTIONS-17 | Actions §8 | integral | A decision whose `request_payload_hash` differs is rejected `invalid_request` and the action is not executed. | exec:R15:ITV-662 | — |
+| ACTIONS-18 | Actions §8 | partial | `required_approvals: 2`, one approval, then the deadline: not executed, five records (Records 1, 2, one Record 3, `approval_expired`, Record 4) compared in order; the requester's error compared on `code: "forbidden"` and `details.oversight_decision: "expired"`. | exec:R15:ITV-663 | The complete Path 3 error (its `description` and the remaining details such as `deadline`) is not compared. |
+| ACTIONS-19 | Actions §8 | integral | (a) success and (b) failure retrieved three days later: the acknowledgment opens no review, the review is anchored to the materialized terminal result, the retrieval is accepted after signature and binding checks despite its `ts`, and the deadline is unchanged. | exec:R15:ITV-665, ITV-666, ITV-667 | — |
+| CORE-COMPLIANCE-01 | Core §12.4 | partial | A message with `pii_involved: true` and no `legal_basis` is rejected by the message schema. | struct:INV-06 | The rejection code `invalid_request` with `details.missing_legal_basis` produced by Rule 2 on a receiver. |
+| CORE-COMPLIANCE-02 | Core §12.4 | absent | — | — | Rule 6 (classification escalation against the sender's IdentityRecord) has no executed scenario; ITV-418 is only validated structurally. |
+| CORE-COMPLIANCE-03 | Core §12.4 | absent | — | — | No reference model of MCP wrapping, the forwarded tool call or its audit record. |
+| CORE-COMPLIANCE-04 | Core §12.4 | partial | The Rule 4 comparison on calendar arithmetic: MIFID-II P365D and EU-AI-ACT-HIGH-RISK P180D fall below the floor, P1827D at the floor and a field above it pass, an absent field takes the profile minimum (reference logic with fixed values; ITV-561..565 carry the same cases and are validated structurally). | check:`R2 ITV-563 MIFID P365D rejected`; check:`R2 ITV-564 P180D < P6M rejected`; check:`R2 ITV-565 absent -> profile minimum`; check:`R2 boundary P1827D accepted`; struct:ITV-561, ITV-562, ITV-563, ITV-564, ITV-565 | The rejection message itself — `invalid_request` with `insufficient_retention`, `declared_retention`, `minimum_retention`, both `retained_until` instants and `resolution_source` — is not produced or compared. |
+| CORE-COMPLIANCE-05 | Core §12.4 | absent | — | — | Rule 1 non-strict/strict handling of an unknown profile has no executed scenario; ITV-416 is only validated structurally. |
+| CORE-COMPLIANCE-06 | Core §12.4 | partial | Rule 3 on the composed oversight set: an absent profile and an explicit GDPR-STANDARD without a mode are rejected `high_risk_missing_oversight`; a profile default that demands oversight satisfies it. | check:`R10 A-32 absent profile: rejected high_risk_missing_oversight`; check:`R10 high-risk + MIFID-II, no mode declared: default counts (A-23)`; check:`runtime resolution vectors: expected results == reference resolver (Core §4.3.10)` | The test's own vectors ITV-421 and ITV-579 are validated structurally; their resolution is not read by a named check. |
+| CORE-COMPLIANCE-07 | Core §12.4 | partial | The recipient side: the brokered copy with a valid attestation is accepted; the direct copy without the attestation header is rejected `service_unavailable` with `data_residency_violation`. | exec:R22:ITV-569, ITV-570 | The sender's routing through the broker (ROUTING-02/03) is not executed. |
+| CORE-COMPLIANCE-08 | Core §12.4 | partial | (a) `pii_involved` without `legal_basis` is rejected by the schema; the Rule 8 messages are well-formed. | struct:INV-06, INV-20, ITV-555 | Rule 8 evaluation of (b) a sensitive entry with an Art. 6(1)-only basis (rejection) and (c) with an Art. 9(2) condition (acceptance): no executed scenario. |
+| CORE-COMPLIANCE-09 | Core §12.4 | partial | `review-pending` with `review_deadline` = execution + 24 h (ITV-645); at the deadline `review_overdue` and a separate `review_escalation` recording the notice's delivery; execution records unchanged; the late decision completes the review as `completed_late` and the overdue record is kept (ITV-653, C-09). | check:`R15 C-09: within_24h overdue -> review_overdue + review_escalation, late decision completed_late`; exec:R15:ITV-645, ITV-653 | That the `review-pending` event identifies the terminal result is not compared. |
+| STATE-01 | State §9 | absent | — | — | The reference store (R17) is driven by scenario operation sequences; no scenario performs this SET/GET round trip and compares the returned StateEntry fields. |
+| STATE-02 | State §9 | absent | — | — | No scenario compares DELETE's response and a following GET. |
+| STATE-03 | State §9 | partial | A PURGE produces a `state_purge` record that validates against the audit-record schema and carries no stored value. | check:`R18 (i) completed state_purge record validates against arsia-audit-record (expired values, no override)` | PURGE's response object, the following GET returning null, and the record's `pii_classification` for a personal entry. |
+| STATE-04 | State §9 | absent | — | — | No reference model of QUERY. |
+| STATE-05 | State §9 | partial | Within retention the values are not physically removed: a PURGE without override is rejected and removes nothing. | check:`R18 (b) the rejected PURGE removes nothing and records nothing` | The DELETE/GET/SNAPSHOT sequence of the test. |
+| STATE-06 | State §9 | absent | — | — | No reference model of a storage backend's residency zone. |
+| STATE-07 | State §9 | absent | — | — | No reference model of GRANT or cross-agent access. |
+| STATE-08 | State §9 | partial | A SNAPSHOT at an instant between two writes returns the earlier state of that generation — exercised between the update (v2) and a DELETE: generation 1, version 2, value `v2`. | check:`R17 (c) snapshot between update and DELETE returns generation 1 at version 2` | The test's instant (between creation and the update) with value `v1`, version 1 and `updated_at` ≈ T1 is not exercised; `updated_at` is not compared. |
+| STATE-09 | State §9 | absent | — | — | No executed scenario of a SET of personal data without `legal_basis`. |
+| STATE-10 | State §9 | partial | A conditional SET whose `expected_version` no longer matches the live entry fails with `conflict` and the live details; the entry is not changed. | exec:R17:ITV-678 | The `updated_by` of another agent (the reference store has a single owner). |
+| STATE-11 | State §9 | absent | — | — | No executed scenario compares the effective `audit_required` filled from the profile and the generated record. |
+| STATE-12 | State §9 | partial | A declared retention above the floor is accepted. | check:`R2 above floor accepted` | The audit record's `retained_until`, `declared_retention`, `effective_retention` and `retention_source` for P365D. |
+| STATE-13 | State §9 | partial | The Rule 4 comparison: MIFID-II P365D falls below the P1827D floor (reference logic with fixed values; no clamping is computed). | check:`R2 ITV-563 MIFID P365D rejected`; struct:ITV-563 | The rejection `invalid_request` and its details (`insufficient_retention`, `profile`, `declared_retention`, `minimum_retention`, `retention_anchor`, both `retained_until` instants, `resolution_source`) are not produced or compared. |
+| STATE-14 | State §9 | absent | — | — | No reference model of an audit store's UPDATE/DELETE refusal; R15 checks that its own records are not modified, which is a property of the harness, not this test. |
+| STATE-15 | State §9 | absent | — | — | No reference model of the audit query endpoint. |
+| STATE-16 | State §9 | partial | Recreation after DELETE gives generation 2, version 1, its own `created_at`; a stale `expected_generation` + `expected_version` gets `conflict` with exactly the live details; the first SNAPSHOT returns generation 1 version 2 value `v2`; the second returns both generations, the earlier marked deleted; the corpus history (ITV-681) is reproduced. | exec:R17:ITV-681; check:`R17 (a) recreation after DELETE: generation 2, version 1, own created_at`; check:`R17 (d) ABA: expected_generation + expected_version rejected with the live details`; check:`R17 (c) snapshot between update and DELETE returns generation 1 at version 2`; check:`R17 (c) snapshot after recreation returns both generations, distinguished by generation` | The second SNAPSHOT's value `w1` is not compared (generation, version and `deleted` are). |
+| STATE-17 | State §9 | integral | A repeated PURGE without a later write returns the same `purged_at` and no new record; after a SET a PURGE creates a new record carrying the new generation. | exec:R17:ITV-680; check:`R17 (i) repeated PURGE without a later write: same purged_at, no new record`; check:`R17 (i) PURGE after a later write: new purge, new record carrying generation 2` | — |
+| STATE-18 | State §9 | integral | Without override, PURGE within retention fails `invalid_request` with exactly `within_retention`/`entry_retained_until`, removes nothing and records nothing; with the override it purges, and its record carries both fields and the override as sent, with its own retention computed from its own anchor (§7.3). | exec:R18:ITV-685, ITV-683; check:`R18 (b) within retention without override: invalid_request with the details of State §8.4`; check:`R18 (b) the rejected PURGE removes nothing and records nothing`; check:`R18 (c) with retention_override: purged; the record carries within_retention, entry_retained_until, override`; check:`R18 (i) state_purge record retention from its own anchor, unaffected by the override (values within retention, override)` | — |
+| ASSETS-01 | Assets §7 | partial | The transfer amount grammar and per-currency scale of the request. | check:`R5 EUR 1500.00` | The transfer processing and the receipt's fields: no reference model of a transfer processor. |
+| ASSETS-02 | Assets §7 | absent | — | — | No executed scenario of a transfer request without an idempotency key. |
+| ASSETS-03 | Assets §7 | partial | The choice of the duplicate-detection key: a replay with a fresh `Idempotency-Key` header is still recognised as a duplicate through the signed envelope key. | check:`R6 replay with fresh header still dedupes` | Returning the stored receipt (same audit_id, status, payment_reference) and not calling the provider again: the reference logic selects the key only; it stores and returns no response. |
+| ASSETS-04 | Assets §7 | absent | — | — | No reference model of the escrow state machine. |
+| ASSETS-05 | Assets §7 | absent | — | — | No reference model of the escrow timeout. |
+| ASSETS-06 | Assets §7 | partial | The risk assessment demands prior approval; no approval before `expires_at`: the Path 3 error and no receipt. | check:`R15 ASSETS-06: risk assessment source; expiry -> forbidden/expired, no receipt`; exec:R15:ITV-643, ITV-673 | The `pending_approval` args of this transfer (risk_level 9, context, canonical field set) are not compared. |
+| ASSETS-07 | Assets §7 | absent | — | — | No executed scenario of the MiFID II transfer audit record. |
+| ASSETS-08 | Assets §7 | absent | — | — | No reference model of infrastructure-failure classification or DORA incident generation. |
+| IDENTITY-01 | Identity §5 | external | — | — | Requires `GET /.well-known/arsia/identity` against a deployed agent (status, headers, signature header). |
+| IDENTITY-02 | Identity §5 | external | — | — | Requires the served IdentityRecord body and its `X-ARSIA-Sig` header. |
+| IDENTITY-03 | Identity §5 | partial | Valid message signatures (EdDSA, ES256) verify under the published keys. | crypto:CTV-01, ITV-551 | The message's acceptance for processing by a receiver. |
+| IDENTITY-04 | Identity §5 | partial | Corrupted signatures fail verification. | crypto:INV-18, INV-19 | The rejection of the message with `unauthorized`. |
+| IDENTITY-05 | Identity §5 | absent | — | — | The kid-prefix check (Identity §3.1) has no executed scenario; INV-11 is only validated structurally. |
+| IDENTITY-06 | Identity §5 | partial | A high-risk sender's requests are resolved with the high-risk requirement set: a profile default demanding oversight is accepted, an absent or GDPR-STANDARD profile without a mode is rejected `high_risk_missing_oversight`. | check:`R10 A-32 absent profile: rejected high_risk_missing_oversight`; check:`R10 A-32 explicit GDPR-STANDARD: rejected high_risk_missing_oversight`; check:`R10 high-risk + MIFID-II, no mode declared: default counts (A-23)` | Retrieving the sender's IdentityRecord, and the audit records carrying `obligation_resolution` for each case. |
+| IDENTITY-07 | Identity §5 | partial | A published key verifies; a key still within the cache bound is accepted. | check:`R13 published kid accepted`; check:`R13 revoked kid within window accepted (bounded exposure)` | Two messages signed by key1 and key2 during the overlap. |
+| IDENTITY-08 | Identity §5 | partial | After the refresh no longer finds the old kid, its signatures are rejected. | exec:R13:ITV-703, ITV-704 | The `unauthorized` answer to a message signed with key1. |
+| IDENTITY-09 | Identity §6.6 | absent | — | — | No reference model of trust-level computation. |
+| IDENTITY-10 | Identity §6.6 | absent | — | — | No X.509 chain validation model. |
+| IDENTITY-11 | Identity §6.6 | absent | — | — | No X.509 chain validation model. |
+| IDENTITY-12 | Identity §6.6 | absent | — | — | No X.509 chain validation model. |
+| IDENTITY-13 | Identity §10 | absent | — | — | No reference model of the six-phase onboarding flow; R10 executes the authenticated-context facts only. |
+| IDENTITY-14 | Identity §10 | partial | A context that does not match the evidence authenticated in Phase 1 is refused by the router's context verification. | exec:R10:ITV-614, ITV-615, ITV-616 | CHECK-05 inside Phase 2 and the onboarding decision `denied`/`conformance_failed`. |
+| IDENTITY-15 | Identity §10 | absent | — | — | No reference model of Phase 1 identity-signature verification. |
+| IDENTITY-16 | Identity §10 | partial | CHECK-03 with a probe token: an agent that resolves the claim answers `pending_approval` (the positive form of the check). | exec:R15:ITV-670 | An agent answering `response` instead, and the resulting `denied` decision. |
+| IDENTITY-17 | Identity §10 | partial | A scope that does not contain the requested capability does not satisfy it. | check:`R3 different namespace` | The router's `forbidden` answer through the infrastructure router. |
+| IDENTITY-18 | Identity §10 | partial | The internal agent resolves the token's `arsia_oversight` claim: its internal resolution has `required_before_execution` from the `capability-policy:` source (compared on the scenario's returned resolution); it answers `pending_approval` and does not execute (path compared). | exec:R15:ITV-642 | The `capability-policy:` source carried in the emitted `pending_approval`'s `payload.obligation_resolution` is not compared. |
+| IDENTITY-19 | Identity §10 | external | — | — | Requires the gateway's `verify-token` endpoint and the infrastructure router. |
+| IDENTITY-20 | Identity §10 | external | — | — | Requires the gateway's revocation and `verify-token` endpoints and the audit query endpoint. |
+| IDENTITY-21 | Identity §10 | partial | The router's re-issuance keeps `arsia_oversight` for the reduced scope `test.unit` with the same requirement and policy (claim compared) and forwards; a token whose scope includes the capability without the claim is rejected `unauthorized` and not forwarded. | exec:R15:ITV-668, ITV-669 | The internal token's own issuer, audience and signature are not emitted or verified. |
+| IDENTITY-22 | Identity §10 | partial | (a) a trusted probe issuer: the agent resolves the claim and answers `pending_approval`, CHECK-03 passes; (b) untrusted: `unauthorized`, CHECK-03 fails with the rejected probe credential in its details. | exec:R15:ITV-670, ITV-671 | In (b), Phase 2 failing and the decision `denied` with `conformance_failed`, and the gateway not retrying with another credential, are not exercised. |
+| IDENTITY-23 | Identity §5 | equivalent | (1) a proof without nonce gets the nonce challenge (401, both headers); (2) a proof with the provided nonce is accepted; (3) a proof whose `jti` was already accepted for the same target URI is rejected `unauthorized`. Equivalence: the three expected results are exercised on the reference verifier by separate R20 sequences — (g) for steps 1–2 and (d)/(h) for the replay — rather than as one three-step exchange; each step's input and expected result match the test's. | check:`R20 (g) 1 the first request without a nonce is answered with the nonce challenge (401, both headers)`; check:`R20 (g) 4 the provided nonce is accepted; reused with a new jti it is accepted again`; check:`R20 (d) the same jti is rejected again for the same target URI`; check:`R20 (h) a retransmission with a new proof is accepted; the re-sent proof is rejected` | — |
+| ROUTING-01 | Routing §8 | external | — | — | Requires discovery and the inbox over HTTP between two agents. |
+| ROUTING-02 | Routing §8 | partial | A successful relay record carries the forwarding fields with latency = forwarded_at − received_at. | check:`R19 (a) every valid broker_relay record: forwarding fields together, latency = forwarded_at − received_at` | Topology determination, broker discovery, forwarding and the relayed response. |
+| ROUTING-03 | Routing §8 | absent | — | — | No reference model of sender-side broker selection. |
+| ROUTING-04 | Routing §8 | partial | The attestation binds the complete signed envelope (`envelope_hash`), so an altered envelope is detected; the sender's signature verifies. | exec:R22:INV-115; check:`R22 (d) envelope_hash is over the complete signed envelope (security.sig included), not the signing input` | The field-by-field comparison of a forwarded message received over a real relay. |
+| ROUTING-05 | Routing §8 | external | — | — | TLS and plaintext refusal are properties of the deployment. |
+| ROUTING-06 | Routing §8 | partial | Duplicate detection under the signed envelope key. | check:`R6 replay with fresh header still dedupes` | The stored response returned with identical HTTP status and body, and the handler not invoked again. |
+| ROUTING-07 | Routing §8 | external | — | — | Rate limiting, `Retry-After` and `X-RateLimit-Remaining` require a running endpoint. |
+| ROUTING-08 | Routing §8 | partial | A message whose `expires_at` lies in the past beyond the tolerance is expired. | exec:R16:ITV-411 | The HTTP 400 answer and its description. |
+| ROUTING-09 | Routing §8 | external | — | — | Requires a WebSocket upgrade and authentication exchange. |
+| ROUTING-10 | Routing §8 | external | — | — | Requires a WebSocket upgrade, `auth_error` and close code 4001. |
+| ROUTING-11 | Routing §8 | partial | The broker's record of a message not forwarded has `forwarding_result: "failure"` and no forwarding fields. | check:`R19 (d) a record of a message not forwarded (failure, no forwarding fields) has no defect` | The broker's `service_unavailable` answer with the Rule 2 details, and no attestation issued. |
+| ROUTING-12 | Routing §8 | integral | The broker returns `service_unavailable` with `reason: "recipient_dpop_nonce"`, the recipient's nonce and inbox URL; the first attempt is recorded as failure with the three forwarding fields; the retry is delivered and recorded as success with a new `attestation_id`. | check:`R20 (j) 1 the broker returns the challenge: reason recipient_dpop_nonce, the recipient's nonce, its inbox URL`; check:`R20 (j) 3 the attempt is recorded as failure with the forwarding fields`; check:`R20 (j) 5 the retry with a new proof and the nonce is delivered and recorded as success` | — |
+
+## Onboarding verifications CHECK-01..05 (Identity §7.3)
+
+The five Phase 2 verifications are not named tests; they are listed with their coverage links.
+They are not executed twice: where a named test already demonstrates a verification, the link
+points to it.
+
+| Check | § | Linked tests | Evidence | Not executed and why |
+|---|---|---|---|---|
+| CHECK-01 | Identity §7.3 | IDENTITY-13 | — | Envelope validity of the external agent's response: no reference model of the onboarding exchange (absent with IDENTITY-13). |
+| CHECK-02 | Identity §7.3 | IDENTITY-13 | — | Signature verification of the response inside onboarding: absent with IDENTITY-13 (message signature verification itself: IDENTITY-03/04). |
+| CHECK-03 | Identity §7.3 | IDENTITY-16, IDENTITY-22 | exec:R15:ITV-670, ITV-671 | Executed through IDENTITY-22; the `response`-instead-of-`pending_approval` failure of IDENTITY-16 is not. |
+| CHECK-04 | Identity §7.3 | IDENTITY-13 | — | Audit-record retrieval from the external agent: requires its audit endpoint (external). |
+| CHECK-05 | Identity §7.3 | IDENTITY-14 | exec:R10:ITV-614, ITV-615, ITV-616 | The context-binding facts are executed (via IDENTITY-14); CHECK-05 inside Phase 2 is not. |
+
+## Summary
+
+| Class | Tests |
+|---|---|
+| integral | 6 |
+| partial | 43 |
+| equivalent | 1 |
+| external | 11 |
+| absent | 28 |
+| **total** | **89** |

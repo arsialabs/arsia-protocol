@@ -215,6 +215,47 @@ alignments, listed for the GitHub Issue (CONTRIBUTING §4).
   parse and the checks run 2 → 3 → 4; objects and arrays stay distinct in the
   intermediate tree.
 
+**Addendum — 2026-11-05 (owner decisions for coverage SC4, under DR-0).**
+- **A-53 — Named tests.** Each of the 89 named tests is classified by what the
+  repository executes: `integral`, `partial` (the part not executed stated),
+  `equivalent` (the equivalence stated), `external` (requires execution against an
+  implementation; the class does not state that it took place) or `absent` (no reference
+  model; the reason stated). A rule cited, or a test ID in a check name, is not by itself
+  evidence of integral execution. CHECK-01..05 are listed apart with their links, without
+  duplicated execution. No new harness model is built. Assets §7 keeps "MUST pass all
+  eight tests" and says the runner executes only the parts identified as executed.
+- **A-64 — Evidence column.** Every MUST, MUST_NOT and REQUIRED row carries an
+  `Evidence` cell with a closed vocabulary that separates documentary reference
+  (`schema-ref`, which asserts no enforcement), structural execution and behavioural
+  execution; a row may carry several tokens; `untested` and `out-of-repo` carry a coded
+  reason and are never evidence of a passed test. The guard checks each token against
+  the executions of the same run. Every row is checked mechanically; the gaps, the
+  runtime-only citations and the obsolete rows are reviewed by hand. The closure is one
+  of traceability: schema references are verified mechanically, without a full semantic
+  review of each schema's ability to enforce each requirement.
+- **Routing §7.4.1 (normative clarification).** When the attestation is required, a
+  missing header gives `service_unavailable` with the residency details; a present header
+  — including an empty one — that fails decoding, JSON, structure or verification gives
+  `unauthorized`. Decoding, the Core §5.2 steps 2–4 checks and the schema precede the
+  signature, in step 2; the envelope's own parsing errors are unchanged.
+- **base64url.** The header is base64url without padding, as an explicit ARSIA rule
+  (RFC 4648 §3.2 otherwise requires padding).
+- **Corpus header.** `version` 2.0.0 for the Draft-02 corpus (incompatible with the
+  1.0.x corpora); `generated` is fixed when the revision is prepared and kept; `$schema`
+  is unchanged; the guard checks this configuration without coupling the corpus and wire
+  majors.
+- **Plan-review adjustments.** R1 the validator returns its observed result per vector
+  for the structural, raw and crypto modes, and every token is checked against it (a
+  negative passes when its rejection is observed); R2 the Evidence obligations apply to
+  mandatory rows, and the 13 Vector cells that held other references are normalised, the
+  two non-mandatory ones to a documentary section; R3/R4 every header negative has a
+  single defect, shown by a decoder that tolerates only that defect, and INV-177 is
+  signed coherently so that only the schema rejects it; R5 the runner sentence and the
+  definition of `external` say what is executed and what requires an implementation.
+  Obsolete RTM rows found during the review are retired or rewritten when the current
+  text demonstrates the obsolescence and no new protocol rule is chosen (owner's bounded
+  authorisation).
+
 ---
 
 ## DR-1 — Authority to require oversight (Q1 → option b)

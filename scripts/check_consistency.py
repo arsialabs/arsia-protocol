@@ -18,12 +18,15 @@ sys.path.insert(0, "scripts")
 from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
 
 FAIL = []
+PASSED = []  # names of the consistency checks passed so far (evidence `check:` tokens may cite them, SC4)
 
 
 def check(name, cond, detail=""):
     print(("ok   " if cond else "FAIL ") + name + (f"  {detail}" if detail and not cond else ""))
     if not cond:
         FAIL.append(name)
+    else:
+        PASSED.append(name)
 
 
 # Rows of the State §7.1 extension table that the schema deliberately does not
@@ -1307,6 +1310,292 @@ def skip_structure_selftest(vectors):
     return r.returncode != 0 and re.search(r"runtime-only: structure-validated\)\s+0\s+1$", r.stdout, re.M) is not None
 
 
+# ---------------------------------------------------------------- SC4: executed evidence (A-53, A-64)
+_HARNESS_RUN = None
+
+
+def harness_run():
+    """One run of scripts/runtime_harness.py (cached): (names of the passing checks, the set of (rule, vector ID)
+    pairs that passing checks declared as consumed — the `# executed <rule> <IDs>` lines)."""
+    global _HARNESS_RUN
+    if _HARNESS_RUN is None:
+        import subprocess
+        run = subprocess.run([sys.executable, "scripts/runtime_harness.py"], capture_output=True, text=True).stdout
+        names = [line[5:].split("  [")[0] for line in run.splitlines() if line.startswith("ok   ")]
+        executed = {(parts[2], vid) for line in run.splitlines() if line.startswith("# executed ")
+                    for parts in [line.split()] for vid in parts[3:]}
+        _HARNESS_RUN = (names, executed)
+    return _HARNESS_RUN
+
+
+def harness_passing():
+    """Names of the harness checks that PASS in one run of scripts/runtime_harness.py."""
+    return harness_run()[0]
+
+
+COUNT_SUFFIX = re.compile(r"^ \(\d+ [a-z]+(?:, \d+ [a-z]+)*\)$")
+
+
+def check_name_matches(name, passed):
+    """A `check:` token names a passing check exactly; the only abbreviation allowed drops a trailing
+    parenthesised count suffix such as ' (3 chains, 7 entries)', which varies with the corpus."""
+    return name in passed or len([n for n in passed if n.startswith(name) and COUNT_SUFFIX.match(n[len(name):])]) == 1
+
+
+RTM_HEADER = ["ID", "§", "Modal", "Layer", "Kind", "Requirement", "Schema", "Vector", "Evidence"]
+RTM_ROW_LINE = re.compile(r"^\| [A-Z]+-§")
+VECTOR_ID = re.compile(r"^(?:ITV|INV|CTV|STV|ATV|ACTV|RTV)-\d+$")
+MANDATORY_MODALS = {"MUST", "MUST_NOT", "REQUIRED"}
+EVIDENCE_CODES = {
+    "out-of-repo": {"transport", "infrastructure", "operator", "external-party", "implementation-internal"},
+    "untested": {"no-reference-model", "integration", "structural-only"},
+}
+EXECUTION_KINDS = ("struct", "raw", "crypto", "exec", "check")
+
+
+def rtm_requirement_rows(paths=None):
+    """Header-driven RTM parser (SC4): the requirement table is the one whose header is RTM_HEADER; every
+    requirement line of a file must belong to it. Returns (rows, problems); rows are dicts keyed by the
+    lower-cased header, plus 'file'."""
+    rows, probs = [], []
+    for f in paths or sorted(glob.glob("docs/rtm/ARSIA-*.rtm.md")):
+        lines = open(f, encoding="utf-8").read().split("\n")
+        header, in_table, n_lines = None, False, 0
+        for line in lines:
+            if RTM_ROW_LINE.match(line):
+                n_lines += 1
+            cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("|") else None
+            if cells == RTM_HEADER:
+                header, in_table = [c.lower() for c in cells], True
+                continue
+            if in_table and cells is not None:
+                if set("".join(cells)) <= set("-: "):
+                    continue
+                if not RTM_ROW_LINE.match(line):
+                    probs.append(f"{f}: non-requirement line inside the requirement table")
+                    continue
+                if len(cells) != len(header):
+                    probs.append(f"{f}: {cells[0]} has {len(cells)} cells, not {len(header)}")
+                    continue
+                rows.append({**dict(zip(header, cells)), "file": f})
+            elif in_table:
+                in_table = False
+        got = sum(1 for r in rows if r["file"] == f)
+        if header is None:
+            probs.append(f"{f}: no requirement table with header {' | '.join(RTM_HEADER)}")
+        if got != n_lines:
+            probs.append(f"{f}: {n_lines} requirement lines, {got} parsed in the table")
+        stated = re.search(r"\| Total requirements \| (\d+) \|", "\n".join(lines))
+        if not stated or int(stated.group(1)) != got:
+            probs.append(f"{f}: Total requirements stated {stated.group(1) if stated else None}, table has {got}")
+    return rows, probs
+
+
+def evidence_tokens(cell):
+    """Split an Evidence cell on '; ' outside backquoted check names."""
+    return [t.strip() for t in re.findall(r"(?:`[^`]*`|[^;`])+", cell) if t.strip()]
+
+
+def token_problems(tok, results, crypto, harness, consistency, schema_cell=None, executed=frozenset()):
+    """Problems of one evidence token against what was executed. results/crypto: per-vector records of
+    validate_vectors (vector_results/crypto_results), keyed by ID; harness/consistency: passing check names;
+    executed: (rule, vector ID) pairs that passing harness checks declared as consumed."""
+    m = re.match(r"^(schema-ref|struct|raw|crypto):(.+)$", tok)
+    if m:
+        kind, arg = m.groups()
+        if kind == "schema-ref":
+            if not os.path.exists(f"schemas/{arg}.schema.json"):
+                return [f"{tok}: no schema file"]
+            if schema_cell is not None and arg not in [s.strip() for s in schema_cell.split(",")]:
+                return [f"{tok}: not in the Schema column"]
+            return []
+        out = []
+        for vid in [x.strip() for x in arg.split(",")]:
+            if kind == "crypto":
+                if not (crypto.get(vid) or {}).get("passed"):
+                    out.append(f"{tok}: {vid} has no passed crypto result")
+            else:
+                r = results.get(vid)
+                if not r or not r.get("approved") or (r.get("format") == "raw") != (kind == "raw"):
+                    out.append(f"{tok}: {vid} has no approved {kind} result")
+        return out
+    m = re.match(r"^exec:(R\d+):(.+)$", tok)
+    if m:
+        rule, ids = m.group(1), [x.strip() for x in m.group(2).split(",")]
+        return [f"{tok}: {vid} not consumed by a passing {rule} check" for vid in ids if (rule, vid) not in executed]
+    m = re.match(r"^check:`([^`]+)`$", tok)
+    if m:
+        if check_name_matches(m.group(1), list(harness) + list(consistency)):
+            return []
+        return [f"{tok}: no single passing check of that name"]
+    m = re.match(r"^(out-of-repo|untested)\(([a-z-]+)\)(?: → (\S+))?$", tok)
+    if m:
+        kind, code, ref = m.groups()
+        if code not in EVIDENCE_CODES[kind]:
+            return [f"{tok}: unknown {kind} code"]
+        if ref and not os.path.exists(ref):
+            return [f"{tok}: reference {ref} does not exist"]
+        return []
+    return [f"{tok}: unknown evidence token"]
+
+
+def rtm_evidence_problems(rows, results, crypto, harness, consistency, executed=frozenset()):
+    """A-64: Evidence of every mandatory row is present and backed by an execution that PASSED; other rows
+    carry '—'; the Vector column holds only vector IDs; every vector a mandatory row cites is represented in an
+    execution token."""
+    out = []
+    for r in rows:
+        rid, vec, ev = r["id"], r["vector"], r["evidence"]
+        cited = [x.strip() for x in vec.split(",")] if vec != "—" else []
+        bad = [x for x in cited if not VECTOR_ID.match(x)]
+        if bad:
+            out.append(f"{rid}: Vector column holds {bad}")
+        if r["modal"] not in MANDATORY_MODALS:
+            if ev != "—":
+                out.append(f"{rid}: {r['modal']} row with Evidence {ev[:40]!r}")
+            continue
+        toks = evidence_tokens(ev) if ev not in ("", "—") else []
+        if not toks:
+            out.append(f"{rid}: mandatory row without Evidence")
+            continue
+        represented = set()
+        for t in toks:
+            out += [f"{rid}: {p}" for p in token_problems(t, results, crypto, harness, consistency, r["schema"], executed)]
+            m = re.match(r"^(struct|raw|crypto|exec:R\d+):(.+)$", t)
+            if m:
+                represented |= {x.strip() for x in m.group(2).split(",")}
+        missing = [x for x in cited if VECTOR_ID.match(x) and x not in represented]
+        if missing:
+            out.append(f"{rid}: cited vectors without an execution token: {missing}")
+    return out
+
+
+def rtm_evidence_selftest():
+    """The A-64 guard rejects each defect shape and accepts a sound row."""
+    results = {"ITV-90001": {"approved": True, "format": "schema-ref"}, "ITV-90002": {"approved": False, "format": "schema-ref"}}
+    crypto = {"ITV-90001": {"passed": True}, "ITV-90003": {"passed": False}}
+    harness = ["R22 (a) ITV-90001 is accept", "R2 ITV-90002 MIFID P365D rejected", "R6 envelope wins",
+               "DR-5 chained vectors recompute and verify (3 chains, 7 entries)"]
+    executed = {("R22", "ITV-90001")}
+    def row(rid, ev, vec="—", schema="—", modal="MUST"):
+        return {"id": rid, "modal": modal, "vector": vec, "schema": schema, "evidence": ev}
+    rows = [row("A", "—"),                                            # mandatory without evidence
+            row("B", "exec:R22:ITV-90002", "ITV-90002"),                      # vector not executed by the rule
+            row("C", "struct:ITV-90002", "ITV-90002"),                        # structural result not approved
+            row("D", "crypto:ITV-90003"),                                 # crypto result not passed
+            row("E", "foo:bar"),                                      # unknown token
+            row("F", "schema-ref:arsia-message"),                     # schema not in the Schema column
+            row("G", "untested(something)"),                          # untested without a legend code
+            row("H", "struct:ITV-90001", "ITV-90001, DR-5"),                  # non-vector item in the Vector column
+            row("I", "schema-ref:arsia-message; struct:ITV-90001; exec:R22:ITV-90001; crypto:ITV-90001; "
+                     "check:`R22 (a) ITV-90001 is accept`", "ITV-90001", "arsia-message"),   # sound
+            row("J", "struct:ITV-90001", modal="SHOULD"),                 # non-mandatory row with Evidence
+            row("K", "exec:R2:ITV-90002"),                               # ID only in a check name, never consumed
+            row("L", "check:`R6 envelope`"),                             # truncated check name
+            row("M", "check:`DR-5 chained vectors recompute and verify`")]  # count suffix dropped: allowed
+    flagged = {p.split(":")[0] for p in rtm_evidence_problems(rows, results, crypto, harness, [], executed)}
+    return flagged == {"A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L"}, sorted(flagged)
+
+
+CONFORMANCE_DOC = "docs/draft-02-conformance-tests.md"
+CONFORMANCE_CLASSES = {"integral", "partial", "equivalent", "external", "absent"}
+NAMED_TEST = re.compile(r"^#{3,4} (?:Test )?((?:ACTIONS|IDENTITY|ROUTING|STATE|ASSETS|CORE-COMPLIANCE)-\d+)", re.M)
+
+
+def conformance_problems(doc, spec_ids, results, crypto, harness, consistency, executed=frozenset()):
+    """A-53: one row per named test of the specs, a class from the closed vocabulary, every evidence token
+    backed by a passing execution; partial names its gap, equivalent its equivalence, external/absent claim
+    no execution and give the reason; CHECK-01..05 listed apart with valid evidence."""
+    out, seen, checks = [], [], []
+    for line in doc.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("| ") else []
+        if cells and re.match(r"^(?:ACTIONS|IDENTITY|ROUTING|STATE|ASSETS|CORE-COMPLIANCE)-\d+$", cells[0]):
+            if len(cells) != 6:
+                out.append(f"{cells[0]}: {len(cells)} cells, not 6")
+                continue
+            tid, _sec, cls, exercised, ev, gap = cells
+            seen.append(tid)
+            if cls not in CONFORMANCE_CLASSES:
+                out.append(f"{tid}: class {cls!r}")
+                continue
+            toks = evidence_tokens(ev) if ev != "—" else []
+            for t in toks:
+                out += [f"{tid}: {p}" for p in token_problems(t, results, crypto, harness, consistency, None, executed)]
+            executes = [t for t in toks if t.split(":")[0] in EXECUTION_KINDS]
+            if cls in ("integral", "partial", "equivalent") and not executes:
+                out.append(f"{tid}: {cls} without an execution token")
+            if cls == "partial" and gap in ("", "—"):
+                out.append(f"{tid}: partial without the part not executed")
+            if cls == "equivalent" and "Equivalence:" not in exercised:
+                out.append(f"{tid}: equivalent without the equivalence stated")
+            if cls in ("external", "absent") and (toks or gap in ("", "—")):
+                out.append(f"{tid}: {cls} must claim no execution and give the reason")
+        elif cells and re.match(r"^CHECK-0[1-5]$", cells[0]):
+            checks.append(cells[0])
+            for t in (evidence_tokens(cells[-2]) if len(cells) >= 2 and cells[-2] != "—" else []):
+                out += [f"{cells[0]}: {p}" for p in token_problems(t, results, crypto, harness, consistency, None,
+                                                                 executed)]
+    dupes = sorted({t for t in seen if seen.count(t) > 1})
+    if dupes:
+        out.append(f"duplicate rows {dupes}")
+    if sorted(set(seen)) != sorted(spec_ids):
+        out.append(f"tests missing {sorted(set(spec_ids) - set(seen))[:5]} extra {sorted(set(seen) - set(spec_ids))[:5]}")
+    if sorted(checks) != [f"CHECK-0{i}" for i in range(1, 6)]:
+        out.append(f"CHECK rows {checks}")
+    if "## Summary" in doc:
+        counts = {c: 0 for c in CONFORMANCE_CLASSES}
+        for line in doc.splitlines():
+            cells = [c.strip() for c in line.strip().strip("|").split("|")] if line.startswith("| ") else []
+            if len(cells) == 6 and re.match(r"^(?:ACTIONS|IDENTITY|ROUTING|STATE|ASSETS|CORE-COMPLIANCE)-\d+$", cells[0]) \
+                    and cells[2] in counts:
+                counts[cells[2]] += 1
+        stated = dict(re.findall(r"^\| (\w+) \| (\d+) \|$", doc.split("## Summary", 1)[1], re.M))
+        if any(int(stated.get(c, -1)) != n for c, n in counts.items()):
+            out.append(f"summary {stated} != computed {counts}")
+    return out
+
+
+def conformance_selftest():
+    """The A-53 guard rejects each defect shape."""
+    results = {"SYN-1": {"approved": True, "format": "schema-ref"}, "SYN-2": {"approved": False, "format": "schema-ref"}}
+    harness = ["R15 SYN-1 result matches its stated expectation", "R2 SYN-3 MIFID P365D rejected"]
+    executed = {("R15", "SYN-1")}
+    checks = "".join(f"| CHECK-0{i} | — | — | — | — |\n" for i in range(1, 6))
+    def doc(*rows):
+        return "".join(f"| {' | '.join(r)} |\n" for r in rows) + checks
+    good = ("ACTIONS-01", "§", "integral", "all", "exec:R15:SYN-1", "—")
+    cases = {
+        "integral with a check never run": doc(("ACTIONS-01", "§", "integral", "all", "check:`R99 not run`", "—")),
+        "integral with a check only in the source": doc(("ACTIONS-01", "§", "integral", "all", "exec:R15:SYN-2", "—")),
+        "vector cited without approved result": doc(("ACTIONS-01", "§", "partial", "x", "struct:SYN-2", "y")),
+        "partial without its gap": doc(("ACTIONS-01", "§", "partial", "x", "exec:R15:SYN-1", "—")),
+        "spec test missing": doc(good),
+        "exec of a vector only named by a check": doc(("ACTIONS-01", "§", "partial", "x", "exec:R2:SYN-3", "y")),
+    }
+    out = []
+    for name, d in cases.items():
+        ids = ["ACTIONS-01"] if name != "spec test missing" else ["ACTIONS-01", "ACTIONS-02"]
+        if not conformance_problems(d, ids, results, {}, harness, [], executed):
+            out.append(f"self-test case not detected: {name}")
+    if conformance_problems(doc(good), ["ACTIONS-01"], results, {}, harness, [], executed):
+        out.append("self-test control rejected")
+    return out
+
+
+CORPUS_VERSION = "2.0.0"   # the Draft-02 corpus, for wire 2.0 (SC4); inherited 1.0.0 / 1.0.1 do not satisfy it
+
+
+def corpus_header_problems(doc):
+    out = []
+    if doc.get("version") != CORPUS_VERSION:
+        out.append(f"corpus version {doc.get('version')!r}, the Draft-02 corpus is {CORPUS_VERSION}")
+    if doc.get("generated") in (None, "2026-04-10T00:00:00.000Z"):
+        out.append(f"generated {doc.get('generated')!r} describes the Draft-01 corpus")
+    if doc.get("$schema") != "https://arsiaprotocol.org/schemas/test-vectors/v1.0.json":
+        out.append("$schema changed")
+    return out
+
+
 def main() -> int:
     from jsonschema import Draft202012Validator
 
@@ -1689,12 +1978,10 @@ def main() -> int:
                     flagged.append((rid, rjd, f"values {sorted(vals ^ vj)[:4]}"))
         return flagged
 
-    rtm_row = re.compile(
-        r"^\|\s*([A-Z]+-§[^|]+?)\s*\|\s*[^|]*\|\s*([A-Z_]+)\s*\|[^|]*\|[^|]*\|\s*([^|]+?)\s*\|[^|]*\|[^|]*\|\s*$",
-        re.M)
-    rtm_rows = []
-    for f in sorted(glob.glob("docs/rtm/*.rtm.md")):
-        rtm_rows += rtm_row.findall(open(f, encoding="utf-8").read())
+    parsed_rows, parse_probs = rtm_requirement_rows()
+    check("RTM requirement tables parsed by header: every requirement line read, totals stated (SC4)",
+          not parse_probs and len(parsed_rows) > 0, "; ".join(parse_probs[:4]))
+    rtm_rows = [(r["id"], r["modal"], r["requirement"]) for r in parsed_rows]
 
     # self-test: the detector MUST flag known drift shapes (guards against dead check)
     synth = [
@@ -1707,6 +1994,10 @@ def main() -> int:
     check("RTM drift linter self-test (detects value + modal drift)", len(st) == 2,
           f"expected 2 synthetic flags, got {len(st)}: {st}")
 
+    n_lines = sum(1 for f in sorted(glob.glob("docs/rtm/ARSIA-*.rtm.md"))
+                  for line in open(f, encoding="utf-8") if RTM_ROW_LINE.match(line))
+    check("RTM drift linter reads every requirement row (a table-format change cannot silence it)",
+          len(rtm_rows) == n_lines and n_lines > 0, f"linter rows {len(rtm_rows)}, requirement lines {n_lines}")
     flagged = drift_pairs(rtm_rows)
     check("RTM cross-document drift (near-identical requirements, diverging modal/values)",
           not flagged,
@@ -1806,6 +2097,28 @@ def main() -> int:
           "; ".join(probs[:4]))
     probs = policy_identity_problems(vectors)
     check("(gateway, policy_version) -> one policy digest (Identity §8.1)", not probs, "; ".join(probs[:4]))
+
+    # SC4 (A-53, A-64): evidence is checked against what was executed and passed
+    import validate_vectors as vv
+    corpus = strict_load("test-vectors/arsia-test-vectors.json")
+    probs = corpus_header_problems(corpus)
+    check("test-vector corpus header: Draft-02 corpus 2.0.0 (wire 2.0), generated set, $schema kept (SC4)",
+          not probs, "; ".join(probs))
+    results = {r["id"]: r for r in vv.vector_results(corpus, True)}
+    crypto = {r["id"]: r for r in vv.crypto_results(corpus)}
+    harness, executed = harness_run()
+    ok, flagged = rtm_evidence_selftest()
+    check("RTM evidence guard self-test: each defect shape reported, sound row accepted (A-64)", ok, str(flagged))
+    probs = rtm_evidence_problems(parsed_rows, results, crypto, harness, list(PASSED), executed)
+    check("RTM Evidence: every mandatory row mapped to passed executions or a coded disposition (A-64)",
+          not probs, "; ".join(probs[:4]))
+    probs = conformance_selftest()
+    check("conformance classification guard self-test (A-53)", not probs, "; ".join(probs))
+    spec_ids = [m for f in sorted(glob.glob("spec/*.md")) for m in NAMED_TEST.findall(open(f, encoding="utf-8").read())]
+    probs = conformance_problems(open(CONFORMANCE_DOC, encoding="utf-8").read() if os.path.exists(CONFORMANCE_DOC)
+                                 else "", spec_ids, results, crypto, harness, list(PASSED), executed)
+    check(f"named conformance tests ({len(spec_ids)}) classified with executed evidence; CHECK-01..05 apart (A-53)",
+          not probs, "; ".join(probs[:4]))
 
     print()
     print(f"{'ALL CHECKS PASSED' if not FAIL else f'{len(FAIL)} FAILURES: ' + ', '.join(FAIL)}")

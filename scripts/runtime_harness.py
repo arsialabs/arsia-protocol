@@ -69,10 +69,15 @@ from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: arti
 FAIL = []
 
 
-def check(name, cond, detail=""):
+def check(name, cond, detail="", executed=()):
+    """`executed`: the IDs of the corpus vectors whose content this check consumed. A passing check prints
+    them as `# executed <rule> <IDs>` — the record the RTM and conformance `exec:` tokens are verified
+    against (coverage SC4): a vector ID in a check's name is not evidence that the vector was read."""
     print(("ok   " if cond else "FAIL ") + name + (f"  [{detail}]" if detail and not cond else ""))
     if not cond:
         FAIL.append(name)
+    elif executed:
+        print(f"# executed {name.split()[0]} {' '.join(executed)}")
 
 
 # ---------------------------------------------------------------- R1 calendar
@@ -971,7 +976,7 @@ def r10(vectors):
     for v in with_meta:
         got = scenario_result(v["test_metadata"])
         miss = subset_match(v["test_metadata"]["expect"], got)
-        check(f"R10 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R10 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         errs = [e for r in got["emitted"] for e in schema_errors(r, "arsia-audit-record.schema.json")]
         emitted += len(got["emitted"])
         check(f"R10 {v['id']} every emitted record is schema-valid", not errs, "; ".join(errs[:3]))
@@ -1785,7 +1790,7 @@ def r15(vectors):
     for v in with_meta:
         got = execution_case(v["test_metadata"]["input"])
         miss = subset_match(v["test_metadata"]["expect"], got)
-        check(f"R15 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R15 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         errs = [e for r in got["emitted"] for e in schema_errors(r, "arsia-audit-record.schema.json")]
         errs += [e for m in got["messages"] for e in schema_errors(m, "arsia-message.schema.json")]
         check(f"R15 {v['id']} emitted messages and records are schema-valid", not errs, "; ".join(errs[:3]))
@@ -2047,7 +2052,7 @@ def r13(vectors=()):
                 for m in subset_match(e, g)]
         if len(got) != len(v["test_metadata"]["expect"]["steps"]):
             miss.append("step count")
-        check(f"R13 {v['id']} steps match their stated expectation", not miss, ", ".join(miss))
+        check(f"R13 {v['id']} steps match their stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
 
 
 # --------------------------------------------------------- R14 audit hash chain
@@ -2124,19 +2129,19 @@ def r14(vectors):
         c[pos - 1] = dict(by_id[vid]["data"])
         return c
 
-    def expect_fail(name, entries, hd, reason):
+    def expect_fail(name, entries, hd, reason, executed=()):
         ok, why, _ = verify_chain(entries, hd)
-        check(name, ok is False and why == reason, f"got ({ok}, {why})")
+        check(name, ok is False and why == reason, f"got ({ok}, {why})", executed=executed)
 
     ok, why, rep_ = verify_chain(chain, head)
     check("R14 (a) valid chain of 4 records + 1 tombstone verifies (ITV-592..596)",
-          ok and rep_["tombstones"] == [4] and rep_["beyond_head"] == [], f"{why} {rep_}")
+          ok and rep_["tombstones"] == [4] and rep_["beyond_head"] == [], f"{why} {rep_}", executed=seq_ids)
     one = dict(by_id["ITV-95"]["data"])
     check("R14 (a) single-entry chain ITV-95 verifies",
-          verify_chain([one], (one["chain_id"], 1, one["hash_chain"]))[0])
+          verify_chain([one], (one["chain_id"], 1, one["hash_chain"]))[0], executed=["ITV-95"])
     tampered = sub(2, "ITV-597")
     expect_fail("R14 (b) approver_id changed (ITV-597) rejected: chain value mismatch", tampered, head,
-                "chain value mismatch")
+                "chain value mismatch", executed=["ITV-597"] + seq_ids)
     old = lambda r: __import__("hashlib").sha256((r["record_id"] + r["payload_hash"]).encode()).hexdigest()
     check("R14 (b) pre-DR-5 construction blind to the same change (A-8 reproduction)",
           old(chain[1]) == old(tampered[1]) and chain[1]["approver_id"] != tampered[1]["approver_id"])
@@ -2146,7 +2151,8 @@ def r14(vectors):
     swapped[0]["chain_seq"], swapped[1]["chain_seq"] = 2, 1
     expect_fail("R14 (d) two records reordered rejected: chain value mismatch", swapped, head,
                 "chain value mismatch")
-    expect_fail("R14 (e) foreign chain_id (ITV-598) rejected", sub(3, "ITV-598"), head, "foreign chain_id")
+    expect_fail("R14 (e) foreign chain_id (ITV-598) rejected", sub(3, "ITV-598"), head, "foreign chain_id",
+                executed=["ITV-598"] + seq_ids)
     no_chain = {k: v for k, v in chain[1].items() if k not in CHAIN_FIELDS}
     check("R14 (f) Compliance-level record without chain fields fails the mandate",
           chain_mandate_ok(no_chain, "compliance") is False)
@@ -2158,7 +2164,7 @@ def r14(vectors):
     check("R14 (f) partial chain fields fail at every level",
           not any(chain_mandate_ok(partial, lv) for lv in ("core", "compliance", "full")))
     expect_fail("R14 (g) tombstone previous value wrong (ITV-599) rejected", sub(4, "ITV-599"), head,
-                "tombstone previous value mismatch")
+                "tombstone previous value mismatch", executed=["ITV-599"] + seq_ids)
     expect_fail("R14 (h) head value mismatch rejected", chain, (head[0], 5, "0" * 64), "head mismatch")
     ok, why, rep_ = verify_chain(chain, (head[0], 3, chain[2]["hash_chain"]))
     check("R14 entries beyond the held head are reported, not rejected",
@@ -2207,7 +2213,7 @@ def r16(vectors):
     for v in timed:
         got = timing(v["message"], v["test_metadata"]["input"]["recipient_time"], v.get("posture"))
         miss = subset_match(v["test_metadata"]["expect"], got)
-        check(f"R16 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R16 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         rejected = got["outcome"] == "rejected"
         check(f"R16 {v['id']} outcome agrees with the vector's valid/expected_error",
               rejected is (v["valid"] is False) and (not rejected or v["expected_error"] == "invalid_request"))
@@ -2478,7 +2484,7 @@ def r17(vectors):
     for v in sv:
         got = state_case(v["test_metadata"]["input"])
         miss = subset_match(v["test_metadata"]["expect"], got)
-        check(f"R17 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R17 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         check(f"R17 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
 
 
@@ -2613,7 +2619,7 @@ def r18(vectors):
             continue
         got = state_case(v["test_metadata"]["input"])
         miss = subset_match(v["test_metadata"]["expect"], got)
-        check(f"R18 {v['id']} result matches its stated expectation", not miss, ", ".join(miss))
+        check(f"R18 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         check(f"R18 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
 
 
@@ -3240,7 +3246,7 @@ def r21(vectors):
              and "presented_token" not in v.get("test_metadata", {}).get("input", {})]
     bad = [v["id"] for v in bound if token_binding(envelope(v), f"synthetic-token:{v['id']}") != "accept"]
     check("R21 (a) every authorization binding of the corpus matches its synthetic-token:<ID> (binding only)",
-          len(bound) >= 40 and not bad, f"{len(bound)} bound, mismatches {bad[:4]}")
+          len(bound) >= 40 and not bad, f"{len(bound)} bound, mismatches {bad[:4]}", executed=[v["id"] for v in bound])
     # (b) token_binding scenarios reproduce their declared result
     sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "token_binding"]
     check("R21 token_binding scenario vectors present (accept and unauthorized)",
@@ -3248,7 +3254,7 @@ def r21(vectors):
     for v in sc:
         got = token_binding(envelope(v), v["test_metadata"]["input"]["presented_token"])
         check(f"R21 (b) {v['id']} binding result is {v['test_metadata']['expect']['result']}",
-              got == v["test_metadata"]["expect"]["result"], got)
+              got == v["test_metadata"]["expect"]["result"], got, executed=[v["id"]])
     # (c) synthetic: exact octets
     token = "eyJhbGciOiJFZERTQSJ9.MixedCase-Token.Sig"
     env = {"authorization": {"token_hash": "sha-256:" + __import__("hashlib").sha256(token.encode()).hexdigest(),
@@ -3306,25 +3312,123 @@ def verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, 
     return ("accept", None)
 
 
+ATTESTATION_HEADER_ALPHABET = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def decode_attestation_header(value):
+    """Routing §7.4.1 step 2, decoding: base64url without padding, then Core §5.2 steps 2-4 on the
+    decoded octets, then the attestation schema. Returns (attestation, None) or (None, reason); never
+    raises. A failure here is a step 2 failure (unauthorized), never invalid_request."""
+    import base64
+    import validate_vectors as vv
+    if not isinstance(value, str) or value == "":
+        return None, "empty header value"
+    if not ATTESTATION_HEADER_ALPHABET.match(value):
+        return None, "character outside the base64url alphabet (padding included)"
+    if len(value) % 4 == 1:
+        return None, "length does not decode to whole octets"
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    except Exception as exc:  # noqa: BLE001 - any decoding failure is a controlled rejection
+        return None, f"base64url: {exc}"
+    # Untrusted input: any failure while parsing or validating it is a controlled step 2 rejection, never an
+    # exception — including what the parse accepts but later processing cannot handle (a JSON integer beyond
+    # Python's digit limit reaching an error message, nesting deeper than the recursion limit).
+    try:
+        att = vv.strict_json(raw)
+    except vv.JsonRejected as exc:
+        return None, f"Core §5.2 {exc}"
+    except (ValueError, RecursionError, MemoryError) as exc:
+        return None, f"decoded content not processable: {type(exc).__name__}"
+    try:
+        if schema_errors(att, "arsia-relay-attestation.schema.json"):
+            return None, "attestation schema"
+    except (ValueError, RecursionError, MemoryError) as exc:
+        return None, f"attestation schema not evaluable: {type(exc).__name__}"
+    return att, None
+
+
+def receive_attestation(header, envelope, presented_token, broker_entry, jwks, now, seen):
+    """Routing §7.4.1 recipient verification with the header as received (None = header absent).
+    Returns (result, step) or, for step 1, (result, 1, details)."""
+    zone = (envelope.get("compliance") or {}).get("data_residency")
+    if zone is None:
+        return ("not_required", None)
+    if header is None:
+        return ("service_unavailable", 1, {"data_residency_violation": True, "required_zone": zone})
+    att, _reason = decode_attestation_header(header)
+    if att is None:
+        return ("unauthorized", 2)
+    return verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, seen)
+
+
+def b64url_nopad(raw):
+    import base64
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def derived_header(att):
+    """The header of an attestation vector that states none: base64url without padding of the compact
+    JSON serialization of its data."""
+    return b64url_nopad(json.dumps(att, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+
+
+def permissive_decode(header, kind):
+    """R22 (f) controls: a decoder that tolerates exactly one defect. The attestation it returns must be
+    accepted, which shows that defect is the only cause of the rejection."""
+    import base64
+    import validate_vectors as vv
+    if kind == "strip-padding":
+        return vv.strict_json(base64.urlsafe_b64decode(header.rstrip("=") + "=" * (-len(header.rstrip("=")) % 4)))
+    if kind == "standard-alphabet":
+        return vv.strict_json(base64.b64decode(header + "=" * (-len(header) % 4)))
+    if kind == "drop-last":
+        h = header[:-1]
+        return vv.strict_json(base64.urlsafe_b64decode(h + "=" * (-len(h) % 4)))
+    if kind == "last-wins":
+        return json.loads(base64.urlsafe_b64decode(header + "=" * (-len(header) % 4)))
+    if kind == "no-schema":
+        return vv.strict_json(base64.urlsafe_b64decode(header + "=" * (-len(header) % 4)))
+    raise ValueError(kind)
+
+
 def r22(vectors):
     sys.path.insert(0, "scripts")
     import validate_vectors as vv
     from regen_v2 import signing_input_v2
     sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "attestation"]
-    check("R22 attestation scenario vectors present (accept and unauthorized)",
-          {v["test_metadata"]["expect"]["result"] for v in sc} == {"accept", "unauthorized"}, str(len(sc)))
-    run = lambda v, **over: verify_attestation(
-        over.get("att", v["data"]), **{k: over.get(k, v["test_metadata"]["input"][k])
-                                       for k in ("envelope", "presented_token", "broker_entry", "jwks", "now", "seen")})
+    check("R22 attestation scenario vectors present (accept, unauthorized, service_unavailable, not_required)",
+          {v["test_metadata"]["expect"]["result"] for v in sc}
+          == {"accept", "unauthorized", "service_unavailable", "not_required"}, str(len(sc)))
+    ATT = "arsia-relay-attestation.schema.json"
+    KEYS = ("presented_token", "broker_entry", "jwks", "now", "seen")
+
+    def delivered(v):
+        """(header, envelope) as the recipient receives them: an attestation vector carries the attestation
+        in data and the envelope in its input; an envelope vector carries the envelope in data and the
+        header (null = absent) in its input."""
+        inp = v["test_metadata"]["input"]
+        if v["schema_ref"] == ATT:
+            return inp.get("attestation_header", derived_header(v["data"])), inp["envelope"]
+        return inp["attestation_header"], v["data"]
+
+    def run(v, **over):
+        inp = v["test_metadata"]["input"]
+        header, envelope = delivered(v)
+        if "att" in over:
+            header = derived_header(over["att"])
+        return receive_attestation(over.get("header", header), envelope, **{k: over.get(k, inp[k]) for k in KEYS})
+
     for v in sc:
         exp = v["test_metadata"]["expect"]
         got = run(v)
+        want = (exp["result"], exp.get("step")) + ((exp["details"],) if "details" in exp else ())
         check(f"R22 (a) {v['id']} is {exp['result']}" + (f" at step {exp['step']}" if exp.get("step") else ""),
-              got == (exp["result"], exp.get("step")), str(got))
+              got == want, str(got), executed=[v["id"]])
     # (b) negatives of binding, window, authorisation and replay keep a valid signature: their cause is the intended one
     for v in sc:
         exp = v["test_metadata"]["expect"]
-        if exp["result"] == "unauthorized" and exp.get("step") in (3, 4, 5):
+        if exp["result"] == "unauthorized" and exp.get("step") in (3, 4, 5) and v["schema_ref"] == ATT:
             a, keys = v["data"], {k["kid"]: k["public_key_hex"] for k in v["test_metadata"]["input"]["jwks"]}
             try:
                 vv._verify_signature(a["security"]["alg"], bytes.fromhex(keys[a["security"]["kid"]]),
@@ -3351,6 +3455,56 @@ def r22(vectors):
     check("R22 (d) envelope_hash is over the complete signed envelope (security.sig included), not the signing input",
           good["data"]["envelope_hash"] != "sha-256:" + hashlib.sha256(rfc8785.dumps(without_sig)).hexdigest()
           and run(good) == ("accept", None))
+    # (e) an attestation vector that states no header is delivered with the derived header, and that header
+    # decodes to exactly its data
+    for v in sc:
+        if v["schema_ref"] == ATT and "attestation_header" not in v["test_metadata"]["input"]:
+            att, why = decode_attestation_header(derived_header(v["data"]))
+            check(f"R22 (e) {v['id']} derived header decodes to exactly its attestation", att == v["data"], str(why))
+    # (f) each header negative has exactly one defect: a decoder tolerating only that defect recovers an
+    # attestation that is accepted
+    by_id = {v["id"]: v for v in sc}
+    for v in sc:
+        kind = v["test_metadata"]["input"].get("permissive")
+        if not kind:
+            continue
+        header, envelope = delivered(v)
+        inp = v["test_metadata"]["input"]
+        try:
+            att = permissive_decode(header, kind)
+            got = verify_attestation(att, envelope, **{k: inp[k] for k in KEYS})
+        except Exception as exc:  # noqa: BLE001
+            got = ("exception", str(exc)[:80])
+        check(f"R22 (f) {v['id']} has a single defect: the {kind} decoder recovers an accepted attestation",
+              got == ("accept", None), str(got))
+    # (g) the decoder itself, on pairs that decode to structurally valid attestations
+    pairs = []
+    if {"INV-174", "INV-173", "INV-175", "ITV-711"} <= set(by_id):
+        h174, h173 = delivered(by_id["INV-174"])[0], delivered(by_id["INV-173"])[0]
+        import base64
+        pairs = [("standard alphabet", h174, b64url_nopad(base64.b64decode(h174 + "=" * (-len(h174) % 4)))),
+                 ("padding", h173, h173.rstrip("=")),
+                 ("impossible length", delivered(by_id["INV-175"])[0], delivered(by_id["ITV-711"])[0])]
+    check("R22 (g) decoder control pairs present (INV-173, INV-174, INV-175, ITV-711)", len(pairs) == 3)
+    for name, bad, good_h in pairs:
+        try:
+            rb, rg = decode_attestation_header(bad), decode_attestation_header(good_h)
+            ok = rb[0] is None and rg[0] is not None
+        except Exception as exc:  # noqa: BLE001
+            ok, rb = False, (None, f"exception {exc}")
+        check(f"R22 (g) decoder: {name} rejected without exception, its corrected form accepted", ok, str(rb[1]))
+    # (h) decoded content that the parse accepts or the interpreter cannot process: a controlled step 2 rejection
+    good_v = next((v for v in sc if v["id"] == "ITV-711"), None)
+    if good_v is not None:
+        inp, env = good_v["test_metadata"]["input"], good_v["data"]
+        hostile = {"a 5000-digit integer member": b'{"v":' + b"9" * 5000 + b"}",
+                   "nesting 100000 levels deep": b"[" * 100000 + b"]" * 100000}
+        for name, raw in hostile.items():
+            try:
+                got = receive_attestation(b64url_nopad(raw), env, **{k: inp[k] for k in KEYS})
+            except Exception as exc:  # noqa: BLE001
+                got = ("exception", type(exc).__name__)
+            check(f"R22 (h) header with {name}: unauthorized at step 2, no exception", got == ("unauthorized", 2), str(got))
 
 
 def main() -> int:

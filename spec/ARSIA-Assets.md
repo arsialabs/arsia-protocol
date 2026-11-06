@@ -2422,10 +2422,13 @@ the audit record's metadata.
 ## 7. Assets Conformance Tests
 
 This section defines eight conformance tests for the Assets primitive. Implementations
-claiming conformance with this specification MUST pass all eight tests. Test execution
-is performed by the in-repo conformance runner (ARSIA-Core.md §12.3: `scripts/`
-validators and runtime harness, versioned with this repository — no external,
-unversioned package is part of the conformance criteria).
+claiming conformance with this specification MUST pass all eight tests. The in-repo
+conformance runner (ARSIA-Core.md §12.3: `scripts/` validators and runtime harness,
+versioned with this repository — no external, unversioned package is part of the
+conformance criteria) executes only the test parts identified as executed in
+`docs/draft-02-conformance-tests.md`. That document records the exercised
+preconditions, actions and expected results, and the remaining requirements. Parts not
+executed by the runner remain conformance requirements.
 
 Each test specifies a unique identifier, a human-readable description, preconditions,
 the action to perform, and the expected result.
