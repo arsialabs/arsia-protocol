@@ -2011,6 +2011,167 @@ def single_cause_selftest(vectors, catalog, registry):
     return out
 
 
+# ---------------------------------------------------------------- cycle F (pre-release repository defects)
+SPDX_EXEMPT = {"LICENSE.md"}  # the licensing notice itself: it states several licences by path and its copyright line
+SPDX_LINES = ("<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->",
+              "<!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->")
+
+
+NO_FLOOR_CELL = re.compile(r"^None \(no floor\b[^`]*\)$")  # the explicit "no floor" text, with no duration in it
+DURATION_CELL = re.compile(r"^`(P[0-9YMD]+)`(?: \([^`]*\))?$")  # a backticked duration, optionally qualified
+
+
+def retention_cell_problem(name, floor, cell):
+    """One profiles README Retention cell against the catalog floor: a non-null floor needs the backticked equal
+    duration; a null floor needs the explicit "None (no floor ...)" text. A failed extraction never counts as a
+    match, so a bare or wrong duration in a no-floor row is a mismatch."""
+    cell = cell.strip()
+    if floor is None:
+        return None if NO_FLOOR_CELL.match(cell) and not re.search(r"P\d", cell) else \
+            f"profiles/README.md {name}: retention '{cell}' is not the explicit no-floor text (catalog null)"
+    m = DURATION_CELL.match(cell)
+    return None if m and m.group(1) == floor else f"profiles/README.md {name}: retention '{cell}' != catalog {floor}"
+
+
+def retention_cell_selftest():
+    """Regression: the no-floor row with a duration (bare or backticked) is rejected; the sound cells pass."""
+    cases = [("GDPR-STANDARD", None, "P365D", False), ("GDPR-STANDARD", None, "`P365D`", False),
+             ("GDPR-STANDARD", None, "", False), ("GDPR-STANDARD", None, "None (no floor; per operator)", True),
+             ("EU-AI-ACT-HIGH-RISK", "P6M", "180 days", False), ("EU-AI-ACT-HIGH-RISK", "P6M", "`P90D`", False),
+             ("EU-AI-ACT-HIGH-RISK", "P6M", "`P6M` (six calendar months)", True)]
+    return [f"retention cell self-test: {n} {c!r} {'rejected' if ok else 'accepted'}" for n, f, c, ok in cases
+            if (retention_cell_problem(n, f, c) is None) != ok]
+
+
+def github_slug(heading):
+    """GitHub's heading anchor: lower case, punctuation other than '-' and '_' dropped, spaces to '-'."""
+    return re.sub(r"[^\w\- ]", "", heading.strip().lower()).replace(" ", "-")
+
+
+def repository_text_problems():
+    """Cycle F (F1-F4): every Markdown file at the root, in spec/ and in docs/ opens with the SPDX/Copyright pair
+    (LICENSE.md excepted); the profiles README retention column equals each profile's retention_minimum; every
+    internal anchor of the six specs resolves to a heading; an RFC section is cited with the bracketed RFC."""
+    out = []
+    md = sorted(set(glob.glob("*.md") + glob.glob("spec/*.md") + glob.glob("docs/**/*.md", recursive=True)))
+    for f in md:
+        if os.path.basename(f) in SPDX_EXEMPT and os.path.dirname(f) == "":
+            continue
+        lines = open(f, encoding="utf-8").read().splitlines()
+        if tuple(lines[:2]) != SPDX_LINES:
+            out.append(f"{f}: no SPDX/Copyright header")
+    cat = strict_load("profiles/arsia-compliance-profiles.json")["profiles"]
+    rows = {m.group(1): m.group(2) for m in re.finditer(r"^\| `([A-Z0-9-]+)` \|[^|]*\| ([^|]+) \|", open("profiles/README.md", encoding="utf-8").read(), re.M)}
+    if set(rows) != set(cat):
+        out.append(f"profiles/README.md lists {sorted(rows)}, the catalog {sorted(cat)}")
+    for name, p in cat.items():
+        prob = retention_cell_problem(name, p["defaults"].get("retention_minimum"), rows.get(name, ""))
+        if prob:
+            out.append(prob)
+    out += retention_cell_selftest()
+    for f in sorted(glob.glob("spec/*.md")):
+        text = open(f, encoding="utf-8").read()
+        heads, seen = set(), {}
+        for h in re.findall(r"^#{1,6} (.+)$", text, re.M):
+            slug = github_slug(h)
+            heads.add(slug if slug not in seen else f"{slug}-{seen[slug]}")
+            seen[slug] = seen.get(slug, 0) + 1
+        out += [f"{f}: anchor #{a} resolves to no heading" for a in re.findall(r"\]\(#([^)]+)\)", text) if a not in heads]
+        for i, line in enumerate(text.splitlines(), 1):
+            if re.search(r"(?<!\[)RFC ?\d{3,5} §", line):
+                out.append(f"{f}:{i}: RFC section cited without the bracketed RFC")
+    return out
+
+
+ANNOUNCED_CODE = re.compile(r"MUST be rejected (?:at runtime )?with (?:error code )?[`'\"]?([a-z_]+)")
+
+
+def runtime_expectation_problems(vectors):
+    """Cycle F (F6): a runtime-only vector whose description announces "MUST be rejected with <code>" (or "with
+    error code '<code>'") carries an expected_error that starts with that code; `expected`/`valid` stay structural."""
+    out = []
+    for v in vectors:
+        m = ANNOUNCED_CODE.search(v.get("description", ""))
+        if v.get("skip_schema") and m and not str(v.get("expected_error") or "").startswith(m.group(1)):
+            out.append(f"{v['id']}: description announces {m.group(1)}, expected_error is {v.get('expected_error')!r}")
+    return out
+
+
+def platform_default_retention_problems(vectors):
+    """Cycle F (F7): an audit record whose retention_source is platform-default carries effective_retention P90D
+    (State §7.3 Default), retention_anchor = processed_at (State §7.1, Core §4.3.6.4.1) and retained_until =
+    anchor + P90D (calendar arithmetic) — the three together."""
+    import datetime as _dt
+    import runtime_harness as rh
+    out, n = [], 0
+    for v in vectors:
+        d = v.get("data") if isinstance(v.get("data"), dict) else None
+        if not d or d.get("retention_source") != "platform-default":
+            continue
+        n += 1
+        anchor = d.get("retention_anchor")
+        want = None
+        if isinstance(anchor, str):
+            try:
+                u = rh.add_duration(_dt.datetime.strptime(anchor, "%Y-%m-%dT%H:%M:%S.%fZ"), "P90D")
+                want = u.strftime("%Y-%m-%dT%H:%M:%S.") + f"{u.microsecond // 1000:03d}Z"
+            except ValueError:
+                pass
+        if d.get("effective_retention") != "P90D" or anchor != d.get("processed_at") or d.get("retained_until") != want:
+            out.append(f"{v['id']}: platform-default retention ({d.get('effective_retention')}, {anchor}, "
+                       f"{d.get('retained_until')}) is not (P90D, processed_at, anchor + P90D)")
+    if n == 0:
+        out.append("no platform-default audit record in the corpus")
+    return out
+
+
+BREACH_REF = "arsia-breach-notification.schema.json"
+BREACH_CAUSE = re.compile(r"^([\w/]+): (\w+) — State §5\.7$")
+
+
+def breach_notification_problems(vectors, registry):
+    """Cycle F (F9): schema-ref vectors of arsia-breach-notification: valid ones cover both notification_target
+    values with no error; each invalid one declares '<field>: <keyword> — State §5.7' and fails with exactly that
+    one error (validator, and the field's path, or the root for required/additionalProperties)."""
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    out = []
+    schema = vv.resolve_schema(BREACH_REF, registry)
+    targets = set()
+    vs = [v for v in vectors if v.get("schema_ref") == BREACH_REF]
+    for v in vs:
+        errs = [(e.validator, "/".join(map(str, e.absolute_path)), e.message) for e in
+                Draft202012Validator(schema, registry=registry).iter_errors(v.get("data"))]
+        if v.get("expected") == "valid":
+            targets.add((v.get("data") or {}).get("notification_target"))
+            if errs:
+                out.append(f"{v['id']}: positive with errors {errs[:2]}")
+            continue
+        m = BREACH_CAUSE.match(str(v.get("expected_error") or ""))
+        if not m:
+            out.append(f"{v['id']}: expected_error does not declare '<field>: <keyword> — State §5.7'")
+            continue
+        field, kw = m.groups()
+        path = "" if kw in ("required", "additionalProperties") else field
+        root_field = field.split("/")[0]
+        if len(errs) != 1 or errs[0][:2] != (kw, path) or (not path and f"'{root_field}'" not in errs[0][2]):
+            out.append(f"{v['id']}: fails with {[(e[0], e[1]) for e in errs]}, not exactly {kw} at {field}")
+    if targets != {"supervisory_authority", "data_subject"}:
+        out.append(f"positives cover notification_target {sorted(t for t in targets if t)}, not both values")
+    # STATE-§5.7-02 (REQUIRED fields) cites the vectors that execute the payload schema, not envelope-only ones
+    row = next((l for l in open("docs/rtm/ARSIA-State.rtm.md", encoding="utf-8").read().splitlines()
+                if l.startswith("| STATE-§5.7-02 |")), "")
+    cited = set()
+    for tok in evidence_tokens(row.rstrip(" |").rsplit("|", 1)[-1]) if row else []:
+        if tok.startswith("struct:"):
+            cited |= {x.strip() for x in tok[len("struct:"):].split(",")}
+    missing = sorted({v["id"] for v in vs} - cited)
+    if not row or missing or cited - {v["id"] for v in vs}:
+        out.append(f"STATE-§5.7-02 Evidence struct: is not exactly the breach-notification vectors (missing {missing[:3]}, "
+                   f"others {sorted(cited - {v['id'] for v in vs})[:3]})")
+    return out
+
+
 def main() -> int:
     from jsonschema import Draft202012Validator
 
@@ -2533,6 +2694,19 @@ def main() -> int:
     check("fixtures: expires_at after ts; positive transfer-request args conform; ITV-426 encodes 32 bytes; INV-21, "
           "ITV-402, ITV-550, ITV-201, ITV-266, ITV-423 and ITV-482 fail with exactly their announced error; ITV-423 "
           "isolated by its args/result controls and a re-signed probe without payload.type (A-98, A-100)",
+          not probs, "; ".join(probs[:4]))
+
+    # Cycle F (A-101..): pre-release repository defects
+    probs = repository_text_problems()
+    check("repository text: SPDX headers, profiles README retention column, spec anchors, bracketed RFC citations (cycle F)",
+          not probs, "; ".join(probs[:4]))
+    probs = runtime_expectation_problems(corpus_vectors)
+    check("runtime-only vectors carry the error code their description announces (cycle F)", not probs, "; ".join(probs[:4]))
+    probs = platform_default_retention_problems(corpus_vectors)
+    check("platform-default audit records: effective_retention P90D, anchor processed_at, retained_until anchor + P90D (cycle F)",
+          not probs, "; ".join(probs[:4]))
+    probs = breach_notification_problems(corpus_vectors, registry)
+    check("breach-notification vectors: positives for both targets, each negative fails exactly its declared constraint (cycle F)",
           not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed

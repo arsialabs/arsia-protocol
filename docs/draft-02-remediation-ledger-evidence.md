@@ -1722,3 +1722,64 @@ was resolved hunk by hunk as listed.
   verified, 9 negatives, 3 canonical only;
 - consistency 142, harness 783, examples and links OK;
 - RTM 2045 / 1247 / 1445; `git diff --check` clean.
+
+## 29. Cycle F closure evidence
+
+Baseline `ddd1737`. The post-merge triage classified the ledger notes against `54c2726`:
+- **R:** resolved, recorded in `ddd1737`;
+- **F:** repository defects, fixed here;
+- **U and C:** normative gaps and coverage limits, kept for the Issue and the normative
+  cycles, never closed early;
+- **I:** informational.
+
+The owner's addendum during execution extended F6 to six vectors and F7 to every
+platform-default record, after a stop: the guards, applied to the whole corpus, found
+more cases than the inventory listed.
+
+| Finding | Correction | Guard (`check_consistency.py`) | Mutation → failing check |
+|---|---|---|---|
+| A-101 | `profiles/README.md` Retention column from `defaults.retention_minimum` | `repository_text_problems` via `retention_cell_problem`. A non-null floor needs the backticked equal duration; a null floor needs the explicit "None (no floor …)" text. The first version took a failed extraction as a match, so `P365D` in the GDPR-STANDARD row passed (owner review); the self-test `retention_cell_selftest` now rejects it | (b) EU-AI-ACT-HIGH-RISK back to 180 days; (b2) GDPR-STANDARD row `P365D`; (b3) the extraction-as-match comparison restored → self-test |
+| A-102 | Actions `#14-reserved-system-capabilities-normative-registry`; Routing `#74-relay-attestation-and-broker-audit-record`, with the link text. The second anchor was found by the guard's sweep before any write | `repository_text_problems` (every internal anchor of the six specs) | (c), (c2) |
+| A-103 | `[RFC 8785] §3.1` in State l.496 and Assets l.552 | `repository_text_problems` | (d) |
+| A-104 | `ROUTE-§1.2.2-12` (SHOULD, Evidence "—", the rule for non-mandatory rows); Routing summary 282 → 283, §1 50 → 51 | Existing totals check | (i) row removed → "Total requirements stated 283, table has 282". Limit: removing the row and the stated totals together is not detected; no linter reads SHOULD sentences without rows |
+| A-105 | `expected_error` on ITV-417, ITV-579, ITV-563, ITV-577, INV-08 (`invalid_request`) and ITV-571 (`unauthorized`); `expected`, `valid`, `skip_schema` and the tested objects unchanged. ITV-577 tests the State §2.1.2 numeric restriction, not a parser-wide rejection of large numbers | `runtime_expectation_problems`: 13 vectors in scope; the "with error code '…'" wording of INV-18/19 is read correctly | (e) ITV-417, (e2) INV-08; (e3) the regex reads "error" as the code → INV-18/19 flagged |
+| A-106 | 16 `broker_relay` records: `effective_retention` `P90D` and `retention_anchor` = `processed_at` added, `retained_until` = anchor + P90D (10 dates corrected). 20 GDPR-STANDARD records: `retained_until` = anchor + P90D, now equal to their own `obligation_resolution` retention result. 10 review records (ITV-632..637, INV-72..75): `retention_anchor` = `processed_at`, per Core §4.3.6.4.1, State §7.1 and Actions §3.9.5; their execution instants, review deadlines and `processed_at` are unchanged | `platform_default_retention_problems`: the three fields together, over 62 records | (f) ITV-146, (f2) ITV-688, (f3) ITV-97, (f4) ITV-632 |
+| A-107 | ITV-713, 714 (`supervisory_authority`, without and with the SHOULD fields), ITV-715, 716 (`data_subject`, without and with `remediation_advice`); INV-178..206, single-cause negatives: 7 required, enum, UUID, timestamp, each string's minLength and maxLength, array and item types, integer type and minimum, additionalProperties. STATE-§5.7-02 Vector and Evidence now cite them; the envelope does not validate the payload (removing `nature_of_breach` from ITV-556 leaves it valid) | `breach_notification_problems`: both targets covered; each negative's `<field>: <keyword> — State §5.7` is its only error; STATE-§5.7-02 `struct:` is exactly the 33 vectors | (g) a second defect in INV-178, (g2) no `data_subject` positive, (g3) Evidence back to ITV-556/557 |
+
+**Other changes.**
+- **F1:** SPDX/Copyright header added to `docs/auditoria-spec-draft-01.md`,
+  `docs/spec-audit-draft-01.md` and CLAUDE.md; LICENSE.md is exempt as the licensing
+  notice itself. Mutation (a).
+- **F8:** migration guide §9–§13, covering:
+  - generations and retention-protected PURGE;
+  - broker relay audit and DPoP;
+  - approval decisions and key revocation (SC2);
+  - parsing and the attestation header (SC3, SC4);
+  - the corpus and keys.
+
+  §6 now notes that a recipient acts on a revocation event only after authenticating it.
+  Owner review: the verification evidence applies only to compliance-relevant messages
+  whose signatures were successfully verified (Core §5.2); the RSA-1024 key yields a
+  mathematically valid signature rejected for key size (ITV-425 `key`/`size`).
+  "What did NOT change" no longer says PURGE is unchanged. The DR-1..DR-5 changes are
+  not yet described (note).
+
+**Not changed (observed).**
+- 18 `profile-minimum` records whose `retained_until` diverges from their own
+  `obligation_resolution` result (note).
+- U items 1–6 and C items 7–12 of the triage, kept for the Issue and their cycles.
+- The 11 and 12 limits are recorded in the notes.
+
+**Mutations.** 18 of 18 detected: (a), (b), (b2), (b3), (c), (c2), (d), (e), (e2), (e3), (f),
+(f2), (f3), (f4), (g), (g2), (g3), (i). The unmutated copy passed the whole battery first, and the
+candidate was restored between cases.
+
+**Counts before → after.**
+- **Vectors:** 923 → 956 (489 schema-valid / 244 expected-invalid / 204 runtime-only /
+  19 raw); formats schema-ref 557 → 590; prefixes ITV 712 → 716, INV 177 → 206; next IDs
+  ITV-717, INV-207. 52 existing vectors changed (6 F6, 46 F7), only in the fields named.
+- **RTM:** 2045 → 2046 rows (SHOULD 248 → 249; MUST+MUST_NOT 1247 and the mandatory
+  1445 unchanged).
+- **Checks:** consistency 142 → 146.
+- **Findings register:** 103 → 110 rows, all closed.
+- **Coverage register:** 25 → 26 rows, all closed.

@@ -65,9 +65,9 @@ Key protocol sections for regulatory review: human oversight workflow ([Actions 
 
 ### For Regulators
 
-Six [Requirements Traceability Matrices](docs/rtm/) (2,045 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
+Six [Requirements Traceability Matrices](docs/rtm/) (2,046 rows) trace every MUST, SHOULD, and MAY in the specification to the corresponding JSON Schema and test vector. [Core §12](spec/ARSIA-Core.md#12-conformance-levels) defines three conformance levels; [Core §13](spec/ARSIA-Core.md#13-security-considerations) covers the threat model and security considerations.
 
-All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [923 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
+All specifications follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) / [BCP 14](https://www.rfc-editor.org/info/bcp14) normative language. The [956 test vectors](test-vectors/) provide machine-verifiable conformance validation with real cryptographic operations. The security model — threat model, cryptographic foundation, authorization, and data protection — is defined in [ARSIA-Core.md §13](spec/ARSIA-Core.md); honest scope statements live in [known limitations](docs/draft-02-known-limitations.md).
 
 ---
 
@@ -109,8 +109,8 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 34 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 923 test vectors (485 schema-valid, 215 expected-invalid, 204 runtime-only, 19 raw parse) |
-| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,045 rows) |
+| [`test-vectors/`](test-vectors/) | 956 test vectors (489 schema-valid, 244 expected-invalid, 204 runtime-only, 19 raw parse) |
+| [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,046 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
 54 test keypairs are published in [`keypairs.json`](test-vectors/keypairs.json) with real Ed25519, ES256, and RS256 cryptography.

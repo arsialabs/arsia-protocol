@@ -133,9 +133,9 @@ ARSIA defines three conformance levels that allow implementations to progressive
 
 **Level 3 — Full.** All Compliance requirements plus all five domain primitives (Identity, Routing, Actions, State, Assets), all compliance profiles, WebSocket transport, payload encryption, ES256 signature support, and 100% conformance test suite passage.
 
-**Traceability.** Six Requirements Traceability Matrices (2,045 rows) in [`docs/rtm/`](docs/rtm/) map every MUST, SHOULD, and MAY in the specifications to the corresponding JSON Schema and test vector.
+**Traceability.** Six Requirements Traceability Matrices (2,046 rows) in [`docs/rtm/`](docs/rtm/) map every MUST, SHOULD, and MAY in the specifications to the corresponding JSON Schema and test vector.
 
-**Validation.** 923 test vectors (485 schema-valid, 215 expected-invalid, 204 runtime-only, 19 raw parse) in [`test-vectors/`](test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
+**Validation.** 956 test vectors (489 schema-valid, 244 expected-invalid, 204 runtime-only, 19 raw parse) in [`test-vectors/`](test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
 
 ---
 

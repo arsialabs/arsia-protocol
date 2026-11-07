@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-923 test vectors (485 schema-valid, 215 expected-invalid, 204 runtime-only, 19 raw parse vectors — validator classification) for
+956 test vectors (489 schema-valid, 244 expected-invalid, 204 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`). Signatures outside a crypto block verify with the
@@ -13,7 +13,7 @@ catalog key of their `kid` unless the vector declares a signature negative (see
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 923 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 956 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
 | [keypairs.json](keypairs.json) | 54 test keypairs: 49 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 35 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses (34 in the port, one in the main reconciliation); 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
 
 ## Vector Formats
@@ -25,7 +25,7 @@ fields of every other format, both ways:
 | Format | Count | Description |
 |--------|-------|-------------|
 | `message-only` | 343 | Full message validated against `arsia-message.schema.json`. Uses `message` + `valid` fields. |
-| `schema-ref` | 557 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
+| `schema-ref` | 590 | Data payload validated against a named schema. Uses `schema_ref` + `data` + `expected` fields. |
 | `hybrid` | 4 | Full message validated against a named schema. Uses `schema_ref` + `message` + `expected` fields. |
 | `raw` | 19 | Exact received bytes, checked only by the Core §5.2 pipeline steps 2–4. Uses `raw_hex` + `expected_parse` fields. |
 
@@ -49,15 +49,15 @@ itself stops the tools.
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 712 |
-| `INV-` | Invalid (all specs) | 177 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 716 |
+| `INV-` | Invalid (all specs) | 206 |
 | `CTV-` | Core (envelope, intents, compliance, raw parsing) | 16 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-713** / **INV-178** / **CTV-17**
+Next available ID: **ITV-717** / **INV-207** / **CTV-17**
 
 ## Runtime-Only Vectors
 

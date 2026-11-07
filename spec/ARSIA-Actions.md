@@ -64,7 +64,7 @@ See LICENSE-SPEC.md for full terms.
    1. [Capability Naming](#11-capability-naming)
    2. [Capability Hierarchy](#12-capability-hierarchy)
    3. [Capability Downgrading](#13-capability-downgrading)
-   4. [Reserved System Capabilities](#14-reserved-system-capabilities)
+   4. [Reserved System Capabilities](#14-reserved-system-capabilities-normative-registry)
 2. [Action Registry](#2-action-registry)
    1. [Action Descriptor](#21-action-descriptor)
    2. [Risk Level to EU AI Act Mapping](#22-risk-level-to-eu-ai-act-mapping)

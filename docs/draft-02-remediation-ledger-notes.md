@@ -38,6 +38,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Missing SPDX headers:** `docs/auditoria-spec-draft-01.md` and
   `docs/spec-audit-draft-01.md` lack the CC-BY-SA-4.0 header (follow-up; not
   fixed in C1).
+  Resolved in cycle F: both files, and CLAUDE.md, carry the CC-BY-SA-4.0 header; LICENSE.md is
+  exempt as the licensing notice itself; guard `repository_text_problems`.
 - **Stale published counts (C2):** the root `README.md`, `CLAUDE.md` and files
   in `docs/` still state 649 vectors and 1109 MUST+MUST_NOT. After C2 the
   figures are 653 vectors and 1903 RTM rows / 1114 MUST+MUST_NOT. Only
@@ -51,6 +53,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   vector exercises `arsia-breach-notification.schema.json`. ITV-556/557 are
   message-only, and the envelope schema does not validate the payload against
   it. C2 validated both payloads against the breach schema by hand.
+  Resolved in cycle F (A-107): ITV-713..716 and INV-178..206 execute the payload schema;
+  STATE-§5.7-02 cites them. Delivery and correlation of notifications stay untested.
 - **`oversight_timeout` suspended (C3a, A-3):** Core §4.3.6.5 requires logging
   it, but it is one of the three `required_within_24h` definitions that DR-2
   replaces with one mechanism. It is added (or dropped) in the DR-2 cycle.
@@ -62,6 +66,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   signed compliance-relevant message; the schema cannot express that condition
   and leaves it optional. It is an explicit exception of the A-59 guard and is
   tracked by A-58.
+  Limit recorded in cycle F: the condition is defined (State §7.1); the schema cannot express
+  it; harness R15 executes the `verified_kid` / `jwks_fetched_at` evidence on its records.
 - **Rollback audit fields undefined in schema (C3a observation):** Actions §4.2
   ("Rollback Audit") requires the original action's `message_id` and
   `action_id`, the rollback request's `message_id`, a timestamp and full/partial
@@ -165,6 +171,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Stale profiles/README.md retention column (observed in DR-3/DR-4, not fixed):** it
   states day counts (e.g. 180 days for EU-AI-ACT-HIGH-RISK, 730 for DSA-VLOP) that differ
   from the catalog (P6M, P1096D); out of the cycle's scope.
+  Resolved in cycle F (A-101): the column is the catalog's `retention_minimum`; guarded.
 - **getting-started breakdown (DR-3/DR-4):** the vector breakdown "430 / 145 / 94" missed
   by LM2 now carries the tool-computed figures.
 - **Published counts after DR-3/DR-4:** 33 schemas (incl. meta), 717 vectors
@@ -213,6 +220,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `required_within_24h` and `required_post_execution` both apply, but no source of this
   cycle can produce that set (executor-policy sources demand prior approval only); R15
   unit-checks the composition with the modes injected.
+  Limit recorded in cycle F: the composition is defined and exercised by two R15 checks that
+  inject both modes (deadlines composed, each obligation expiring on its own). That the current
+  sources produce the combination is not demonstrated; the composition rule is kept.
 - **Compliance-field description (DR-1/DR-2):** the `human_oversight` description in
   `arsia-compliance-field.schema.json` still stated the replaced within-24h rule; the
   echo sweep found it and it now follows Core §4.3.6.5 (guarded).
@@ -220,6 +230,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `#14-reserved-system-capabilities`, but the heading is "1.4 Reserved System
   Capabilities (Normative Registry)"; the dead anchor predates the cycle. The §3.7 and
   §3.9 entries added or renamed by the cycle resolve.
+  Resolved in cycle F (A-102), together with the Routing §7.4 anchor of the same kind; every
+  internal anchor of the six specs is guarded.
 - **test-vectors/README format table (DR-1/DR-2):** the format counts (297/378/4) were
   stale since before DR-3/DR-4; they now carry the tool-computed figures.
 - **Published counts after DR-1/DR-2:** 33 schemas (incl. meta), 780 vectors
@@ -244,6 +256,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   cross-field rules JSON Schema could express; they stay runtime-only.
 - **Expectation vs description (observed in VC, not fixed):** ITV-417 and ITV-579 carry
   `expected: valid` while their descriptions state a runtime rejection.
+  Resolved in cycle F (A-105): `expected_error: "invalid_request"` on both, with ITV-563,
+  ITV-571, ITV-577 and INV-08; `expected` stays structural.
 - **Placeholder signatures outside the 32 (observed in VC, not fixed):** INV-23,
   INV-24, ITV-566, ITV-567 and ITV-568 are runtime vectors with the literal
   placeholder signature; a runtime runner would stop at signature verification.
@@ -413,17 +427,27 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   508, 511 and 515 the `retained_until` anchor also precedes `processed_at` by days. No
   rule checks these fields for broker records. The new records (ITV-688, 689, 691,
   INV-101..103) use `processed_at` + P90D.
+  Resolved in cycle F (A-106): the 16 platform-default `broker_relay` records carry
+  `effective_retention` P90D, `retention_anchor` = `processed_at` and `retained_until` =
+  anchor + P90D, as do 30 GDPR-STANDARD platform-default records (20 end dates, 10 review
+  anchors); guarded over all 62 platform-default records.
 - **RFC section citations (observed in the relay/DPoP cycle, not fixed):** State and
   Assets each cite "RFC 8785 §3.1" without brackets; `check_links.py` resolves the §3.1
   to a section of the citing document by coincidence. The new text of the cycle uses the
   bracketed form, which the checker treats as external.
+  Resolved in cycle F (A-103): `[RFC 8785] §3.1` in both; guarded.
 - **Routing §1.2.2 step 5 (observed in the relay/DPoP cycle, not fixed):** the SHOULD
   that `T_e2e` be sender-constrained with DPoP has no RTM row; the cycle rewrote the
   sentence without adding one.
+  Resolved in cycle F (A-104): `ROUTE-§1.2.2-12`.
 - **Migration guide (observed in the relay/DPoP cycle, not fixed):**
   docs/draft-02-migration-guide.md does not describe the changes of the A-79,
   retention-axis and relay/DPoP cycles (generations, `retention_override`, conditional
   forwarding fields, the DPoP checks).
+  Partly resolved in cycle F: §9–§13 cover the A-79, retention-axis, relay/DPoP and SC2–SC4
+  changes and the corpus, and §6 and "What did NOT change" are corrected. The DR-1..DR-5
+  changes (post-execution review, obligation resolution, hash chain) are still not described
+  (see below).
 - **Propagation impact (relay/DPoP cycle):** brokers emit a `broker_relay` record for
   every message received for relay, with the forwarding fields only when forwarding
   was initiated and `relay_latency_ms` computed from the two instants; return a
@@ -603,6 +627,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
     entries are byte-identical to the Draft-01.1 catalog.
     `agent:acme.legacy-system#rsa1024` is below the RSA minimum by design and must never
     verify.
+    Correction (cycle F): "must never verify" was imprecise when written. ITV-425 carries
+    a mathematically valid signature with this key, which a conformant verifier rejects
+    for insufficient key size; the key and the vector are unchanged.
   - A vector without a crypto block may carry `signature_expectation`, only when its
     signed object (`message`, or `data` of an arsia-message / arsia-relay-attestation
     schema-ref) carries `security.sig` as a string; the meta-schema enforces it. Without
@@ -629,6 +656,21 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Published counts after the main reconciliation:** 923 vectors (unchanged), 54
   keypairs, 142 consistency checks, updated in README.md, CLAUDE.md, CHANGELOG.md and
   test-vectors/README.md.
+- **Retention end dates outside cycle F (observed in cycle F, not fixed):** 18 records with
+  `retention_source: profile-minimum` carry a `retained_until` that differs from their own
+  `obligation_resolution` retention result (State §7.1: the fields MUST NOT diverge): ITV-16,
+  ITV-88..92, ITV-95, ITV-96, ITV-99, ITV-220, ITV-269, ITV-525, ITV-586, ITV-588, ITV-681,
+  INV-47, INV-50, INV-84 (MIFID-II 10, EU-AI-ACT-HIGH-RISK 8; e.g. ITV-16 2026-10-24 against
+  `P6M` from 2026-04-27, i.e. 2026-10-27). Outside the authorised cycle F groups.
+- **Migration guide, DR-1..DR-5 (observed in cycle F, not fixed):** the guide predates
+  `e5e06a5`; it does not describe executor oversight and post-execution review (DR-1/DR-2),
+  the obligation resolution (DR-3/DR-4) or the audit hash chain and tombstones (DR-5).
+- **Cycle F (for consumers):** 33 new breach-notification vectors; 6 runtime-only vectors gain
+  `expected_error`; 46 audit-record fixtures change retention fields only;
+  `ROUTE-§1.2.2-12`; profiles README retention column from the catalog.
+- **Published counts after cycle F:** 956 vectors, 54 keypairs, 146 consistency checks, RTM 2046
+  rows, updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md,
+  CHANGELOG.md and test-vectors/README.md.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

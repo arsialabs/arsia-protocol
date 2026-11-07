@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+<!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
+
 # Auditoria do repositório da spec — ARSIA Protocol Draft-01
 
 **Data:** 2026-07-22

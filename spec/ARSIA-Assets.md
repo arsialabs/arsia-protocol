@@ -549,7 +549,7 @@ every field is REQUIRED.
   the value MUST be strictly greater than zero. Amounts are strings, not JSON
   numbers, because JSON numbers are IEEE-754 doubles and their canonical form (RFC
   8785) does not preserve decimal scale (`1500.00` → `1500`) — unacceptable for
-  financial amounts inside signed messages and audit records (RFC 8785 §3.1
+  financial amounts inside signed messages and audit records ([RFC 8785] §3.1
   recommends strings for values requiring such precision). Implementations MUST
   process amounts with arbitrary-precision decimal or integer minor-unit
   arithmetic and MUST NOT convert them through binary floating point.

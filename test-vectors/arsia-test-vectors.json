@@ -2290,7 +2290,7 @@
           "proof_type": "bearer"
         }
       },
-      "expected_error": null,
+      "expected_error": "invalid_request",
       "skip_schema": true,
       "skip_reason": "Runtime constraint — calendar retention-floor comparison (Core §4.3.8 Rule 4); Draft-02 moved floors from schema to runtime"
     },
@@ -3644,7 +3644,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
         "processed_at": "2026-04-10T14:30:01.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-09T14:30:01.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -3657,7 +3657,9 @@
         "forwarded_at": "2026-04-10T14:30:01.000Z",
         "relay_latency_ms": 50,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-10T14:30:01.000Z"
       },
       "expected_error": null
     },
@@ -3676,7 +3678,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
         "processed_at": "2026-04-10T14:30:01.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-09T14:30:01.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -3689,7 +3691,9 @@
         "forwarded_at": "2026-04-10T14:30:01.000Z",
         "relay_latency_ms": 50,
         "forwarding_result": "dropped",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-10T14:30:01.000Z"
       },
       "expected_error": "forwarding_result must be one of success|failure|timeout — Routing §7.4.2"
     },
@@ -6288,7 +6292,7 @@
         "payload_type": "arsiaprotocol.state/delete",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:arsialabs.demo/session/expired-token",
@@ -6409,7 +6413,7 @@
         "payload_type": "arsiaprotocol.state/grant",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "grant_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
@@ -6737,7 +6741,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:arsialabs.demo/user/personal-data",
@@ -6860,7 +6864,7 @@
         "payload_type": "arsiaprotocol.state/revoke",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "grant_id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
@@ -7942,7 +7946,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
         "processed_at": "2026-04-15T14:00:00.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-14T14:00:00.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -7955,7 +7959,9 @@
         "forwarded_at": "2026-04-10T14:30:01.195Z",
         "relay_latency_ms": 245,
         "forwarding_result": "failure",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-15T14:00:00.000Z"
       },
       "expected_error": null
     },
@@ -7974,7 +7980,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
         "processed_at": "2026-04-15T14:05:00.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-14T14:05:00.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -7987,7 +7993,9 @@
         "forwarded_at": "2026-04-10T14:30:05.950Z",
         "relay_latency_ms": 5000,
         "forwarding_result": "timeout",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-15T14:05:00.000Z"
       },
       "expected_error": null
     },
@@ -17871,7 +17879,7 @@
         "ai_system_classification": "high-risk",
         "retention": "P365D"
       },
-      "expected_error": null,
+      "expected_error": "invalid_request",
       "skip_schema": true,
       "skip_reason": "Runtime constraint — calendar retention-floor comparison (Core §4.3.8 Rule 4); Draft-02 moved floors from schema to runtime"
     },
@@ -20383,7 +20391,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "a3f2b8c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
         "processed_at": "2026-04-30T10:00:01.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-29T10:00:01.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -20396,7 +20404,9 @@
         "forwarded_at": "2026-04-10T14:30:00.985Z",
         "relay_latency_ms": 35,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-30T10:00:01.000Z"
       },
       "expected_error": null
     },
@@ -20453,7 +20463,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
         "processed_at": "2026-04-30T10:02:00.500Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-29T10:02:00.500Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -20466,7 +20476,9 @@
         "forwarded_at": "2026-04-10T14:30:00.997Z",
         "relay_latency_ms": 47,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-30T10:02:00.500Z"
       },
       "expected_error": null
     },
@@ -20933,7 +20945,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6",
         "processed_at": "2026-04-30T10:19:00.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-29T10:19:00.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -20943,7 +20955,9 @@
         "residency_zone": "EU",
         "received_at": "2026-04-10T14:30:00.950Z",
         "forwarding_result": "failure",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-30T10:19:00.000Z"
       },
       "expected_error": null
     },
@@ -21036,7 +21050,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7",
         "processed_at": "2026-04-30T10:22:00.250Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-29T10:22:00.250Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -21049,7 +21063,9 @@
         "forwarded_at": "2026-04-10T14:30:00.973Z",
         "relay_latency_ms": 23,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-30T10:22:00.250Z"
       },
       "expected_error": null
     },
@@ -21185,7 +21201,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8",
         "processed_at": "2026-04-30T10:26:00.750Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-29T10:26:00.750Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -21198,7 +21214,9 @@
         "forwarded_at": "2026-04-10T14:30:00.965Z",
         "relay_latency_ms": 15,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-30T10:26:00.750Z"
       },
       "expected_error": null
     },
@@ -21647,7 +21665,7 @@
         "intent": "request",
         "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "processed_at": "2026-05-01T10:00:00.000Z",
-        "retained_until": "2026-08-01T10:00:00.000Z",
+        "retained_until": "2026-07-30T10:00:00.000Z",
         "operator_id": "VAT:PT501234567",
         "event_type": "state_set",
         "payload_type": "arsiaprotocol.state/set",
@@ -21767,7 +21785,7 @@
         "intent": "request",
         "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "processed_at": "2026-05-01T10:00:00.000Z",
-        "retained_until": "2026-08-01T10:00:00.000Z",
+        "retained_until": "2026-07-30T10:00:00.000Z",
         "operator_id": "VAT:PT501234567",
         "event_type": "state_delete",
         "payload_type": "arsiaprotocol.state/delete",
@@ -21886,7 +21904,7 @@
         "intent": "request",
         "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "processed_at": "2026-05-01T10:00:00.000Z",
-        "retained_until": "2026-08-01T10:00:00.000Z",
+        "retained_until": "2026-07-30T10:00:00.000Z",
         "operator_id": "VAT:PT501234567",
         "event_type": "state_purge",
         "payload_type": "arsiaprotocol.state/purge",
@@ -22007,7 +22025,7 @@
         "intent": "request",
         "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "processed_at": "2026-05-01T10:00:00.000Z",
-        "retained_until": "2026-08-01T10:00:00.000Z",
+        "retained_until": "2026-07-30T10:00:00.000Z",
         "operator_id": "VAT:PT501234567",
         "event_type": "state_grant",
         "payload_type": "arsiaprotocol.state/grant",
@@ -22127,7 +22145,7 @@
         "intent": "request",
         "payload_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "processed_at": "2026-05-01T10:00:00.000Z",
-        "retained_until": "2026-08-01T10:00:00.000Z",
+        "retained_until": "2026-07-30T10:00:00.000Z",
         "operator_id": "VAT:PT501234567",
         "event_type": "state_revoke",
         "payload_type": "arsiaprotocol.state/revoke",
@@ -22697,7 +22715,7 @@
         "payload_type": "arsiaprotocol.state/set",
         "payload_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
         "processed_at": "2026-05-01T12:00:04.100Z",
-        "retained_until": "2031-05-01T12:00:04.100Z",
+        "retained_until": "2026-07-30T12:00:04.100Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "key": "agent:acme.data-agent/user/profile-540",
         "owner_agent_id": "agent:acme.data-agent",
@@ -24305,7 +24323,7 @@
         "legal_basis": "contract",
         "data_residency": "EU"
       },
-      "expected_error": null
+      "expected_error": "invalid_request"
     },
     {
       "id": "ITV-564",
@@ -24848,7 +24866,7 @@
           "sig": "lgzQCrchSdO07jEVLwvR7f57371dJZlj9fymEwIfxKrFH7v799AXXHmbkh4sQosKTxpFVnYj02d1uPisvuC1Bg"
         }
       },
-      "expected_error": null
+      "expected_error": "unauthorized"
     },
     {
       "id": "ITV-572",
@@ -25038,7 +25056,7 @@
           "pii_classification": "none"
         }
       },
-      "expected_error": null
+      "expected_error": "invalid_request"
     },
     {
       "id": "ITV-578",
@@ -25187,7 +25205,7 @@
         "audit_required": true,
         "explainability_required": true
       },
-      "expected_error": null,
+      "expected_error": "invalid_request",
       "skip_schema": true,
       "skip_reason": "Runtime constraint — effective-oversight resolution across profile defaults (Core §4.3.7/§4.3.8 Rule 3)"
     },
@@ -26234,7 +26252,7 @@
         "payload_type": "com.acme.notes/list",
         "payload_hash": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
         "processed_at": "2026-04-10T14:30:01.000Z",
-        "retained_until": "2031-04-11T14:30:01.000Z",
+        "retained_until": "2026-07-09T14:30:01.000Z",
         "operator_id": "urn:lei:5493001KJTIIGC8Y1R12",
         "compliance_profile_declared": null,
         "compliance_profile_resolved": "none",
@@ -26246,7 +26264,9 @@
         "forwarded_at": "2026-04-10T14:30:01.000Z",
         "relay_latency_ms": 50,
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-10T14:30:01.000Z"
       },
       "expected_error": "broker_agent_id is required for broker_relay records — Core §9.2, Routing §7.4.2"
     },
@@ -30203,9 +30223,9 @@
         "review_deadline": "2026-11-01T10:00:05.000Z",
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-10-31T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-29T10:00:05.000Z"
       },
       "expected_error": null
     },
@@ -30233,9 +30253,9 @@
         "review_deadline": "2026-11-01T10:00:05.000Z",
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T10:00:05.000Z"
       },
       "expected_error": null
     },
@@ -30264,9 +30284,9 @@
         "escalation_attempts": 1,
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T10:00:05.000Z"
       },
       "expected_error": null
     },
@@ -30295,9 +30315,9 @@
         "escalation_attempts": 4,
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T10:00:12.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T10:00:12.000Z"
       },
       "expected_error": null
     },
@@ -30327,9 +30347,9 @@
         "reason": null,
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-10-31T12:00:00.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-29T12:00:00.000Z"
       },
       "expected_error": null
     },
@@ -30359,9 +30379,9 @@
         "reason": "Result outside policy",
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T12:00:00.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T12:00:00.000Z"
       },
       "expected_error": null
     },
@@ -31131,9 +31151,9 @@
         "result_hash": "e86c8a7abd1df6e629b4be27fff9bda6a320a28d20039f9a7b081a2f60161db5",
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-10-31T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-29T10:00:05.000Z"
       },
       "expected_error": "review_deadline is required on review_pending — State §7.1"
     },
@@ -31160,9 +31180,9 @@
         "review_deadline": "2026-11-01T10:00:05.000Z",
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T10:00:05.000Z"
       },
       "expected_error": "review_mode is required on review_overdue — State §7.1"
     },
@@ -31190,9 +31210,9 @@
         "escalation_attempts": 1,
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-11-01T10:00:05.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-30T10:00:05.000Z"
       },
       "expected_error": "escalation_result is required on review_escalation — State §7.1"
     },
@@ -31221,9 +31241,9 @@
         "reason": null,
         "declared_retention": null,
         "effective_retention": "P90D",
-        "retention_anchor": "2026-10-31T10:00:00.000Z",
+        "retention_anchor": "2026-10-31T12:00:00.000Z",
         "retention_source": "platform-default",
-        "retained_until": "2027-01-29T10:00:00.000Z"
+        "retained_until": "2027-01-29T12:00:00.000Z"
       },
       "expected_error": "late is required on review_decision — State §7.1"
     },
@@ -33308,7 +33328,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:arsialabs.demo/user/personal-data",
@@ -33920,7 +33940,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/profile",
@@ -34290,7 +34310,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -34449,7 +34469,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -34669,7 +34689,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -34832,7 +34852,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -35001,7 +35021,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -35125,7 +35145,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:arsialabs.demo/user/personal-data",
@@ -35248,7 +35268,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:arsialabs.demo/user/personal-data",
@@ -35516,7 +35536,7 @@
         "payload_type": "arsiaprotocol.state/purge",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2033-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "key": "agent:acme.billing/agent/record",
@@ -35653,7 +35673,9 @@
         "residency_zone": "EU",
         "received_at": "2026-11-04T10:00:00.100Z",
         "forwarding_result": "failure",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.120Z"
       },
       "expected_error": null
     },
@@ -35682,7 +35704,9 @@
         "residency_zone": "EU",
         "received_at": "2026-11-04T10:00:00.100Z",
         "forwarding_result": "timeout",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.120Z"
       },
       "expected_error": null
     },
@@ -35745,7 +35769,9 @@
         "forwarded_at": "2026-11-04T10:00:00.048Z",
         "relay_latency_ms": 38,
         "forwarding_result": "failure",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.068Z"
       },
       "expected_error": null
     },
@@ -35774,7 +35800,9 @@
         "residency_zone": "EU",
         "received_at": "2026-11-04T10:00:00.100Z",
         "forwarding_result": "success",
-        "declared_retention": null
+        "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.120Z"
       },
       "expected_error": "attestation_id is required when forwarding_result is success — Routing §7.4.2"
     },
@@ -35804,6 +35832,8 @@
         "received_at": "2026-11-04T10:00:00.100Z",
         "forwarding_result": "failure",
         "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.120Z",
         "forwarded_at": "2026-11-04T10:00:00.140Z"
       },
       "expected_error": "attestation_id and relay_latency_ms are required with forwarded_at (dependentRequired) — Routing §7.4.2"
@@ -35834,6 +35864,8 @@
         "received_at": "2026-11-04T10:00:00.100Z",
         "forwarding_result": "timeout",
         "declared_retention": null,
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-11-04T10:00:00.120Z",
         "attestation_id": "d0b00103-aaaa-4a3d-8e4f-567890abcdef"
       },
       "expected_error": "forwarded_at and relay_latency_ms are required with attestation_id (dependentRequired) — Routing §7.4.2"
@@ -41037,6 +41069,836 @@
           "result": "unauthorized",
           "step": 2
         }
+      }
+    },
+    {
+      "id": "ITV-713",
+      "description": "State §5.7: VALID — supervisory_authority notification with the REQUIRED fields only; the SHOULD fields (categories_of_data, categories_of_data_subjects, approximate counts) are absent, which the schema does not require. Structural validation of the payload only; it does not demonstrate delivery or correlation of notifications.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "valid",
+      "expected_error": null,
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened."
+      }
+    },
+    {
+      "id": "ITV-714",
+      "description": "State §5.7: VALID — supervisory_authority notification with the REQUIRED fields and the SHOULD fields of Art. 33(3)(a). Structural validation of the payload only; it does not demonstrate delivery or correlation of notifications.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "valid",
+      "expected_error": null,
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "ITV-715",
+      "description": "State §5.7: VALID — data_subject notification with the REQUIRED fields only; remediation_advice (SHOULD) is absent, which the schema does not require. Structural validation of the payload only; it does not demonstrate delivery or correlation of notifications.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "valid",
+      "expected_error": null,
+      "data": {
+        "notification_target": "data_subject",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to your account data, including your name, email address and account number.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Your data may be used for phishing or identity fraud.",
+        "measures_taken": "Your credentials were reset and the affected system was isolated."
+      }
+    },
+    {
+      "id": "ITV-716",
+      "description": "State §5.7: VALID — data_subject notification with the REQUIRED fields and remediation_advice (SHOULD, Art. 34(2)). Structural validation of the payload only; it does not demonstrate delivery or correlation of notifications.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "valid",
+      "expected_error": null,
+      "data": {
+        "notification_target": "data_subject",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to your account data, including your name, email address and account number.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Your data may be used for phishing or identity fraud.",
+        "measures_taken": "Your credentials were reset and the affected system was isolated.",
+        "remediation_advice": "Change your password and watch your account for unrecognised transactions."
+      }
+    },
+    {
+      "id": "INV-178",
+      "description": "State §5.7: INVALID — breach notification with without notification_target, REQUIRED for both targets; it fails only the required constraint of notification_target.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "notification_target: required — State §5.7",
+      "data": {
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-179",
+      "description": "State §5.7: INVALID — breach notification with without breach_id, REQUIRED for both targets; it fails only the required constraint of breach_id.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "breach_id: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-180",
+      "description": "State §5.7: INVALID — breach notification with without nature_of_breach, REQUIRED for both targets; it fails only the required constraint of nature_of_breach.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "nature_of_breach: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-181",
+      "description": "State §5.7: INVALID — breach notification with without awareness_timestamp, REQUIRED for both targets; it fails only the required constraint of awareness_timestamp.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "awareness_timestamp: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-182",
+      "description": "State §5.7: INVALID — breach notification with without dpo_contact, REQUIRED for both targets; it fails only the required constraint of dpo_contact.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "dpo_contact: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-183",
+      "description": "State §5.7: INVALID — breach notification with without likely_consequences, REQUIRED for both targets; it fails only the required constraint of likely_consequences.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "likely_consequences: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-184",
+      "description": "State §5.7: INVALID — breach notification with without measures_taken, REQUIRED for both targets; it fails only the required constraint of measures_taken.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "measures_taken: required — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-185",
+      "description": "State §5.7: INVALID — breach notification with notification_target outside its two values; it fails only the enum constraint of notification_target.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "notification_target: enum — State §5.7",
+      "data": {
+        "notification_target": "regulator",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-186",
+      "description": "State §5.7: INVALID — breach notification with breach_id that is not a UUID v4; it fails only the pattern constraint of breach_id.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "breach_id: pattern — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "BR-2026-0001",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-187",
+      "description": "State §5.7: INVALID — breach notification with empty nature_of_breach; it fails only the minLength constraint of nature_of_breach.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "nature_of_breach: minLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-188",
+      "description": "State §5.7: INVALID — breach notification with nature_of_breach longer than 2048 characters; it fails only the maxLength constraint of nature_of_breach.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "nature_of_breach: maxLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-189",
+      "description": "State §5.7: INVALID — breach notification with awareness_timestamp without millisecond precision; it fails only the pattern constraint of awareness_timestamp.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "awareness_timestamp: pattern — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-190",
+      "description": "State §5.7: INVALID — breach notification with categories_of_data that is not an array; it fails only the type constraint of categories_of_data.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "categories_of_data: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": "names",
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-191",
+      "description": "State §5.7: INVALID — breach notification with categories_of_data with a non-string item; it fails only the type constraint of categories_of_data.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "categories_of_data/0: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          1
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-192",
+      "description": "State §5.7: INVALID — breach notification with categories_of_data_subjects that is not an array; it fails only the type constraint of categories_of_data_subjects.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "categories_of_data_subjects: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": "customers",
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-193",
+      "description": "State §5.7: INVALID — breach notification with categories_of_data_subjects with a non-string item; it fails only the type constraint of categories_of_data_subjects.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "categories_of_data_subjects/0: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          7
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-194",
+      "description": "State §5.7: INVALID — breach notification with approximate_data_subject_count that is not an integer; it fails only the type constraint of approximate_data_subject_count.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "approximate_data_subject_count: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 12.5,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-195",
+      "description": "State §5.7: INVALID — breach notification with negative approximate_data_subject_count; it fails only the minimum constraint of approximate_data_subject_count.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "approximate_data_subject_count: minimum — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": -1,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-196",
+      "description": "State §5.7: INVALID — breach notification with approximate_record_count that is not an integer; it fails only the type constraint of approximate_record_count.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "approximate_record_count: type — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": "3400"
+      }
+    },
+    {
+      "id": "INV-197",
+      "description": "State §5.7: INVALID — breach notification with negative approximate_record_count; it fails only the minimum constraint of approximate_record_count.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "approximate_record_count: minimum — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": -1
+      }
+    },
+    {
+      "id": "INV-198",
+      "description": "State §5.7: INVALID — breach notification with empty likely_consequences; it fails only the minLength constraint of likely_consequences.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "likely_consequences: minLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-199",
+      "description": "State §5.7: INVALID — breach notification with likely_consequences longer than 2048 characters; it fails only the maxLength constraint of likely_consequences.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "likely_consequences: maxLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-200",
+      "description": "State §5.7: INVALID — breach notification with empty measures_taken; it fails only the minLength constraint of measures_taken.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "measures_taken: minLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-201",
+      "description": "State §5.7: INVALID — breach notification with measures_taken longer than 2048 characters; it fails only the maxLength constraint of measures_taken.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "measures_taken: maxLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-202",
+      "description": "State §5.7: INVALID — breach notification with empty dpo_contact; it fails only the minLength constraint of dpo_contact.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "dpo_contact: minLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-203",
+      "description": "State §5.7: INVALID — breach notification with dpo_contact longer than 512 characters; it fails only the maxLength constraint of dpo_contact.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "dpo_contact: maxLength — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400
+      }
+    },
+    {
+      "id": "INV-204",
+      "description": "State §5.7: INVALID — breach notification with data_subject notification with an empty remediation_advice; it fails only the minLength constraint of remediation_advice.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "remediation_advice: minLength — State §5.7",
+      "data": {
+        "notification_target": "data_subject",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to your account data, including your name, email address and account number.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Your data may be used for phishing or identity fraud.",
+        "measures_taken": "Your credentials were reset and the affected system was isolated.",
+        "remediation_advice": ""
+      }
+    },
+    {
+      "id": "INV-205",
+      "description": "State §5.7: INVALID — breach notification with data_subject notification with remediation_advice longer than 2048 characters; it fails only the maxLength constraint of remediation_advice.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "remediation_advice: maxLength — State §5.7",
+      "data": {
+        "notification_target": "data_subject",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to your account data, including your name, email address and account number.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Your data may be used for phishing or identity fraud.",
+        "measures_taken": "Your credentials were reset and the affected system was isolated.",
+        "remediation_advice": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "id": "INV-206",
+      "description": "State §5.7: INVALID — breach notification with a member the schema does not define; it fails only the additionalProperties constraint of severity.",
+      "category": "state",
+      "schema_ref": "arsia-breach-notification.schema.json",
+      "expected": "invalid",
+      "expected_error": "severity: additionalProperties — State §5.7",
+      "data": {
+        "notification_target": "supervisory_authority",
+        "breach_id": "6f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f",
+        "nature_of_breach": "Unauthorized access to a customer database containing names, email addresses and account numbers.",
+        "awareness_timestamp": "2026-10-02T08:15:00.000Z",
+        "dpo_contact": "Data Protection Officer, Acme Corp, dpo@acme-example.eu",
+        "likely_consequences": "Risk of identity fraud and unauthorized transactions for the affected customers.",
+        "measures_taken": "Credentials rotated, the database isolated and a forensic investigation opened.",
+        "categories_of_data": [
+          "names",
+          "email addresses",
+          "account numbers"
+        ],
+        "categories_of_data_subjects": [
+          "customers"
+        ],
+        "approximate_data_subject_count": 1200,
+        "approximate_record_count": 3400,
+        "severity": "high"
       }
     }
   ]

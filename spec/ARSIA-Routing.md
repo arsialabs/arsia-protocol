@@ -82,7 +82,7 @@ See LICENSE-SPEC.md for full terms.
    1. [Broker Identity Requirements](#71-broker-identity-requirements)
    2. [Broker Discovery Endpoint](#72-broker-discovery-endpoint)
    3. [Broker Relay Rules (Normative)](#73-broker-relay-rules-normative)
-   4. [Broker Audit Record Format](#74-broker-audit-record-format)
+   4. [Relay Attestation and Broker Audit Record](#74-relay-attestation-and-broker-audit-record)
 8. [Routing Conformance Tests](#8-routing-conformance-tests)
 9. [References](#9-references)
 

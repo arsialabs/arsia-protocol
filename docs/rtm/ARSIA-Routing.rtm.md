@@ -31,6 +31,7 @@
 | ROUTE-§1.2.2-09 | 1.2.2 | MUST_NOT | external | behavioural_negative | Broker MUST NOT log payload contents during relay | — | — | out-of-repo(external-party) |
 | ROUTE-§1.2.2-10 | 1.2.2 | MUST_NOT | sdk | behavioural_negative | Sender MUST NOT send a message if no eligible broker exists for the required zone | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | ROUTE-§1.2.2-11 | 1.2.2 | MUST | sdk | behavioural_positive | Sender MUST return a service_unavailable error when no eligible broker is available | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| ROUTE-§1.2.2-12 | 1.2.2 | SHOULD | sdk | behavioural_positive | T_e2e SHOULD be sender-constrained with DPoP (RFC 9449) under the checks of Identity §3.3 (single-use jti, check 11 acceptance window, recipient nonce when required, §2.3.3) | — | — | — |
 | ROUTE-§1.2.3-01 | 1.2.3 | MUST_NOT | sdk | behavioural_negative | Agents MUST NOT use federated routing in v1.0 | — | ITV-493 | struct:ITV-493; untested(structural-only) |
 | ROUTE-§1.2.3-02 | 1.2.3 | MUST | sdk | procedural | Cross-organisation routing MUST use brokered routing with a shared broker | — | ITV-494 | struct:ITV-494; untested(structural-only) |
 | ROUTE-§1.2.3-03 | 1.2.3 | MUST | operational_policy | procedural | Both organisations MUST agree on a single shared broker within any applicable residency zone | — | — | out-of-repo(operator) |
@@ -297,17 +298,17 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 282 |
+| Total requirements | 283 |
 | Schema ≠ — | 119 |
 | Vector ≠ — | 94 |
 | Both ≠ — | 62 |
-| Both = — (gaps) | 131 |
+| Both = — (gaps) | 132 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
-| 1 | 50 | 21 | 17 | 9 | 21 |
+| 1 | 51 | 21 | 17 | 9 | 22 |
 | 2 | 86 | 22 | 8 | 7 | 63 |
 | 3 | 6 | 2 | 0 | 0 | 4 |
 | 4 | 9 | 4 | 3 | 1 | 3 |

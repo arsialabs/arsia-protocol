@@ -493,7 +493,7 @@ The StateEntry object contains the following fields:
      `invalid_request`.
   2. Any value in which trailing zeros, exact decimal precision, or magnitude
      beyond IEEE-754 double range is semantically significant MUST be encoded as a
-     JSON **string** by the application (RFC 8785 §3.1 gives the same guidance).
+     JSON **string** by the application ([RFC 8785] §3.1 gives the same guidance).
      Monetary amounts in the Assets primitive use decimal strings normatively
      (ARSIA-Assets.md §2).
   3. Version history (§2.4) and SNAPSHOT (§3.2) compare and return values by JSON

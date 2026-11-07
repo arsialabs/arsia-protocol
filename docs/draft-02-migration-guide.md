@@ -107,7 +107,8 @@ catalog edition via the new discovery field `iso4217_edition`.
   registry (now including `echo`, `health`, `onboarding.evaluate`,
   `broker.use`) are rejected.
 - JWKS cache ceiling is 3600 s; key removal is the revocation signal; emergency
-  rotation SHOULD emit `arsiaprotocol.identity/key-revocation`.
+  rotation SHOULD emit `arsiaprotocol.identity/key-revocation`, which a recipient
+  acts on only after authenticating it (§11).
 - The onboarding decision no longer reuses `approval_decision`: it is a `request`
   with payload `arsiaprotocol.onboarding/decision`.
 - The unsigned `Idempotency-Key` header no longer overrides the signed
@@ -137,9 +138,92 @@ catalog edition via the new discovery field `iso4217_edition`.
 - Data-residency codes are a closed set: ISO 3166-1 alpha-2 ∪ `"EU"`; custom
   regional codes are removed.
 
-## 9. What did NOT change
+## 9. State entries: generations and retention-protected PURGE
+
+- **Generations (State §2.1.14, §8.4).** Every StateEntry and every `state_set`,
+  `state_delete` and `state_purge` audit record carries `generation`. A SET may
+  carry `expected_generation` (a conditional write); a mismatch is rejected with
+  the State §8.4 details, including `entry_live: false` when no live entry exists.
+  Keep the highest generation of a key while any information of it is held.
+- **PURGE and retention (State §3.2.2, §8.4).** A PURGE is evaluated against the
+  stored retention of every generation of the entry. Within retention it is
+  rejected with the State §8.4 retention details unless the request carries a
+  `retention_override`. `state_purge` records carry `within_retention`,
+  `entry_retained_until` and, when used, `retention_override`.
+
+## 10. Broker relay audit and DPoP
+
+- Brokers emit a `broker_relay` audit record for every message received for
+  relay. The forwarding fields appear only when forwarding was initiated, and
+  `relay_latency_ms` is computed from the two instants (Routing §7.4.2).
+- A recipient that requires a DPoP nonce answers with a challenge. The broker
+  returns it to the sender as a `recipient_dpop_nonce` relay error and never
+  re-sends the message or produces a proof itself; the sender retries with a new
+  proof (Routing §2.3.3).
+- Receiving agents implement the Identity §3.3 DPoP checks, the nonce challenge,
+  and an atomic, shared single-use `jti` store that holds each `jti` until
+  `iat` + S.
+
+## 11. Approval decisions and key revocation
+
+- **Verification order (Actions §3.4).** The executing agent verifies an
+  `approval_decision`, approved or denied, in the order Actions §3.4 lists. The
+  deadline is compared at the instant of receipt, with no clock-skew tolerance.
+  Path 3 (deadline expired) applies only while the `pending_approval` is still
+  pending.
+- **Rejected decisions.** A decision that fails verification, arrives late or is
+  a duplicate is logged as a `decision_rejected` audit record, with its
+  `rejection_code` (Core §4.2.1; State §7.1). The log is now a MUST; the replies to
+  the sender stay SHOULD. Rejected post-execution review decisions are logged the
+  same way (Actions §3.9.3).
+- **Verification evidence (Core §5.2; State §7.1).** For compliance-relevant
+  messages whose signatures the log owner successfully verified, the audit record
+  carries `verified_kid` and `jwks_fetched_at`, the instant of the JWKS fetch that
+  supplied the key. Records of messages whose signatures were not verified or
+  failed verification carry neither.
+- **Key revocation (Identity §2.5).** The `arsiaprotocol.identity/key-revocation`
+  event has its own payload schema (`arsia-key-revocation.schema.json`). A
+  recipient acts on it only after authenticating it: its signature verifies with
+  another key of the sender, never the revoked one. An unauthenticated event is
+  rejected and invalidates nothing. An authenticated event invalidates the cached
+  key at once.
+
+## 12. Message parsing and the relay attestation header
+
+- **Strict parsing (Core §5.2 steps 2–4).** A document is valid UTF-8; unpaired
+  surrogates and noncharacters, literal or escaped at any depth, are rejected;
+  duplicate member names, compared after escape processing, are rejected. A
+  failure is `invalid_request`. The steps add no limit on JSON numbers
+  ([RFC 7493] is now a normative reference).
+- **Attestation header (Routing §7.4.1).** A residency-constrained message that
+  arrives without the `ARSIA-Relay-Attestation` header is rejected with
+  `service_unavailable` (step 1). A present header, even an empty one, goes through
+  steps 2–5. The header is non-empty base64url **without padding**; the decoded
+  octets pass the Core §5.2 steps 2–4 and the attestation schema before the
+  signature is checked. These failures are `unauthorized`, not `invalid_request`.
+
+## 13. Test vectors and keys (for implementations that use the corpus)
+
+- The corpus header is `version` `2.0.0` (the Draft-01 corpora were 1.0.x).
+- `keypairs.json` has 54 entries with a `provenance` member: 17 Draft-02 entries,
+  35 imported unchanged from the Draft-01.1 catalog, and 2 generated. An agent's
+  additional key is indexed by its full `kid`.
+  The RSA-1024 key `agent:acme.legacy-system#rsa1024` is deliberately below the
+  protocol's minimum key size. ITV-425 carries a mathematically valid signature
+  that a conformant verifier rejects for insufficient key size.
+- A signature outside a `crypto` block verifies with the catalog key of its `kid`,
+  unless the vector declares `signature_expectation`. That field declares a
+  signature negative, with its cause and condition.
+- A vector whose envelope carries `authorization` and no explicit presented token
+  binds `synthetic-token:<ID>`.
+- In runtime-only schema-ref vectors, `expected` is the structural result and the
+  runtime outcome is `expected_error`.
+- INV-21 is a schema-ref vector against `#/$defs/set-args`.
+
+## 14. What did NOT change
 
 Payload-type versioning semantics (only its default and discovery were fixed);
 the six-intent model; JCS/RFC 8785 canonicalization; Ed25519 as primary
 algorithm; the 7 standard profiles' names; agent-id grammar; the discovery,
-JWKS, inbox endpoints; PURGE/GRANT semantics (clarified, not changed).
+JWKS, inbox endpoints; GRANT semantics (clarified, not changed). PURGE is
+**not** unchanged: it now honours stored retention and `retention_override` (§9).
