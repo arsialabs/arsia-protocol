@@ -62,12 +62,16 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Assets §6.2.3 promise incident classification fields in the `ict_incident`
   record, but no field is defined in prose or schema. It is an explicit exception
   of the A-59 guard.
+  Registered as A-112 (post-merge triage: U; Issue pending).
 - **`jwks_fetched_at` (C3a observation):** State §7.1 makes it REQUIRED for any
   signed compliance-relevant message; the schema cannot express that condition
   and leaves it optional. It is an explicit exception of the A-59 guard and is
   tracked by A-58.
   Limit recorded in cycle F: the condition is defined (State §7.1); the schema cannot express
   it; harness R15 executes the `verified_kid` / `jwks_fetched_at` evidence on its records.
+  No new finding (post-merge triage): covered by A-58 (coverage SC2, [§24][ev24]): joint
+  presence of `verified_kid` and `jwks_fetched_at` in the schema, emission obligation
+  verified at runtime. The limit above stands.
 - **Rollback audit fields undefined in schema (C3a observation):** Actions §4.2
   ("Rollback Audit") requires the original action's `message_id` and
   `action_id`, the rollback request's `message_id`, a timestamp and full/partial
@@ -82,13 +86,21 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   non-escrow transfers and reversals. No originating prose or schema rule
   supports that, so the claim was removed from the table. The audit content of
   plain `asset_transfer` records is undefined (candidate finding).
+  Under evaluation (post-merge triage, item 14): the withdrawal of the unsupported claim
+  is confirmed (A-75); whether the audit content of plain `asset_transfer` records is
+  defined is not demonstrated. Not registered as a finding; evaluated in the
+  Assets/audit cycle.
 - **`pii_special_categories` in `state_set` records (C3a observation):** it is
   required by the schema and the §7.1 table, but the originating operation
   prose (State §3.1.2 table, §8.3 rule 3) does not list it; §2.1.11 concerns
   Art. 30 records.
+  Resolved in C3b (`59addd5`): the State §7.1 table lists it as OPTIONAL in `state_set`
+  records (the entry's value when `pii_classification` is `sensitive`), and the schema
+  does not require it.
 - **`relay_id` naming (C3a observation):** relay receipt and error payloads
   (Routing §2.3) carry `relay_id`, while the attestation and the audit record
   use `attestation_id` for the same per-relay UUID.
+  Registered as A-117 (post-merge triage: C; clarification in the Issue, non-blocking).
 - **ITV-94 correlation semantics (C3a observation):** Actions §3.5 Record 3 sets
   `correlation_id` to the pending_approval id; ITV-94 uses the original request
   id. The schema cannot check this.
@@ -120,6 +132,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Reversal records (C3b, A-75):** Assets §3.3.2 requires the reversal record to
   reference the original `audit_id` and `payment_reference`, but no schema
   discriminator identifies reversal records; adding one is a design choice.
+  Registered as A-113 (post-merge triage: U; Issue pending).
 - **Routing §2.3.3 (C3b, A-16):** "recipient error" among the cannot-forward causes
   is read as a failure to obtain a recipient envelope, per the A-16 disposition.
 - **Stale counts outside scope (C3b):** CLAUDE.md still cites 1903 / 1109 RTM rows;
@@ -138,6 +151,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   CHECK-04, and pick up the new tombstone schema in the re-sync.
 - **Query-response schema (DR-5):** it admits tombstones in any response; State §7.4
   allows them only in `chain_id` queries (schema more permissive than prose).
+  Registered as A-115 (post-merge triage: C; schema-alignment cycle).
 - **Published counts after DR-5:** 32 schemas (incl. meta), 679 vectors
   (438/147/94), RTM 1922 / 1130. README.md, CLAUDE.md (also "R1-R13", no R14) and
   docs are left for the maintenance step. Resolved in LM2: `README.md`, `CLAUDE.md`,
@@ -223,6 +237,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Limit recorded in cycle F: the composition is defined and exercised by two R15 checks that
   inject both modes (deadlines composed, each obligation expiring on its own). That the current
   sources produce the combination is not demonstrated; the composition rule is kept.
+  No new finding (post-merge triage): the limit above stands; no closure requirement
+  beyond it is defined.
 - **Compliance-field description (DR-1/DR-2):** the `human_oversight` description in
   `arsia-compliance-field.schema.json` still stated the replaced within-24h rule; the
   echo sweep found it and it now follows Core §4.3.6.5 (guarded).
@@ -251,9 +267,11 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   envelope's), which may be in tension with the residency intersection of Core
   §4.3.10.5 when the args value lies outside the envelope restriction (candidate
   finding).
+  Registered as A-108 (post-merge triage: U; Issue pending).
 - **Schema-expressible runtime rules (observed in VC, not fixed):** INV-20 (Rule 8
   Art. 9(2) basis for sensitive entries) and INV-22 (State §2.1.11 exclusion) test
   cross-field rules JSON Schema could express; they stay runtime-only.
+  Registered as A-116 (post-merge triage: C; schema-alignment cycle).
 - **Expectation vs description (observed in VC, not fixed):** ITV-417 and ITV-579 carry
   `expected: valid` while their descriptions state a runtime rejection.
   Resolved in cycle F (A-105): `expected_error: "invalid_request"` on both, with ITV-563,
@@ -360,6 +378,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   schema requires `hash`, but no construction is defined. ITV-677 carries an
   illustrative value (SHA-256 of the RFC 8785 form of its entries) that no rule
   checks.
+  Registered as A-109 (post-merge triage: U; Issue pending).
 - **Propagation impact (A-79 cycle):** implementations emit `generation` in every
   StateEntry and in state_set, state_delete and state_purge records, accept
   `expected_generation`, return the State §8.4 details (including `entry_live: false`)
@@ -401,6 +420,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   nor, if it may, which retention governs the values written before the change. State
   §3.2.2 uses "the effective retention of that entry" (§2.1.8, §4.1.1); harness R18 uses
   the retention resolved when the generation was created.
+  Registered as A-110 (post-merge triage: U; Issue pending).
 - **Propagation impact (retention-axis cycle):** implementations evaluate PURGE against
   stored retention over every generation, accept `retention_override`, reject with the
   State §8.4 retention details, and emit `within_retention`, `entry_retained_until` and
@@ -515,6 +535,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Attestation zone (observed in coverage SC1, not fixed):** Routing §7.4.1 checks the
   broker's jurisdiction against the message's declared zone; it states no check that the
   attestation's own `residency_zone` equals that zone. R22 follows the text.
+  Registered as A-111 (post-merge triage: U; Issue pending).
 - **Published counts after coverage SC2:** 34 schemas (incl. meta), 893 vectors
   (483/215/195), 17 keypairs, RTM 2045 / 1241, 129 consistency checks, harness R1-R22;
   README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md, schemas/README.md and
@@ -574,6 +595,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   legal basis) are required by the text but `arsia-message.schema.json` defines no
   `$def` for them; their examples are annotated `no-schema`. A candidate for a schema
   addition, which would be normative.
+  Registered as A-114 (post-merge triage: C; schema-alignment cycle).
 - **Example annotations (coverage SC3):** every full ```json block in `spec/` carries
   `<!-- example: … -->` on the line above (vocabulary in `scripts/extract_examples.py`);
   a new example without one fails the extractor.
@@ -674,4 +696,5 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
+[ev24]: draft-02-remediation-ledger-evidence.md#24-coverage-sc2-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory
