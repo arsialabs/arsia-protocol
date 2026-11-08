@@ -468,6 +468,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   changes and the corpus, and §6 and "What did NOT change" are corrected. The DR-1..DR-5
   changes (post-execution review, obligation resolution, hash chain) are still not described
   (see below).
+  Resolved in the maintenance cycle: the DR-1..DR-5 changes are in guide §14–§16.
 - **Propagation impact (relay/DPoP cycle):** brokers emit a `broker_relay` record for
   every message received for relay, with the forwarding fields only when forwarding
   was initiated and `relay_latency_ms` computed from the two instants; return a
@@ -684,15 +685,23 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   ITV-88..92, ITV-95, ITV-96, ITV-99, ITV-220, ITV-269, ITV-525, ITV-586, ITV-588, ITV-681,
   INV-47, INV-50, INV-84 (MIFID-II 10, EU-AI-ACT-HIGH-RISK 8; e.g. ITV-16 2026-10-24 against
   `P6M` from 2026-04-27, i.e. 2026-10-27). Outside the authorised cycle F groups.
+  Resolved in the maintenance cycle (A-118): the 18 records take their resolution's
+  `retained_until`; the inventory added 20 `profile-minimum` records without
+  `effective_retention`/`retention_anchor` and ITV-55's nested record; one guard now
+  covers every audit record (A-119).
 - **Migration guide, DR-1..DR-5 (observed in cycle F, not fixed):** the guide predates
   `e5e06a5`; it does not describe executor oversight and post-execution review (DR-1/DR-2),
   the obligation resolution (DR-3/DR-4) or the audit hash chain and tombstones (DR-5).
+  Resolved in the maintenance cycle: guide §14 (oversight authority and post-execution
+  review), §15 (effective obligation resolution) and §16 (audit hash chain and
+  tombstones); §3 and "What did NOT change" (now §17) revised.
 - **Cycle F (for consumers):** 33 new breach-notification vectors; 6 runtime-only vectors gain
   `expected_error`; 46 audit-record fixtures change retention fields only;
   `ROUTE-§1.2.2-12`; profiles README retention column from the catalog.
 - **Published counts after cycle F:** 956 vectors, 54 keypairs, 146 consistency checks, RTM 2046
   rows, updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md,
   CHANGELOG.md and test-vectors/README.md.
+- **Maintenance cycle (for consumers):** 39 audit-record fixtures change retention fields only (A-118), and ITV-95's `hash_chain` changes in consequence; ITV-17, ITV-100 and ITV-101 change `retention_source` to `platform-default`. The consistency check over platform-default records is replaced by one over every audit record (same count, 146). Migration guide §14–§16 added; "What did NOT change" is §17. Published counts unchanged (956 vectors, 54 keypairs, 146 consistency checks, RTM 2046 rows).
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

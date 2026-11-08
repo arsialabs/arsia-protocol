@@ -2097,32 +2097,239 @@ def runtime_expectation_problems(vectors):
     return out
 
 
-def platform_default_retention_problems(vectors):
-    """Cycle F (F7): an audit record whose retention_source is platform-default carries effective_retention P90D
-    (State §7.3 Default), retention_anchor = processed_at (State §7.1, Core §4.3.6.4.1) and retained_until =
-    anchor + P90D (calendar arithmetic) — the three together."""
+RETENTION_FIELDS = ("declared_retention", "effective_retention", "retention_anchor", "retention_source",
+                    "retained_until")
+
+
+def retention_floors():
+    """Each catalog profile's retention_minimum (null when the profile has no floor)."""
+    profiles = strict_load("profiles/arsia-compliance-profiles.json")["profiles"]
+    pairs = profiles.items() if isinstance(profiles, dict) else ((p["name"], p) for p in profiles)
+    return {name: (p.get("defaults") or {}).get("retention_minimum") for name, p in pairs}
+
+
+def audit_records(node, path):
+    """Every audit record (an object with retention_source and processed_at) at any depth, with its path."""
+    if isinstance(node, dict):
+        if "retention_source" in node and "processed_at" in node:
+            yield path, node
+        for k, x in node.items():
+            yield from audit_records(x, f"{path}/{k}")
+    elif isinstance(node, list):
+        for i, x in enumerate(node):
+            yield from audit_records(x, f"{path}/{i}")
+
+
+def plus_duration(anchor, duration):
+    """anchor + duration with the Core §4.3.6.4.1 calendar arithmetic; None when either is unusable."""
     import datetime as _dt
     import runtime_harness as rh
+    try:
+        u = rh.add_duration(_dt.datetime.strptime(anchor, "%Y-%m-%dT%H:%M:%S.%fZ"), duration)
+    except (TypeError, ValueError):
+        return None
+    return u.strftime("%Y-%m-%dT%H:%M:%S.") + f"{u.microsecond // 1000:03d}Z"
+
+
+def retention_record_problems(r, floors):
+    """State §7.1 retention fields of one audit record, as (fields the rule depends on, problem) pairs. With
+    obligation_resolution they are derived from its retention member and MUST NOT diverge: declared_retention is the
+    declared value (null when omitted, also in a conflict); a resolved axis gives effective_retention,
+    retention_anchor and retained_until (its result requires all three), and the fill source gives retention_source;
+    a conflict keeps the evidence under the profile's retention_minimum. Without a resolution a retention
+    always applies to an audit record (State §7.3: the profile's minimum, or the P90D Default when no profile is
+    active or the profile has no floor), so profile-minimum is the catalog floor, platform-default is P90D,
+    per-message is the declared value and "none" is never coherent. The label never switches the arithmetic off:
+    whenever effective_retention is present, anchor = processed_at (Core §4.3.6.4.1) and retained_until =
+    anchor + effective."""
+    out = []
+    eff, anchor, until, src = (r.get(f) for f in ("effective_retention", "retention_anchor", "retained_until",
+                                                  "retention_source"))
+    profile = r.get("compliance_profile_resolved")
+    floor = floors.get(profile)
+    res_obj = r.get("obligation_resolution")
+    ax = ((res_obj.get("axes") or {}).get("retention")) if isinstance(res_obj, dict) else None
+    if isinstance(ax, dict):
+        declared = ax.get("declared") or {}
+        want_decl = declared.get("value") if declared.get("present") else None
+        if r.get("declared_retention") != want_decl:
+            out.append(({"declared_retention"},
+                        f"declared_retention {r.get('declared_retention')!r} is not the axis declaration {want_decl!r}"))
+        if ax.get("status") == "resolved":
+            res = ax.get("result") or {}
+            for f, have, key in (("effective_retention", eff, "duration"), ("retention_anchor", anchor, "anchor"),
+                                 ("retained_until", until, "retained_until")):
+                if have != res.get(key):
+                    out.append(({f}, f"{f} {have} diverges from the resolution result {res.get(key)}"))
+            if res.get("anchor") != r.get("processed_at") or \
+                    res.get("retained_until") != plus_duration(res.get("anchor"), res.get("duration")):
+                out.append((set(), "the resolution result is not (processed_at, anchor + duration)"))
+            fill = (ax.get("fill") or {}).get("source")
+            want_src = ("per-message" if fill == "message" else "platform-default" if fill == "platform-default"
+                        else "none" if not ax.get("result") else "profile-minimum")
+            if src != want_src:
+                out.append(({"retention_source"},
+                            f"retention_source {src} does not follow the fill source {fill} ({want_src})"))
+        elif ax.get("status") == "conflict":
+            if floor is None:
+                out.append((set(), "conflict record without a profile retention_minimum for its evidence"))
+            else:
+                if eff != floor:
+                    out.append(({"effective_retention"},
+                                f"conflict evidence effective_retention {eff} is not the floor {floor}"))
+                if src != "profile-minimum":
+                    out.append(({"retention_source"}, f"conflict evidence retention_source {src} is not "
+                                                      "profile-minimum"))
+        else:
+            out.append((set(), f"retention axis status {ax.get('status')!r}"))
+    else:
+        applicable = (floor, "profile-minimum") if floor is not None else ("P90D", "platform-default")
+        if src == "profile-minimum":
+            if floor is None:
+                out.append(({"retention_source"}, f"profile-minimum under {profile}, which has no floor"))
+            elif eff != floor:
+                out.append(({"retention_source", "effective_retention"},
+                            f"profile-minimum effective_retention {eff} is not the catalog floor {floor}"))
+        elif src == "platform-default":
+            if eff != "P90D":
+                out.append(({"retention_source", "effective_retention"},
+                            f"platform-default effective_retention {eff} is not P90D"))
+        elif src == "per-message":
+            if eff is None or eff != r.get("declared_retention"):
+                out.append(({"retention_source", "effective_retention", "declared_retention"},
+                            f"per-message effective_retention {eff} is not the declared "
+                            f"{r.get('declared_retention')}"))
+        elif src == "none":
+            out.append(({"retention_source"}, f"retention_source none, but State §7.3 applies {applicable[0]} "
+                                              f"({applicable[1]}) under {profile}"))
+        else:
+            out.append(({"retention_source"}, f"retention_source {src!r}"))
+    if eff is not None:
+        if anchor != r.get("processed_at"):
+            out.append(({"retention_anchor"}, f"retention_anchor {anchor} is not processed_at {r.get('processed_at')}"))
+        if until != plus_duration(anchor, eff):
+            out.append(({"retained_until", "retention_anchor", "effective_retention"},
+                        f"retained_until {until} is not anchor + {eff}"))
+    elif src != "none":
+        out.append(({"effective_retention"}, f"effective_retention missing under retention_source {src}"))
+    return out
+
+
+def audit_retention_problems(vectors, floors):
+    """Maintenance cycle (A-118, A-119): the retention fields of every audit record of the corpus, nested ones
+    included. A vector whose expected_error names a retention field is an intentional negative of that field: the
+    rules that depend on that field are left to its own expectation, and every other rule still applies to the
+    record. Returns (problems, records checked)."""
     out, n = [], 0
     for v in vectors:
-        d = v.get("data") if isinstance(v.get("data"), dict) else None
-        if not d or d.get("retention_source") != "platform-default":
-            continue
-        n += 1
-        anchor = d.get("retention_anchor")
-        want = None
-        if isinstance(anchor, str):
-            try:
-                u = rh.add_duration(_dt.datetime.strptime(anchor, "%Y-%m-%dT%H:%M:%S.%fZ"), "P90D")
-                want = u.strftime("%Y-%m-%dT%H:%M:%S.") + f"{u.microsecond // 1000:03d}Z"
-            except ValueError:
-                pass
-        if d.get("effective_retention") != "P90D" or anchor != d.get("processed_at") or d.get("retained_until") != want:
-            out.append(f"{v['id']}: platform-default retention ({d.get('effective_retention')}, {anchor}, "
-                       f"{d.get('retained_until')}) is not (P90D, processed_at, anchor + P90D)")
+        exempt = {f for f in RETENTION_FIELDS
+                  if re.search(rf"(?<!\w){f}(?!\w)", str(v.get("expected_error") or ""))}
+        for root in ("data", "message"):
+            for path, r in audit_records(v.get(root), root):
+                n += 1
+                out += [f"{v['id']} {path}: {p}" for deps, p in retention_record_problems(r, floors)
+                        if not deps & exempt]
     if n == 0:
-        out.append("no platform-default audit record in the corpus")
-    return out
+        out.append("no audit record in the corpus")
+    return out, n
+
+
+def audit_retention_selftest(floors):
+    """Synthetic controls, one per rule; returns (problems, controls executed). A failing control names the problem
+    its rule must report, so that another rule reporting the same record does not mask it. The count is printed in
+    the check name so that a run in which the self-test did not execute is visible from outside."""
+    import copy
+
+    def resolved(duration, anchor, fill, declared=None, floor_minimum=None):
+        req = [{"kind": "floor", "minimum": floor_minimum}] if floor_minimum else []
+        return {"axes": {"retention": {
+            "status": "resolved",
+            "declared": {"present": True, "value": declared} if declared else {"present": False},
+            "fill": {"value": duration, "source": fill}, "requirements": req,
+            "result": {"duration": duration, "anchor": anchor,
+                       "retained_until": plus_duration(anchor, duration)}}}}
+
+    T = "2026-04-27T14:00:00.000Z"
+    TAMPERED = "2033-04-27T14:00:00.000Z"
+    base = {"record_id": "r", "processed_at": T, "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": None, "effective_retention": "P6M", "retention_anchor": T,
+            "retention_source": "profile-minimum", "retained_until": plus_duration(T, "P6M")}
+
+    def rec(**kw):
+        r = copy.deepcopy(base)
+        r.update(kw)
+        return r
+
+    def without(r, field):
+        r = copy.deepcopy(r)
+        del r[field]
+        return r
+
+    gdpr = rec(compliance_profile_resolved="GDPR-STANDARD", effective_retention="P90D",
+               retention_source="platform-default", retained_until=plus_duration(T, "P90D"))
+    conflict = {"axes": {"retention": {"status": "conflict", "declared": {"present": True, "value": "P1M"},
+                                       "fill": {"value": "P1M", "source": "message"}, "result": None}}}
+    ok_conflict = rec(declared_retention="P1M", obligation_resolution=conflict)
+    missing_decl = "declared_retention is required — State §7.1"
+    cases = [
+        # (name, vector, None when the control passes, else a fragment of the problem its rule must report)
+        ("no-resolution profile-minimum", {"data": rec()}, None),
+        ("resolved, internally consistent but diverging from the resolution",
+         {"data": rec(obligation_resolution=resolved("P6M", T, "profile-default", floor_minimum="P6M"),
+                      effective_retention="P1Y", retained_until=plus_duration(T, "P1Y"))},
+         "effective_retention P1Y diverges from the resolution"),
+        ("resolved valid declaration above the floor",
+         {"data": rec(declared_retention="P2Y", effective_retention="P2Y", retention_source="per-message",
+                      retained_until=plus_duration(T, "P2Y"),
+                      obligation_resolution=resolved("P2Y", T, "message", declared="P2Y", floor_minimum="P6M"))},
+         None),
+        ("resolved composed floor differing from the catalog floor, no declaration",
+         {"data": rec(effective_retention="P10Y", retained_until=plus_duration(T, "P10Y"),
+                      obligation_resolution=resolved("P10Y", T, "profile-default", floor_minimum="P10Y"))}, None),
+        ("resolved declared_retention diverging from the axis declaration",
+         {"data": rec(declared_retention="P1D",
+                      obligation_resolution=resolved("P6M", T, "profile-default", floor_minimum="P6M"))},
+         "is not the axis declaration"),
+        ("conflict evidence retention with the rejected declaration recorded", {"data": ok_conflict}, None),
+        ("conflict with the rejected value applied",
+         {"data": dict(ok_conflict, effective_retention="P1M", retained_until=plus_duration(T, "P1M"))},
+         "conflict evidence effective_retention P1M"),
+        ("conflict with declared_retention null", {"data": dict(ok_conflict, declared_retention=None)},
+         "is not the axis declaration"),
+        ("conflict with a wrong retention_source", {"data": dict(ok_conflict, retention_source="per-message")},
+         "conflict evidence retention_source"),
+        ("conflict with a wrong retained_until",
+         {"data": dict(ok_conflict, retained_until=plus_duration(T, "P1Y"))}, "is not anchor + P6M"),
+        ("nested record diverging", {"data": {"records": [rec(retained_until=plus_duration(T, "P7Y"))]}},
+         "is not anchor + P6M"),
+        ("nested record consistent", {"data": {"records": [rec()]}}, None),
+        ("profile-minimum under a profile without floor",
+         {"data": rec(compliance_profile_resolved="GDPR-STANDARD")}, "which has no floor"),
+        ("per-message diverging from the declaration",
+         {"data": rec(retention_source="per-message", declared_retention="P2Y")}, "per-message effective_retention"),
+        ("anchor other than processed_at",
+         {"data": rec(retention_anchor="2026-04-27T13:00:00.000Z",
+                      retained_until=plus_duration("2026-04-27T13:00:00.000Z", "P6M"))}, "is not processed_at"),
+        ("none without a resolution, no retention fields", {"data": dict(
+            gdpr, retention_source="none", effective_retention=None)}, "retention_source none, but State §7.3"),
+        ("none relabelling an applicable platform retention with a wrong retained_until",
+         {"data": dict(gdpr, retention_source="none", retained_until=TAMPERED)}, f"retained_until {TAMPERED}"),
+        ("intentional negative of declared_retention, other rules still apply",
+         {"expected_error": missing_decl, "data": without(rec(retained_until=TAMPERED), "declared_retention")},
+         f"retained_until {TAMPERED}"),
+        ("intentional negative of declared_retention, rules on that field left to its expectation",
+         {"expected_error": missing_decl, "data": without(rec(
+             retention_source="per-message", effective_retention="P2Y",
+             retained_until=plus_duration(T, "P2Y")), "declared_retention")}, None),
+    ]
+    out = []
+    for name, vec, expect in cases:
+        probs, _ = audit_retention_problems([dict(vec, id="SELFTEST")], floors)
+        if expect is None and probs:
+            out.append(f"self-test '{name}': expected pass, got {probs[:1]}")
+        elif expect is not None and not any(expect in p for p in probs):
+            out.append(f"self-test '{name}': expected a problem with {expect!r}, got {probs[:2]}")
+    return out, len(cases)
 
 
 BREACH_REF = "arsia-breach-notification.schema.json"
@@ -2702,9 +2909,13 @@ def main() -> int:
           not probs, "; ".join(probs[:4]))
     probs = runtime_expectation_problems(corpus_vectors)
     check("runtime-only vectors carry the error code their description announces (cycle F)", not probs, "; ".join(probs[:4]))
-    probs = platform_default_retention_problems(corpus_vectors)
-    check("platform-default audit records: effective_retention P90D, anchor processed_at, retained_until anchor + P90D (cycle F)",
-          not probs, "; ".join(probs[:4]))
+    floors = retention_floors()
+    probs, n_records = audit_retention_problems(corpus_vectors, floors)
+    self_probs, n_controls = audit_retention_selftest(floors)
+    probs += self_probs
+    check("audit-record retention fields: anchor processed_at, retained_until anchor + effective, source and "
+          "declaration consistent with obligation_resolution, nested records included (maintenance cycle) "
+          f"({n_records} records, {n_controls} controls)", not probs, "; ".join(probs[:4]))
     probs = breach_notification_problems(corpus_vectors, registry)
     check("breach-notification vectors: positives for both targets, each negative fails exactly its declared constraint (cycle F)",
           not probs, "; ".join(probs[:4]))

@@ -53,7 +53,9 @@ signature verifies) and enforces algorithm/key-type coherence.
 - Below-floor declarations are **rejected** (`invalid_request` +
   `insufficient_retention` details), never silently clamped — for every profile
   with a `retention_minimum`, not only MiFID-II. Absent `retention` → the profile
-  minimum applies.
+  minimum applies. With no declaration and no floor (GDPR-STANDARD, for example), the
+  platform default `P90D` applies, recorded as `retention_source: "platform-default"`
+  (Core §4.3.10.5; State §7.3).
 - Floors are typed calendar durations with calendar arithmetic and an explicit
   anchor (Core §4.3.6.4.1): EU-AI-ACT-HIGH-RISK is `"P6M"` (six calendar months,
   NOT 180 days), MIFID-II/DORA `"P1827D"`, PAC `"P1096D"`, DSA-VLOP `"P1096D"`
@@ -61,7 +63,10 @@ signature verifies) and enforces algorithm/key-type coherence.
   retention basis in DSA Art. 34(3), three years), LIMITED `"P90D"`.
 - Audit records now carry `compliance_profile_declared` + `compliance_profile_resolved`
   (replacing `compliance_profile`), `declared_retention`, `effective_retention`,
-  `retention_anchor`, `retention_source`, and `counterparty_owner_id`.
+  `retention_anchor`, `retention_source`, and `counterparty_owner_id`. A covered record
+  also carries `obligation_resolution`, and its retention fields are derived from it
+  (§15). The retention anchor of an audit record is its own `processed_at`, and
+  `retained_until` is the anchor plus `effective_retention`.
 
 ## 4. Amounts (BREAKING wire type)
 
@@ -220,10 +225,105 @@ catalog edition via the new discovery field `iso4217_edition`.
   runtime outcome is `expected_error`.
 - INV-21 is a schema-ref vector against `#/$defs/set-args`.
 
-## 14. What did NOT change
+## 14. Oversight authority and post-execution review
+
+- **Who can require oversight (Actions §3.7; Core §4.3.10.2).** The executing agent
+  resolves the effective oversight before any effect of the action, from every
+  authenticated and authorized source, including its own `executor-policy` sources: the
+  ActionDescriptor, the gateway's CapabilityPolicy and its risk assessment. Whether
+  prior approval applies follows that effective set, not the ActionDescriptor alone. A
+  `false` in one source no longer cancels a requirement from another.
+- **Gateway policy in the token (Core §6.1; Identity §7.4, §8).** When the token scope
+  includes a capability the CapabilityPolicy marks `oversight_required`, the token
+  carries the `arsia_oversight` claim with the requirement and the policy's
+  identification.
+- **Executor provenance (Core §4.4.8).** A `pending_approval`, and the `response` or
+  `error` that reports the outcome of a resolved action (asynchronous terminal result
+  included), carry `payload.obligation_resolution`. A message that carries it must be
+  signed by the executing agent, and the receiver treats an unverifiable resolution as
+  absent. An approval is bound to the presented request by `request_payload_hash`.
+- **Post-execution review (Actions §3.9).** `required_within_24h` and
+  `required_post_execution` now have a protocol mechanism:
+  - The executing agent needs a review endpoint, an escalation destination and, for
+    `required_post_execution`, the ActionDescriptor's `post_execution_review_period`.
+    If one is missing, the request is rejected with code `invalid_request` and the
+    diagnostic `obligation_conflict` in `details`, before any effect (§3.9.1).
+  - Deadlines run from the execution instant: the `ts` of the terminal result, in the
+    asynchronous pattern too. The initial acknowledgment (`status: "accepted"`) never
+    opens a review. `required_within_24h` is exactly 24 hours; `required_post_execution`
+    adds `post_execution_review_period`; when both apply, both obligations are kept
+    (§3.9.2).
+  - The review uses `event` messages with payload types
+    `arsiaprotocol.oversight/review-pending`, `review-decision` and `review-overdue`
+    (§3.9.3). An objection starts the operator's remediation procedure but never
+    changes the execution's terminal state or its records (§3.9.4).
+  - A deadline reached without a verified decision is recorded as a `review_overdue`
+    fact, and the overdue notice is escalated separately (§3.9.4).
+- **Assets approvals (Assets §5.2).** A denied or expired transfer approval answers with
+  the `error` of Actions §3.4 Path 2 or Path 3. No AssetTransferReceipt is issued for a
+  transfer that never executed.
+
+## 15. Effective obligation resolution
+
+- **One resolution procedure (Core §4.3.10).** Compliance obligations are resolved per
+  axis (oversight, audit, explainability, retention, residency) from identified
+  sources. Profile names are never ranked against each other. The obligation rules
+  are published in `profiles/arsia-obligation-rules.json`. In the provenance, a rule
+  entry or a profile floor is identified by the SHA-256 of its RFC 8785 form, and an
+  identity fact by the agent-id and its identity evidence (§4.3.10.2).
+- **Composition (Core §4.3.10.5).**
+  - Retention floors are compared by the `retained_until` instant each one produces
+    from the same anchor.
+  - Residency restrictions are intersected; an empty intersection is a conflict.
+  - Oversight is a set of modes.
+  - A profile default is not an obligation.
+  - With no declaration and no floor, retention is the platform default `P90D`.
+- **High-risk requests (Core §4.3.8 Rule 3; §4.3.10.3).** The composed oversight set
+  must contain a mode other than `"not_required"`. A declared lower classification
+  never lowers obligations, because this specification defines no authorized reduction.
+- **Provenance in the audit record (State §7.1).** Covered records carry
+  `obligation_resolution`. Their `declared_retention`, `effective_retention`,
+  `retention_anchor`, `retention_source` and `retained_until` are derived from it and
+  must not diverge from it.
+- **Rejections (Core §4.3.10.6).** The wire error code stays `invalid_request`, with
+  the specific diagnostic in `details`. Every compliance rejection, for any intent,
+  produces an audit record with `rejection_cause: "compliance"`, whatever
+  `audit_required` the message declares.
+- **Onboarding (Identity §7.2 Step 7).** The gateway prepares the agent's authenticated
+  context in Phase 1, CHECK-05 verifies it, and it is bound to the admission. It is
+  one of the sources of the resolution.
+
+## 16. Audit hash chain and tombstones
+
+- **Construction (State §7.2).** Each chain value is the lowercase hex SHA-256 of the
+  RFC 8785 form of `{"previous_chain_value": P, "record": R'}`. `R'` is the complete
+  record, chain context included, without its own `hash_chain`; `P` is the previous
+  entry's chain value, or `null` for the first entry. The four chain fields
+  (`hash_chain`, `chain_id`, `chain_seq`, `chain_format`) are present together or not
+  at all.
+- **Conformance (State §7.2; Core §12).** Chaining is REQUIRED at the Compliance and
+  Full levels and RECOMMENDED at Core.
+- **Chains and queries (State §7.4).** A log may hold several chains. The query
+  endpoint retrieves a chain by `chain_id`, ordered by `chain_seq`, with
+  `after_chain_seq` as the cursor.
+- **Permanent deletion (State §7.2, §7.3).** Only an operator-controlled maintenance
+  path, separate from application roles, deletes a chained record. It writes a
+  tombstone (`arsia-audit-chain-tombstone.schema.json`) carrying only the chain
+  context, the position, the deleted record's chain value and the previous value.
+- **Onboarding (Identity CHECK-04).** CHECK-04 requires the chain fields and verifies
+  each returned chain.
+- **Declared limits (State §7.2).** On its own, the chain does not detect a complete
+  rewrite by the log owner, write-time omission or forks. Tail truncation goes
+  undetected when the verifier holds no later head. A withheld chain can be noticed
+  only against the operator's documented chains or an independently held head of
+  that chain. A tombstone attests that a deletion occurred, not that it was
+  legitimate.
+
+## 17. What did NOT change
 
 Payload-type versioning semantics (only its default and discovery were fixed);
 the six-intent model; JCS/RFC 8785 canonicalization; Ed25519 as primary
 algorithm; the 7 standard profiles' names; agent-id grammar; the discovery,
-JWKS, inbox endpoints; GRANT semantics (clarified, not changed). PURGE is
+JWKS, inbox endpoints; GRANT semantics (clarified, not changed). The intent enum
+stays the same: post-execution review uses `event` messages (§14). PURGE is
 **not** unchanged: it now honours stored retention and `retention_override` (§9).

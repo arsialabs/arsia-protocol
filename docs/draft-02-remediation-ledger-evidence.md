@@ -1783,3 +1783,115 @@ candidate was restored between cases.
 - **Checks:** consistency 142 → 146.
 - **Findings register:** 103 → 110 rows, all closed.
 - **Coverage register:** 25 → 26 rows, all closed.
+
+## 30. Maintenance cycle closure evidence
+
+Baseline `97b421a`. The cycle F observation listed 18 `profile-minimum` records whose
+`retained_until` diverged from their own `obligation_resolution`. The inventory of every
+audit record of the corpus (an object with `retention_source` and `processed_at`, at any
+depth) found two more groups, and the owner extended the scope to all three (maintenance
+addendum). These are fixture corrections against the current contract (State §7.1,
+§7.3; Core §4.3.6.4.1, §4.3.10.5), not a normative change.
+
+| Finding | Correction | Guard (`check_consistency.py`) | Mutation → failing check |
+|---|---|---|---|
+| A-118 (A, 18) | ITV-16, ITV-88..92, ITV-95, ITV-96, ITV-99, ITV-220, ITV-269, ITV-525, ITV-586, ITV-588, ITV-681, INV-47, INV-50, INV-84: `retained_until` set to the resolution's `result.retained_until` (MIFID-II `P1827D` from 2026-04-27T14:00 is 2031-04-28T14:00, not 2033; EU-AI-ACT-HIGH-RISK `P6M`) | `audit_retention_problems` | (a) ITV-16 back to 2026-10-24 |
+| A-118 (B, 20) | ITV-17, ITV-93, ITV-94, ITV-100, ITV-101, ITV-102, ITV-105, ITV-337, ITV-582..585, ITV-587, INV-46, INV-141..144, ITV-697, ITV-698: `effective_retention` (the catalog floor) and `retention_anchor` = `processed_at` added, `retained_until` = anchor + floor. ITV-17, ITV-100 and ITV-101 are GDPR-STANDARD, which has no floor: `retention_source` `platform-default`, `P90D` (Core §4.3.10.5); ITV-17's `retained_until` was already anchor + `P90D` and is kept | `audit_retention_problems` | (b) ITV-93 without `effective_retention`; (d) ITV-17 back to `profile-minimum`; (e) ITV-588 anchored before `processed_at` |
+| A-118 (C, 1) | ITV-55 `/data/records/0` (audit query response, `platform-default`): `retained_until` 2033-04-10 → 2026-07-09, its resolution's result | `audit_retention_problems` (nested records) | (c) ITV-55 back to 2033 |
+| A-118 (chain) | ITV-95 (`chain_seq` 1): `hash_chain` recomputed with `runtime_harness.chain_value(record, None)` in consequence of the retention correction. The old value was not invalid in itself: it authenticated the record with the wrong date. No other vector references its value or `chain_id` | DR-5 chain check; harness R14 (a) | (f) the old chain value → "DR-5 chained vectors recompute and verify" and R14 (a) |
+| A-119 | `platform_default_retention_problems` (cycle F) replaced by `audit_retention_problems` with `audit_retention_selftest`. The check name carries the counts "(112 records, 19 controls)"; the RTM `check:` token of STATE-§7.1-23 cites it without the counts | Self-test controls (19) | (g)–(j), (m)–(p) below → self-test; (j2) → control count; (k), (l), (l2) → corpus |
+
+**Guard rules.**
+- With a resolution, `declared_retention` is the axis declaration (`null` when omitted, a
+  conflict included).
+- A resolved axis must match (`effective_retention`, `retention_anchor`, `retained_until`)
+  = the result; the result itself is (`processed_at`, anchor + duration); and
+  `retention_source` follows the fill source. The guard compares with the composed
+  result, never with the catalog.
+- A conflict keeps the evidence under the profile's `retention_minimum`, with
+  `profile-minimum` as source.
+- Without a resolution: `profile-minimum` is the catalog floor (a profile without floor is
+  reported), `platform-default` is `P90D`, and `per-message` is the declared value.
+  Audit records in this corpus have an applicable retention period under State §7.3 (the
+  profile's minimum, or the `P90D` Default when no profile is active or the profile has
+  no floor). The guard rejects `retention_source: "none"` without a resolution and does
+  not allow that label to bypass resolution consistency or retention arithmetic. A
+  resolved retention axis requires a result containing `duration`, `anchor` and
+  `retained_until`.
+- Whenever `effective_retention` is present: anchor = `processed_at`, and `retained_until` =
+  anchor + effective (calendar arithmetic). The label never switches this off.
+- Each problem names the fields its rule depends on. A vector whose `expected_error` names
+  a retention field exactly is an intentional negative of that field: only the rules that
+  depend on it are left to its expectation, and every other rule still applies to the
+  record. INV-53 (`declared_retention` required) is therefore checked on its other fields.
+  INV-94 and INV-100 name `entry_retained_until` and are checked in full.
+- Each failing self-test control names the problem its rule must report, so another rule
+  reporting the same record cannot mask it.
+- Applied to the baseline corpus, the guard flags exactly the 39 vectors; after the
+  corrections it passes on 112 records. The existing `retention_derivation_problems`
+  (DR-3/DR-4) stays; it compares neither `retained_until` nor invalid vectors, which is
+  why the 18 passed it.
+
+**Fixture checks.** Only the 39 vectors changed. Schema errors are equal before and after
+in validator, path and sub-errors; INV-47's message text includes the instance, and its
+two `anyOf` sub-errors are unchanged. No description cites a date, and none of the
+records is signed.
+
+**Migration guide.** §14 (DR-1/DR-2: oversight authority, executor provenance,
+post-execution review), §15 (DR-3/DR-4: the resolution procedure, composition, high-risk
+requests, provenance, rejections, onboarding context) and §16 (DR-5: chain construction,
+conformance, queries, tombstones, CHECK-04, declared limits). "What did NOT change" is
+now §17 and states that the intent enum is unchanged (review uses `event`). §3 adds the
+no-declaration, no-floor default and the derived retention fields. Each statement was
+checked against the cited section:
+- Actions §3.7, §3.9.1–§3.9.4;
+- Core §4.3.8 Rule 3, §4.3.10.2–§4.3.10.6, §4.4.8, §6.1;
+- Identity §7.2 Step 7, §7.4, §8, CHECK-04;
+- Assets §5.2 Step 5;
+- State §7.1, §7.2, §7.3, §7.4.
+
+Two sentences of the first draft were corrected during the cycle, for precision against the text:
+- an objection never changes the execution's terminal state (Actions §3.9.4);
+- rule entries and profile floors are identified by digest, identity facts by agent-id and
+  evidence (Core §4.3.10.2).
+
+**Mutations.** 21 of 21 detected: (a), (b), (c), (d), (e), (f), and the guard mutations:
+- (g) reading only the root record (positive nested control);
+- (h) ignoring a divergence from the resolution (an internally consistent control);
+- (i) comparing `profile-minimum` with the catalog despite a resolution (composed floor
+  `P10Y` against the catalog `P6M`);
+- (i2) no `declared_retention` check (the `"P1D"` control);
+- (i3) conflict source not checked;
+- (i4) end-date rule removed;
+- (j) anchor rule removed with the self-test active;
+- (j2) self-test call removed, detected outside the self-test because the check name
+  shows "0 controls" instead of 19;
+- (k) INV-53 with `retained_until` 2033-04-27T14:00, its missing `declared_retention` kept
+  (the owner's reproduction; the schema errors are unchanged);
+- (l) ITV-17 relabelled `"none"` with `retained_until` 2033-04-27T14:00 (the owner's
+  reproduction), and (l2) relabelled `"none"` with its correct date;
+- (m) an intentional negative skipping the whole record again;
+- (n) the field exemption removed;
+- (o) the State §7.3 rule for `"none"` removed;
+- (p) the arithmetic switched off by the label again.
+
+Two weaknesses were found and fixed in the self-test while building the campaign:
+- the divergence control was also caught by the arithmetic rule;
+- the nested control passed for the wrong reason ("no audit record") when the guard read
+  only the root.
+
+The owner's double check (2026-11-08) found two gaps in the guard and one imprecision in
+the guide, all fixed in this cycle without touching the 39 fixtures:
+- the INV-53 exemption skipped the whole record, so a tampered `retained_until` passed;
+  the exemption is now limited to the rules on the named field (controls 18 and 19);
+- `retention_source: "none"` switched off the anchor and end-date checks, so ITV-17
+  relabelled `"none"` with a 2033 date passed both this guard and
+  `retention_derivation_problems`; `"none"` is now checked against State §7.3, and the
+  arithmetic depends on the presence of `effective_retention` (controls 16 and 17);
+- guide §16 stated the chain limits without their conditions; it now keeps those of
+  State §7.2: tail truncation goes undetected when the verifier holds no later head, and
+  a withheld chain can be noticed against the operator's documented chains or an
+  independently held head.
+
+**Counts.** Vectors 956 (39 changed); RTM 2046 rows, one Evidence token added; checks 146
+(one replaced); findings register 120 → 122 rows (open 10, closed 112).
