@@ -1895,3 +1895,146 @@ the guide, all fixed in this cycle without touching the 39 fixtures:
 
 **Counts.** Vectors 956 (39 changed); RTM 2046 rows, one Evidence token added; checks 146
 (one replaced); findings register 120 → 122 rows (open 10, closed 112).
+
+## 31. State cycle closure evidence
+
+Baseline `ddf2578`. Normative cycle for the three State items of Issue #2 (B1, B2, B3),
+decided by the owner on 2026-11-17 and planned with two owner reviews (State cycle
+addendum). A fourth finding, A-120, was registered in the review of the plan.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-108 | State §8.3 rule 1 (selection, validation), §2.1.9, §3.1.2 rule 5, §4.2.1, §8.4; Core §4.3.10.5, §4.3.10.6 | ITV-536 (inherits `DE`), ITV-537 (`EU`/`FR`), ITV-717 (`FR`/`FR`), ITV-718 (MIFID-II default `EU`, `FR`), INV-207 (`DE`/`FR`), INV-208 (`FR`/`EU`), INV-209 (MIFID-II default `EU`, `US`) | R10, on each vector's own message (`input.from_message`) | (s1)–(s7) below |
+| A-109 | State §3.2.1 (result table, "Snapshot hash"); Actions §1.4; `arsia-state-operations.schema.json` `snapshot-result.hash` pattern | ITV-174, ITV-286, ITV-677, INV-88 (recomputed), INV-210 (new) | R17 (k); guard `snapshot_hash_problems` | (s8)–(s13), (s23), (s27), (s28) |
+| A-110 | State §2.1.8 ("Fixed per generation"), §3.1.2 rule 7, §8.3 rule 2, §3.2.2 step 1, §4.1.1, §8.4; `arsia-message.schema.json` `$defs/error-details-retention-fixed` | ITV-719 (accepted, `P12M` over `P1Y`), ITV-720, ITV-721, ITV-722 (`retention_fixed`), ITV-723 (PURGE after a late update) | R18 (l) and the scenario vectors | (s14)–(s22b) |
+| A-120 | ITV-536..539 as conformant SET requests | ITV-536, ITV-537, ITV-538, ITV-539 (`scope: "agent"`, key segment `agent`, re-signed) | guard `set_fixture_problems` | (s25), (s26) |
+
+**A-108, residency.**
+- The rule separates selection from validation. A zone present in `payload.args` is the
+  entry's own zone; without it a SET does not change an entry's own zone, and an entry
+  that has none inherits the message's filled value, a profile default included.
+- Validation applies to a zone present in `payload.args`: normalized to country codes, it
+  is a subset of the restriction composed for the message. `FR` under `EU` and `FR` under
+  `FR` are accepted; `FR` under `DE` and `EU` under `FR` are rejected with
+  `invalid_request` and `obligation_conflict` on the `residency` axis.
+- The comparison uses the composed restriction: INV-209 declares no
+  `compliance.data_residency`, the MIFID-II default fills `EU`, and `US` is rejected.
+- Conflict item: `axis` `residency`, `declared` the args zone, `required` the composed
+  restriction (`codes`, with `revision` and `sha256` after a regional expansion),
+  `sources` the requirement sources. The rejection record (`rejection_cause:
+  "compliance"`) validates against `arsia-audit-record.schema.json`.
+- Session entries (State §1.1) are outside the rule: the zone in args is not validated
+  against the message and nothing is inherited (two R10 controls).
+- What the cycle closes is the explicit zone in args against the composed restriction. No
+  specific check of a stored zone against a later message without args is defined; the
+  text says so and keeps the existing restrictions of the message and of the entry in
+  force (notes, "Stored zone against a later message").
+- The `resolution` scenario built a fixed payload, so a change to a vector's envelope did
+  not change the executed case. With `input.from_message` the harness runs the vector's
+  own `compliance` and `payload`.
+
+**A-109, SNAPSHOT hash.**
+- `hash` = `"sha-256:"` + lowercase hex SHA-256 over the RFC 8785 form of
+  `{as_of, entries}` as carried, in the order carried. `hash` and `timestamp` are not
+  hashed. No order is defined for `entries`.
+- The four earlier fixtures used the prefix `sha256:`; ITV-174 and ITV-286 carried the
+  digest of the empty string. All four now carry the construction. INV-88 keeps its
+  defect (an entry without `generation`) and its schema error, with a correct hash.
+- INV-210 is the single declared exception of the guard: the legacy prefix, a digest that
+  still matches its content, and exactly one schema error, `pattern` at `result/hash`.
+  Negatives are not exempted as a block.
+- R17 (k): the three positive vectors verify; a changed value, the same entries in
+  another order and another `as_of` change the hash; a later `timestamp` does not.
+
+**A-110, retention per generation.**
+- The effective retention is resolved when the generation is created, also when it comes
+  from a profile floor, and is preserved. An update is validated in full: Rule 4 first (a
+  compliance rejection), then the value that applies (`payload.args.retention`, else the
+  envelope's `compliance.retention`) and the floors of the request, compared by the
+  instant they produce from `created_at`.
+- An incompatible update is rejected before any write with `invalid_request` and the
+  details `retention_fixed`, `entry_retained_until` (or `null`) and
+  `required_retained_until`. `retention_fixed` is a State validation, like
+  `scope_mismatch`; it is not a diagnostic of Core §4.3.10.6.
+- The schema applies `error-details-retention-fixed` through its own conditional (code
+  `invalid_request`, discriminator `retention_fixed`); the `within_retention` conditional
+  is unchanged.
+- The reference store receives the inputs of the message (`retention`, `compliance`,
+  `scope`) and resolves them: args or envelope, floor from the profile catalog. R18 (l)
+  controls: `P12M` over `P1Y` accepted; another value in args rejected; args omitted with
+  an incompatible envelope value rejected, with a compatible one accepted; creation under
+  a floor preserves the floor, a later update under the same profile is accepted and
+  under a higher floor rejected; a value below the floor is Rule 4, not
+  `retention_fixed`; an entry with no retention period accepts neither a value nor a
+  floor; every rejection leaves value, version, preserved retention and records
+  unchanged; the response validates against the `$def` and in the error envelope;
+  recreation takes its own period; session entries carry no retention and are not
+  rejected.
+- Declared cost: an update does not restart the period (ITV-723: created 2025-04-20 with
+  `P1Y`, updated 2026-04-19, PURGE on 2026-04-27 is beyond retention).
+
+**A-120, SET fixtures.** ITV-536..539 lacked `scope` and used the key segment `user`. They
+fail `set-args` at the baseline and validate after the repair. The guard also covers the
+five new residency vectors. No other fixture was swept.
+
+**Guards (`check_consistency.py`, 146 → 149).**
+- `snapshot_hash_problems` with `snapshot_hash_selftest`: "(5 results, 13 controls)". The
+  hash is matched in full, so nothing may follow the digest.
+- `set_fixture_problems`: args against `set-args`, key scope segment, agent prefix.
+- `state_cycle_echo_problems`: the replaced sentences are absent from `spec/`, and State
+  §2.1.8, §2.1.9, §3.1.2, §3.2.1, §3.2.2, §4.2.1, §8.3, §8.4, Core §4.3.10.5, §4.3.10.6
+  and Actions §1.4 state the rules.
+
+**Mutations.** 39 of 39 detected.
+- A-108: (s1) ITV-537 back to `DE`/`FR`; (s2) pure intersection, a wider zone accepted;
+  (s3) the literal field only; (s4) inheritance without the profile default; (s5) an
+  update without args replacing the stored zone; (s6) the rule applied to session; (s6b)
+  session inheriting; (s7) the scenario back to a fixed payload.
+- A-109: (s8) legacy prefix in ITV-286; (s9), (s9b) `timestamp` hashed; (s10) order
+  ignored; (s11) no digest check on negatives; (s11b) legacy prefix accepted in any
+  negative; (s11c) the declared negative not required to fail only the pattern; (s12)
+  self-test call removed, seen in the control count; (s13) INV-88 with a wrong hash; (s27)
+  ITV-677 reordered; (s28) INV-210 with a wrong digest; (s23) the pattern removed.
+- A-110: (s14) retention ignored on update; (s15) string comparison; (s16) floor ignored;
+  (s17) envelope value ignored; (s18) a rejected update writing a version; (s19) an update
+  restarting the period; (s20) `retention_fixed` where Rule 4 applies; (s21) the rules
+  applied to session; (s22) the `$def` not applied; (s22b) creation under a floor
+  preserving nothing.
+- Owner double check: (s29) the envelope's declared retention escaping Rule 4 when
+  `payload.args` is present; (s29b) a session SET escaping the floor of its own message;
+  (s30) the guard accepting a line break after the digest; (s31) the schema accepting it.
+- Echoes and fixtures: (s24) the old precedence sentence; (s24b) the old PURGE wording;
+  (s24c) the session exception removed; (s25) ITV-538 without `scope`; (s26) ITV-539 with
+  the key outside its scope.
+
+Two weaknesses were found and fixed while building the campaign:
+- (s11b) was not detected: no control declared a legacy prefix in a negative with another
+  expectation. Control added (10 → 11).
+- (s14) made the harness stop with an exception after its first two failures, so the
+  vector checks did not run. The R18 controls no longer index a missing `details`.
+
+The owner's double check (2026-11-17) reproduced two defects, fixed in this cycle:
+- A-110: the reference store checked Rule 4 only on the value selected for the entry, so
+  an update (or a creation) with a compatible `payload.args.retention` and an envelope
+  `compliance.retention` below the floor was accepted and written, while the resolver
+  rejects that `compliance`. The envelope's declared retention is now checked before any
+  write, whatever value is selected and for every scope; args `P1Y` with an envelope
+  `P2Y`, both above the floor, stays accepted and preserves `P1Y` (four R18 (l) controls).
+- A-109: the schema pattern and the guard's `match` accepted a line break after the
+  digest, also in INV-210's declared exception. The schema gains `maxLength: 72` and the
+  guard matches the hash in full, the legacy prefix included (two controls, 11 → 13; one
+  R17 (k) check). The schema states only the maximum: the pattern already excludes any
+  shorter value, and a minimum would give INV-210 (71 characters) a second error.
+
+**Regression.** The scripts of the earlier campaigns were lost with the session's scratch
+directory. They were rebuilt from the session record, by replaying only the operations
+that wrote each script, and their mutation counts match the documented ones. All ran on
+the corrected candidate and detected every mutation: maintenance 21, cycle F 18, main
+reconciliation 10, port 23, coverage SC4 23.
+
+**Counts.** Vectors 956 → 967 (11 new, 8 changed); runtime-only 204 → 209; crypto blocks
+157 → 165 (153 signatures verified, 9 negatives, 3 canonical only); consistency checks
+146 → 149; harness checks 783 → 854; RTM 2046 → 2055 rows (MUST + MUST_NOT 1247 → 1256;
+with REQUIRED 1445 → 1454); findings register 122 → 123 rows (open 10 → 7, closed 116). The
+maintenance-cycle retention guard now reads 113 audit records (ITV-723 added), with its 19
+controls.

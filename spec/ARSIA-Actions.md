@@ -509,7 +509,8 @@ defined in ARSIA-State.md §3.2.1 (forward reference).
 - Snapshots are read-only, immutable captures of state at a specific timestamp.
 - Typically granted alongside `arsiaprotocol.audit.read` for regulatory inspection workflows.
 - Snapshot responses MUST include the timestamp of the snapshot and a cryptographic
-  hash of the state data for integrity verification.
+  hash of the state data for integrity verification (construction:
+  ARSIA-State.md §3.2.1).
 
 #### `arsiaprotocol.assets.transfer.initiate`
 

@@ -389,8 +389,31 @@ def conflict(diagnostic, axis, declared, required, sources, field=None):
     return c
 
 
+def set_entry(message):
+    """The entry inputs of a state SET message (State §8.3): the zone declared in payload.args and the scope;
+    None for any other message."""
+    payload = message.get("payload")
+    if not isinstance(payload, dict) or payload.get("type") != "arsiaprotocol.state/set":
+        return None
+    args = payload.get("args") or {}
+    return {"zone": args.get("data_residency"), "scope": args.get("scope")}
+
+
+def entry_zone(res, args_zone, scope, stored_zone=None):
+    """State §8.3 rule 1, selection: a zone present in payload.args is the entry's own zone; without it the SET
+    does not change an entry's own zone, and an entry that has none inherits the message's filled value (profile
+    default included). Session entries (§1.1) inherit nothing."""
+    if args_zone is not None:
+        return args_zone
+    if stored_zone is not None:
+        return stored_zone
+    if scope == "session":
+        return None
+    return (res["axes"]["residency"]["fill"] or {}).get("value")
+
+
 def resolve_obligations(intent, compliance, identity=None, anchor="2026-10-31T00:00:00.000Z", strict=False,
-                        executor=(), sensitive_entry=False, review_config=None):
+                        executor=(), sensitive_entry=False, review_config=None, entry=None):
     """Core §4.3.10 reference: fill, collect, compose, evaluate, record.
 
     compliance is the envelope's `compliance` object, or None when the field is absent. identity is the
@@ -580,10 +603,17 @@ def resolve_obligations(intent, compliance, identity=None, anchor="2026-10-31T00
             result = {"codes": sorted(allowed)}
             if expanded:
                 result.update(revision=EU_REVISION, sha256=jcs_sha256(EU_MEMBERS))
-    entry = axis_entry(declared, filled, rq, result, c)
+            # State §8.3 rule 1, validation: a zone declared in payload.args for a non-session entry lies within
+            # the composed restriction (a subset of it); it is never widened to, nor replaced by, that restriction
+            if entry and entry.get("zone") is not None and entry.get("scope") != "session" \
+                    and not normalize_residency(entry["zone"])[0] <= allowed:
+                c = conflict("obligation_conflict", "residency", entry["zone"], result,
+                             [r["source"] for r, _, _ in rq])
+                result = None
+    axis = axis_entry(declared, filled, rq, result, c)
     if not restrictions:
-        entry.update(status="no-value", result=None)  # State §7.1: no effective restriction is no-value
-    axes["residency"] = entry
+        axis.update(status="no-value", result=None)  # State §7.1: no effective restriction is no-value
+    axes["residency"] = axis
 
     # ---- evaluate + record
     conflicts += [a["conflict"] for a in axes.values() if a["conflict"]]
@@ -676,7 +706,8 @@ def receive(message, identity=None, anchor="2026-10-31T00:00:00.000Z", strict=Fa
             event_type="request", operator_id=RECEIVER_OPERATOR):
     """Receiver simulation: resolve, then emit the audit records State §7.1 requires.
     A compliance rejection always emits its error record, whatever audit_required declares."""
-    res = resolve_obligations(message["intent"], message.get("compliance"), identity, anchor, strict, executor)
+    res = resolve_obligations(message["intent"], message.get("compliance"), identity, anchor, strict, executor,
+                              entry=set_entry(message))
     if res["outcome"] == "rejected":
         rec = audit_record(message, res, anchor, operator_id, "error", rejection_cause="compliance",
                            correlation_id=message["id"], obligation_resolution=res)
@@ -808,22 +839,33 @@ TEST_EVIDENCE = {"agent_id": "agent:acme.analyst", "signed_body_sha256": "1" * 6
                  "record_sha256": "2" * 64}
 
 
-def scenario_result(meta):
-    """Runs a runtime vector's test_metadata scenario and returns the computed result object."""
+def scenario_result(meta, message=None):
+    """Runs a runtime vector's test_metadata scenario and returns the computed result object. A `resolution`
+    scenario with `input.from_message` runs the vector's own message (its compliance and payload), so that the
+    executed case cannot drift from the fixture."""
     inp = meta["input"]
     if meta["scenario"] == "resolution":
         identity = None
         if inp.get("identity"):
             identity = dict(inp["identity"], evidence=dict(TEST_EVIDENCE, agent_id=inp["identity"]["agent_id"]))
-        msg = {"id": inp.get("id", "00000000-0000-4000-8000-000000000000"), "from": inp.get("from", "agent:acme.analyst"),
-               "to": "agent:acme.executor", "intent": inp["intent"], "payload": TEST_PAYLOAD}
-        if inp.get("compliance") is not None:
-            msg["compliance"] = inp["compliance"]
+        if inp.get("from_message"):
+            if not isinstance(message, dict):
+                raise ValueError("resolution scenario with from_message needs the vector's message")
+            msg = message
+        else:
+            msg = {"id": inp.get("id", "00000000-0000-4000-8000-000000000000"),
+                   "from": inp.get("from", "agent:acme.analyst"),
+                   "to": "agent:acme.executor", "intent": inp["intent"], "payload": TEST_PAYLOAD}
+            if inp.get("compliance") is not None:
+                msg["compliance"] = inp["compliance"]
         out = receive(msg, identity, inp.get("anchor", "2026-10-31T00:00:00.000Z"), inp.get("strict", False),
                       inp.get("executor", ()))
         res = out["records"][0]["obligation_resolution"] if out["records"] else resolve_obligations(
-            msg["intent"], msg.get("compliance"), identity, executor=inp.get("executor", ()))
+            msg["intent"], msg.get("compliance"), identity, executor=inp.get("executor", ()), entry=set_entry(msg))
+        entry = set_entry(msg)
         return {"outcome": res["outcome"], "error": out["error"], "profile": res["profile"], "axes": res["axes"],
+                "entry_zone": entry_zone(res, entry["zone"], entry["scope"]) if entry and res["outcome"] == "accepted"
+                else None,
                 "facts": [{"value": f["value"], "declared": f["declared"]} for f in res["facts"]],
                 "conflicts": res.get("conflicts", []),
                 "records": [{k: r[k] for k in ("event_type", "rejection_cause", "correlation_id", "declared_retention",
@@ -947,6 +989,62 @@ def r10(vectors):
     r = resolve_obligations("event", {"profile": "MIFID-II"}, None, executor=ch)
     check("R10 residency empty intersection -> obligation_conflict",
           r["conflicts"][0]["diagnostic"] == "obligation_conflict" and r["axes"]["residency"]["status"] == "conflict")
+
+    # State §8.3 rule 1: a zone declared in payload.args lies within the composed restriction (A-108)
+    def zone_case(compliance, zone, scope="agent", executor=()):
+        r_ = resolve_obligations("request", compliance, None, executor=executor, entry={"zone": zone, "scope": scope})
+        return r_, entry_zone(r_, zone, scope) if r_["outcome"] == "accepted" else None
+
+    gd = lambda zone_: {"profile": "GDPR-STANDARD", "data_residency": zone_}
+    for restr, zone, ok in (("EU", "FR", True), ("DE", "FR", False), ("FR", "EU", False), ("FR", "FR", True)):
+        r, z = zone_case(gd(restr), zone)
+        check(f"R10 entry zone {zone} under message restriction {restr}: {'accepted, entry in ' + zone if ok else 'conflict'}",
+              (r["outcome"] == "accepted" and z == zone) if ok else
+              (r["outcome"] == "rejected" and r["conflicts"][0]["diagnostic"] == "obligation_conflict"
+               and r["axes"]["residency"]["status"] == "conflict" and r["axes"]["residency"]["result"] is None))
+    r, z = zone_case({"profile": "GDPR-STANDARD"}, "JP")
+    check("R10 entry zone with no restriction composed: any zone, entry in the declared zone",
+          r["outcome"] == "accepted" and z == "JP" and r["axes"]["residency"]["status"] == "no-value")
+    r, _ = zone_case(gd("DE"), "FR")
+    c_ = r["conflicts"][0]
+    check("R10 entry zone conflict item: axis residency, declared = the args zone, required = the composed restriction",
+          (c_["axis"], c_["declared"], c_["required"], c_["sources"]) == ("residency", "FR", {"codes": ["DE"]}, []))
+    r, _ = zone_case(gd("EU"), "US")
+    check("R10 entry zone conflict under a regional restriction records the member-list revision",
+          r["conflicts"][0]["required"] == {"codes": EU_MEMBERS, "revision": EU_REVISION,
+                                            "sha256": jcs_sha256(EU_MEMBERS)})
+    r, z = zone_case({"profile": "MIFID-II"}, "US")
+    check("R10 entry zone is compared with the composed restriction, not the literal field (MIFID-II default EU, US)",
+          r["outcome"] == "rejected" and r["axes"]["residency"]["declared"] == {"present": False}
+          and r["axes"]["residency"]["fill"] == {"value": "EU", "source": "profile-default"})
+    r, z = zone_case({"profile": "MIFID-II"}, "FR")
+    check("R10 entry zone FR within the MIFID-II default EU: accepted, entry in FR", r["outcome"] == "accepted" and z == "FR")
+    r, z = zone_case({"profile": "MIFID-II"}, None)
+    check("R10 args omitted, entry without a zone: inherits the filled value, a profile default included (EU)",
+          r["outcome"] == "accepted" and z == "EU")
+    r, z = zone_case(gd("DE"), "FR", executor=de)
+    check("R10 entry zone conflict lists the requirement sources of the composed restriction",
+          r["outcome"] == "rejected" and r["conflicts"][0]["sources"] == [de[0]["source"]])
+    r = resolve_obligations("request", gd("EU"), None, entry={"zone": None, "scope": "agent"})
+    check("R10 update without args: the entry's own zone is kept, not replaced by the message's (FR under EU)",
+          r["outcome"] == "accepted" and entry_zone(r, None, "agent", stored_zone="FR") == "FR")
+    r, z = zone_case(gd("DE"), "FR", scope="session")
+    check("R10 session entry (State §1.1): the args zone is not validated against the message restriction",
+          r["outcome"] == "accepted" and r["axes"]["residency"]["result"] == {"codes": ["DE"]} and z == "FR")
+    r, z = zone_case(gd("DE"), None, scope="session")
+    check("R10 session entry (State §1.1): no zone is inherited from the message", r["outcome"] == "accepted" and z is None)
+    out = receive({"id": "00000000-0000-4000-8000-0000000000ac", "from": "agent:acme.data-agent", "to": "agent:x.y",
+                   "intent": "request", "compliance": gd("DE"),
+                   "payload": {"type": "arsiaprotocol.state/set",
+                               "args": {"key": "agent:acme.data-agent/agent/k", "value": 1, "scope": "agent",
+                                        "pii_classification": "none", "data_residency": "FR"}}})
+    rec = out["records"][0] if out["records"] else {}
+    errs = schema_errors(rec, "arsia-audit-record.schema.json")
+    check("R10 entry zone conflict at the receiver: invalid_request with obligation_conflict, compliance error record "
+          "schema-valid",
+          not out["accepted"] and out["error"] == {"code": "invalid_request", "details": {
+              "obligation_conflict": True, "axis": "residency", "declared": "FR", "required": {"codes": ["DE"]},
+              "sources": []}} and rec.get("rejection_cause") == "compliance" and not errs, "; ".join(errs[:3]))
     out = receive({"id": "00000000-0000-4000-8000-0000000000aa", "from": "agent:acme.analyst", "to": "agent:x.y",
                    "intent": "request", "compliance": {"audit_required": False}, "payload": TEST_PAYLOAD}, hr)
     rec = out["records"][0] if out["records"] else {}
@@ -974,7 +1072,7 @@ def r10(vectors):
     with_meta = [v for v in vectors if v.get("test_metadata", {}).get("scenario") in ("resolution", "router")]
     emitted = 0
     for v in with_meta:
-        got = scenario_result(v["test_metadata"])
+        got = scenario_result(v["test_metadata"], v.get("message"))
         miss = subset_match(v["test_metadata"]["expect"], got)
         check(f"R10 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         errs = [e for r in got["emitted"] for e in schema_errors(r, "arsia-audit-record.schema.json")]
@@ -2238,7 +2336,8 @@ class StateStore:
     """Reference store for one owner: generations, versions, preconditions, snapshot, PURGE repetition,
     retention override. Entries are kept per (key, generation); `held` is the information the
     implementation still holds; `retained_until` is created_at + the effective retention resolved at
-    creation (None when no retention period applies)."""
+    creation (None when no retention period applies) and is preserved for the generation (State §2.1.8):
+    an update validates the request against it and never changes it (§3.1.2 rule 7)."""
 
     def __init__(self, owner="agent:acme.billing"):
         self.owner = owner
@@ -2262,12 +2361,26 @@ class StateStore:
         out = {"key": key, "value": ver["value"], "owner_agent_id": self.owner, "scope": key.split("/")[1],
                "created_at": e["created_at"], "updated_at": ver["at"], "pii_classification": "none",
                "generation": g, "version": ver["version"]}
+        if e.get("retention"):
+            out["retention"] = e["retention"]
         if deleted is not None:
             out["deleted"] = deleted
         return out
 
-    def set(self, key, value, at, actor=None, expected_version=None, expected_generation=None, retention=None):
+    @staticmethod
+    def retention_inputs(retention, compliance):
+        """State §8.3 rule 2: the value that applies is payload.args.retention or, when absent, the envelope's
+        compliance.retention; the floor is the retention_minimum of the profile applied to the message."""
+        compliance = compliance or {}
+        applies = retention if retention is not None else compliance.get("retention")
+        profile = compliance.get("profile") or ("GDPR-STANDARD" if compliance else None)
+        floor = PROFILES[profile]["defaults"].get("retention_minimum") if profile in PROFILES else None
+        return applies, floor, profile
+
+    def set(self, key, value, at, actor=None, expected_version=None, expected_generation=None, retention=None,
+            compliance=None, scope=None):
         actor = actor or self.owner
+        scope = scope or key.split("/")[1]
         cur = self.live(key)
         stated = {k: v for k, v in (("expected_generation", expected_generation),
                                     ("expected_version", expected_version)) if v is not None}
@@ -2280,14 +2393,43 @@ class StateStore:
                (expected_generation is not None and expected_generation != g):
                 return {"error": "conflict", "details": dict({"current_generation": g, "current_version": last["version"],
                                                               "updated_at": last["at"], "updated_by": last["actor"]}, **stated)}
+        applies, floor, profile = (None, None, None) if scope == "session" else \
+            self.retention_inputs(retention, compliance)                   # State §1.1: session carries none
+        anchor = at if cur is None else cur[1]["created_at"]
+        until = lambda d: stamp(add_duration(iso(anchor), d))
+        # Core §4.3.8 Rule 4, before rule 7: the request is validated in full. The envelope's declared retention is
+        # checked whatever value is selected for the entry (payload.args taking precedence does not dispense it),
+        # and for every scope: the message stays subject to its own floor.
+        env_profile = (compliance or {}).get("profile") or ("GDPR-STANDARD" if compliance else None)
+        env_floor = PROFILES[env_profile]["defaults"].get("retention_minimum") if env_profile in PROFILES else None
+        declared = [(compliance or {}).get("retention"), applies]
+        low = next((d for d in declared if d and env_floor and until(d) < until(env_floor)), None)
+        if low:
+            return {"error": "invalid_request", "rejection_cause": "compliance",
+                    "details": {"insufficient_retention": True, "profile": env_profile, "declared_retention": low,
+                                "minimum_retention": env_floor, "retention_anchor": anchor,
+                                "declared_retained_until": until(low), "minimum_retained_until": until(env_floor),
+                                "resolution_source": "per-message"}}
         if cur is None:
             g = (self.top.get(key, 0) if self.held(key) else 0) + 1
             self.top[key] = g
-            e = {"versions": [], "created_at": at, "deleted_at": None, "purged_at": None,
-                 "retained_until": stamp(add_duration(iso(at), retention)) if retention else None}
+            effective = applies or floor
+            e = {"versions": [], "created_at": at, "deleted_at": None, "purged_at": None, "retention": applies,
+                 "retained_until": until(effective) if effective else None}
             self.gens.setdefault(key, {})[g] = e
         else:
             g, e = cur
+            if scope != "session":                                          # State §3.1.2 rule 7
+                kept = e["retained_until"]
+                failed = None
+                if applies and until(applies) != kept:                      # (a) same instant, never as strings
+                    failed = until(applies)
+                elif floor and (kept is None or until(floor) > kept):       # (b) no floor later than preserved
+                    failed = until(floor)
+                if failed:
+                    return {"error": "invalid_request",
+                            "details": {"retention_fixed": True, "entry_retained_until": kept,
+                                        "required_retained_until": failed}}
         ver = {"version": len(e["versions"]) + 1, "value": value, "at": at, "actor": actor}
         e["versions"].append(ver)
         self.records.append({"event_type": "state_set", "key": key, "owner_agent_id": self.owner,
@@ -2365,6 +2507,12 @@ class StateStore:
         return [(key, g, v["version"]) for g in sorted(self.gens.get(key, {})) for v in self.gens[key][g]["versions"]]
 
 
+def snapshot_hash(as_of, entries):
+    """State §3.2.1: "sha-256:" + lowercase hex SHA-256 of the RFC 8785 form of {as_of, entries} as carried in
+    the result, in the order carried; hash and timestamp are not hashed."""
+    return "sha-256:" + jcs_sha256({"as_of": as_of, "entries": entries})
+
+
 def state_case(inp):
     """Runs a runtime vector's `state` scenario; returns the last operation's result and the audit records."""
     st = StateStore(inp.get("owner", "agent:acme.billing"))
@@ -2373,7 +2521,7 @@ def state_case(inp):
         kind = op["op"]
         if kind == "set":
             out = st.set(inp["key"], op["value"], op["at"], op.get("actor"), op.get("expected_version"),
-                         op.get("expected_generation"), op.get("retention"))
+                         op.get("expected_generation"), op.get("retention"), op.get("compliance"), op.get("scope"))
         elif kind == "delete":
             out = st.delete(inp["key"], op["at"])
         elif kind == "purge":
@@ -2387,14 +2535,18 @@ STATE_PROJECTION = {"state_set": ("key", "owner_agent_id", "actor_agent_id", "ge
                     "state_purge": ("key", "owner_agent_id", "initiator_agent_id", "generation", "purged_at",
                                     "within_retention", "entry_retained_until", "retention_override")}
 R17_STATE_IDS = ["ITV-677", "ITV-678", "ITV-679", "ITV-680", "ITV-681"]
-R18_STATE_IDS = ["ITV-683", "ITV-684", "ITV-685", "ITV-686", "ITV-687"]
+R18_STATE_IDS = ["ITV-683", "ITV-684", "ITV-685", "ITV-686", "ITV-687",
+                 "ITV-719", "ITV-720", "ITV-721", "ITV-722", "ITV-723"]
 
 
 def state_vector_data_matches(v, got):
     """The vector's data is what the reference store produces for the stated operation sequence."""
     body = v.get("data") or v.get("message")
     if v.get("schema_ref") == "arsia-state-operations.schema.json":
-        return body["result"]["entries"] == got["last"]["result"]
+        if body["type"] == "arsiaprotocol.state/set":
+            return body["result"] == got["last"].get("result")
+        return body["result"]["entries"] == got["last"]["result"] and \
+            body["result"]["hash"] == snapshot_hash(body["result"]["as_of"], got["last"]["result"])
     if "payload" in body:
         return body["payload"]["error"]["code"] == got["last"]["error"] and \
             body["payload"]["error"]["details"] == got["last"]["details"]
@@ -2487,6 +2639,31 @@ def r17(vectors):
         miss = subset_match(v["test_metadata"]["expect"], got)
         check(f"R17 {v['id']} result matches its stated expectation", not miss, ", ".join(miss), executed=[v["id"]])
         check(f"R17 {v['id']} data is what the reference store produces", state_vector_data_matches(v, got))
+
+    # (k) SNAPSHOT hash (State §3.2.1, A-109): {as_of, entries} as carried, in the order carried
+    by_id = {v["id"]: v for v in vectors}
+    for vid in ("ITV-174", "ITV-286", "ITV-677"):
+        res = by_id[vid]["data"]["result"]
+        check(f"R17 (k) {vid} hash is sha-256 over the RFC 8785 form of its as_of and entries",
+              res["hash"] == snapshot_hash(res["as_of"], res["entries"]), executed=[vid])
+    res = json.loads(json.dumps(by_id["ITV-677"]["data"]["result"]))
+    changed = json.loads(json.dumps(res["entries"]))
+    changed[0]["value"] = "tampered"
+    check("R17 (k) a changed entry value changes the hash", snapshot_hash(res["as_of"], changed) != res["hash"])
+    check("R17 (k) the same entries in another order change the hash (the order carried is hashed)",
+          len(res["entries"]) == 2 and snapshot_hash(res["as_of"], res["entries"][::-1]) != res["hash"])
+    check("R17 (k) another as_of changes the hash",
+          snapshot_hash("2026-04-15T13:00:00.001Z", res["entries"]) != res["hash"])
+    later = dict(res, timestamp="2026-04-15T13:05:00.000Z")
+    check("R17 (k) timestamp and hash are not hashed: a later timestamp leaves the hash unchanged",
+          snapshot_hash(later["as_of"], later["entries"]) == res["hash"]
+          and res["hash"] != "sha-256:" + jcs_sha256(dict(res, hash=None))
+          and not schema_errors(later, "arsia-state-operations.schema.json", "snapshot-result"))
+    check("R17 (k) the schema accepts nothing after the digest (a trailing line break is rejected)",
+          bool(schema_errors(dict(res, hash=res["hash"] + "\n"), "arsia-state-operations.schema.json", "snapshot-result"))
+          and not schema_errors(res, "arsia-state-operations.schema.json", "snapshot-result"))
+    check("R17 (k) the hash is sha-256: followed by 64 lowercase hexadecimal characters",
+          re.fullmatch(r"sha-256:[0-9a-f]{64}", res["hash"]) is not None)
 
 
 def full_purge_record(rec, message, at, pii_classification, operator_id=RECEIVER_OPERATOR):
@@ -2609,9 +2786,139 @@ def r18(vectors):
     check("R18 (j) PURGE after a later write is evaluated on the set it would remove (erased values excluded)",
           "result" in later and len(purges(st)) == 2 and purges(st)[-1]["within_retention"] is False)
 
+    # (l) retention fixed per generation (State §2.1.8, §3.1.2 rule 7, §8.3 rule 2; A-110)
+    def fixed(out):
+        return "error" in out and out["details"].get("retention_fixed") is True
+
+    def error_message(out):
+        return {"v": "2.0", "id": "00000000-0000-4000-8000-0000000000b1", "ts": "2026-04-27T14:00:00.600Z",
+                "from": "agent:acme.store", "to": "agent:acme.billing", "intent": "error",
+                "correlation_id": "00000000-0000-4000-8000-0000000000b2",
+                "root_request_id": "00000000-0000-4000-8000-0000000000b2",
+                "payload": {"type": "arsiaprotocol.error",
+                            "error": {"code": out.get("error"), "description": "rejected",
+                                      "details": out.get("details")}},
+                "security": {"alg": "EdDSA", "kid": "agent:acme.store#key1", "sig": "A" * 86}}
+
+    def state_of(st_):
+        e_ = st_.gens[K][1]
+        return (len(e_["versions"]), e_["versions"][-1]["value"], e_["retained_until"], e_["retention"],
+                e_["created_at"], len(st_.records))
+
+    C0, C1 = "2026-03-28T09:00:00.000Z", "2026-04-27T14:00:00.000Z"
+    hr_, mf_ = {"profile": "EU-AI-ACT-HIGH-RISK"}, {"profile": "MIFID-II"}
+    st = StateStore()
+    st.set(K, "v1", C0, retention="P1Y")
+    ok_ = st.set(K, "v2", C1, retention="P12M")
+    check("R18 (l) update stating P12M over an entry created with P1Y: accepted, same instant (never as strings)",
+          "result" in ok_ and state_of(st)[:5] == (2, "v2", "2027-03-28T09:00:00.000Z", "P1Y", C0))
+    check("R18 (l) update with no retention value and no floor: accepted, preserved retention unchanged",
+          "result" in st.set(K, "v3", C1) and state_of(st)[2:5] == ("2027-03-28T09:00:00.000Z", "P1Y", C0))
+    before = state_of(st)
+    out = st.set(K, "v4", C1, retention="P2Y")
+    check("R18 (l) update stating another retention in payload.args: invalid_request retention_fixed (State §8.4)",
+          out == {"error": "invalid_request", "details": {
+              "retention_fixed": True, "entry_retained_until": "2027-03-28T09:00:00.000Z",
+              "required_retained_until": "2028-03-28T09:00:00.000Z"}})
+    check("R18 (l) the rejected update leaves value, version, preserved retention and records unchanged",
+          state_of(st) == before)
+    errs = schema_errors(out.get("details"), "arsia-message.schema.json", "error-details-retention-fixed") + \
+        schema_errors(error_message(out), "arsia-message.schema.json")
+    check("R18 (l) the retention_fixed response validates against its $def and in the error envelope",
+          not errs, "; ".join(errs[:3]))
+    bad = error_message(dict(out, details=dict(out.get("details") or {"retention_fixed": True}, extra=True)))
+    check("R18 (l) the error envelope applies the $def to retention_fixed details (an extra member is rejected)",
+          bool(schema_errors(bad, "arsia-message.schema.json")))
+    out = st.set(K, "v4", C1, compliance={"profile": "GDPR-STANDARD", "retention": "P2Y"})
+    check("R18 (l) args omitted, envelope compliance.retention incompatible with the preserved one: rejected",
+          fixed(out) and out["details"]["required_retained_until"] == "2028-03-28T09:00:00.000Z"
+          and state_of(st) == before)
+    check("R18 (l) args omitted, envelope compliance.retention producing the same instant: accepted",
+          "result" in st.set(K, "v4", C1, compliance={"profile": "GDPR-STANDARD", "retention": "P12M"}))
+    check("R18 (l) payload.args.retention takes precedence over the envelope's when both are present",
+          "result" in st.set(K, "v5", C1, retention="P1Y", compliance={"profile": "GDPR-STANDARD", "retention": "P2Y"}))
+
+    st = StateStore()
+    created = st.set(K, "v1", C0, compliance=hr_)
+    check("R18 (l) created with no explicit retention under a floor: the preserved retention is the floor (P6M)",
+          "result" in created and "retention" not in created["result"]
+          and st.gens[K][1]["retained_until"] == "2026-09-28T09:00:00.000Z")
+    check("R18 (l) later update with no value under the same profile: accepted, floor not later than preserved",
+          "result" in st.set(K, "v2", C1, compliance=hr_) and st.gens[K][1]["retained_until"] == "2026-09-28T09:00:00.000Z")
+    before = state_of(st)
+    out = st.set(K, "v3", C1, compliance=mf_)
+    check("R18 (l) later update under a higher floor (P1827D): rejected, never extended",
+          out == {"error": "invalid_request", "details": {
+              "retention_fixed": True, "entry_retained_until": "2026-09-28T09:00:00.000Z",
+              "required_retained_until": "2031-03-29T09:00:00.000Z"}} and state_of(st) == before)
+    out = st.set(K, "v3", C1, retention="P1M", compliance=hr_)
+    check("R18 (l) update stating a value below the floor: Rule 4 insufficient_retention (compliance), not retention_fixed",
+          out.get("rejection_cause") == "compliance" and out["details"].get("insufficient_retention") is True
+          and "retention_fixed" not in out["details"] and out["details"]["retention_anchor"] == C0
+          and state_of(st) == before)
+
+    st = StateStore()
+    st.set(K, "v1", C0, retention="P1Y")
+    before = state_of(st)
+    out = st.set(K, "v2", C1, retention="P1Y", compliance=dict(hr_, retention="P1D"))
+    check("R18 (l) update whose args are compatible but whose envelope declares a retention below the floor: Rule 4, "
+          "state unchanged (args do not hide the envelope)",
+          out.get("rejection_cause") == "compliance" and out["details"].get("insufficient_retention") is True
+          and out["details"]["declared_retention"] == "P1D" and state_of(st) == before)
+    check("R18 (l) args P1Y with an envelope retention P2Y, both above the floor: accepted, P1Y preserved",
+          "result" in st.set(K, "v2", C1, retention="P1Y", compliance=dict(hr_, retention="P2Y"))
+          and state_of(st)[2:4] == ("2027-03-28T09:00:00.000Z", "P1Y"))
+    st = StateStore()
+    out = st.set(K, "v1", C0, retention="P1Y", compliance=dict(hr_, retention="P1D"))
+    check("R18 (l) creation whose envelope declares a retention below the floor: Rule 4, no entry created",
+          out.get("rejection_cause") == "compliance" and out["details"].get("declared_retention") == "P1D"
+          and K not in st.gens and not st.records)
+    KS_ = "agent:acme.billing/session/scratch"
+    out = st.set(KS_, "v1", C0, compliance=dict(hr_, retention="P1D"))
+    check("R18 (l) session entry: the message stays subject to its own floor (envelope below it: Rule 4)",
+          out.get("rejection_cause") == "compliance" and KS_ not in st.gens)
+
+    st = StateStore()
+    st.set(K, "v1", C0)
+    before = state_of(st)
+    out = st.set(K, "v2", C1, retention="P1Y")
+    check("R18 (l) entry preserved with no retention period: a stated value is rejected, entry_retained_until null",
+          out == {"error": "invalid_request", "details": {
+              "retention_fixed": True, "entry_retained_until": None,
+              "required_retained_until": "2027-03-28T09:00:00.000Z"}} and state_of(st) == before
+          and not schema_errors(error_message(out), "arsia-message.schema.json"))
+    check("R18 (l) entry preserved with no retention period: an update under a floor is rejected",
+          fixed(st.set(K, "v2", C1, compliance=hr_)) and state_of(st) == before)
+
+    st = StateStore()
+    st.set(K, "v1", C0, retention="P1Y")
+    st.delete(K, C1)
+    check("R18 (l) a different period takes a new generation: recreation with P2Y is accepted with its own anchor",
+          st.set(K, "w1", C1, retention="P2Y")["result"]["generation"] == 2
+          and st.gens[K][2]["retained_until"] == "2028-04-27T14:00:00.000Z"
+          and st.gens[K][1]["retained_until"] == "2027-03-28T09:00:00.000Z")
+
+    st = StateStore()
+    st.set(K, "v1", "2025-04-20T09:00:00.000Z", retention="P1Y")
+    st.set(K, "late", "2026-04-19T09:00:00.000Z")
+    out = st.purge(K, "2026-04-27T14:00:00.500Z", "k1")
+    check("R18 (l) an update does not restart the period: PURGE after created_at + P1Y is beyond retention",
+          "result" in out and purges(st)[-1]["within_retention"] is False
+          and purges(st)[-1]["entry_retained_until"] == "2026-04-20T09:00:00.000Z")
+
+    KS = "agent:acme.billing/session/scratch"
+    st = StateStore()
+    st.set(KS, "v1", C0, compliance=mf_)
+    check("R18 (l) session entry (State §1.1): no retention is preserved, neither a floor nor the envelope's value",
+          st.gens[KS][1]["retained_until"] is None and st.gens[KS][1]["retention"] is None)
+    check("R18 (l) session entry (State §1.1): an update under a floor or with an envelope retention is not rejected",
+          "result" in st.set(KS, "v2", C1, compliance=mf_)
+          and "result" in st.set(KS, "v3", C1, compliance={"profile": "MIFID-II", "retention": "P10Y"})
+          and st.gens[KS][1]["retained_until"] is None)
+
     # (k) scenario vectors
     sv = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "state"]
-    check("R18 state vectors present (ITV-683..687)",
+    check("R18 state vectors present (ITV-683..687, ITV-719..723)",
           sorted(v["id"] for v in sv if v["id"] in R18_STATE_IDS) == R18_STATE_IDS)
     check("R18 every state-scenario vector belongs to R17 or R18",
           sorted(v["id"] for v in sv) == sorted(R17_STATE_IDS + R18_STATE_IDS), str(sorted(v["id"] for v in sv)))

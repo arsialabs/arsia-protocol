@@ -140,6 +140,7 @@
 | CORE-§4.3.10-05 | 4.3.10.7 | MUST | sdk | behavioural_positive | Receiving agent MUST record the resolution inline in obligation_resolution on covered records of accepted requests and on the audit record of every rejection | arsia-audit-record | ITV-600, ITV-601, ITV-55, INV-54 | schema-ref:arsia-audit-record; struct:ITV-600, ITV-601, ITV-55, INV-54; untested(structural-only) |
 | CORE-§4.3.10-06 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of ActionDescriptors and CapabilityPolicies MUST keep published revisions retrievable by digest, and executing agents MUST retain risk-assessment records retrievable by digest, while referenced | — | — | out-of-repo(operator) |
 | CORE-§4.3.10-07 | 4.3.10.7 | MUST | sdk | behavioural_positive | Executing agent MUST carry the resolution in payload.obligation_resolution of its pending_approval and of the response or error reporting the outcome | arsia-message | ITV-631, ITV-640, ITV-644 | schema-ref:arsia-message; struct:ITV-631, ITV-640, ITV-644; crypto:ITV-631; exec:R15:ITV-640, ITV-644 |
+| CORE-§4.3.10-08 | 4.3.10.5 | MUST | sdk | behavioural_negative | The zone a state SET declares in payload.args.data_residency for an entry subject to State §8.3 rule 1 MUST be a subset of the composed residency result; a zone that is not is a conflict on the residency axis, never widened to nor replaced by the composed result | — | ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209 | struct:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209; crypto:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209; exec:R10:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209 |
 | CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 | schema-ref:arsia-message; struct:CTV-07; crypto:CTV-07 |
 | CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — | — |
 | CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — | schema-ref:arsia-message |
@@ -424,9 +425,9 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 409 |
+| Total requirements | 410 |
 | Schema ≠ — | 185 |
-| Vector ≠ — | 161 |
+| Vector ≠ — | 162 |
 | Both ≠ — | 91 |
 | Both = — (gaps) | 154 |
 
@@ -437,7 +438,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 138 | 82 | 81 | 49 | 24 |
+| 4 | 139 | 82 | 82 | 49 | 24 |
 | 5 | 43 | 9 | 29 | 6 | 11 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |

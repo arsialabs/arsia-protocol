@@ -1613,7 +1613,11 @@ residency requirement — is normalized to a set of ISO 3166-1 alpha-2 codes; a
 regional code is expanded to its member list (ARSIA-Routing.md §5.2), and the
 revision of that list is recorded. An absent value is *no restriction*, which is not
 the empty set. The composed result is the intersection of all restrictions; an empty
-intersection is a conflict.
+intersection is a conflict. A state SET that declares `payload.args.data_residency`
+for an entry subject to ARSIA-State.md §8.3 rule 1 selects the zone of that entry
+within the composed result: the declared zone, normalized as above, MUST be a subset
+of the composed result, and a zone that is not is a conflict on this axis. It is
+never widened to, nor replaced by, the composed result.
 
 ##### 4.3.10.6 Rejection and diagnostics
 
@@ -1630,7 +1634,7 @@ the generic one:
 | Declared retention below a floor (Rule 4) | `insufficient_retention: true`, with the members defined in Rule 4 |
 | Classification escalation (Rule 6) | `classification_escalation: true` |
 | Special-category data without an Art. 9(2) basis (Rule 8) | `sensitive_requires_art9_basis: true` |
-| Any other conflict between an explicit declaration and a requirement, an empty residency intersection, or a post-execution mode lacking its review configuration (§4.3.10.5) | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
+| Any other conflict between an explicit declaration and a requirement, an empty residency intersection, an entry zone outside the composed residency restriction (ARSIA-State.md §8.3), or a post-execution mode lacking its review configuration (§4.3.10.5) | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
 
 When several failures apply, the reported diagnostic is the first in the order of
 the rules of §4.3.8, with `obligation_conflict` last; the provenance records every

@@ -528,8 +528,9 @@
         },
         "hash": {
           "type": "string",
-          "minLength": 1,
-          "description": "Cryptographic hash of the state data for integrity verification. Per ARSIA-Actions.md §1.4."
+          "pattern": "^sha-256:[0-9a-f]{64}$",
+          "maxLength": 72,
+          "description": "\"sha-256:\" followed by the lowercase hex SHA-256 of the RFC 8785 canonical form of {as_of, entries} as carried in this result, in the order carried; hash and timestamp are not hashed. Per ARSIA-State.md §3.2.1 and ARSIA-Actions.md §1.4."
         }
       }
     },

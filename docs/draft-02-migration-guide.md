@@ -156,6 +156,34 @@ catalog edition via the new discovery field `iso4217_edition`.
   `retention_override`. `state_purge` records carry `within_retention`,
   `entry_retained_until` and, when used, `retention_override`.
 
+- **Entry residency (State §8.3 rule 1; Core §4.3.10.5).** A `data_residency` in the
+  SET's `payload.args` is the entry's own zone, and it now has to lie within the
+  residency restriction composed for the message: `FR` under a message restricted
+  to `EU` is accepted, `FR` under `DE` or `EU` under `FR` is rejected with
+  `invalid_request` and `obligation_conflict` on the `residency` axis. The comparison
+  uses the composed restriction, which includes a profile default (MIFID-II fills
+  `EU`), not only the literal `compliance.data_residency`. Without the argument, an
+  entry keeps its own zone, and an entry that has none inherits the message's filled
+  value. Session entries are outside this rule (State §1.1). This rejection is not
+  `data_residency_violation`, which still reports a permitted zone the store cannot
+  serve.
+- **Retention is fixed per generation (State §2.1.8, §3.1.2 rule 7, §8.4).** The
+  effective retention is resolved when the generation is created, also when it comes
+  from a profile floor, and an update never changes it. An update whose retention
+  value (`payload.args.retention`, else the envelope's `compliance.retention`)
+  produces another instant from `created_at`, or that falls under a floor later than
+  the preserved one, is rejected with `invalid_request` and the details
+  `retention_fixed`, `entry_retained_until` and `required_retained_until`.
+  Equivalent durations are accepted (`P12M` over `P1Y`). An update does not restart
+  the period: a version written late is retained only for the remainder of it. A
+  different period takes a new generation.
+- **SNAPSHOT hash (State §3.2.1; Actions §1.4).** `hash` is `"sha-256:"` followed by
+  the lowercase hex SHA-256 of the RFC 8785 form of `{as_of, entries}` as carried in
+  the result, in the order carried; `hash` and `timestamp` are not hashed. The prefix
+  is `sha-256:` (earlier corpus values used `sha256:` and are now rejected by the
+  schema). No order is defined for `entries`, so two implementations may produce
+  different values for the same state.
+
 ## 10. Broker relay audit and DPoP
 
 - Brokers emit a `broker_relay` audit record for every message received for

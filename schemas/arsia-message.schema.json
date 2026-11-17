@@ -753,6 +753,34 @@
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
         }
       }
+    },
+    "error-details-retention-fixed": {
+      "type": "object",
+      "description": "Error details for a SET that updates an entry and is rejected because the retention preserved for the generation is fixed — ARSIA-State.md §3.1.2 rule 7, §8.4. Consist of retention_fixed (true), entry_retained_until (created_at + the preserved retention, or null when the generation has no retention period) and required_retained_until (the instant that the value or the floor that failed produces from the same created_at).",
+      "required": [
+        "retention_fixed",
+        "entry_retained_until",
+        "required_retained_until"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "retention_fixed": {
+          "const": true
+        },
+        "entry_retained_until": {
+          "oneOf": [
+            {
+              "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_retained_until": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        }
+      }
     }
   },
   "required": [
@@ -1348,6 +1376,32 @@
                     "properties": {
                       "details": {
                         "$ref": "#/$defs/error-details-retention-override"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "retention_fixed"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-retention-fixed"
                       }
                     }
                   }

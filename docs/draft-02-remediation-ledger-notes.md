@@ -267,7 +267,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   envelope's), which may be in tension with the residency intersection of Core
   §4.3.10.5 when the args value lies outside the envelope restriction (candidate
   finding).
-  Registered as A-108 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-108 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the State cycle (A-108 closed, [§31][ev31]).
 - **Schema-expressible runtime rules (observed in VC, not fixed):** INV-20 (Rule 8
   Art. 9(2) basis for sensitive entries) and INV-22 (State §2.1.11 exclusion) test
   cross-field rules JSON Schema could express; they stay runtime-only.
@@ -378,7 +378,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   schema requires `hash`, but no construction is defined. ITV-677 carries an
   illustrative value (SHA-256 of the RFC 8785 form of its entries) that no rule
   checks.
-  Registered as A-109 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-109 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the State cycle (A-109 closed, [§31][ev31]).
 - **Propagation impact (A-79 cycle):** implementations emit `generation` in every
   StateEntry and in state_set, state_delete and state_purge records, accept
   `expected_generation`, return the State §8.4 details (including `entry_live: false`)
@@ -420,7 +420,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   nor, if it may, which retention governs the values written before the change. State
   §3.2.2 uses "the effective retention of that entry" (§2.1.8, §4.1.1); harness R18 uses
   the retention resolved when the generation was created.
-  Registered as A-110 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-110 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the State cycle (A-110 closed, [§31][ev31]).
 - **Propagation impact (retention-axis cycle):** implementations evaluate PURGE against
   stored retention over every generation, accept `retention_override`, reject with the
   State §8.4 retention details, and emit `within_retention`, `entry_retained_until` and
@@ -702,8 +702,12 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   rows, updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md,
   CHANGELOG.md and test-vectors/README.md.
 - **Maintenance cycle (for consumers):** 39 audit-record fixtures change retention fields only (A-118), and ITV-95's `hash_chain` changes in consequence; ITV-17, ITV-100 and ITV-101 change `retention_source` to `platform-default`. The consistency check over platform-default records is replaced by one over every audit record (same count, 146). Migration guide §14–§16 added; "What did NOT change" is §17. Published counts unchanged (956 vectors, 54 keypairs, 146 consistency checks, RTM 2046 rows).
+- **State cycle (for consumers):** a SET whose `payload.args.data_residency` lies outside the residency restriction composed for the message is now rejected (`invalid_request`, `obligation_conflict` on the `residency` axis); the SNAPSHOT `hash` has a defined construction and the prefix `sha-256:` (the four earlier fixtures used `sha256:`); an update never changes the retention of its generation and is rejected with `retention_fixed` when its value or its floor is incompatible. 11 new vectors (ITV-717..723, INV-207..210) and 8 changed (ITV-536..539 re-signed; ITV-174, ITV-286, ITV-677, INV-88 with the hash recomputed). Published counts: 967 vectors (494 schema-valid, 245 expected-invalid, 209 runtime-only, 19 raw), 54 keypairs, 149 consistency checks, RTM 2055 rows (1256 MUST + MUST_NOT; 1454 with REQUIRED), updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md, CHANGELOG.md and test-vectors/README.md.
+- **Stored zone against a later message (observed in the State cycle, not decided):** State §8.3 rule 1 validates a `payload.args.data_residency` present in a SET. It defines no specific check of an entry's stored zone against the residency restriction of a later message that carries no such argument (an entry in `FR` updated under a message restricted to `DE`, without args). The absence of that check authorizes nothing: the restrictions that already apply to the message (Core §4.3.6.2) and to the entry (State §4.2) remain in force. Whether a specific check and its diagnostic are wanted is open.
+- **State cycle, retention cost (declared):** an update does not restart the retention period of its generation; a version written late in the period is retained only for the remainder of it (State §2.1.8). A period of its own for each version would be the per-version model, not adopted.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
 [ev24]: draft-02-remediation-ledger-evidence.md#24-coverage-sc2-closure-evidence
+[ev31]: draft-02-remediation-ledger-evidence.md#31-state-cycle-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

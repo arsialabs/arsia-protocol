@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 32, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 16, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 204.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 15, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 209.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -88,8 +88,8 @@ written and `—` where the vector is executed or has an equivalent check.
 | ITV-479 | — | Runtime constraint — cross-message correlation_id matching not enforceable by JSON Schema | capability | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-487 | — | Runtime constraint — verify-token endpoint response behavior not enforceable by JSON Schema | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-526 | — | Runtime constraint — cross-object audit-record-to-message comparison: plaintext_hash presence depends on secur | token | behavioural-runtime | yes | none — conformance test against an implementation |
-| ITV-536 | — | Runtime inheritance — schema cannot validate that entry.data_residency was inherited from compliance.data_resi | compliance-resolution | behavioural-runtime | yes | none — conformance test against an implementation |
-| ITV-537 | — | Runtime precedence — schema cannot validate field precedence between envelope and args | other | behavioural-runtime | yes | none — conformance test against an implementation |
+| ITV-536 | State §8.3 rule 1 | Runtime inheritance — schema cannot validate the zone an entry inherits from the message (State §8.3 rule 1) | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| ITV-537 | State §8.3 rule 1 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | ITV-538 | — | Runtime inheritance — schema cannot validate retention field propagation | retention-floor | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-539 | — | Runtime precedence — payload.args.retention applies over compliance.retention and is then resolved against the | other | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-540 | — | Runtime validation — schema cannot validate cross-field between compliance.legal_basis and pii_classification | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
@@ -241,6 +241,11 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-175 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 | INV-176 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
 | INV-177 | Routing §7.4.1 step 2 | Runtime constraint — relay attestation header presence and decoding at the recipient (Routing §7.4.1 steps 1-2) | transport | behavioural-runtime | — | executed: R22 |
+| ITV-717 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| ITV-718 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| INV-207 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| INV-208 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| INV-209 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
 
 ## Residual risk statement
 

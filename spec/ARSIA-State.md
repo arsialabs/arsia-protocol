@@ -621,6 +621,16 @@ The StateEntry object contains the following fields:
   Entries within retention MUST NOT be physically deleted, except via PURGE, which
   within retention requires a recorded retention override (§3.2.2, §5.3).
 
+  **Fixed per generation.** The effective retention of an entry is resolved once,
+  when its generation is created (§3.1.2), and is preserved for that generation, also
+  when it comes from a profile floor and not from an explicit `retention`, and also
+  when no retention period applies. A SET that updates the entry changes neither
+  `created_at` nor the preserved retention, and does not restart the period: every
+  version of the generation is retained until `created_at +` the preserved retention,
+  so a version written late in the period is retained only for the remainder of it. A
+  different period requires a new generation (§2.1.14). Session-scoped entries carry
+  no retention (§1.1).
+
   *Draft-01 compatibility:* the Draft-01 integer field `retention_days: N` maps to
   `retention: "PND"` (ARSIA-Core.md §4.3.6.4).
 
@@ -634,10 +644,13 @@ The StateEntry object contains the following fields:
   storage backend for this entry MUST physically reside within the declared zone. See
   §4.2 for the complete enforcement rules.
 
-  If `data_residency` is not set on the entry, it is inherited from the
-  `compliance.data_residency` field of the message envelope that created or last
-  modified the entry. If neither the entry nor the compliance envelope specifies data
-  residency, no geographic constraint applies.
+  If `data_residency` is not set on the entry, the entry inherits the filled data
+  residency value of the message that created or last modified it (§8.3 rule 1): the
+  `compliance.data_residency` field of the envelope or, when the field is absent, the
+  value filled from the applied profile. If neither the entry nor the message
+  specifies data residency, no geographic constraint applies. A value set on the
+  entry by `payload.args.data_residency` lies within the residency restriction
+  composed for the message that set it (§8.3 rule 1).
 
 #### 2.1.10 `pii_classification` — PII Classification
 
@@ -1119,12 +1132,37 @@ implementation-set fields.
      `expected_generation` is set and differs from the live entry's generation, the
      SET MUST be rejected with error code `"conflict"` and the details of §8.4.
 
-5. If `data_residency` is set and the implementation cannot store the entry in the
-   declared zone, the SET MUST be rejected with error code `"invalid_request"` and
-   details `{ "data_residency_violation": true, "required_zone": "{zone}" }`.
+5. If `data_residency` is set and lies outside the residency restriction composed
+   for the message, the SET MUST be rejected with error code `"invalid_request"` and
+   the diagnostic `obligation_conflict` (§8.3 rule 1). If it is permitted but the
+   implementation cannot store the entry in the declared zone, the SET MUST be
+   rejected with error code `"invalid_request"` and details
+   `{ "data_residency_violation": true, "required_zone": "{zone}" }`.
 
 6. If the serialized `value` exceeds 1,048,576 bytes, the SET MUST be rejected with
    error code `"payload_too_large"`.
+
+7. When the SET updates a live entry of a scope other than session (§1.1), the
+   preserved retention of its generation (§2.1.8) is not recalculated. The request is
+   still validated in full (§8.3; ARSIA-Core.md §4.3.10): in particular, a declared
+   retention below a floor is rejected under ARSIA-Core.md §4.3.8 Rule 4, as a
+   compliance rejection with its audit record, before this rule is evaluated. Then,
+   with every instant computed from the entry's `created_at`
+   (ARSIA-Core.md §4.3.6.4.1):
+   - (a) the retention value that applies to the request, `payload.args.retention`
+     or, when it is absent, the envelope's `compliance.retention` (§8.3 rule 2), when
+     present, MUST produce the same instant as the preserved retention. Durations are
+     compared by the instant they produce, never as strings (`P1Y` and `P12M` are
+     equal);
+   - (b) every retention floor that applies to the request (§4.1.1) MUST produce an
+     instant not later than the preserved one.
+
+   An entry preserved with no retention period satisfies (a) only when no value
+   applies and (b) only when no floor applies. A request that fails (a) or (b) MUST
+   be rejected before any write, with error code `"invalid_request"` and the details
+   of §8.4; the entry's value, version and preserved retention are unchanged. The
+   implementation MUST NOT extend, shorten or re-anchor the preserved retention to
+   accept the request, and MUST NOT ignore the value or the floor.
 
 **Behaviour on create vs. update:**
 
@@ -1135,7 +1173,8 @@ implementation-set fields.
   Earlier generations and their history are not modified.
 - If the key has a live entry, SET updates it: increments `version`, sets
   `updated_at` to the current time, and replaces the `value`. The `generation`,
-  `created_at`, `owner_agent_id`, and `scope` fields are NOT modified.
+  `created_at`, `owner_agent_id`, and `scope` fields are NOT modified, and neither is
+  the retention preserved for the generation (§2.1.8; validation rule 7).
 - If the key exists but the `scope` in the request differs from the existing entry's
   scope, the SET MUST be rejected with error code `"invalid_request"` and details
   `{ "scope_mismatch": true, "existing_scope": "{scope}" }`.
@@ -1374,6 +1413,25 @@ The `payload.result` object for SNAPSHOT contains:
 |----------------------|----------|--------------------------------------------|
 | `as_of`              | string   | The `as_of` timestamp from the request (echoed back). |
 | `entries`            | array    | Array of StateEntry objects as they existed at `as_of`. |
+| `timestamp`          | string   | RFC 3339 timestamp of when the snapshot was generated. |
+| `hash`               | string   | `"sha-256:<lowercase hex>"`, computed as below. |
+
+**Snapshot hash.** The `hash` member is computed as follows:
+
+1. Build the JSON object `{"as_of": A, "entries": E}`, where `A` is the `as_of`
+   member of the result and `E` is its `entries` array: every member of every
+   StateEntry as carried in the result, in the order carried.
+2. Canonicalize that object with RFC 8785 (ARSIA-Core.md §5.1) and encode the result
+   as UTF-8.
+3. `hash` is the string `"sha-256:"` followed by the SHA-256 digest of those bytes,
+   written as 64 lowercase hexadecimal characters.
+
+`hash` and `timestamp` are not part of the hashed object. `timestamp` is the instant
+at which the snapshot was generated; `as_of` is the historical instant queried. A
+recipient verifies the hash by recomputing it from the result it received. The hash
+commits to the content and the order of the entries of that response. It does not
+show that the response is complete, and two implementations holding the same state
+may produce different values: this specification defines no order for `entries`.
 
 **Temporal storage requirement:**
 
@@ -1529,8 +1587,8 @@ recorded and bound to the request:
 1. Before recording the purge event (step 2), the implementation MUST determine, from
    the state it stores, the set of generations of the key (§2.1.14) whose values the
    PURGE will remove — in primary, temporal or archival storage, whether or not the
-   key has a live entry — and, for each, the instant `created_at + effective
-   retention` of that entry (§2.1.8, §4.1.1). `entry_retained_until` is the latest of
+   key has a live entry — and, for each, the instant `created_at +` the retention
+   preserved for that generation (§2.1.8, §4.1.1). `entry_retained_until` is the latest of
    these instants, or `null` when no generation of the set has a retention period.
    The PURGE is *within retention* when `entry_retained_until` is not `null` and the
    time of the purge precedes it. The implementation MUST NOT take whether the PURGE
@@ -1807,7 +1865,8 @@ hierarchy, from highest to lowest priority:
    timestamp. The entry becomes eligible for removal when BOTH `expires_at` has
    passed AND the effective retention period has elapsed.
 
-The effective retention is resolved as (calendar arithmetic per ARSIA-Core.md
+The effective retention is resolved when the generation of the entry is created, and
+is preserved for that generation (§2.1.8), as (calendar arithmetic per ARSIA-Core.md
 §4.3.6.4.1, anchored at the entry's `created_at`):
 
 ```
@@ -1942,9 +2001,10 @@ compliance failure.
 
 The effective data residency for a state entry is determined as follows:
 
-1. If `StateEntry.data_residency` is set, it takes precedence.
-2. If not set, the `compliance.data_residency` from the message envelope that created
-   or last modified the entry is used.
+1. If `StateEntry.data_residency` is set, it takes precedence, within the composed
+   restriction of the message that set it (§8.3 rule 1).
+2. If not set, the filled data residency value of the message that created or last
+   modified the entry is used (§2.1.9).
 3. If neither is set, no geographic constraint applies.
 
 When a data residency constraint is active:
@@ -3801,19 +3861,46 @@ When a state operation message carries a `compliance` object in the envelope, th
 compliance metadata applies to the state entry being created or modified. The
 following inheritance rules are normative:
 
-1. **Data residency.** If the SET request envelope contains
-   `compliance.data_residency` and the `payload.args` does not contain
-   `data_residency`, the entry MUST inherit the envelope's data residency value. If
-   both are set, the `payload.args` value MUST take precedence.
+1. **Data residency.** This rule applies to entries of every scope except session
+   (§1.1).
 
-2. **Retention.** If the SET request envelope contains `compliance.retention` and
-   the `payload.args` does not contain `retention`, the entry MUST inherit the
-   envelope's retention value. If both are set, the `payload.args` value takes
-   precedence (mirroring rule 1). Whichever value applies is then resolved against
-   the profile's `retention_minimum` per §2.1.8: absent → profile minimum;
-   explicitly below the minimum (calendar comparison, ARSIA-Core.md §4.3.6.4.1) →
-   the operation MUST be rejected per ARSIA-Core.md §4.3.8 Rule 4. There is no
-   silent clamping.
+   *Selection.* The zone of the entry is determined as in §2.1.9. A
+   `payload.args.data_residency` present in the SET is the entry's own zone. When
+   `payload.args` does not contain it, the SET does not change an entry's own zone:
+   an entry that already has one keeps it, and an entry that has none inherits the
+   message's filled data residency value (ARSIA-Core.md §4.3.7), which includes a
+   value filled from the applied profile and not only the literal
+   `compliance.data_residency` field. Omitting `payload.args.data_residency`
+   therefore never leaves such an entry without the restriction that applies to the
+   message.
+
+   *Validation.* A `payload.args.data_residency` present in the SET MUST lie within
+   the residency restriction that the effective obligation resolution composes for
+   the message (ARSIA-Core.md §4.3.10.5): normalized to a set of ISO 3166-1 alpha-2
+   codes (a regional code expanded per ARSIA-Routing.md §5.2), it MUST be a subset of
+   the composed restriction. Precedence selects an equal or narrower zone; it never
+   widens what the message allows. A value that is not a subset MUST be rejected with
+   error code `"invalid_request"` and the diagnostic `obligation_conflict` on the
+   `residency` axis (ARSIA-Core.md §4.3.10.6); neither value is applied. When the
+   composed restriction is *no restriction*, any zone may be declared.
+
+   This rejection is distinct from `data_residency_violation` (§4.2.3), which reports
+   a permitted zone that the implementation cannot serve. This rule defines no
+   additional check of an entry's stored zone against the restriction of a later
+   message that carries no `payload.args.data_residency`; the restrictions that
+   already apply to that message and to the entry (§4.2; ARSIA-Core.md §4.3.6.2)
+   remain in force.
+
+2. **Retention.** This rule applies to entries of every scope except session
+   (§1.1). The value that applies to a SET is `payload.args.retention` or, when it is
+   absent, the envelope's `compliance.retention`. When the SET creates the entry, the
+   entry MUST inherit that value, which is resolved against the profile's
+   `retention_minimum` per §2.1.8: absent → profile minimum; explicitly below the
+   minimum (calendar comparison, ARSIA-Core.md §4.3.6.4.1) → the operation MUST be
+   rejected per ARSIA-Core.md §4.3.8 Rule 4. There is no silent clamping. The result
+   is preserved for the generation (§2.1.8). When the SET updates the entry, the same
+   value, when present, and the floors of the request are checked for compatibility
+   with the preserved retention (§3.1.2 rule 7); they never replace it.
 
 3. **Legal basis.** The `compliance.legal_basis` field from the envelope MUST be checked
    when `pii_classification` is `"personal"` (§5.2). The legal basis MUST NOT be stored
@@ -3838,7 +3925,7 @@ plus the following state-specific error codes:
 | Error code         | HTTP status | Description                                 |
 |--------------------|------------|----------------------------------------------|
 | `conflict`         | 409        | Optimistic concurrency conflict: a precondition (`expected_version`, `expected_generation`) does not hold for the live entry, or the key has no live entry (§3.1.2, rule 4). |
-| `invalid_request`  | 400        | Validation failure. Details object specifies the reason (e.g., `missing_legal_basis`, `scope_mismatch`, `data_residency_violation`, `snapshot_unavailable`). |
+| `invalid_request`  | 400        | Validation failure. Details object specifies the reason (e.g., `missing_legal_basis`, `scope_mismatch`, `data_residency_violation`, `obligation_conflict`, `retention_fixed`, `snapshot_unavailable`). |
 | `forbidden`        | 403        | Access denied. The requesting agent does not own the entry and has no active grant, or lacks the required capability. |
 | `payload_too_large`| 413        | The serialized value exceeds 1 MiB.          |
 | `not_implemented`  | 501        | The requested operation is not supported (e.g., SNAPSHOT when temporal storage is not available). |
@@ -3887,6 +3974,21 @@ and carries no `retention_override` (§3.2.2), the error details MUST consist of
 <!-- example: arsia-message.schema.json#/$defs/error-details-retention-override -->
 ```json
 { "within_retention": true, "entry_retained_until": "2031-04-27T14:00:00.000Z" }
+```
+
+**Fixed retention details:** When a SET that updates an entry is rejected under
+§3.1.2 rule 7, the error details MUST consist of `retention_fixed` (`true`),
+`entry_retained_until` (`created_at +` the preserved retention, or `null` when the
+generation has no retention period) and `required_retained_until` (the instant that
+the value or the floor that failed produces from the same `created_at`):
+
+<!-- example: arsia-message.schema.json#/$defs/error-details-retention-fixed -->
+```json
+{
+  "retention_fixed": true,
+  "entry_retained_until": "2027-04-27T14:00:00.000Z",
+  "required_retained_until": "2028-04-27T14:00:00.000Z"
+}
 ```
 
 ---

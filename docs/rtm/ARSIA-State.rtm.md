@@ -157,6 +157,12 @@
 | STATE-§3.1.2-24 | 3.1.2 | MUST | sdk | behavioural_positive | A conditional SET on a key without a live entry MUST be rejected with conflict and entry_live false | arsia-message | ITV-679 | schema-ref:arsia-message; struct:ITV-679; crypto:ITV-679; exec:R17:ITV-679 |
 | STATE-§3.1.2-25 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | A conditional SET on a key without a live entry MUST NOT create an entry | — | ITV-679 | struct:ITV-679; crypto:ITV-679; exec:R17:ITV-679 |
 | STATE-§3.1.2-26 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT distinguish a deleted key from a key never written | — | ITV-679 | struct:ITV-679; crypto:ITV-679; exec:R17:ITV-679 |
+| STATE-§3.1.2-27 | 3.1.2 | MUST | sdk | behavioural_negative | SET MUST be rejected with invalid_request and the diagnostic obligation_conflict when data_residency lies outside the residency restriction composed for the message (§8.3 rule 1) | — | INV-207, INV-208, INV-209 | struct:INV-207, INV-208, INV-209; crypto:INV-207, INV-208, INV-209; exec:R10:INV-207, INV-208, INV-209 |
+| STATE-§3.1.2-28 | 3.1.2 | MUST | sdk | behavioural_positive | On an update of a non-session entry, the retention value that applies to the request (payload.args.retention, else compliance.retention), when present, MUST produce the same instant as the preserved retention, compared from created_at and never as strings | arsia-state-operations | ITV-719, ITV-720, ITV-722 | schema-ref:arsia-state-operations; struct:ITV-719, ITV-720, ITV-722; crypto:ITV-720, ITV-722; exec:R18:ITV-719, ITV-720, ITV-722 |
+| STATE-§3.1.2-29 | 3.1.2 | MUST | sdk | behavioural_positive | On an update of a non-session entry, every retention floor that applies to the request MUST produce, from created_at, an instant not later than the preserved one | — | ITV-721 | struct:ITV-721; crypto:ITV-721; exec:R18:ITV-721 |
+| STATE-§3.1.2-30 | 3.1.2 | MUST | sdk | behavioural_negative | An update that fails the retention compatibility rules MUST be rejected before any write with invalid_request and the details of §8.4; value, version and preserved retention are unchanged | arsia-message | ITV-720, ITV-721, ITV-722 | schema-ref:arsia-message; struct:ITV-720, ITV-721, ITV-722; crypto:ITV-720, ITV-721, ITV-722; exec:R18:ITV-720, ITV-721, ITV-722; check:`R18 (l) the rejected update leaves value, version, preserved retention and records unchanged` |
+| STATE-§3.1.2-31 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | The implementation MUST NOT extend, shorten or re-anchor the preserved retention to accept an update | — | ITV-721, ITV-723 | struct:ITV-721, ITV-723; crypto:ITV-721; exec:R18:ITV-721, ITV-723; check:`R18 (l) later update under a higher floor (P1827D): rejected, never extended` |
+| STATE-§3.1.2-32 | 3.1.2 | MUST_NOT | sdk | behavioural_negative | The implementation MUST NOT ignore the retention value or the floor of an update that is incompatible with the preserved retention | — | ITV-720, ITV-721 | struct:ITV-720, ITV-721; crypto:ITV-720, ITV-721; exec:R18:ITV-720, ITV-721; check:`R18 (l) args omitted, envelope compliance.retention incompatible with the preserved one: rejected` |
 | STATE-§3.1.3-01 | 3.1.3 | MUST | sdk | behavioural_positive | The requesting agent MUST be the owning agent of the entry. | — | STV-03, ITV-173 | struct:STV-03, ITV-173; crypto:STV-03 |
 | STATE-§3.1.3-02 | 3.1.3 | MUST_NOT | sdk | behavioural_negative | Grantees with read_write access MUST NOT DELETE entries; DELETE is owner-only | — | STV-03 | struct:STV-03; crypto:STV-03 |
 | STATE-§3.1.3-03 | 3.1.3 | MUST | sdk | behavioural_positive | DELETE by a non-owner MUST return error code "forbidden" | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
@@ -389,18 +395,20 @@
 | STATE-§8.2.1-02 | 8.2.1 | MUST | external | behavioural_positive | Elevated capability restriction MUST be enforced by both Authorization Servers and state implementations | — | — | out-of-repo(external-party) |
 | STATE-§8.2.2-01 | 8.2.2 | MUST | sdk | behavioural_positive | State implementations MUST enforce capabilities per ARSIA-Core.md §6.4. | — | ITV-268 | struct:ITV-268; untested(structural-only) |
 | STATE-§8.3-01 | 8.3 | MUST | sdk | procedural | All state operations MUST generate audit events when the envelope's compliance.audit_required is true | — | ITV-269 | struct:ITV-269; untested(structural-only) |
-| STATE-§8.3-02 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit data_residency from envelope when payload.args does not set it | — | ITV-536 | struct:ITV-536; crypto:ITV-536 |
-| STATE-§8.3-03 | 8.3 | MUST | sdk | behavioural_positive | payload.args.data_residency MUST take precedence over compliance.data_residency | — | ITV-537 | struct:ITV-537; crypto:ITV-537 |
-| STATE-§8.3-04 | 8.3 | MUST | sdk | behavioural_positive | Entry MUST inherit retention from envelope when payload.args does not set it | — | ITV-538 | struct:ITV-538; crypto:ITV-538 |
-| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | payload.args.retention takes precedence over compliance.retention; the applying value is resolved against the profile retention_minimum, and an explicit value below it MUST be rejected (Core §4.3.8 Rule 4) | — | ITV-539 | struct:ITV-539; crypto:ITV-539 |
+| STATE-§8.3-02 | 8.3 | MUST | sdk | behavioural_positive | An entry of a scope other than session that has no zone of its own MUST inherit the message's filled data residency value (profile default included) when payload.args does not set data_residency; a SET without it does not change an entry's own zone | — | ITV-536 | struct:ITV-536; crypto:ITV-536; exec:R10:ITV-536 |
+| STATE-§8.3-03 | 8.3 | MUST | sdk | behavioural_positive | A payload.args.data_residency present in a SET MUST lie within the residency restriction composed for the message (Core §4.3.10.5): normalized, it MUST be a subset of it; precedence selects an equal or narrower zone | — | ITV-537, ITV-717, ITV-718 | struct:ITV-537, ITV-717, ITV-718; crypto:ITV-537, ITV-717, ITV-718; exec:R10:ITV-537, ITV-717, ITV-718 |
+| STATE-§8.3-04 | 8.3 | MUST | sdk | behavioural_positive | When the SET creates the entry, the entry MUST inherit the retention value that applies: payload.args.retention or, when absent, the envelope's compliance.retention | — | ITV-538 | struct:ITV-538; crypto:ITV-538 |
+| STATE-§8.3-05 | 8.3 | MUST | sdk | behavioural_positive | payload.args.retention takes precedence over compliance.retention; at creation the applying value is resolved against the profile retention_minimum, an explicit value below it MUST be rejected (Core §4.3.8 Rule 4), and the result is preserved for the generation | — | ITV-539 | struct:ITV-539; crypto:ITV-539 |
 | STATE-§8.3-06 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be checked when pii_classification is 'personal' or 'sensitive' | — | ITV-540, ITV-555 | struct:ITV-540, ITV-555; crypto:ITV-540, ITV-555 |
 | STATE-§8.3-07 | 8.3 | MUST_NOT | sdk | behavioural_negative | legal_basis MUST NOT be stored on the StateEntry itself | arsia-state-entry | — | schema-ref:arsia-state-entry; untested(structural-only) |
 | STATE-§8.3-08 | 8.3 | MUST | sdk | behavioural_positive | legal_basis MUST be recorded in the audit event | arsia-audit-record | ITV-542 | schema-ref:arsia-audit-record; struct:ITV-542; untested(structural-only) |
 | STATE-§8.3-09 | 8.3 | MUST | sdk | behavioural_positive | Profile defaults MUST be applied for compliance fields not explicitly set | — | ITV-541 | struct:ITV-541; crypto:ITV-541 |
+| STATE-§8.3-10 | 8.3 | MUST | sdk | behavioural_negative | A payload.args.data_residency that is not a subset of the composed restriction MUST be rejected with invalid_request and the diagnostic obligation_conflict on the residency axis; neither value is applied | — | INV-207, INV-208, INV-209 | struct:INV-207, INV-208, INV-209; crypto:INV-207, INV-208, INV-209; exec:R10:INV-207, INV-208, INV-209 |
 | STATE-§8.4-01 | 8.4 | MUST | sdk | behavioural_positive | Conflict errors on a live entry MUST include current_generation, current_version, the stated preconditions, updated_at and updated_by | arsia-message | ITV-82, ITV-87, ITV-151, INV-86, INV-89 | schema-ref:arsia-message; struct:ITV-82, ITV-87, ITV-151, INV-86, INV-89; crypto:ITV-151, INV-86, INV-89 |
 | STATE-§8.4-02 | 8.4 | MUST | sdk | behavioural_positive | Absent-entry conflict details MUST consist of entry_live false and the stated preconditions | arsia-message | ITV-679, INV-87, INV-90, INV-91 | schema-ref:arsia-message; struct:ITV-679, INV-87, INV-90, INV-91; crypto:ITV-679, INV-87, INV-90, INV-91; exec:R17:ITV-679 |
 | STATE-§8.4-03 | 8.4 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT include current_generation, current_version, updated_at or updated_by | arsia-message | INV-87 | schema-ref:arsia-message; struct:INV-87; crypto:INV-87 |
 | STATE-§8.4-04 | 8.4 | MUST | sdk | behavioural_positive | PURGE retention error details MUST consist of within_retention (true) and entry_retained_until | arsia-message | ITV-685, INV-97, INV-98 | schema-ref:arsia-message; struct:ITV-685, INV-97, INV-98; crypto:ITV-685, INV-97, INV-98; exec:R18:ITV-685 |
+| STATE-§8.4-05 | 8.4 | MUST | sdk | behavioural_positive | Fixed retention error details MUST consist of retention_fixed (true), entry_retained_until (or null) and required_retained_until | arsia-message | ITV-720, ITV-721, ITV-722 | schema-ref:arsia-message; struct:ITV-720, ITV-721, ITV-722; crypto:ITV-720, ITV-721, ITV-722; exec:R18:ITV-720, ITV-721, ITV-722 |
 | STATE-§9-01 | 9 | MUST | sdk_enabled | behavioural_positive | Conformant implementations MUST pass all conformance tests at their applicable level | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
 | STATE-§9-02 | 9 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT include the purged entry value (STATE-03 test) | arsia-audit-record | ITV-270 | schema-ref:arsia-audit-record; struct:ITV-270; untested(structural-only) |
 | STATE-§9-03 | 9 | MUST_NOT | sdk | behavioural_negative | Implementation MUST NOT physically remove entries before the retention period elapses (STATE-05 test) | arsia-state-entry | ITV-271 | schema-ref:arsia-state-entry; struct:ITV-271; untested(structural-only) |
@@ -447,10 +455,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 434 |
-| Schema ≠ — | 174 |
-| Vector ≠ — | 231 |
-| Both ≠ — | 120 |
+| Total requirements | 442 |
+| Schema ≠ — | 177 |
+| Vector ≠ — | 239 |
+| Both ≠ — | 123 |
 | Both = — (gaps) | 149 |
 
 ### Per-section breakdown
@@ -459,12 +467,12 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
 | 2 | 83 | 32 | 48 | 22 | 25 |
-| 3 | 106 | 53 | 87 | 46 | 12 |
+| 3 | 112 | 55 | 93 | 48 | 12 |
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 33 | 8 | 12 | 6 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
 | 7 | 64 | 41 | 28 | 24 | 19 |
-| 8 | 18 | 8 | 16 | 7 | 1 |
+| 8 | 20 | 9 | 18 | 8 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |
 | 11 | 11 | 1 | 4 | 1 | 7 |

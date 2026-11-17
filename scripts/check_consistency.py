@@ -255,7 +255,8 @@ def resolution_vector_mismatches(vectors, rh):
             elif meta["scenario"] == "state":
                 got = rh.state_case(meta["input"])
             else:
-                got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else rh.scenario_result(meta)
+                got = rh.execution_case(meta["input"]) if meta["scenario"] == "execution" else \
+                    rh.scenario_result(meta, v.get("message"))
             miss = rh.subset_match(meta["expect"], got)
             if miss:
                 out.append(f"{v['id']}: {', '.join(miss)}")
@@ -2332,6 +2333,190 @@ def audit_retention_selftest(floors):
     return out, len(cases)
 
 
+SNAPSHOT_HASH = re.compile(r"(sha-256:|sha256:)([0-9a-f]{64})")
+SNAPSHOT_LEGACY_PREFIX = "result/hash: pattern — State §3.2.1"
+
+
+def snapshot_results(vectors):
+    """(vector, result) for every SNAPSHOT result of the corpus that carries a hash."""
+    for v in vectors:
+        body = v.get("data") if isinstance(v.get("data"), dict) else None
+        if body is None and isinstance(v.get("message"), dict) and isinstance(v["message"].get("payload"), dict):
+            body = v["message"]["payload"]
+        res = body.get("result") if body and body.get("type") == "arsiaprotocol.state/snapshot" else None
+        if isinstance(res, dict) and "hash" in res:
+            yield v, res
+
+
+def snapshot_hash_problems(vectors, registry):
+    """State cycle (A-109): every SNAPSHOT result with a hash carries the digest of State §3.2.1 — SHA-256 over
+    the RFC 8785 form of {as_of, entries} as carried, in the order carried — whatever else the vector tests (a
+    structural negative keeps a correct hash). The prefix is "sha-256:"; the single declared exception is a vector
+    whose expected_error is the legacy-prefix expectation: its digest still matches its content, and it fails
+    only the pattern of result/hash. Returns (problems, results checked)."""
+    import runtime_harness as rh
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    out, n = [], 0
+    for v, res in snapshot_results(vectors):
+        n += 1
+        m = SNAPSHOT_HASH.fullmatch(res["hash"]) if isinstance(res["hash"], str) else None   # no trailing newline
+        want = rh.snapshot_hash(res.get("as_of"), res.get("entries"))
+        if not m:
+            out.append(f"{v['id']}: hash {res['hash']!r} is not a prefixed lowercase SHA-256")
+            continue
+        if "sha-256:" + m.group(2) != want:
+            out.append(f"{v['id']}: hash digest is not that of {{as_of, entries}} as carried")
+        legacy = v.get("expected_error") == SNAPSHOT_LEGACY_PREFIX
+        if (m.group(1) == "sha256:") != legacy:
+            out.append(f"{v['id']}: prefix {m.group(1)} with expected_error {v.get('expected_error')!r}")
+        elif legacy:
+            schema = vv.resolve_schema(v.get("schema_ref", ""), registry)
+            errs = [(e.validator, "/".join(map(str, e.absolute_path))) for e in
+                    Draft202012Validator(schema, registry=registry).iter_errors(v.get("data"))]
+            if v.get("expected") != "invalid" or errs != [("pattern", "result/hash")]:
+                out.append(f"{v['id']}: legacy-prefix negative fails with {errs}, not only pattern at result/hash")
+    if n == 0:
+        out.append("no SNAPSHOT result with a hash in the corpus")
+    return out, n
+
+
+def snapshot_hash_selftest(vectors, registry):
+    """Synthetic controls of the SNAPSHOT hash guard; returns (problems, controls executed)."""
+    import copy
+    import runtime_harness as rh
+    base = next((v for v, res in snapshot_results(vectors) if len(res.get("entries") or []) >= 2
+                 and v.get("expected") == "valid"), None)
+    if base is None:
+        return ["self-test: no valid SNAPSHOT result with two entries to derive controls from"], 0
+
+    def variant(**kw):
+        v = copy.deepcopy(base)
+        v["id"] = "SELFTEST"
+        r = v["data"]["result"]
+        for k, x in kw.items():
+            if k == "expected_error":
+                v["expected_error"], v["expected"] = x, "invalid"
+            else:
+                r[k] = x(r) if callable(x) else x
+        return v
+
+    legacy = lambda r: r["hash"].replace("sha-256:", "sha256:")
+    cases = [
+        ("unchanged result", variant(), None),
+        ("entry value changed after hashing", variant(entries=lambda r: [dict(r["entries"][0], value="x")] + r["entries"][1:]),
+         "hash digest is not that"),
+        ("entries reordered after hashing", variant(entries=lambda r: r["entries"][::-1]), "hash digest is not that"),
+        ("as_of changed after hashing", variant(as_of="2020-01-01T00:00:00.000Z"), "hash digest is not that"),
+        ("timestamp changed: not hashed", variant(timestamp="2030-01-01T00:00:00.000Z"), None),
+        ("legacy prefix without the declared expectation", variant(hash=legacy), "prefix sha256:"),
+        ("legacy prefix in a negative that declares another expectation",
+         variant(hash=legacy, expected_error="generation is required"), "prefix sha256:"),
+        ("a line break after a correct hash", variant(hash=lambda r: r["hash"] + "\n"), "is not a prefixed lowercase SHA-256"),
+        ("declared legacy-prefix negative with a line break after the digest",
+         variant(hash=lambda r: legacy(r) + "\n", expected_error=SNAPSHOT_LEGACY_PREFIX), "is not a prefixed lowercase SHA-256"),
+        ("declared legacy-prefix negative with a correct digest", variant(hash=legacy, expected_error=SNAPSHOT_LEGACY_PREFIX), None),
+        ("declared legacy-prefix negative with a wrong digest",
+         variant(hash="sha256:" + "0" * 64, expected_error=SNAPSHOT_LEGACY_PREFIX), "hash digest is not that"),
+        ("declared legacy-prefix negative with a second schema defect",
+         variant(hash=legacy, expected_error=SNAPSHOT_LEGACY_PREFIX,
+                 entries=lambda r: [{k: x for k, x in r["entries"][0].items() if k != "generation"}] + r["entries"][1:]),
+         "not only pattern at result/hash"),
+        ("structural negative with a wrong hash (no block exemption of negatives)",
+         variant(hash="sha-256:" + "0" * 64, expected_error="generation is required"), "hash digest is not that"),
+    ]
+    # the legacy-prefix controls with changed entries carry the digest of their own content
+    for name, v, _ in cases:
+        r = v["data"]["result"]
+        if "second schema defect" in name:
+            r["hash"] = rh.snapshot_hash(r["as_of"], r["entries"]).replace("sha-256:", "sha256:")
+    out = []
+    for name, v, expect in cases:
+        probs, _ = snapshot_hash_problems([v], registry)
+        if expect is None and probs:
+            out.append(f"self-test '{name}': expected pass, got {probs[:1]}")
+        elif expect is not None and not any(expect in p_ for p_ in probs):
+            out.append(f"self-test '{name}': expected a problem with {expect!r}, got {probs[:2]}")
+    return out, len(cases)
+
+
+STATE_CYCLE_SET_FIXTURES = ("ITV-536", "ITV-537", "ITV-538", "ITV-539", "ITV-717", "ITV-718",
+                            "INV-207", "INV-208", "INV-209")
+
+
+def set_fixture_problems(vectors, registry):
+    """State cycle (A-120): the SET fixtures of State §8.3 rules 1 and 2 are conformant SET requests — their
+    payload.args validate against set-args, the key's scope segment is the declared scope (§3.1.2 rule 2) and the
+    key's agent prefix is the sender (rule 1) — so that each one tests only the rule it states."""
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    schema = vv.resolve_schema("arsia-state-operations.schema.json#/$defs/set-args", registry)
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for vid in STATE_CYCLE_SET_FIXTURES:
+        v = by_id.get(vid)
+        if v is None:
+            out.append(f"{vid}: missing")
+            continue
+        m = v.get("message") or {}
+        payload = m.get("payload") or {}
+        args = payload.get("args") or {}
+        if payload.get("type") != "arsiaprotocol.state/set":
+            out.append(f"{vid}: not a SET request")
+            continue
+        errs = [e.message for e in Draft202012Validator(schema, registry=registry).iter_errors(args)]
+        if errs:
+            out.append(f"{vid}: args fail set-args: {errs[0]}")
+        parts = str(args.get("key", "")).split("/")
+        if len(parts) < 3 or parts[1] != args.get("scope"):
+            out.append(f"{vid}: key scope segment {parts[1:2]} is not the declared scope {args.get('scope')!r}")
+        if parts[0] != m.get("from"):
+            out.append(f"{vid}: key agent prefix {parts[0]!r} is not the sender {m.get('from')!r}")
+    return out
+
+
+def state_cycle_echo_problems():
+    """State cycle (A-108, A-110) anti-regression: the replaced rules do not come back, and each echo cites the
+    rule that now governs it."""
+    import glob
+    out = []
+    texts = {f: open(f, encoding="utf-8").read() for f in sorted(glob.glob("spec/*.md"))}
+    flat = {f: re.sub(r"\s+", " ", t) for f, t in texts.items()}
+    for f, t in flat.items():
+        for old in ("`payload.args` value MUST take precedence", "inherit the envelope's data residency value",
+                    "instant `created_at + effective retention` of that entry",
+                    "inherited from the `compliance.data_residency` field of the message envelope"):
+            if old in t:
+                out.append(f"{f}: the replaced text {old!r} is back")
+    state = flat.get("spec/ARSIA-State.md", "")
+    core = flat.get("spec/ARSIA-Core.md", "")
+    actions = flat.get("spec/ARSIA-Actions.md", "")
+    for where, text_, needles in (
+            ("State §8.3 rule 1", state, ("it MUST be a subset of the composed restriction",
+                                          "This rule applies to entries of every scope except session (§1.1). *Selection.*",
+                                          "an entry that already has one keeps it",
+                                          "This rule defines no additional check of an entry's stored zone")),
+            ("State §2.1.9", state, ("lies within the residency restriction composed for the message that set it (§8.3 rule 1)",)),
+            ("State §4.2.1", state, ("within the composed restriction of the message that set it (§8.3 rule 1)",)),
+            ("State §3.1.2", state, ("the diagnostic `obligation_conflict` (§8.3 rule 1)",
+                                     "the preserved retention of its generation (§2.1.8) is not recalculated",
+                                     "MUST NOT extend, shorten or re-anchor the preserved retention")),
+            ("State §2.1.8", state, ("**Fixed per generation.**", "does not restart the period")),
+            ("State §8.3 rule 2", state, ("checked for compatibility with the preserved retention (§3.1.2 rule 7); they never replace it",)),
+            ("State §3.2.2", state, ("the instant `created_at +` the retention preserved for that generation (§2.1.8, §4.1.1)",)),
+            ("State §3.2.1", state, ('`hash` is the string `"sha-256:"` followed by the SHA-256 digest',
+                                     "`hash` and `timestamp` are not part of the hashed object",
+                                     "this specification defines no order for `entries`")),
+            ("State §8.4", state, ("**Fixed retention details:**",)),
+            ("Core §4.3.10.5", core, ("MUST be a subset of the composed result, and a zone that is not is a conflict on this axis",)),
+            ("Core §4.3.10.6", core, ("an entry zone outside the composed residency restriction (ARSIA-State.md §8.3)",)),
+            ("Actions §1.4", actions, ("integrity verification (construction: ARSIA-State.md §3.2.1)",))):
+        for needle in needles:
+            if needle not in text_:
+                out.append(f"{where}: missing {needle[:60]!r}")
+    return out
+
+
 BREACH_REF = "arsia-breach-notification.schema.json"
 BREACH_CAUSE = re.compile(r"^([\w/]+): (\w+) — State §5\.7$")
 
@@ -2918,6 +3103,19 @@ def main() -> int:
           f"({n_records} records, {n_controls} controls)", not probs, "; ".join(probs[:4]))
     probs = breach_notification_problems(corpus_vectors, registry)
     check("breach-notification vectors: positives for both targets, each negative fails exactly its declared constraint (cycle F)",
+          not probs, "; ".join(probs[:4]))
+    probs, n_results = snapshot_hash_problems(corpus_vectors, registry)
+    self_probs, n_controls = snapshot_hash_selftest(corpus_vectors, registry)
+    probs += self_probs
+    check("SNAPSHOT results: hash is the State §3.2.1 digest of as_of and entries as carried; the legacy prefix only "
+          f"in its declared negative, which fails only the pattern (State cycle) ({n_results} results, {n_controls} controls)",
+          not probs, "; ".join(probs[:4]))
+    probs = set_fixture_problems(corpus_vectors, registry)
+    check("State §8.3 SET fixtures are conformant SET requests: args valid against set-args, key scope segment and "
+          "agent prefix (State cycle, A-120)", not probs, "; ".join(probs[:4]))
+    probs = state_cycle_echo_problems()
+    check("State cycle anti-regression: entry residency within the composed restriction, retention fixed per "
+          "generation and the SNAPSHOT hash construction are stated, and the replaced rules are absent",
           not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed

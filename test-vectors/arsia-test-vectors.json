@@ -8865,7 +8865,7 @@
           "as_of": "2026-04-27T10:00:00.000Z",
           "entries": [],
           "timestamp": "2026-04-27T10:00:00.123Z",
-          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "hash": "sha-256:f16f7f3015b3a3669e2edf20c2b65c0caa0e834c296953e67c95d3dcf3167d0d"
         }
       },
       "expected_error": null
@@ -12458,7 +12458,7 @@
           "as_of": "2026-04-30T09:00:00.000Z",
           "entries": [],
           "timestamp": "2026-04-30T09:00:01.000Z",
-          "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "hash": "sha-256:43937c4b964beb621b23db7d7b6999f0701f337adc8451a71db74627cd3fd64e"
         }
       },
       "expected_error": null
@@ -22420,11 +22420,11 @@
     },
     {
       "id": "ITV-536",
-      "description": "State §8.3 Rule 1: entry MUST inherit data_residency from envelope when payload.args does not set it. Runtime inheritance — schema cannot validate that entry.data_residency was inherited from compliance.data_residency.",
+      "description": "State §8.3 rule 1 (selection): payload.args carries no data_residency and the entry has no zone of its own, so it inherits the message's filled data residency value (DE). Executed by harness R10 on this message.",
       "category": "state",
       "valid": true,
       "skip_schema": true,
-      "skip_reason": "Runtime inheritance — schema cannot validate that entry.data_residency was inherited from compliance.data_residency",
+      "skip_reason": "Runtime inheritance — schema cannot validate the zone an entry inherits from the message (State §8.3 rule 1)",
       "message": {
         "v": "2.0",
         "id": "f0536001-0000-4000-a000-000000000536",
@@ -22439,10 +22439,11 @@
         "payload": {
           "type": "arsiaprotocol.state/set",
           "args": {
-            "key": "agent:acme.data-agent/user/profile-536",
+            "key": "agent:acme.data-agent/agent/profile-536",
             "value": {
               "name": "Test User"
             },
+            "scope": "agent",
             "pii_classification": "pseudonymised"
           }
         },
@@ -22454,7 +22455,7 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.data-agent#key1",
-          "sig": "8VVLWw97hAUwjmmLfX3JMLyfn-vk2-aTEUrxDZZPFI3EGjF8-AgYOCs1GZ4wq2Zmxk5oMRo0z5TNViBs465pCA"
+          "sig": "FWXkeVVDa80fKz7V5Ck02TWzpUXA-1WBahnJcMPOYR90-2tAnwDGT1lLXlY4qMwSIyfWpgUbbWZLlS3-HeBrBQ"
         },
         "authorization": {
           "token_hash": "sha-256:71c4f6b8724fdd8191ec6de690fc5334095bce14e9ff1a5b110f99f2e1507e30",
@@ -22465,18 +22466,40 @@
       "crypto": {
         "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
         "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
-        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a37316334663662383732346664643831393165633664653639306663353333343039356263653134653966663161356231313066393966326531353037653330227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224445222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533363030312d303030302d343030302d613030302d303030303030303030353336222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f757365722f70726f66696c652d353336222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30302e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "8VVLWw97hAUwjmmLfX3JMLyfn-vk2-aTEUrxDZZPFI3EGjF8-AgYOCs1GZ4wq2Zmxk5oMRo0z5TNViBs465pCA",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a37316334663662383732346664643831393165633664653639306663353333343039356263653134653966663161356231313066393966326531353037653330227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224445222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33302e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533363030312d303030302d343030302d613030302d303030303030303030353336222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d353336222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30302e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "FWXkeVVDa80fKz7V5Ck02TWzpUXA-1WBahnJcMPOYR90-2tAnwDGT1lLXlY4qMwSIyfWpgUbbWZLlS3-HeBrBQ",
         "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "accepted",
+          "error": null,
+          "entry_zone": "DE",
+          "axes": {
+            "residency": {
+              "status": "resolved",
+              "conflict": null,
+              "result": {
+                "codes": [
+                  "DE"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     {
       "id": "ITV-537",
-      "description": "State §8.3 Rule 1: payload.args.data_residency MUST take precedence over compliance.data_residency. Runtime precedence — schema cannot validate field precedence between envelope and args.",
+      "description": "State §8.3 rule 1 (validation): payload.args.data_residency FR lies within the residency restriction composed for the message (EU), so it takes precedence as the zone of the entry. Precedence selects an equal or narrower zone. Executed by harness R10 on this message.",
       "category": "state",
       "valid": true,
       "skip_schema": true,
-      "skip_reason": "Runtime precedence — schema cannot validate field precedence between envelope and args",
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
       "message": {
         "v": "2.0",
         "id": "f0537001-0000-4000-a000-000000000537",
@@ -22491,23 +22514,24 @@
         "payload": {
           "type": "arsiaprotocol.state/set",
           "args": {
-            "key": "agent:acme.data-agent/user/profile-537",
+            "key": "agent:acme.data-agent/agent/profile-537",
             "value": {
               "name": "Test User"
             },
+            "scope": "agent",
             "pii_classification": "pseudonymised",
             "data_residency": "FR"
           }
         },
         "compliance": {
           "profile": "GDPR-STANDARD",
-          "data_residency": "DE",
+          "data_residency": "EU",
           "audit_required": true
         },
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.data-agent#key1",
-          "sig": "cI7biktBJIYLkJnndg1sfY2S0s5F5odUtAordBYysfDZQe7Eqw3TVWIEpCb4Z6FypEbfQrYarlhYKEeDTU7vBw"
+          "sig": "xMkAykkfFge4y8gkq1cwIL7Njg_GGaVV1st3bjpLPTlyoz9lZuxYAcZ6X9mXET8Iy5nPAoiN24f7xzzSntfYCQ"
         },
         "authorization": {
           "token_hash": "sha-256:0327a859b634c2793cd6e1aa76baa2dfc06ef1354bf1180ed9f863f5a1b79d3e",
@@ -22518,9 +22542,60 @@
       "crypto": {
         "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
         "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
-        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a30333237613835396236333463323739336364366531616137366261613264666330366566313335346266313138306564396638363366356131623739643365227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224445222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533373030312d303030302d343030302d613030302d303030303030303030353337222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224652222c226b6579223a226167656e743a61636d652e646174612d6167656e742f757365722f70726f66696c652d353337222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "cI7biktBJIYLkJnndg1sfY2S0s5F5odUtAordBYysfDZQe7Eqw3TVWIEpCb4Z6FypEbfQrYarlhYKEeDTU7vBw",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a30333237613835396236333463323739336364366531616137366261613264666330366566313335346266313138306564396638363366356131623739643365227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224555222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533373030312d303030302d343030302d613030302d303030303030303030353337222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224652222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d353337222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "xMkAykkfFge4y8gkq1cwIL7Njg_GGaVV1st3bjpLPTlyoz9lZuxYAcZ6X9mXET8Iy5nPAoiN24f7xzzSntfYCQ",
         "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "accepted",
+          "error": null,
+          "entry_zone": "FR",
+          "axes": {
+            "residency": {
+              "status": "resolved",
+              "conflict": null,
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ]
+              }
+            }
+          }
+        }
       }
     },
     {
@@ -22544,10 +22619,11 @@
         "payload": {
           "type": "arsiaprotocol.state/set",
           "args": {
-            "key": "agent:acme.data-agent/user/profile-538",
+            "key": "agent:acme.data-agent/agent/profile-538",
             "value": {
               "name": "Test User"
             },
+            "scope": "agent",
             "pii_classification": "none"
           }
         },
@@ -22559,15 +22635,15 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.data-agent#key1",
-          "sig": "nwIH4SyqJHkNDm01z7y1bIsRYq-AOy9Zhv0WIQtVzzCQ1N6XStTPlNiYS-IORVdV7FmsOQrhrM6OJzOdqu0tBw"
+          "sig": "OSqkngo7qv4ymkGTiGGEs007n0ckU4l6XLK-84JSEvobmR9qVifOQbOT13nhel5VQ5ppl4-TO0ycDgDcG-fTDA"
         }
       },
       "expected_error": null,
       "crypto": {
         "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
         "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
-        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a22474450522d5354414e44415244222c22726574656e74696f6e223a225033363544227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33322e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533383030312d303030302d343030302d613030302d303030303030303030353338222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f757365722f70726f66696c652d353338222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30322e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "nwIH4SyqJHkNDm01z7y1bIsRYq-AOy9Zhv0WIQtVzzCQ1N6XStTPlNiYS-IORVdV7FmsOQrhrM6OJzOdqu0tBw",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a22474450522d5354414e44415244222c22726574656e74696f6e223a225033363544227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33322e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533383030312d303030302d343030302d613030302d303030303030303030353338222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d353338222c227069695f636c617373696669636174696f6e223a226e6f6e65222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30322e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "OSqkngo7qv4ymkGTiGGEs007n0ckU4l6XLK-84JSEvobmR9qVifOQbOT13nhel5VQ5ppl4-TO0ycDgDcG-fTDA",
         "expect_signature": "valid"
       }
     },
@@ -22592,10 +22668,11 @@
         "payload": {
           "type": "arsiaprotocol.state/set",
           "args": {
-            "key": "agent:acme.data-agent/user/profile-539",
+            "key": "agent:acme.data-agent/agent/profile-539",
             "value": {
               "name": "Test User"
             },
+            "scope": "agent",
             "pii_classification": "none",
             "retention": "P90D"
           }
@@ -22608,15 +22685,15 @@
         "security": {
           "alg": "EdDSA",
           "kid": "agent:acme.data-agent#key1",
-          "sig": "wmHniGjPBGIwqDsMHrArvDVLFg80aaC1JlAXGnNEYTbJl_qzhG40XQg9x3BkepH4slFEOW7GIQPmmf2HH0wVAw"
+          "sig": "Di5CxJTI3KKdLNMNEV6QGv9m3p84UeX7p-xPnHhIOPSZB_N5O1PJVKIl8SIwG62nEd-qmxcCC9-w2IK6kju4Cg"
         }
       },
       "expected_error": null,
       "crypto": {
         "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
         "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
-        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a22474450522d5354414e44415244222c22726574656e74696f6e223a225033363544227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33332e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533393030312d303030302d343030302d613030302d303030303030303030353339222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f757365722f70726f66696c652d353339222c227069695f636c617373696669636174696f6e223a226e6f6e65222c22726574656e74696f6e223a2250393044222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30332e3030305a222c2276223a22322e30227d",
-        "signature_base64url": "wmHniGjPBGIwqDsMHrArvDVLFg80aaC1JlAXGnNEYTbJl_qzhG40XQg9x3BkepH4slFEOW7GIQPmmf2HH0wVAw",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a22474450522d5354414e44415244222c22726574656e74696f6e223a225033363544227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33332e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2266303533393030312d303030302d343030302d613030302d303030303030303030353339222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d353339222c227069695f636c617373696669636174696f6e223a226e6f6e65222c22726574656e74696f6e223a2250393044222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30332e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "Di5CxJTI3KKdLNMNEV6QGv9m3p84UeX7p-xPnHhIOPSZB_N5O1PJVKIl8SIwG62nEd-qmxcCC9-w2IK6kju4Cg",
         "expect_signature": "valid"
       }
     },
@@ -33572,7 +33649,7 @@
             }
           ],
           "timestamp": "2026-04-15T13:00:01.000Z",
-          "hash": "sha256:e36c545c04966a5720b037fb097bce927fa61c7bfafb28df2fd552833080a65d"
+          "hash": "sha-256:c3f7a7518a3f0304865b702056387f8e53c1dca1b2f7311a63273592593d9c2b"
         }
       },
       "expected_error": "'generation' is a required property"
@@ -33702,7 +33779,7 @@
     },
     {
       "id": "ITV-677",
-      "description": "Valid SNAPSHOT result with the same key twice — the logically deleted generation 1 (version 2) and the live generation 2 (version 1), distinguished by generation (State §3.2.1, §2.1.14). The hash value is illustrative: Actions §1.4 defines no construction for it. Executed by harness R17 against the reference store.",
+      "description": "Valid SNAPSHOT result with the same key twice — the logically deleted generation 1 (version 2) and the live generation 2 (version 1), distinguished by generation (State §3.2.1, §2.1.14). The hash follows the construction of State §3.2.1 over as_of and the entries in the order carried. Executed by harness R17 against the reference store.",
       "schema_ref": "arsia-state-operations.schema.json",
       "expected": "valid",
       "category": "state",
@@ -33740,7 +33817,7 @@
             }
           ],
           "timestamp": "2026-04-15T13:00:01.000Z",
-          "hash": "sha256:73cf055d2eaa186449be309ba1fbb46999584964f2ad8d427793fedda5c2702e"
+          "hash": "sha-256:89dc3b72178b800f127789a60bd3d3f7eb433ed1bd1f4ce240bd90a0c2c97bb2"
         }
       },
       "expected_error": null,
@@ -41191,6 +41268,618 @@
       }
     },
     {
+      "id": "ITV-717",
+      "description": "State §8.3 rule 1 (validation): payload.args.data_residency FR under a message restricted to FR — an equal zone lies within the composed restriction; the entry is in FR. Executed by harness R10 on this message.",
+      "category": "state",
+      "valid": true,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
+      "message": {
+        "v": "2.0",
+        "id": "3e5b8258-d7ca-42e3-b8d6-435ea4879986",
+        "ts": "2026-05-01T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.state-store",
+        "intent": "request",
+        "expires_at": "2026-05-01T12:00:31.000Z",
+        "capabilities": [
+          "arsiaprotocol.state.write"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.state/set",
+          "args": {
+            "key": "agent:acme.data-agent/agent/profile-717",
+            "value": {
+              "name": "Test User"
+            },
+            "scope": "agent",
+            "pii_classification": "pseudonymised",
+            "data_residency": "FR"
+          }
+        },
+        "compliance": {
+          "profile": "GDPR-STANDARD",
+          "data_residency": "FR",
+          "audit_required": true
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "jAKDAgsbtHnAGsSppuqFl9hPG9BBUt4rSLRZxerNvbRfOZBB6wmEXzFlO1G_pS3LEwOtjpQPrWgq-eHcMMwkBg"
+        },
+        "authorization": {
+          "token_hash": "sha-256:41aa905554363d55550dfc9308550e2ef31a610ed212858fc25a5c9f5fdc059d",
+          "proof_type": "bearer"
+        }
+      },
+      "expected_error": null,
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a34316161393035353534333633643535353530646663393330383535306532656633316136313065643231323835386663323561356339663566646330353964227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224652222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2233653562383235382d643763612d343265332d623864362d343335656134383739393836222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224652222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d373137222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "jAKDAgsbtHnAGsSppuqFl9hPG9BBUt4rSLRZxerNvbRfOZBB6wmEXzFlO1G_pS3LEwOtjpQPrWgq-eHcMMwkBg",
+        "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "accepted",
+          "error": null,
+          "entry_zone": "FR",
+          "axes": {
+            "residency": {
+              "status": "resolved",
+              "conflict": null,
+              "result": {
+                "codes": [
+                  "FR"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-718",
+      "description": "State §8.3 rule 1 (validation): the message declares no compliance.data_residency; the MIFID-II profile default fills EU, and payload.args.data_residency FR lies within that composed restriction; the entry is in FR. Executed by harness R10 on this message.",
+      "category": "state",
+      "valid": true,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
+      "message": {
+        "v": "2.0",
+        "id": "91bd6105-e786-4bbf-92b8-2ebe29a2b9f3",
+        "ts": "2026-05-01T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.state-store",
+        "intent": "request",
+        "expires_at": "2026-05-01T12:00:31.000Z",
+        "capabilities": [
+          "arsiaprotocol.state.write"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.state/set",
+          "args": {
+            "key": "agent:acme.data-agent/agent/profile-718",
+            "value": {
+              "name": "Test User"
+            },
+            "scope": "agent",
+            "pii_classification": "pseudonymised",
+            "data_residency": "FR"
+          }
+        },
+        "compliance": {
+          "profile": "MIFID-II",
+          "audit_required": true
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "Y3UrfQxKt2h1iLOWs1qVcSW3uYhbp-rRJYB4EcnegUNs2rUAph5ANMrjWfhLBRlhwo6hgrXU0DC7MVv8thBYCw"
+        }
+      },
+      "expected_error": null,
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a224d494649442d4949227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2239316264363130352d653738362d346262662d393262382d326562653239613262396633222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224652222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d373138222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "Y3UrfQxKt2h1iLOWs1qVcSW3uYhbp-rRJYB4EcnegUNs2rUAph5ANMrjWfhLBRlhwo6hgrXU0DC7MVv8thBYCw",
+        "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "accepted",
+          "error": null,
+          "entry_zone": "FR",
+          "axes": {
+            "residency": {
+              "status": "resolved",
+              "conflict": null,
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-719",
+      "description": "Valid SET result of an update that states a compatible retention — the entry was created with retention P1Y, and the update states P12M, which produces the same instant from created_at. Durations are compared by the instant they produce, never as strings; the update is accepted, and created_at and the retention preserved for the generation are unchanged (State §2.1.8, §3.1.2 rule 7). Executed by harness R18.",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/set",
+        "args": {
+          "key": "agent:acme.billing/agent/record",
+          "value": "v2",
+          "scope": "agent",
+          "pii_classification": "none",
+          "retention": "P12M"
+        },
+        "result": {
+          "key": "agent:acme.billing/agent/record",
+          "value": "v2",
+          "owner_agent_id": "agent:acme.billing",
+          "scope": "agent",
+          "created_at": "2026-03-28T09:00:00.000Z",
+          "updated_at": "2026-04-27T14:00:00.000Z",
+          "pii_classification": "none",
+          "generation": 1,
+          "version": 2,
+          "retention": "P1Y"
+        }
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1Y"
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-27T14:00:00.000Z",
+              "retention": "P12M"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "generation": 1,
+              "version": 2,
+              "created_at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1Y"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-720",
+      "description": "Valid invalid_request error — a SET updates an entry created with retention P1Y and states P2Y in payload.args. The retention preserved for the generation is fixed: the update is rejected before any write, and the details consist of retention_fixed, entry_retained_until (created_at + P1Y) and required_retained_until (created_at + P2Y) (State §3.1.2 rule 7, §8.4). Executed by harness R18.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "94eead62-c652-447f-827d-1ba33cf44469",
+        "ts": "2026-04-27T14:00:00.600Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "35c67d2f-28d4-4037-b93f-be7c714b1c65",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "The retention preserved for the generation is fixed",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": "2027-03-28T09:00:00.000Z",
+              "required_retained_until": "2028-03-28T09:00:00.000Z"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "x9aAL7LgNhdaiexg_0UQ92lW92CEwrjL2Ruc2-LMJVnmt9b_sxSBEHwQ2BB1pGD9ArSsBZhv9aeS3efC_terDQ"
+        },
+        "root_request_id": "35c67d2f-28d4-4037-b93f-be7c714b1c65"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2233356336376432662d323864342d343033372d623933662d626537633731346231633635222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2239346565616436322d633635322d343437662d383237642d316261333363663434343639222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2254686520726574656e74696f6e2070726573657276656420666f72207468652067656e65726174696f6e206973206669786564222c2264657461696c73223a7b22656e7472795f72657461696e65645f756e74696c223a22323032372d30332d32385430393a30303a30302e3030305a222c2272657175697265645f72657461696e65645f756e74696c223a22323032382d30332d32385430393a30303a30302e3030305a222c22726574656e74696f6e5f6669786564223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2233356336376432662d323864342d343033372d623933662d626537633731346231633635222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3630305a222c2276223a22322e30227d",
+        "signature_base64url": "x9aAL7LgNhdaiexg_0UQ92lW92CEwrjL2Ruc2-LMJVnmt9b_sxSBEHwQ2BB1pGD9ArSsBZhv9aeS3efC_terDQ",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-03-28T09:00:00.000Z",
+              "retention": "P1Y"
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-27T14:00:00.000Z",
+              "retention": "P2Y"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "invalid_request",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": "2027-03-28T09:00:00.000Z",
+              "required_retained_until": "2028-03-28T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-721",
+      "description": "Valid invalid_request error — the entry was created under EU-AI-ACT-HIGH-RISK with no explicit retention, so the generation preserves the profile floor P6M. A later update under MIFID-II states no retention; its floor P1827D produces, from the same created_at, an instant later than the preserved one. The update is rejected: the retention is neither extended nor the floor ignored (State §3.1.2 rule 7 (b), §8.4). Executed by harness R18.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "9f26e348-80cf-47da-9b3e-1f5b0f5fbcc9",
+        "ts": "2026-04-27T14:00:00.600Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "7c528c91-6d2b-4203-b00a-81285a1810c8",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "The retention preserved for the generation is fixed",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": "2026-09-28T09:00:00.000Z",
+              "required_retained_until": "2031-03-29T09:00:00.000Z"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "NHWAl7O8lYUKHS64E3nBhhn9kII5T2wOWYAXzjKljjms8SQJhxOiy5DBPxhFbgc4hGbGIQAnAslPyahfthnzCw"
+        },
+        "root_request_id": "7c528c91-6d2b-4203-b00a-81285a1810c8"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2237633532386339312d366432622d343230332d623030612d383132383561313831306338222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2239663236653334382d383063662d343764612d396233652d316635623066356662636339222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2254686520726574656e74696f6e2070726573657276656420666f72207468652067656e65726174696f6e206973206669786564222c2264657461696c73223a7b22656e7472795f72657461696e65645f756e74696c223a22323032362d30392d32385430393a30303a30302e3030305a222c2272657175697265645f72657461696e65645f756e74696c223a22323033312d30332d32395430393a30303a30302e3030305a222c22726574656e74696f6e5f6669786564223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2237633532386339312d366432622d343230332d623030612d383132383561313831306338222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3630305a222c2276223a22322e30227d",
+        "signature_base64url": "NHWAl7O8lYUKHS64E3nBhhn9kII5T2wOWYAXzjKljjms8SQJhxOiy5DBPxhFbgc4hGbGIQAnAslPyahfthnzCw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-03-28T09:00:00.000Z",
+              "compliance": {
+                "profile": "EU-AI-ACT-HIGH-RISK"
+              }
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-27T14:00:00.000Z",
+              "compliance": {
+                "profile": "MIFID-II"
+              }
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "invalid_request",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": "2026-09-28T09:00:00.000Z",
+              "required_retained_until": "2031-03-29T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-722",
+      "description": "Valid invalid_request error — the entry was created with no retention period, and an update states retention P1Y. An entry preserved with no retention period accepts no retention value: the update is rejected, with entry_retained_until null (State §3.1.2 rule 7, §8.4). Executed by harness R18.",
+      "valid": true,
+      "category": "state",
+      "message": {
+        "v": "2.0",
+        "id": "5ef7ec48-3343-4b3c-a4c0-a625e6fa7418",
+        "ts": "2026-04-27T14:00:00.600Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.billing",
+        "intent": "error",
+        "correlation_id": "3f4a7053-b3fc-4ecd-a5ea-60da90213754",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "invalid_request",
+            "description": "The retention preserved for the generation is fixed",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": null,
+              "required_retained_until": "2027-03-28T09:00:00.000Z"
+            }
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "-DO2itCUwQJuJ8TOrUzNyyRZUu8YW9fHHoGGjN0338HTTPfObC1nlcq7Z5TIasiXqK9poEGSMKLsLONskkzlBw"
+        },
+        "root_request_id": "3f4a7053-b3fc-4ecd-a5ea-60da90213754"
+      },
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22636f7272656c6174696f6e5f6964223a2233663461373035332d623366632d346563642d613565612d363064613930323133373534222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2235656637656334382d333334332d346233632d613463302d613632356536666137343138222c22696e74656e74223a226572726f72222c227061796c6f6164223a7b226572726f72223a7b22636f6465223a22696e76616c69645f72657175657374222c226465736372697074696f6e223a2254686520726574656e74696f6e2070726573657276656420666f72207468652067656e65726174696f6e206973206669786564222c2264657461696c73223a7b22656e7472795f72657461696e65645f756e74696c223a6e756c6c2c2272657175697265645f72657461696e65645f756e74696c223a22323032372d30332d32385430393a30303a30302e3030305a222c22726574656e74696f6e5f6669786564223a747275657d7d2c2274797065223a22617273696170726f746f636f6c2e6572726f72227d2c22726f6f745f726571756573745f6964223a2233663461373035332d623366632d346563642d613565612d363064613930323133373534222c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e62696c6c696e67222c227473223a22323032362d30342d32375431343a30303a30302e3630305a222c2276223a22322e30227d",
+        "signature_base64url": "-DO2itCUwQJuJ8TOrUzNyyRZUu8YW9fHHoGGjN0338HTTPfObC1nlcq7Z5TIasiXqK9poEGSMKLsLONskkzlBw",
+        "expect_signature": "valid"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2026-03-28T09:00:00.000Z"
+            },
+            {
+              "op": "set",
+              "value": "v2",
+              "at": "2026-04-27T14:00:00.000Z",
+              "retention": "P1Y"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "error": "invalid_request",
+            "details": {
+              "retention_fixed": true,
+              "entry_retained_until": null,
+              "required_retained_until": "2027-03-28T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-723",
+      "description": "Valid state_purge record of a PURGE after a late update — the entry was created on 2025-04-20 with retention P1Y and updated on 2026-04-19, one day before the end of the period. An update does not restart the period: the generation is retained until created_at + P1Y (2026-04-20T09:00:00.000Z), so a PURGE eight days after the update is beyond retention and needs no retention_override (State §2.1.8, §3.2.2). Executed by harness R18.",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "category": "state",
+      "data": {
+        "record_id": "985cf506-a1d8-44b1-9dd6-6f72d4a311b4",
+        "message_id": "8b359ad3-2447-45cc-8026-59ddd5155560",
+        "event_type": "state_purge",
+        "from_agent": "agent:acme.billing",
+        "to_agent": "agent:arsialabs.demo.state-store",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.state/purge",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2026-07-26T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "key": "agent:acme.billing/agent/record",
+        "owner_agent_id": "agent:acme.billing",
+        "initiator_agent_id": "agent:acme.billing",
+        "generation": 1,
+        "purged_at": "2026-04-27T14:00:00.500Z",
+        "within_retention": false,
+        "entry_retained_until": "2026-04-20T09:00:00.000Z",
+        "pii_classification": "personal",
+        "compliance_profile_declared": "GDPR-STANDARD",
+        "compliance_profile_resolved": "GDPR-STANDARD",
+        "retention_source": "platform-default",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "GDPR-STANDARD",
+            "applied": "GDPR-STANDARD",
+            "source": {
+              "name": "GDPR-STANDARD",
+              "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "not_required",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": false,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": false,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P90D",
+                "source": "platform-default"
+              },
+              "requirements": [],
+              "result": {
+                "duration": "P90D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2026-07-26T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "no-value",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": null,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": null,
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P90D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "state",
+        "input": {
+          "key": "agent:acme.billing/agent/record",
+          "owner": "agent:acme.billing",
+          "ops": [
+            {
+              "op": "set",
+              "value": "v1",
+              "at": "2025-04-20T09:00:00.000Z",
+              "retention": "P1Y"
+            },
+            {
+              "op": "set",
+              "value": "late",
+              "at": "2026-04-19T09:00:00.000Z"
+            },
+            {
+              "op": "purge",
+              "idem": "k1",
+              "at": "2026-04-27T14:00:00.500Z"
+            }
+          ]
+        },
+        "expect": {
+          "last": {
+            "result": {
+              "purged_at": "2026-04-27T14:00:00.500Z"
+            }
+          }
+        }
+      }
+    },
+    {
       "id": "INV-178",
       "description": "State §5.7: INVALID — breach notification with without notification_target, REQUIRED for both targets; it fails only the required constraint of notification_target.",
       "category": "state",
@@ -41940,6 +42629,356 @@
         "approximate_record_count": 3400,
         "severity": "high"
       }
+    },
+    {
+      "id": "INV-207",
+      "description": "INVALID — State §8.3 rule 1: payload.args.data_residency FR lies outside the residency restriction composed for the message (DE). The SET is rejected with invalid_request and the diagnostic obligation_conflict on the residency axis; neither value is applied. The envelope is cryptographically valid. Executed by harness R10 on this message.",
+      "category": "state",
+      "valid": false,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
+      "message": {
+        "v": "2.0",
+        "id": "7184c340-f66a-425d-9fa6-d404477c0812",
+        "ts": "2026-05-01T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.state-store",
+        "intent": "request",
+        "expires_at": "2026-05-01T12:00:31.000Z",
+        "capabilities": [
+          "arsiaprotocol.state.write"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.state/set",
+          "args": {
+            "key": "agent:acme.data-agent/agent/profile-207",
+            "value": {
+              "name": "Test User"
+            },
+            "scope": "agent",
+            "pii_classification": "pseudonymised",
+            "data_residency": "FR"
+          }
+        },
+        "compliance": {
+          "profile": "GDPR-STANDARD",
+          "data_residency": "DE",
+          "audit_required": true
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "sIUIltq5oztIzRpON4_z1zpCuU4tb15R1IhKomw2iO96o7EDFjewYpqMOC0c4cbT2ZtJUigyTKUxcaZioNHHDg"
+        },
+        "authorization": {
+          "token_hash": "sha-256:963239c353ee77cea92eea33db6bf40af2beb6bde0e45b85b311e7ce761784cf",
+          "proof_type": "bearer"
+        }
+      },
+      "expected_error": "invalid_request",
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a39363332333963333533656537376365613932656561333364623662663430616632626562366264653065343562383562333131653763653736313738346366227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224445222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2237313834633334302d663636612d343235642d396661362d643430343437376330383132222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224652222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d323037222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "sIUIltq5oztIzRpON4_z1zpCuU4tb15R1IhKomw2iO96o7EDFjewYpqMOC0c4cbT2ZtJUigyTKUxcaZioNHHDg",
+        "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "rejected",
+          "error": {
+            "code": "invalid_request",
+            "details": {
+              "obligation_conflict": true,
+              "axis": "residency",
+              "declared": "FR",
+              "required": {
+                "codes": [
+                  "DE"
+                ]
+              },
+              "sources": []
+            }
+          },
+          "axes": {
+            "residency": {
+              "status": "conflict",
+              "result": null
+            }
+          },
+          "records": [
+            {
+              "event_type": "error",
+              "rejection_cause": "compliance",
+              "correlation_id": "7184c340-f66a-425d-9fa6-d404477c0812",
+              "declared_retention": null,
+              "effective_retention": "P90D",
+              "retention_source": "platform-default"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-208",
+      "description": "INVALID — State §8.3 rule 1: payload.args.data_residency EU is wider than the restriction composed for the message (FR); precedence never widens what the message allows. Rejected with invalid_request and obligation_conflict on the residency axis. The envelope is cryptographically valid. Executed by harness R10 on this message.",
+      "category": "state",
+      "valid": false,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
+      "message": {
+        "v": "2.0",
+        "id": "1be3a5c6-884b-4d2b-85a6-0b02f5f93141",
+        "ts": "2026-05-01T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.state-store",
+        "intent": "request",
+        "expires_at": "2026-05-01T12:00:31.000Z",
+        "capabilities": [
+          "arsiaprotocol.state.write"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.state/set",
+          "args": {
+            "key": "agent:acme.data-agent/agent/profile-208",
+            "value": {
+              "name": "Test User"
+            },
+            "scope": "agent",
+            "pii_classification": "pseudonymised",
+            "data_residency": "EU"
+          }
+        },
+        "compliance": {
+          "profile": "GDPR-STANDARD",
+          "data_residency": "FR",
+          "audit_required": true
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "nuUlv3agDCJ7a8IoLZrgAfElBLeuSfqF7cya4B6VKQzcUQ3NybmCyONndTogF0qGwApzPgrFK7E1Ql6kb6VfCA"
+        },
+        "authorization": {
+          "token_hash": "sha-256:a903800383ad89f4da6aac25e282244fa534fa874f5b9c4f8a483ee9c6fdb2d7",
+          "proof_type": "bearer"
+        }
+      },
+      "expected_error": "invalid_request",
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b22617574686f72697a6174696f6e223a7b2270726f6f665f74797065223a22626561726572222c22746f6b656e5f68617368223a227368612d3235363a61393033383030333833616438396634646136616163323565323832323434666135333466613837346635623963346638613438336565396336666462326437227d2c226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c22646174615f7265736964656e6379223a224652222c2270726f66696c65223a22474450522d5354414e44415244227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2231626533613563362d383834622d346432622d383561362d306230326635663933313431222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a224555222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d323038222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "nuUlv3agDCJ7a8IoLZrgAfElBLeuSfqF7cya4B6VKQzcUQ3NybmCyONndTogF0qGwApzPgrFK7E1Ql6kb6VfCA",
+        "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "rejected",
+          "error": {
+            "code": "invalid_request",
+            "details": {
+              "obligation_conflict": true,
+              "axis": "residency",
+              "declared": "EU",
+              "required": {
+                "codes": [
+                  "FR"
+                ]
+              },
+              "sources": []
+            }
+          },
+          "axes": {
+            "residency": {
+              "status": "conflict",
+              "result": null
+            }
+          },
+          "records": [
+            {
+              "event_type": "error",
+              "rejection_cause": "compliance",
+              "correlation_id": "1be3a5c6-884b-4d2b-85a6-0b02f5f93141",
+              "declared_retention": null,
+              "effective_retention": "P90D",
+              "retention_source": "platform-default"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-209",
+      "description": "INVALID — State §8.3 rule 1: the message declares no compliance.data_residency, but the MIFID-II profile default fills EU; payload.args.data_residency US lies outside that composed restriction — the comparison uses the composed restriction, not the literal field. Rejected with invalid_request and obligation_conflict on the residency axis. The envelope is cryptographically valid. Executed by harness R10 on this message.",
+      "category": "state",
+      "valid": false,
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — the zone declared in payload.args against the residency restriction composed for the message (State §8.3 rule 1; Core §4.3.10.5)",
+      "message": {
+        "v": "2.0",
+        "id": "d4b97dac-ff49-4f04-ad37-62a0d8aac3bd",
+        "ts": "2026-05-01T12:00:01.000Z",
+        "from": "agent:acme.data-agent",
+        "to": "agent:acme.state-store",
+        "intent": "request",
+        "expires_at": "2026-05-01T12:00:31.000Z",
+        "capabilities": [
+          "arsiaprotocol.state.write"
+        ],
+        "payload": {
+          "type": "arsiaprotocol.state/set",
+          "args": {
+            "key": "agent:acme.data-agent/agent/profile-209",
+            "value": {
+              "name": "Test User"
+            },
+            "scope": "agent",
+            "pii_classification": "pseudonymised",
+            "data_residency": "US"
+          }
+        },
+        "compliance": {
+          "profile": "MIFID-II",
+          "audit_required": true
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.data-agent#key1",
+          "sig": "qHzj1ebF0wmjWCpL4LtmZBhJ44KHY_rLofSHfkDsv-nNhyfkTUDwVLsnGLCfT-qNGR4su8GkbgRLCaEjh1RvDA"
+        }
+      },
+      "expected_error": "invalid_request",
+      "crypto": {
+        "private_key_hex": "62af7e84cb0593f1dc29345a40aa03d3049b694456396fb3d6167b6398759da6",
+        "public_key_hex": "8fdb2cefadbb00741ba82440806ee571e374d779a541416c2eab59d704435f4d",
+        "canonical_bytes_hex": "7b226361706162696c6974696573223a5b22617273696170726f746f636f6c2e73746174652e7772697465225d2c22636f6d706c69616e6365223a7b2261756469745f7265717569726564223a747275652c2270726f66696c65223a224d494649442d4949227d2c22657870697265735f6174223a22323032362d30352d30315431323a30303a33312e3030305a222c2266726f6d223a226167656e743a61636d652e646174612d6167656e74222c226964223a2264346239376461632d666634392d346630342d616433372d363261306438616163336264222c22696e74656e74223a2272657175657374222c227061796c6f6164223a7b2261726773223a7b22646174615f7265736964656e6379223a225553222c226b6579223a226167656e743a61636d652e646174612d6167656e742f6167656e742f70726f66696c652d323039222c227069695f636c617373696669636174696f6e223a2270736575646f6e796d69736564222c2273636f7065223a226167656e74222c2276616c7565223a7b226e616d65223a22546573742055736572227d7d2c2274797065223a22617273696170726f746f636f6c2e73746174652f736574227d2c227365637572697479223a7b22616c67223a224564445341222c226b6964223a226167656e743a61636d652e646174612d6167656e74236b657931227d2c22746f223a226167656e743a61636d652e73746174652d73746f7265222c227473223a22323032362d30352d30315431323a30303a30312e3030305a222c2276223a22322e30227d",
+        "signature_base64url": "qHzj1ebF0wmjWCpL4LtmZBhJ44KHY_rLofSHfkDsv-nNhyfkTUDwVLsnGLCfT-qNGR4su8GkbgRLCaEjh1RvDA",
+        "expect_signature": "valid"
+      },
+      "test_metadata": {
+        "scenario": "resolution",
+        "input": {
+          "from_message": true
+        },
+        "expect": {
+          "outcome": "rejected",
+          "error": {
+            "code": "invalid_request",
+            "details": {
+              "obligation_conflict": true,
+              "axis": "residency",
+              "declared": "US",
+              "required": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "sources": []
+            }
+          },
+          "axes": {
+            "residency": {
+              "status": "conflict",
+              "result": null
+            }
+          },
+          "records": [
+            {
+              "event_type": "error",
+              "rejection_cause": "compliance",
+              "correlation_id": "d4b97dac-ff49-4f04-ad37-62a0d8aac3bd",
+              "declared_retention": null,
+              "effective_retention": "P1827D",
+              "retention_source": "profile-minimum"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "INV-210",
+      "description": "INVALID — SNAPSHOT result whose hash carries the prefix 'sha256:' instead of 'sha-256:' (State §3.2.1). The 64 hexadecimal characters are the correct digest of {as_of, entries}; the prefix is the only defect, and the result fails only the pattern of hash.",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "category": "state",
+      "data": {
+        "type": "arsiaprotocol.state/snapshot",
+        "args": {
+          "as_of": "2026-04-15T13:00:00.000Z"
+        },
+        "result": {
+          "as_of": "2026-04-15T13:00:00.000Z",
+          "entries": [
+            {
+              "key": "agent:acme.billing/agent/profile",
+              "value": "v2",
+              "owner_agent_id": "agent:acme.billing",
+              "scope": "agent",
+              "created_at": "2026-04-15T09:00:00.000Z",
+              "updated_at": "2026-04-15T11:00:00.000Z",
+              "pii_classification": "none",
+              "generation": 1,
+              "version": 2,
+              "deleted": true
+            },
+            {
+              "key": "agent:acme.billing/agent/profile",
+              "value": "w1",
+              "owner_agent_id": "agent:acme.billing",
+              "scope": "agent",
+              "created_at": "2026-04-15T12:00:00.000Z",
+              "updated_at": "2026-04-15T12:00:00.000Z",
+              "pii_classification": "none",
+              "generation": 2,
+              "version": 1,
+              "deleted": false
+            }
+          ],
+          "timestamp": "2026-04-15T13:00:01.000Z",
+          "hash": "sha256:89dc3b72178b800f127789a60bd3d3f7eb433ed1bd1f4ce240bd90a0c2c97bb2"
+        }
+      },
+      "expected_error": "result/hash: pattern — State §3.2.1"
     }
   ]
 }
