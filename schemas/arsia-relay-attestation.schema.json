@@ -56,7 +56,7 @@
     "residency_zone": {
       "type": "string",
       "pattern": "^[A-Z]{2}$",
-      "description": "Zone this relay satisfies — an ISO 3166-1 alpha-2 country code or a registered supranational identifier from the closed registry of ARSIA-Routing.md §5.1 (currently 'EU'); membership in the registry is a runtime rule"
+      "description": "Zone this relay satisfies: the value of the relayed message's compliance.data_residency, copied unchanged by the broker; the recipient checks the equality, as strings, in Routing §7.4.1 step 3 (a runtime rule). An ISO 3166-1 alpha-2 country code or a registered supranational identifier from the closed registry of ARSIA-Routing.md §5.1 (currently 'EU'); membership in the registry is a runtime rule"
     },
     "received_at": {
       "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"

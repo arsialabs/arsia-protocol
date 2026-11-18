@@ -100,7 +100,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **`relay_id` naming (C3a observation):** relay receipt and error payloads
   (Routing §2.3) carry `relay_id`, while the attestation and the audit record
   use `attestation_id` for the same per-relay UUID.
-  Registered as A-117 (post-merge triage: C; clarification in the Issue, non-blocking).
+  Registered as A-117 (post-merge triage: C; clarification in the Issue, non-blocking). Resolved in the Routing cycle (A-117 closed, [§32][ev32]): the two have independent semantics, and their values are not required to be equal or different.
 - **ITV-94 correlation semantics (C3a observation):** Actions §3.5 Record 3 sets
   `correlation_id` to the pending_approval id; ITV-94 uses the original request
   id. The schema cannot check this.
@@ -536,7 +536,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Attestation zone (observed in coverage SC1, not fixed):** Routing §7.4.1 checks the
   broker's jurisdiction against the message's declared zone; it states no check that the
   attestation's own `residency_zone` equals that zone. R22 follows the text.
-  Registered as A-111 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-111 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the Routing cycle (A-111 closed, [§32][ev32]).
 - **Published counts after coverage SC2:** 34 schemas (incl. meta), 893 vectors
   (483/215/195), 17 keypairs, RTM 2045 / 1241, 129 consistency checks, harness R1-R22;
   README.md, CLAUDE.md, docs/FAQ.md, docs/getting-started.md, schemas/README.md and
@@ -705,9 +705,11 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **State cycle (for consumers):** a SET whose `payload.args.data_residency` lies outside the residency restriction composed for the message is now rejected (`invalid_request`, `obligation_conflict` on the `residency` axis); the SNAPSHOT `hash` has a defined construction and the prefix `sha-256:` (the four earlier fixtures used `sha256:`); an update never changes the retention of its generation and is rejected with `retention_fixed` when its value or its floor is incompatible. 11 new vectors (ITV-717..723, INV-207..210) and 8 changed (ITV-536..539 re-signed; ITV-174, ITV-286, ITV-677, INV-88 with the hash recomputed). Published counts: 967 vectors (494 schema-valid, 245 expected-invalid, 209 runtime-only, 19 raw), 54 keypairs, 149 consistency checks, RTM 2055 rows (1256 MUST + MUST_NOT; 1454 with REQUIRED), updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md, CHANGELOG.md and test-vectors/README.md.
 - **Stored zone against a later message (observed in the State cycle, not decided):** State §8.3 rule 1 validates a `payload.args.data_residency` present in a SET. It defines no specific check of an entry's stored zone against the residency restriction of a later message that carries no such argument (an entry in `FR` updated under a message restricted to `DE`, without args). The absence of that check authorizes nothing: the restrictions that already apply to the message (Core §4.3.6.2) and to the entry (State §4.2) remain in force. Whether a specific check and its diagnostic are wanted is open.
 - **State cycle, retention cost (declared):** an update does not restart the retention period of its generation; a version written late in the period is retained only for the remainder of it (State §2.1.8). A period of its own for each version would be the per-version model, not adopted.
+- **Routing cycle (for consumers):** a recipient now rejects with `unauthorized`, at step 3, a relay attestation whose `residency_zone` is not equal, as a string, to the message's `compliance.data_residency`; a broker sets the field to that value (Routing §7.4.1). `relay_id` and `attestation_id` are distinct identifiers and a consumer does not assume they are equal (Routing §2.3.3). 3 new vectors (ITV-724, INV-211, INV-212), none changed. Published counts: 970 vectors (495 schema-valid, 245 expected-invalid, 211 runtime-only, 19 raw), 54 keypairs, 150 consistency checks, RTM 2057 rows (1258 MUST + MUST_NOT; 1456 with REQUIRED), updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md, CHANGELOG.md and test-vectors/README.md.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
 [ev24]: draft-02-remediation-ledger-evidence.md#24-coverage-sc2-closure-evidence
 [ev31]: draft-02-remediation-ledger-evidence.md#31-state-cycle-closure-evidence
+[ev32]: draft-02-remediation-ledger-evidence.md#32-routing-cycle-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

@@ -51,13 +51,14 @@ Schema cannot express, executed as tests — including against the runtime
       (atomic reference store), brokered nonce challenge
   R21 Token binding: SHA-256 of the presented token's     (Core §4.3.9; A-55)
       exact octets against authorization.token_hash
-  R22 Relay attestation verification: signature, broker  (Routing §7.4.1; A-56)
-      authorisation, envelope and token binding, identities,
-      window (profile skew), replay
+  R22 Relay attestation verification: signature, zone    (Routing §7.4.1; A-56, A-111)
+      equality, broker authorisation, envelope and token
+      binding, identities, window (profile skew), replay
 
 Exit code 0 = all green.
 """
 import calendar
+import copy
 import datetime as dt
 import json
 import re
@@ -3597,8 +3598,11 @@ def verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, 
                              signing_input_v2(att))
     except Exception:
         return fail(2)
-    # step 3: an authorised Compliance Broker for the declared zone
+    # step 3: the attestation names the zone the message declares, compared as strings (no normalization,
+    # expansion or containment), and the broker is an authorised Compliance Broker for that zone
     zone = (envelope.get("compliance") or {}).get("data_residency")
+    if att.get("residency_zone") != zone:
+        return fail(3)
     if "arsiaprotocol.broker.relay" not in broker_entry.get("capabilities", []) or broker_entry.get("agent_id") != att["broker_id"]:
         return fail(3)
     if broker_entry.get("jurisdiction") not in normalize_residency(zone)[0]:
@@ -3725,6 +3729,7 @@ def r22(vectors):
         header, envelope = delivered(v)
         if "att" in over:
             header = derived_header(over["att"])
+        envelope = over.get("envelope", envelope)
         return receive_attestation(over.get("header", header), envelope, **{k: over.get(k, inp[k]) for k in KEYS})
 
     for v in sc:
@@ -3745,6 +3750,57 @@ def r22(vectors):
             except Exception:
                 ok = False
             check(f"R22 (b) {v['id']} keeps a valid attestation signature", ok)
+    # (i) zone equality (step 3): the attestation's residency_zone is the message's compliance.data_residency
+    by_id = {v["id"]: v for v in sc}
+    zones = lambda v: (v["test_metadata"]["input"]["envelope"]["compliance"]["data_residency"], v["data"]["residency_zone"])
+    want_zones = {"ITV-569": ("EU", "EU"), "ITV-724": ("PT", "PT"), "INV-211": ("EU", "PT"), "INV-212": ("PT", "EU")}
+    present = all(i in by_id for i in want_zones)
+    check("R22 (i) zone vectors present with their (message, attestation) zones: ITV-569, ITV-724, INV-211, INV-212",
+          present and all(zones(by_id[i]) == z for i, z in want_zones.items()),
+          str({i: zones(by_id[i]) for i in want_zones if i in by_id}))
+    if present:
+        for i in ("INV-211", "INV-212"):
+            check(f"R22 (i) {i}: the broker's jurisdiction satisfies both zones, so the zone mismatch is the only cause",
+                  by_id[i]["test_metadata"]["input"]["broker_entry"]["jurisdiction"] == "PT"
+                  and all("PT" in normalize_residency(z)[0] for z in ("EU", "PT")))
+        other = copy.deepcopy(by_id["INV-211"]["test_metadata"]["input"]["envelope"])
+        other["compliance"]["data_residency"] = "PT"
+        got = run(by_id["INV-211"], envelope=other)
+        check("R22 (i) INV-211 against an envelope that declares PT passes step 3 (it then fails step 4, envelope hash)",
+              got == ("unauthorized", 4), str(got))
+        # Synthetic variants are re-signed with a key of this harness, published under the attestation's kid
+        # in the JWKS the recipient is given: the signature is valid, so the defect under test is the only one.
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from regen_v2 import b64url
+        synth_key = Ed25519PrivateKey.from_private_bytes(bytes([22]) * 32)
+        synth_pub = synth_key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw).hex()
+
+        def variant(v, **changes):
+            a = copy.deepcopy(v["data"])
+            a.update(changes)
+            a["security"]["sig"] = b64url(synth_key.sign(signing_input_v2(a)))
+            return {"att": a, "jwks": [{"kid": a["security"]["kid"], "public_key_hex": synth_pub}]}
+
+        wrong_hash = "sha-256:" + "0" * 64
+        for i in ("INV-211", "INV-212"):
+            v = by_id[i]
+            msg_zone = zones(v)[0]
+            # single cause: with the zone alone corrected, every other binding of the negative holds
+            got = run(v, **variant(v, residency_zone=msg_zone))
+            check(f"R22 (i) {i} has a single defect: with only residency_zone corrected (re-signed) it is accepted",
+                  got == ("accept", None), str(got))
+            # order: the zone is verified in step 3, before the bindings of step 4
+            got = run(v, **variant(v, envelope_hash=wrong_hash))
+            check(f"R22 (i) {i} with a wrong envelope_hash too (valid signature) is unauthorized at step 3: "
+                  "the zone is verified before the bindings", got == ("unauthorized", 3), str(got))
+            got = run(v, **variant(v, residency_zone=msg_zone, envelope_hash=wrong_hash))
+            check(f"R22 (i) {i} order control: the same wrong envelope_hash with the zone corrected fails at step 4",
+                  got == ("unauthorized", 4), str(got))
+        ie = dict(by_id["ITV-724"]["test_metadata"]["input"]["broker_entry"], jurisdiction="IE")
+        got = run(by_id["ITV-724"], broker_entry=ie)
+        check("R22 (i) equal zones do not replace the jurisdiction check: ITV-724 with a broker in IE is unauthorized at step 3",
+              got == ("unauthorized", 3), str(got))
     good = next((v for v in sc if v["id"] == "ITV-569"), None)
     check("R22 the accepted reference attestation (ITV-569) is present", good is not None)
     if good is None:

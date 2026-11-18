@@ -2475,6 +2475,48 @@ def set_fixture_problems(vectors, registry):
     return out
 
 
+def routing_cycle_echo_problems():
+    """Routing cycle (A-111, A-117) anti-regression: the attestation's zone is bound to the zone the message
+    declares, the relation of relay_id to attestation_id is stated, and the replaced step 3 does not come back."""
+    out = []
+    flat = re.sub(r"\s+", " ", open("spec/ARSIA-Routing.md", encoding="utf-8").read())
+    for old in ("3. Verify that the broker is an authorised Compliance Broker for the declared zone:",
+                '| The zone this relay satisfies (e.g., `"EU"`). |'):
+        if old in flat:
+            out.append(f"Routing: the replaced text {old!r} is back")
+    for where, needle in (
+            ("§7.4.1 step 3", "`residency_zone` MUST be equal, as a string, to the message's `compliance.data_residency`: "
+                              "no normalization, regional expansion or containment applies"),
+            ("§7.4.1 step 3", "The broker MUST also be an authorised Compliance Broker for that zone"),
+            ("§7.4.1 Zone", "**Zone.** The broker MUST set `residency_zone` to the value of `compliance.data_residency` "
+                            "of the message it forwards, unchanged"),
+            ("§7.4.1 table", "The value of the relayed message's `compliance.data_residency`, copied unchanged"),
+            ("§1.2.2 step 7", "with `residency_zone` set to the message's `compliance.data_residency` (§7.4.1)"),
+            ("§5.3", "or an attestation issued for another zone, detectable at the recipient"),
+            ("§2.3.3", "**Relay identifier.** `relay_id` identifies the relay operation"),
+            ("§2.3.3", "requires neither equality nor inequality between their values and defines no mapping between them. "
+                       "A consumer MUST NOT assume that they are equal"),
+            ("§7.4.1 replay", "`attestation_id` and `relay_id` have independent semantics; their values are not required "
+                              "to be equal or different (§2.3.3)"),
+            ("§7.4.2", "(§7.3 Rule 7) is independent of `relay_id` (§2.3.3)")):
+        if needle not in flat:
+            out.append(f"Routing {where}: {needle[:60]!r} is missing")
+    att = strict_load("schemas/arsia-relay-attestation.schema.json")["properties"]["residency_zone"]["description"]
+    if "copied unchanged by the broker" not in att or "§7.4.1 step 3" not in att:
+        out.append("arsia-relay-attestation residency_zone: the description does not state the equality rule")
+    rid = strict_load("schemas/arsia-message.schema.json")["$defs"]["error-details-relay-failed"]["properties"]["relay_id"]
+    rid_text = json.dumps(rid, ensure_ascii=False)
+    if ("attestation_id and relay_id have independent semantics; their values are not required to be equal or "
+            "different (Routing §2.3.3)") not in rid_text:
+        out.append("error-details-relay-failed relay_id: the description does not state the relation to attestation_id")
+    # a wording that reads as required inequality contradicts §2.3.3, which allows equal values
+    for where, text in (("Routing", flat), ("error-details-relay-failed relay_id", rid_text)):
+        for old in ("`attestation_id` is not the `relay_id`", "distinct from attestation_id"):
+            if old in text:
+                out.append(f"{where}: the wording {old!r}, which reads as required inequality, is back")
+    return out
+
+
 def state_cycle_echo_problems():
     """State cycle (A-108, A-110) anti-regression: the replaced rules do not come back, and each echo cites the
     rule that now governs it."""
@@ -3117,6 +3159,10 @@ def main() -> int:
     check("State cycle anti-regression: entry residency within the composed restriction, retention fixed per "
           "generation and the SNAPSHOT hash construction are stated, and the replaced rules are absent",
           not probs, "; ".join(probs[:4]))
+
+    probs = routing_cycle_echo_problems()
+    check("Routing cycle anti-regression: the attestation zone equality and the relation of relay_id to "
+          "attestation_id are stated, and the replaced step 3 is absent", not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     import validate_vectors as vv

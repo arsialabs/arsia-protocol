@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 15, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 209.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 14, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 15, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 211.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -246,6 +246,8 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-207 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | INV-208 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | INV-209 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
+| INV-211 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-212 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
 
 ## Residual risk statement
 

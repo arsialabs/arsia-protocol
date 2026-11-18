@@ -193,6 +193,10 @@ catalog edition via the new discovery field `iso4217_edition`.
   returns it to the sender as a `recipient_dpop_nonce` relay error and never
   re-sends the message or produces a proof itself; the sender retries with a new
   proof (Routing §2.3.3).
+- `relay_id`, in relay receipts and relay errors, and `attestation_id`, in the
+  attestation and the `broker_relay` record, are distinct identifiers. No equality,
+  inequality or mapping between them is required; do not assume they are equal
+  (Routing §2.3.3).
 - Receiving agents implement the Identity §3.3 DPoP checks, the nonce challenge,
   and an atomic, shared single-use `jti` store that holds each `jti` until
   `iat` + S.
@@ -234,6 +238,12 @@ catalog edition via the new discovery field `iso4217_edition`.
   steps 2–5. The header is non-empty base64url **without padding**; the decoded
   octets pass the Core §5.2 steps 2–4 and the attestation schema before the
   signature is checked. These failures are `unauthorized`, not `invalid_request`.
+- **Attestation zone (Routing §7.4.1 step 3).** A broker sets the attestation's
+  `residency_zone` to the value of the message's `compliance.data_residency`,
+  unchanged. A recipient compares the two as strings and rejects a difference with
+  `unauthorized`, before it checks the broker's jurisdiction and capability for that
+  zone, which remain required. No containment applies: `"PT"` does not satisfy a
+  message that declares `"EU"`, nor the reverse.
 
 ## 13. Test vectors and keys (for implementations that use the corpus)
 

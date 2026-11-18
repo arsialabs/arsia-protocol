@@ -147,7 +147,7 @@
               "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
             },
             {
-              "description": "Unique identifier for the relay operation"
+              "description": "Unique identifier for the relay operation in the broker's receipts and errors to the sender. attestation_id and relay_id have independent semantics; their values are not required to be equal or different (Routing §2.3.3)"
             }
           ]
         },

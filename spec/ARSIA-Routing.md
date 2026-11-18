@@ -360,7 +360,8 @@ recipient, even if direct connectivity is available.
 
    a. Resolves the recipient's inbox URL per ARSIA-Core.md §6.6/§7.1.
    b. Produces a signed **relay attestation** (§7.4) over the exact envelope being
-      forwarded.
+      forwarded, with `residency_zone` set to the message's
+      `compliance.data_residency` (§7.4.1).
    c. Sends the EXACT same message envelope — byte-identical — with the sender's
       end-to-end authorization forwarded verbatim:
 
@@ -1129,6 +1130,14 @@ relay asynchronously, the broker returns a relay receipt to the sender:
 }
 ```
 
+**Relay identifier.** `relay_id` identifies the relay operation in the receipts and
+errors that the broker sends to the sender (this section, §2.3.4, §7.3), including
+when the message is not forwarded. The `attestation_id` of a relay attestation
+(§7.4.1) identifies the attestation issued when forwarding is initiated. The two are
+distinct identifiers: this specification requires neither equality nor inequality
+between their values and defines no mapping between them. A consumer MUST NOT assume
+that they are equal.
+
 **Relay error:**
 
 If the broker cannot forward the message to the recipient (network failure, a
@@ -1787,8 +1796,8 @@ the required data residency zone.
 **Recipient-side verification.** In addition to the sender-side checks above, the
 final recipient independently verifies the relay: when `compliance.data_residency`
 is set, a valid relay attestation is REQUIRED and verified per §7.4.1 — making a
-sender that bypasses the mandatory broker, or a broker outside the declared zone,
-detectable at the recipient.
+sender that bypasses the mandatory broker, a broker outside the declared zone, or an
+attestation issued for another zone, detectable at the recipient.
 
 **Trust model:**
 
@@ -2217,7 +2226,7 @@ proof of the physical location of all processing (§5.3).
 | `recipient`                 | string  | REQUIRED | The `to` field of the relayed message.           |
 | `envelope_hash`             | string  | REQUIRED | `"sha-256:<hex>"` — SHA-256 over the RFC 8785 canonical form of the **complete signed envelope**, including `security.sig`. (Distinct from the signing input, which omits `sig` — ARSIA-Core.md §5.1.) |
 | `authorization_token_hash`  | string  | REQUIRED | The envelope's `authorization.token_hash` value (ARSIA-Core.md §4.3.9), binding the attestation to the sender's end-to-end token. |
-| `residency_zone`            | string  | REQUIRED | The zone this relay satisfies (e.g., `"EU"`).    |
+| `residency_zone`            | string  | REQUIRED | The value of the relayed message's `compliance.data_residency`, copied unchanged (e.g., `"EU"`): the zone this relay satisfies. |
 | `received_at`               | string  | REQUIRED | RFC 3339 ms-precision UTC — when the broker received the envelope. |
 | `forwarded_at`              | string  | REQUIRED | RFC 3339 ms-precision UTC — when the broker initiated forwarding. |
 | `policy_ref`                | string  | REQUIRED | Identifier or digest of the broker routing policy version applied. |
@@ -2229,12 +2238,19 @@ proof of the physical location of all processing (§5.3).
 (ARSIA-Core.md §5.1): the signing input is the RFC 8785 canonical form of the
 attestation object with `security` present and only `security.sig` removed.
 
+**Zone.** The broker MUST set `residency_zone` to the value of
+`compliance.data_residency` of the message it forwards, unchanged. The field identifies
+the restriction the message declares, as in the broker's audit record (§7.3 Rule 7);
+it does not state the broker's own jurisdiction, which the recipient verifies
+separately (step 3).
+
 **Replay handling.** `attestation_id` is unique per relay; a recipient MUST treat a
 repeated `attestation_id` for a different `envelope_hash` as invalid, and MUST
 reject attestations outside `[issued_at, valid_until]` (± the applicable clock
 skew). Historical verification of stored attestations additionally requires the
 broker's key history and key status at `issued_at`, and the referenced policy
-digest (ARSIA-Identity.md §2).
+digest (ARSIA-Identity.md §2). `attestation_id` and `relay_id` have independent
+semantics; their values are not required to be equal or different (§2.3.3).
 
 **Recipient verification.** When `compliance.data_residency` is set on a received
 message, the recipient MUST:
@@ -2254,9 +2270,13 @@ message, the recipient MUST:
    MUST validate against `schemas/arsia-relay-attestation.schema.json`. Then verify
    the attestation signature against the broker's JWKS (broker origin resolved per
    ARSIA-Core.md §6.6).
-3. Verify that the broker is an authorised Compliance Broker for the declared zone:
-   its BrokerEntry/IdentityRecord jurisdiction satisfies the zone (§5.3) and it
-   declares `arsiaprotocol.broker.relay`.
+3. Verify the zone and the broker's authorisation for it. The attestation's
+   `residency_zone` MUST be equal, as a string, to the message's
+   `compliance.data_residency`: no normalization, regional expansion or containment
+   applies, so an attestation for `"PT"` does not satisfy a message that declares
+   `"EU"`, nor the reverse. The broker MUST also be an authorised Compliance Broker
+   for that zone: its BrokerEntry/IdentityRecord jurisdiction satisfies the zone
+   (§5.3) and it declares `arsiaprotocol.broker.relay`.
 4. Verify `envelope_hash` against the received envelope and
    `authorization_token_hash` against the envelope's `authorization.token_hash`
    and the presented token.
@@ -2284,6 +2304,8 @@ the base fields (`record_id`, `processed_at`, `operator_id`, `retained_until`,
 `residency_zone`, `received_at`, `forwarded_at`, `relay_latency_ms`, and
 `forwarding_result` (`"success"` | `"failure"` | `"timeout"`) — `attestation_id`,
 `forwarded_at` and `relay_latency_ms` only when forwarding was initiated (below).
+The correlation of the attestation with this record by the same `attestation_id`
+(§7.3 Rule 7) is independent of `relay_id` (§2.3.3).
 
 **Relay timing and outcome.** In every `broker_relay` record:
 

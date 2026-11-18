@@ -2038,3 +2038,109 @@ reconciliation 10, port 23, coverage SC4 23.
 with REQUIRED 1445 → 1454); findings register 122 → 123 rows (open 10 → 7, closed 116). The
 maintenance-cycle retention guard now reads 113 audit records (ITV-723 added), with its 19
 controls.
+
+## 32. Routing cycle closure evidence
+
+Baseline `d41783c`. Normative cycle for the two Routing items of Issue #2 (B4, C1),
+decided by the owner on 2026-11-17 (Routing cycle addendum). The owner's review of the
+implementation required, before the commit, the single-cause and order controls of
+R22 (i) and the wording of the two short A-117 texts recorded below; they are part of
+this cycle.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-111 | Routing §7.4.1 (table row, "Zone.", step 3), §1.2.2 step 7, §5.3; `arsia-relay-attestation.schema.json` `residency_zone` description | ITV-569 (`EU`/`EU`, control), ITV-724 (`PT`/`PT`, accepted), INV-211 (`EU`/`PT`), INV-212 (`PT`/`EU`) | R22 (a), (b), (i) | (r1)–(r9), (r18)–(r20) below; text (r10), (r11), (r14), (r15), (r17) |
+| A-117 | Routing §2.3.3 ("Relay identifier"), §7.4.1 (replay handling), §7.4.2; `arsia-message.schema.json` `error-details-relay-failed.relay_id` description | none | guard `routing_cycle_echo_problems` | (r12), (r13), (r16), (r21), (r22) |
+
+**A-111, attestation zone.**
+- Before the cycle, R22 verified the broker's authorisation for the zone of the message
+  and never read the attestation's `residency_zone`: a message that declares `EU` with a
+  correctly signed attestation for `PT` was accepted (reproduced by the owner on ITV-569).
+- The broker sets `residency_zone` to the value of the message's
+  `compliance.data_residency`, unchanged. In step 3 the recipient requires the two to be
+  equal as strings, then verifies the broker's jurisdiction and capability for that zone.
+  A failure is `unauthorized`, under the existing rule for steps 2-5.
+- No normalization, regional expansion or containment applies, in either direction:
+  INV-211 (message `EU`, attestation `PT`) and INV-212 (message `PT`, attestation `EU`)
+  are rejected at step 3.
+- Single cause in both negatives: the attestation signature verifies (R22 (b)) and the
+  broker's jurisdiction `PT` satisfies both zones. The permanent control is R22 (i)
+  "has a single defect": each negative with only `residency_zone` corrected to the
+  message's zone, re-signed, is accepted in full, so every binding of steps 4 and 5
+  holds in the fixture. A second defect that the zone mismatch would hide (a wrong
+  `authorization_token_hash`, another `message_id`) fails that control ((r19), (r20)).
+- Order: the zone is verified in step 3, before the bindings of step 4. R22 (i) runs
+  each negative with a wrong `envelope_hash` as well, re-signed: the result is
+  `unauthorized` at step 3. The same wrong `envelope_hash` with the zone corrected is
+  `unauthorized` at step 4, which shows that the added defect is a step 4 defect and
+  that the signature passes step 2. A comparison moved after the bindings, still
+  reporting step 3, fails the first of the two ((r18)).
+- The synthetic variants are re-signed with a key of the harness, published under the
+  attestation's kid in the JWKS given to the recipient; they add no vector to the
+  corpus and use no catalog private key.
+- ITV-724 shows the comparison uses the message's own value and not a fixed `EU`; with
+  a broker in `IE` it is rejected at step 3, so equal zones do not replace the
+  jurisdiction check.
+- ITV-724 and INV-212 carry an envelope that declares `PT`: the envelope of CTV-02 with
+  its own `id` and idempotency key, signed with the catalog key of its kid. The three
+  attestations are signed with the catalog key `agent:arsialabs.broker.eu-west#2026q1`.
+- The rule uses the literal `compliance.data_residency`, the field the procedure of
+  §7.4.1 already uses; the cycle adds no resolution of defaults and no regional
+  composition.
+
+**A-117, identifiers.**
+- `relay_id` identifies the relay operation in the receipts and errors the broker sends
+  to the sender, also when the message is not forwarded (a Rule 9 error, ITV-517, has a
+  `relay_id` and no attestation exists). `attestation_id` identifies the attestation
+  issued when forwarding is initiated.
+- The two have independent semantics: no equality, inequality or mapping is required,
+  and a consumer MUST NOT assume equality. The two short texts (§7.4.1 replay handling,
+  the `relay_id` schema description) say that the values "are not required to be equal
+  or different"; the earlier wordings "is not the `relay_id`" and "distinct from
+  attestation_id", which read as required inequality, are rejected by the guard
+  ((r21), (r22)). The correlation of the attestation with the
+  `broker_relay` record by the same `attestation_id` is unchanged.
+- No vector and no harness code changed for this item. The reference harness reuses one value for both
+  in its DPoP flow, which the rule permits. The RTM row of the MUST NOT
+  (ROUTE-§2.3.3-06) is recorded as `out-of-repo(external-party)`: a consumer's
+  assumption is not observable in the repository.
+
+**Mutations (candidate copy identical to the final diff; 22 of 22 detected).**
+- (r1) zone comparison removed → `R22 (a) INV-211`, `R22 (a) INV-212` (accepted).
+- (r2) containment, attestation zone inside the message zone → `R22 (a) INV-211`.
+- (r3) containment reversed → `R22 (a) INV-212`.
+- (r4) attestation zone compared with the broker's jurisdiction → both negatives.
+- (r5) comparison made in step 5, reporting step 5 → both negatives report step 5. This
+  mutation changes the reported number as well; the order alone is (r18).
+- (r6) jurisdiction check removed → `R22 (a) INV-121`, `R22 (i) equal zones do not
+  replace the jurisdiction check`.
+- (r7) INV-211 with zone `EU`, re-signed → `R22 (a) INV-211`, `R22 (i) zone vectors
+  present`.
+- (r8) INV-211 with a broker in `IE` → `R22 (i) INV-211: the broker's jurisdiction
+  satisfies both zones`.
+- (r9) ITV-724 with zone `EU`, re-signed → `R22 (a) ITV-724`, `R22 (i) zone vectors
+  present`.
+- (r10)–(r17) text and schema descriptions reverted (step 3, "Zone.", the MUST NOT, the
+  "Relay identifier" paragraph, the table row, the two schema descriptions, the echoes
+  of §1.2.2 and §5.3) → `Routing cycle anti-regression`.
+- (r18) order only: the comparison moved after the bindings of step 4, still returning
+  step 3 → `R22 (i) INV-211 with a wrong envelope_hash too`, `R22 (i) INV-212 with a
+  wrong envelope_hash too` (step 4 reported). `R22 (a)` does not detect this mutation.
+- (r19) INV-211 with a wrong `authorization_token_hash`, re-signed → `R22 (i) INV-211
+  has a single defect`.
+- (r20) INV-212 with another `message_id`, re-signed → `R22 (i) INV-212 has a single
+  defect`.
+- (r21) §7.4.1 replay handling back to "is not the `relay_id`" → `Routing cycle
+  anti-regression`.
+- (r22) `relay_id` description back to "distinct from attestation_id" → `Routing cycle
+  anti-regression`.
+
+**Regression.** The campaigns of the earlier cycles ran on the same candidate and
+detected every mutation: State 39, maintenance 21, cycle F 18, main reconciliation 10,
+port 23, coverage SC4 23.
+
+**Counts.** Vectors 967 → 970 (3 new, none changed); runtime-only 209 → 211; crypto
+blocks 165 → 168 (156 signatures verified, 9 negatives, 3 canonical only); consistency
+checks 149 → 150; harness checks 854 → 873; RTM 2055 → 2057 rows (MUST + MUST_NOT
+1256 → 1258; with REQUIRED 1454 → 1456); findings register 123 rows (open 7 → 5, closed
+118).

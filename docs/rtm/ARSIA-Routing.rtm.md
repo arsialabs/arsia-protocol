@@ -138,6 +138,7 @@
 | ROUTE-§2.3.3-03 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST return a recipient DPoP nonce challenge to the sender as a service_unavailable relay error with reason recipient_dpop_nonce, dpop_nonce and dpop_nonce_htu | arsia-message | ITV-690, INV-108, INV-109, INV-110 | schema-ref:arsia-message; struct:ITV-690, INV-108, INV-109, INV-110; untested(structural-only) |
 | ROUTE-§2.3.3-04 | 2.3.3 | MUST | external | behavioural_positive | Broker MUST copy the recipient's DPoP-Nonce value unmodified into dpop_nonce | arsia-message | ITV-690 | schema-ref:arsia-message; struct:ITV-690; untested(structural-only) |
 | ROUTE-§2.3.3-05 | 2.3.3 | MUST_NOT | external | behavioural_negative | Broker MUST NOT present a recipient's nonce in its own DPoP-Nonce response header | — | — | check:`R20 (j) 2 the broker does not present the recipient's nonce as its own DPoP-Nonce`; out-of-repo(external-party) |
+| ROUTE-§2.3.3-06 | 2.3.3 | MUST_NOT | sdk | behavioural_negative | A consumer MUST NOT assume that relay_id and attestation_id are equal: they are distinct identifiers with no required equality, inequality or mapping | — | — | out-of-repo(external-party) |
 | ROUTE-§2.3.4-01 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST forward the message to recipient within 10 seconds of receipt | arsia-audit-record | RTV-01 | schema-ref:arsia-audit-record; struct:RTV-01; crypto:RTV-01 |
 | ROUTE-§2.3.4-02 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST respect the message's expires_at field during relay | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | ROUTE-§2.3.4-03 | 2.3.4 | MUST | external | behavioural_positive | Broker MUST abandon relay and return service_unavailable if expires_at minus 5 seconds is exceeded | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
@@ -276,7 +277,7 @@
 | ROUTE-§7.4-19 | 7.4 | MUST | external | structural | attestation_id, forwarded_at and relay_latency_ms MUST be absent when the broker did not initiate forwarding | arsia-audit-record | ITV-508, ITV-688, ITV-689 | schema-ref:arsia-audit-record; struct:ITV-508, ITV-688, ITV-689 |
 | ROUTE-§7.4-20 | 7.4 | MUST | external | behavioural_positive | forwarding_result MUST be success (ARSIA envelope or HTTP 202 relayed), timeout (Rule 9 refusal or §2.3.4 abandonment) or failure (every other case, before or after forwarding) | arsia-audit-record | ITV-43, ITV-146, ITV-147, ITV-508, ITV-688, ITV-689, ITV-691, INV-101 | schema-ref:arsia-audit-record; struct:ITV-43, ITV-146, ITV-147, ITV-508, ITV-688, ITV-689, ITV-691, INV-101; untested(structural-only) |
 | ROUTE-§7.4-21 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify the relay attestation signature against the broker's JWKS; the kid must belong to broker_id | arsia-relay-attestation | ITV-569, INV-124, INV-125 | schema-ref:arsia-relay-attestation; struct:ITV-569, INV-124, INV-125; crypto:ITV-569, INV-124, INV-125; exec:R22:ITV-569, INV-124, INV-125 |
-| ROUTE-§7.4-22 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify that the broker is an authorised Compliance Broker for the declared zone (jurisdiction satisfies the zone; declares arsiaprotocol.broker.relay) | arsia-relay-attestation | INV-121, INV-122 | schema-ref:arsia-relay-attestation; struct:INV-121, INV-122; crypto:INV-121, INV-122; exec:R22:INV-121, INV-122 |
+| ROUTE-§7.4-22 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify that the attestation's residency_zone equals, as a string, the message's compliance.data_residency (no normalization, expansion or containment), and that the broker is an authorised Compliance Broker for that zone (jurisdiction satisfies the zone; declares arsiaprotocol.broker.relay) | arsia-relay-attestation | ITV-569, ITV-724, INV-121, INV-122, INV-211, INV-212 | schema-ref:arsia-relay-attestation; struct:ITV-569, ITV-724, INV-121, INV-122, INV-211, INV-212; crypto:ITV-569, ITV-724, INV-121, INV-122, INV-211, INV-212; exec:R22:ITV-569, ITV-724, INV-121, INV-122, INV-211, INV-212 |
 | ROUTE-§7.4-23 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify envelope_hash against the received complete signed envelope and authorization_token_hash against the envelope's authorization.token_hash and the presented token | arsia-relay-attestation | ITV-569, INV-115, INV-116, INV-117 | schema-ref:arsia-relay-attestation; struct:ITV-569, INV-115, INV-116, INV-117; crypto:ITV-569, INV-115, INV-116, INV-117; exec:R22:ITV-569, INV-115, INV-116, INV-117 |
 | ROUTE-§7.4-24 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST verify message_id, sender and recipient against the envelope and reject attestations outside [issued_at, valid_until] with the applicable clock skew | arsia-relay-attestation | INV-118, INV-119, INV-120 | schema-ref:arsia-relay-attestation; struct:INV-118, INV-119, INV-120; crypto:INV-118, INV-119, INV-120; exec:R22:INV-118, INV-119, INV-120 |
 | ROUTE-§7.4-25 | 7.4 | MUST | sdk | behavioural_negative | Recipient MUST treat an attestation_id repeated for a different envelope_hash as invalid (a repetition with the same envelope_hash is not rejected by this rule) | arsia-relay-attestation | INV-123, ITV-693 | schema-ref:arsia-relay-attestation; struct:INV-123, ITV-693; crypto:INV-123, ITV-693; exec:R22:INV-123, ITV-693 |
@@ -284,6 +285,7 @@
 | ROUTE-§7.4-27 | 7.4 | MUST | sdk | behavioural_negative | When compliance.data_residency is set, a message arriving without the ARSIA-Relay-Attestation header MUST be rejected with service_unavailable and details data_residency_violation and required_zone (step 1); a present header, even with an empty value, is processed by steps 2-5 | — | ITV-570, ITV-712, INV-172 | struct:ITV-570, ITV-712, INV-172; exec:R22:ITV-570, ITV-712, INV-172 |
 | ROUTE-§7.4-28 | 7.4 | MUST | sdk | behavioural_negative | The attestation header value MUST be non-empty base64url without padding (base64url alphabet, no '=', a length that decodes to whole octets); the decoded octets MUST pass ARSIA-Core.md §5.2 steps 2-4 and the object MUST validate against the attestation schema (step 2) | arsia-relay-attestation | ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177 | schema-ref:arsia-relay-attestation; struct:ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177; exec:R22:ITV-711, INV-172, INV-173, INV-174, INV-175, INV-176, INV-177 |
 | ROUTE-§7.4-29 | 7.4 | MUST | sdk | behavioural_negative | A failure of the ARSIA-Core.md §5.2 steps 2-4 checks on the decoded attestation is a step 2 failure, rejected with unauthorized, not with invalid_request | — | INV-176 | struct:INV-176; exec:R22:INV-176 |
+| ROUTE-§7.4-30 | 7.4 | MUST | external | behavioural_positive | Broker MUST set the attestation's residency_zone to the value of compliance.data_residency of the message it forwards, unchanged | arsia-relay-attestation | ITV-569, ITV-724 | schema-ref:arsia-relay-attestation; struct:ITV-569, ITV-724; crypto:ITV-569, ITV-724; exec:R22:ITV-569, ITV-724 |
 | ROUTE-§8-01 | 8 | MUST | external | procedural | Conformant implementations MUST pass all routing conformance tests at the applicable level | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
 | ROUTE-§8-02 | 8 | MUST | external | procedural | Expiration conformance tests MUST use an expires_at more than 300 seconds in the past to guarantee rejection | — | ITV-518 | struct:ITV-518; exec:R16:ITV-518 |
 | ROUTE-§8-03 | 8 | MUST | external | procedural | Conformance test framework MUST synchronise clocks between agents for timing-sensitive tests | — | — | out-of-repo(transport) |
@@ -298,23 +300,23 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 283 |
-| Schema ≠ — | 119 |
-| Vector ≠ — | 94 |
-| Both ≠ — | 62 |
-| Both = — (gaps) | 132 |
+| Total requirements | 285 |
+| Schema ≠ — | 120 |
+| Vector ≠ — | 95 |
+| Both ≠ — | 63 |
+| Both = — (gaps) | 133 |
 
 ### Per-section breakdown
 
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 51 | 21 | 17 | 9 | 22 |
-| 2 | 86 | 22 | 8 | 7 | 63 |
+| 2 | 87 | 22 | 8 | 7 | 64 |
 | 3 | 6 | 2 | 0 | 0 | 4 |
 | 4 | 9 | 4 | 3 | 1 | 3 |
 | 5 | 24 | 11 | 4 | 2 | 11 |
 | 6 | 16 | 6 | 2 | 0 | 8 |
-| 7 | 88 | 53 | 59 | 43 | 19 |
+| 7 | 89 | 54 | 60 | 44 | 19 |
 | 8 | 3 | 0 | 1 | 0 | 2 |
 
 ## Draft-02 Delta (normative changes traced)
