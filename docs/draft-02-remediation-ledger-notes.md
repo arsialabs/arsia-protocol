@@ -62,7 +62,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Assets §6.2.3 promise incident classification fields in the `ict_incident`
   record, but no field is defined in prose or schema. It is an explicit exception
   of the A-59 guard.
-  Registered as A-112 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-112 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the Assets/audit cycle (A-112 closed, [§33][ev33]): the record mirrors the incident event's `payload.data`; the exception is removed.
 - **`jwks_fetched_at` (C3a observation):** State §7.1 makes it REQUIRED for any
   signed compliance-relevant message; the schema cannot express that condition
   and leaves it optional. It is an explicit exception of the A-59 guard and is
@@ -90,6 +90,9 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   is confirmed (A-75); whether the audit content of plain `asset_transfer` records is
   defined is not demonstrated. Not registered as a finding; evaluated in the
   Assets/audit cycle.
+  Resolved in the Assets/audit cycle: registered and closed as A-121 ([§33][ev33]);
+  `payment_reference` is REQUIRED on every `asset_transfer` record. The undefined
+  payload type of eight fixtures found on the way is registered as A-122 (open).
 - **`pii_special_categories` in `state_set` records (C3a observation):** it is
   required by the schema and the §7.1 table, but the originating operation
   prose (State §3.1.2 table, §8.3 rule 3) does not list it; §2.1.11 concerns
@@ -132,7 +135,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Reversal records (C3b, A-75):** Assets §3.3.2 requires the reversal record to
   reference the original `audit_id` and `payment_reference`, but no schema
   discriminator identifies reversal records; adding one is a design choice.
-  Registered as A-113 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)).
+  Registered as A-113 (post-merge triage: U; Issue [#2](https://github.com/arsialabs/arsia-protocol/issues/2)). Resolved in the Assets/audit cycle (A-113 closed, [§33][ev33]): the compound condition `event_type` `asset_transfer` and `payload_type` `arsiaprotocol.assets/transfer-reversal` identifies the record; `sub_type` stays reserved to escrow.
 - **Routing §2.3.3 (C3b, A-16):** "recipient error" among the cannot-forward causes
   is read as a failure to obtain a recipient envelope, per the A-16 disposition.
 - **Stale counts outside scope (C3b):** CLAUDE.md still cites 1903 / 1109 RTM rows;
@@ -706,10 +709,12 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Stored zone against a later message (observed in the State cycle, not decided):** State §8.3 rule 1 validates a `payload.args.data_residency` present in a SET. It defines no specific check of an entry's stored zone against the residency restriction of a later message that carries no such argument (an entry in `FR` updated under a message restricted to `DE`, without args). The absence of that check authorizes nothing: the restrictions that already apply to the message (Core §4.3.6.2) and to the entry (State §4.2) remain in force. Whether a specific check and its diagnostic are wanted is open.
 - **State cycle, retention cost (declared):** an update does not restart the retention period of its generation; a version written late in the period is retained only for the remainder of it (State §2.1.8). A period of its own for each version would be the per-version model, not adopted.
 - **Routing cycle (for consumers):** a recipient now rejects with `unauthorized`, at step 3, a relay attestation whose `residency_zone` is not equal, as a string, to the message's `compliance.data_residency`; a broker sets the field to that value (Routing §7.4.1). `relay_id` and `attestation_id` are distinct identifiers and a consumer does not assume they are equal (Routing §2.3.3). 3 new vectors (ITV-724, INV-211, INV-212), none changed. Published counts: 970 vectors (495 schema-valid, 245 expected-invalid, 211 runtime-only, 19 raw), 54 keypairs, 150 consistency checks, RTM 2057 rows (1258 MUST + MUST_NOT; 1456 with REQUIRED), updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md, CHANGELOG.md and test-vectors/README.md.
+- **Assets/audit cycle (for consumers):** every `asset_transfer` audit record now requires `payment_reference`; a reversal record (`payload_type` `arsiaprotocol.assets/transfer-reversal`) requires the original transfer's `payment_reference` and `original_audit_id`, while the reversal receipt keeps its new reference; an `ict_incident` record requires the incident event's six required `payload.data` fields with the same values and carries `resolved_at` exactly as the event does (State §7.1; Assets §3.3.2, §6.2.3). ITV-96 and ITV-102 changed; R23 is new.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
 [ev24]: draft-02-remediation-ledger-evidence.md#24-coverage-sc2-closure-evidence
 [ev31]: draft-02-remediation-ledger-evidence.md#31-state-cycle-closure-evidence
 [ev32]: draft-02-remediation-ledger-evidence.md#32-routing-cycle-closure-evidence
+[ev33]: draft-02-remediation-ledger-evidence.md#33-assetsaudit-cycle-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

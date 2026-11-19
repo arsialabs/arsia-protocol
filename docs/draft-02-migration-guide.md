@@ -133,6 +133,20 @@ catalog edition via the new discovery field `iso4217_edition`.
   (`arsiaprotocol.ict/incident`) and fires on incident-candidate criteria, not on
   any single provider timeout.
 - MiFID retention constant is uniformly 1827 days (was 1825 in three documents).
+- **Asset audit records (Assets §3.2.1, §3.3.2; State §7.1).** Every `asset_transfer`
+  record carries `payment_reference`: a plain transfer's own reference, the escrow
+  transfer's reference, or, on a reversal record, the original transfer's reference.
+  A reversal record is the `asset_transfer` record whose `payload_type` is
+  `arsiaprotocol.assets/transfer-reversal`; it also carries `original_audit_id`, the
+  `record_id` of the original transfer's record. The reversal receipt keeps its new
+  reference (`…-REV-1`), so its `payment_reference` differs from that of the record
+  its `audit_id` references. A query by `payment_reference` returns the records of the
+  chain, not a single record. `sub_type` stays reserved to escrow.
+- **Incident audit records (Assets §6.2.3; State §7.1).** An `ict_incident` record
+  carries `incident_type`, `affected_service`, `started_at`, `estimated_impact`,
+  `severity` and `original_payment_reference`, with the values, types and limits of
+  the event's `payload.data`, and `resolved_at` exactly as in the event (absent, `null`
+  or a timestamp).
 
 ## 8. Compliance profiles
 

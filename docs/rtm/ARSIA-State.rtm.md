@@ -354,6 +354,9 @@
 | STATE-§7.1-27 | 7.1 | MUST | sdk | structural | review_pending, review_overdue, review_escalation and review_decision records MUST carry their extension fields (State §7.1 table) | arsia-audit-record | ITV-632, ITV-633, ITV-634, ITV-635, ITV-636, ITV-637, INV-72, INV-73, INV-74, INV-75 | schema-ref:arsia-audit-record; struct:ITV-632, ITV-633, ITV-634, ITV-635, ITV-636, ITV-637, INV-72, INV-73, INV-74, INV-75 |
 | STATE-§7.1-28 | 7.1 | MUST | sdk | structural | A decision_rejected record carries correlation_id and root_request_id as received and rejection_code; rejection_code appears only on decision_rejected records | arsia-audit-record | ITV-698, INV-143, INV-144 | schema-ref:arsia-audit-record; struct:ITV-698, INV-143, INV-144 |
 | STATE-§7.1-29 | 7.1 | MUST | sdk | structural | verified_kid and jwks_fetched_at are present together; verified_kid only for a successful verification; jwks_fetched_at is the instant of the fetch that supplied the key | arsia-audit-record | ITV-697, INV-141, INV-142 | schema-ref:arsia-audit-record; struct:ITV-697, INV-141, INV-142 |
+| STATE-§7.1-30 | 7.1 | REQUIRED | sdk | structural | payment_reference is REQUIRED on every asset_transfer record: the reference of the transfer the record belongs to (a plain transfer's own, the escrow transfer's, the original's on a reversal) | arsia-audit-record | ITV-96, INV-213 | schema-ref:arsia-audit-record; struct:ITV-96, INV-213 |
+| STATE-§7.1-31 | 7.1 | REQUIRED | sdk | structural | A reversal record (event_type asset_transfer and payload_type arsiaprotocol.assets/transfer-reversal) requires payment_reference and original_audit_id; the payload type alone does not (an error record of a reversal request carries neither) | arsia-audit-record | ITV-725, ITV-728, INV-214, INV-215 | schema-ref:arsia-audit-record; struct:ITV-725, ITV-728, INV-214, INV-215; check:`A-59 guard self-test: the reversal's compound condition is read whole and matched predicate by predicate; the generic asset_transfer row coexists with it` |
+| STATE-§7.1-32 | 7.1 | REQUIRED | sdk | structural | ict_incident records require incident_type, affected_service, started_at, estimated_impact, severity and original_payment_reference with the incident payload's types, enums, formats and limits; resolved_at is OPTIONAL (absent, null or a timestamp) | arsia-audit-record | ITV-102, ITV-726, ITV-727, INV-216, INV-217, INV-218, INV-219, INV-220, INV-221, INV-222, INV-223, INV-224, INV-225 | schema-ref:arsia-audit-record; struct:ITV-102, ITV-726, ITV-727, INV-216, INV-217, INV-218, INV-219, INV-220, INV-221, INV-222, INV-223, INV-224, INV-225; check:`Assets/audit cycle anti-regression: the ict_incident record mirrors the incident payload, the reversal and asset_transfer rules are stated, and the replaced texts are absent` |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 | struct:STV-07; crypto:STV-07 |
 | STATE-§7.2-02 | 7.2 | MUST_NOT | deployment | behavioural_negative | Once an ArsiaAuditRecord is written, it MUST NOT be modified. | — | — | out-of-repo(infrastructure) |
 | STATE-§7.2-03 | 7.2 | MUST | sdk | procedural | New audit records MUST be created for status changes; existing records MUST NOT be updated | — | STV-07 | struct:STV-07; crypto:STV-07 |
@@ -455,10 +458,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 442 |
-| Schema ≠ — | 177 |
-| Vector ≠ — | 239 |
-| Both ≠ — | 123 |
+| Total requirements | 445 |
+| Schema ≠ — | 180 |
+| Vector ≠ — | 242 |
+| Both ≠ — | 126 |
 | Both = — (gaps) | 149 |
 
 ### Per-section breakdown
@@ -471,7 +474,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 33 | 8 | 12 | 6 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
-| 7 | 64 | 41 | 28 | 24 | 19 |
+| 7 | 67 | 44 | 31 | 27 | 19 |
 | 8 | 20 | 9 | 18 | 8 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |

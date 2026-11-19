@@ -2144,3 +2144,157 @@ blocks 165 → 168 (156 signatures verified, 9 negatives, 3 canonical only); con
 checks 149 → 150; harness checks 854 → 873; RTM 2055 → 2057 rows (MUST + MUST_NOT
 1256 → 1258; with REQUIRED 1454 → 1456); findings register 123 rows (open 7 → 5, closed
 118).
+
+## 33. Assets/audit cycle closure evidence
+
+Baseline `97bf253`. Normative cycle for the two Assets/audit items of Issue #2 (B5, B6)
+and post-merge triage item 14, decided by the owner on 2026-11-18 (Assets/audit cycle
+addendum). The owner's two reviews of the plan added, before implementation: the
+explicit reversal exception in Assets §3.2.1; the A-59 adjustment that lets the generic
+`asset_transfer` row and the compound reversal row coexist, with a positive self-test
+case; the permanent negative controls of R23 and the explicit source of ITV-727; a
+coherent chronology for the reversal chain; and a MUST in Assets §6.2.3 for the RTM to
+trace. All are part of this cycle. The owner's review of the implementation added the
+record-type checks of R23 and their controls (below).
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-113 | Assets §3.3.2, §3.2.1, §5.1.3; State §7.1 (compound row, paragraph after the table, `payload_type`); `arsia-audit-record.schema.json` compound conditional and the `payment_reference` and `original_audit_id` descriptions | ITV-725 (reversal), ITV-728 (error record of a reversal), INV-214, INV-215; chain ITV-96 → ITV-725 → ITV-377 | validator; R23 (a), (c), (d); A-59 and its self-test | (a2)–(a4), (a8)–(a10), (a12), (a13), (a15), (a17), (a18), (a25), (a27), (a28), (a30); text (a19)–(a21) |
+| A-121 | State §7.1 (`event_type` = `asset_transfer` row and paragraph); Assets §3.2.1; schema conditional | ITV-96 (changed), INV-213 | validator; A-59 | (a1) |
+| A-112 | Assets §6.2.3 (MUST), §6.2.2 (`resolved_at` string or null); State §7.1 (row, paragraph, exception sentence removed); seven schema properties as `$ref` to the incident payload; `ict_incident` conditional; A-59 exception removed | ITV-102 (changed), ITV-726, ITV-727, INV-216..225 | validator; R23 (b), (d); cycle check | (a5)–(a7), (a11), (a14), (a16), (a26), (a29); text (a22)–(a24) |
+| A-122 | registered, not corrected | — | — | — |
+
+**A-113 and A-121, asset_transfer and reversal records.**
+- Every `asset_transfer` record carries `payment_reference`, the reference of the
+  transfer it belongs to: a plain transfer's own, the escrow transfer's, and on a
+  reversal record the original transfer's. A query by it can return several records of
+  one chain; the receipt's `audit_id` identifies a single record.
+- A reversal record is identified by the compound condition `event_type`
+  `asset_transfer` and `payload_type` `arsiaprotocol.assets/transfer-reversal`; it also
+  carries `original_audit_id`, the `record_id` of the original record, which the
+  original receipt's `audit_id` references. `sub_type` stays reserved to escrow. The
+  reversal receipt keeps its new reference, which differs from the `payment_reference`
+  of the record its `audit_id` references; Assets §3.2.1 states that exception
+  explicitly so that its generic sentence does not read as the receipt's reference.
+- The condition is compound in both directions: a record reduced to `event_type` would
+  impose `original_audit_id` on plain and escrow records (ITV-96 and ITV-88 fail, (a2)),
+  and one reduced to `payload_type` would impose the references on the error record of
+  a reversal request (ITV-728 fails, (a25)).
+- A-59 guard: condition values are read whole (`` `[^`]+` ``), so the payload type with
+  `.`, `/` and `-` is no longer reduced to `event_type`; the generic row accepts a
+  compound condition's fields already REQUIRED on it (`required | optional`), which
+  the owner had reproduced as the interaction that would otherwise fail; a condition on
+  `payload_type` needs a table row of its own. The self-test runs on the real table and
+  schema, where both rows coexist without a problem, and requires four defects to be
+  reported: the compound row reduced to the generic event, the schema condition without
+  its `payload_type` predicate, the payload type truncated in the table, and the compound
+  condition without a row.
+- Chain ITV-96 → ITV-725 → ITV-377 (R23 (a)): the original is an `asset_transfer`
+  record and the reversal an `asset_transfer` record of a transfer-reversal; the
+  reversal's `payment_reference` is the
+  original's, its `original_audit_id` the original's `record_id`; the receipt's
+  `audit_id` is the reversal's `record_id`, its `payment_reference` (`…-REV-1`) differs,
+  and its `correlation_id` is the reversal's `message_id`; original `processed_at` <
+  reversal `processed_at` ≤ receipt `ts`. ITV-377 is unchanged; ITV-96 moves to
+  2026-04-14T14:00:00.000Z and ITV-725 is processed at the receipt's `settled_at`,
+  2026-04-15T11:12:30.456Z; `retained_until` is computed by the harness calendar
+  (2031-04-15T14:00:00.000Z and 2031-04-16T11:12:30.456Z). The scenario verifies the
+  audit links and their chronology, not the reversal window, which depends on the
+  original receipt's `settled_at`.
+- R23 (c): the `obligation_resolution` and retention fields of ITV-96 and ITV-725 are
+  those `resolve_obligations` yields from their source `compliance` at their
+  `processed_at`. ITV-96's source is the minimal `{"profile": "MIFID-II"}`, which
+  reproduces its resolution in full; it is the fixture's source, not the recovery of a
+  historical message. ITV-725's source is the compliance object of the Assets §3.3.3
+  example (`MIFID-II`, `audit_required: true`, `retention: "P1827D"`), whose `id` is
+  ITV-377's `correlation_id`: `declared_retention` `P1827D`, `retention_source`
+  `per-message`.
+- ITV-96 also moves to `payload_type` `arsiaprotocol.assets/transfer-request` and
+  `to_agent` `agent:acme.transfer-processor`, the log of the reversal.
+
+**A-112, ict_incident records.**
+- The record carries `incident_type`, `affected_service`, `started_at`,
+  `estimated_impact`, `severity` and `original_payment_reference` (REQUIRED) and
+  `resolved_at` (OPTIONAL: absent, `null` or a timestamp). The seven audit-record
+  properties are `$ref`s to the fields of `arsia-dora-incident.schema.json`, so types,
+  enums, formats and limits are the payload's by construction; the cycle check requires
+  each `$ref` and the equality of the two `required` sets.
+- Assets §6.2.3 states the obligation as a MUST: the record carries the fields of the
+  event's `payload.data` with the same values, and `resolved_at` exactly when the event
+  has it. State §7.1 describes the record without a keyword of its own. Assets §6.2.2
+  types `resolved_at` as string or null, as the schema and the §6.2.5 example allowed.
+- R23 (b) requires `event_type` `ict_incident` and compares each record with an
+  independent source, never rebuilt from the record: ITV-102 with ITV-139 (timestamp), ITV-726 with ITV-41 (`null`), ITV-727 with
+  an explicit copy of ITV-41's payload without `resolved_at`, held in its
+  `test_metadata`. `resolved_at` is compared by presence and by value, and `payload_hash`
+  is the SHA-256 of the source's RFC 8785 payload.
+- ITV-102 moves from `arsiaprotocol.assets/dora-incident`, which no specification
+  defines, to `arsiaprotocol.ict/incident`, with ITV-139's fields and payload hash.
+
+**R23 record types.** The schema accepts an incident record or a plain transfer record
+whose `event_type` is changed to `error`: no rule forbids incident or transfer fields on
+other record types, and the cycle does not add one. The owner reproduced that R23 then
+still passed, because it did not check the type of the incident record or of the
+original record. R23 now requires `event_type` `ict_incident` on each incident record
+and `asset_transfer` on the original record of the chain; the reversal's type was
+already checked.
+
+**R23 negative controls (permanent, synthetic, no new IDs).** Each must be reported:
+each of the original record, the reversal record and an incident record with only its
+`event_type` changed to `error` (a diagnostic on `event_type`); a record with `resolved_at: null` against an event without the member; a record without
+the member against an event with `null`; a reversal whose `original_audit_id` is another
+record's (ITV-102's); a reversal processed before the original; and, with the source
+intact, a record whose `severity` is another allowed value and whose `payload_hash` is
+recomputed for the payload that record implies. The first two detect a comparison by
+value only (`.get()` equates absent/absent and `null`/`null`); the last one discriminates
+the source: a comparison with the independent source rejects it, and one that rebuilds
+the source from the record accepts it.
+
+**A-122 (registered, open).** Seven escrow records (ITV-88..92, ITV-586, INV-47) and
+the `request` record ITV-95 carry `payload_type` `arsiaprotocol.assets/transfer`, which
+no specification defines. None changes result under this cycle's rules. Correcting the
+escrow fixtures needs a decision on the message that originates each transition (a
+timeout return has none); ITV-95's `hash_chain` covers the value. It goes to the
+schema-alignment cycle.
+
+**Mutations (candidate copy identical to the final tree; 30 of 30 detected).**
+- (a1) the `asset_transfer` rule removed → INV-213, A-59.
+- (a2) the reversal rule reduced to `event_type` → ITV-96 (and the escrow records), A-59.
+- (a25) the reversal rule reduced to `payload_type` → ITV-728, A-59.
+- (a3) the rule's payload type truncated → INV-214, A-59.
+- (a4) the reversal rule without `original_audit_id` → INV-214, A-59.
+- (a5) the `ict_incident` rule without `severity` → INV-220, A-59.
+- (a6) `severity` replaced by `{"type": "string"}` → INV-222, the cycle check (mirror).
+- (a7) the `ict_incident` exception reintroduced → A-59.
+- (a8) the generic-row check back to `req <= optional` → A-59 and its self-test (real case).
+- (a9) the parser back to `[a-z_]+` → A-59 and its self-test.
+- (a10) no row required for a `payload_type` condition → self-test (d).
+- (a11) R23 `resolved_at` by value only → both presence controls.
+- (a12) R23 without the `original_audit_id` comparison → the other-record control.
+- (a13) R23 without the chronology check → the order control.
+- (a14) R23 rebuilding the incident source from the record → the independent-source
+  control.
+- (a15) ITV-725 with another record's `original_audit_id` → R23 (a).
+- (a16) ITV-726 with a `severity` different from its event → R23 (b) ITV-726.
+- (a17) ITV-96 back to 2026-04-27 → R23 (a) (chronology), R23 (c) ITV-96.
+- (a18) ITV-725 with ITV-96's retention result → R23 (c) ITV-725.
+- (a19)–(a24) Assets §3.2.1, §3.3.2, §5.1.3, §6.2.2 and §6.2.3 texts and the State §7.1
+  exception sentence reverted → the cycle check.
+- (a26) R23 without the `ict_incident` type check → the incident-type control.
+- (a27) R23 without the original record's type check → the original-type control.
+- (a28) R23 without the reversal record's type check → the reversal-type control.
+- (a29) ITV-726 with `event_type` `error`, accepted by the schema → R23 (b) ITV-726.
+- (a30) ITV-96 with `event_type` `error`, accepted by the schema → R23 (a).
+
+**Regression.** The campaigns of the earlier cycles ran on the same candidate and
+detected every mutation: Routing 22, State 39, maintenance 21, cycle F 18, main
+reconciliation 10, port 23, coverage SC4 23. The maintenance campaign checks that the
+retention guard prints its record and control counts; its expected text was "113
+records, 19 controls" and is now "130 records, 19 controls", because this cycle adds 17
+audit records. The 19 controls are unchanged.
+
+**Counts.** Vectors 970 → 987 (17 new: ITV-725..728, INV-213..225; 2 changed: ITV-96,
+ITV-102); runtime-only 211 (unchanged); crypto blocks 168 (unchanged); consistency checks
+150 → 152; harness checks 873 → 888 (R23 new); RTM 2057 → 2062 rows (MUST + MUST_NOT
+1258 → 1260; with REQUIRED 1456 → 1461); findings register 125 rows (open 5 → 4, closed
+121).

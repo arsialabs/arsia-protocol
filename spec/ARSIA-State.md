@@ -3114,7 +3114,9 @@ REQUIRED unless marked OPTIONAL.
 
 - **Type:** string
 - **REQUIRED.**
-- **Description:** The `payload.type` field from the originating message.
+- **Description:** The `payload.type` field from the originating message. On an
+  `asset_transfer` record it identifies the operation the record documents (see the
+  extension table).
 
 #### `payload_hash`
 
@@ -3466,8 +3468,7 @@ missing its event type's extensions is invalid — and are machine-enforced by
 definition. The table below lists, per record type, the extension fields and the
 prose that originates them. Its REQUIRED column is kept exactly equal to the
 schema's conditional requirements, and the repository consistency checker verifies
-that equality; the two rows marked as exceptions are the only entries not enforced
-by the schema.
+that equality; every row is enforced by the schema.
 
 | Record type | REQUIRED extension fields | Conditional / OPTIONAL extension fields | Originating prose |
 |-------------|---------------------------|-----------------------------------------|-------------------|
@@ -3481,6 +3482,8 @@ by the schema.
 | `event_type` = `state_purge` | `key`, `owner_agent_id`, `initiator_agent_id`, `generation`, `purged_at`, `pii_classification`, `within_retention`, `entry_retained_until` | `reason`; `retention_override` (REQUIRED when `within_retention` is `true`, §3.2.2) | §3.2.2 |
 | `event_type` = `state_grant` | `grant_id`, `key_pattern`, `grantor_agent_id`, `grantee_agent_id`, `access_level`, `valid_until`, `timestamp` | — | §3.3.1 |
 | `event_type` = `state_revoke` | `grant_id`, `grantor_agent_id`, `grantee_agent_id`, `timestamp` | — | §3.3.2 |
+| `event_type` = `asset_transfer` | `payment_reference` | `original_audit_id` (escrow transitions after creation; REQUIRED for a reversal, row below) | ARSIA-Assets.md §3.2.1, §3.3.2, §4.3 |
+| `event_type` = `asset_transfer` and `payload_type` = `arsiaprotocol.assets/transfer-reversal` | `payment_reference`, `original_audit_id` | — | ARSIA-Assets.md §3.3.2 |
 | `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at` | — | ARSIA-Assets.md §4.3.1 |
 | `sub_type` = `escrow_released` | `payment_reference`, `released_by`, `release_trigger`, `original_audit_id` | — | ARSIA-Assets.md §4.3.2 |
 | `sub_type` = `escrow_returned` | `payment_reference`, `timeout_at`, `original_audit_id` | exactly as applicable: `actual_timeout` (timeout) or `cancellation_reason` (cancellation) | ARSIA-Assets.md §4.3.3, §4.2.4 |
@@ -3498,7 +3501,7 @@ by the schema.
 | `intent` = `request` and `event_type` ∈ `request`, `state_set`, `state_delete`, `state_purge`, `state_grant`, `state_revoke`, `asset_transfer`, `rollback` (covered record) | `obligation_resolution` | — | ARSIA-Core.md §4.3.10.7 |
 | `rejection_cause` = `compliance` | `obligation_resolution`, `correlation_id` (and `event_type` = `error`) | — | ARSIA-Core.md §4.3.10.6 |
 | `obligation_resolution`.`outcome` = `rejected` | `rejection_cause` | — | §7.1 (`rejection_cause`) |
-| `event_type` = `ict_incident` (exception) | incident classification fields per ARSIA-Assets.md §6.2 — not yet defined as schema extension fields | — | ARSIA-Assets.md §6.2.3 |
+| `event_type` = `ict_incident` | `incident_type`, `affected_service`, `started_at`, `estimated_impact`, `severity`, `original_payment_reference` | `resolved_at` (as in the event: absent, `null` or a timestamp) | ARSIA-Assets.md §6.2.2, §6.2.3 |
 | `verified_kid` present | `jwks_fetched_at` | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
 | `jwks_fetched_at` present | `verified_kid` | — | ARSIA-Core.md §5.2 (stale-key behaviour) |
 | `rejection_code` present | — (and `event_type` = `decision_rejected`) | — | §7.1 (`rejection_code`) |
@@ -3508,8 +3511,24 @@ a record must carry them depends on whether the log owner verified the audited
 message's signature, which the record alone does not state: that obligation is
 ARSIA-Core.md §5.2's, checked at runtime.
 
-`asset_transfer` records carry their escrow transition in `sub_type`; `amount` is a
-canonical decimal string. `message_id`, `from_agent` and `to_agent` are base fields
+`asset_transfer` records carry their escrow transition in `sub_type`, which is reserved
+to escrow; `amount` is a canonical decimal string. On every `asset_transfer` record,
+`payment_reference` is the reference of the transfer the record belongs to: a plain
+transfer's own reference, the escrow transfer's reference on escrow records, and the
+original transfer's reference on a reversal record. A record whose `payload_type` is
+`"arsiaprotocol.assets/transfer-reversal"` is the reversal record of ARSIA-Assets.md
+§3.3.2. `original_audit_id` is the `record_id` of the record it links to: the escrow
+creation record (ARSIA-Assets.md §4.3.2–§4.3.4), or, on a reversal record, the
+original transfer's record, which the original receipt's `audit_id` references. A
+query by `payment_reference` can return several records of one chain; it does not by
+itself identify a single record, which the receipt's `audit_id` does.
+
+An `ict_incident` record carries the fields of the ICT incident candidate event's
+`payload.data` (ARSIA-Assets.md §6.2.2) with the same types, values and limits, so the
+incident can be queried without the payload. `resolved_at` is present in the record
+exactly when it is present in the event, with the same value. The fields record the
+technical classification of the candidate; whether it is a reportable DORA incident
+remains the operator's determination (ARSIA-Assets.md §6.2.4). `message_id`, `from_agent` and `to_agent` are base fields
 and are therefore not repeated in the `broker_relay` row.
 
 The lifecycle events of ARSIA-Routing.md §4.1 (`dispatch`, `dispatch_failed`,

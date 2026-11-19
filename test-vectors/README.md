@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-970 test vectors (495 schema-valid, 245 expected-invalid, 211 runtime-only, 19 raw parse vectors — validator classification) for
+987 test vectors (499 schema-valid, 258 expected-invalid, 211 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`). Signatures outside a crypto block verify with the
@@ -13,7 +13,7 @@ catalog key of their `kid` unless the vector declares a signature negative (see
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 970 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 987 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
 | [keypairs.json](keypairs.json) | 54 test keypairs: 49 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 35 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses (34 in the port, one in the main reconciliation); 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
 
 ## Vector Formats
@@ -49,15 +49,15 @@ itself stops the tools.
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 724 |
-| `INV-` | Invalid (all specs) | 212 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 728 |
+| `INV-` | Invalid (all specs) | 225 |
 | `CTV-` | Core (envelope, intents, compliance, raw parsing) | 16 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-725** / **INV-213** / **CTV-17**
+Next available ID: **ITV-729** / **INV-226** / **CTV-17**
 
 ## Runtime-Only Vectors
 
@@ -129,8 +129,13 @@ records (`evidence`: `verified_kid`, `jwks_fetched_at`). A `revocation` scenario
 gives the senders' published keys (`input.publishers`) and timed steps — `fetch`,
 `remove`, `publish`, `receive`, `verify` (a kid), `verify_message` (the vector's own
 signed message) and `event` (the vector's message as a key-revocation event, Identity
-§2.5) — and expects each step's result, including `invalidated` for an event. A
-schema-valid vector may also carry a scenario.
+§2.5) — and expects each step's result, including `invalidated` for an event. Two
+scenarios of R23 sit on schema-valid audit records: `assets_audit_chain` gives the
+`compliance` object the record's `obligation_resolution` is resolved from and, on the
+reversal record, the vectors of the original record and of the reversal receipt
+(`input.original`, `input.receipt`); `ict_incident_record` gives the incident event the
+record must mirror, as a vector ID (`input.event`) or as an explicit payload
+(`input.event_payload`). A schema-valid vector may also carry a scenario.
 
 ### Signatures outside a crypto block
 

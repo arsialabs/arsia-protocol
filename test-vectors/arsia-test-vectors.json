@@ -6111,7 +6111,7 @@
     },
     {
       "id": "ITV-96",
-      "description": "Valid audit record — asset_transfer event_type (plain, no escrow sub_type). Per Assets §3, State §7.1.",
+      "description": "Valid audit record — asset_transfer of a plain transfer (no escrow sub_type, no reversal): it carries its own payment_reference, REQUIRED on every asset_transfer record (State §7.1, Assets §3.2.1). It is the original transfer of the reversal chain ITV-96 → ITV-725 → ITV-377 (R23): processed before the reversal, in the transfer processor's log.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -6119,12 +6119,12 @@
         "message_id": "b0000090-0002-4001-8001-000000000090",
         "event_type": "asset_transfer",
         "from_agent": "agent:arsialabs.demo.escrow-manager",
-        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "to_agent": "agent:acme.transfer-processor",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
-        "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2031-04-28T14:00:00.000Z",
+        "processed_at": "2026-04-14T14:00:00.000Z",
+        "retained_until": "2031-04-15T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "human_oversight_status": "not_required",
         "compliance_profile_declared": "MIFID-II",
@@ -6221,8 +6221,8 @@
               ],
               "result": {
                 "duration": "P1827D",
-                "anchor": "2026-04-27T14:00:00.000Z",
-                "retained_until": "2031-04-28T14:00:00.000Z"
+                "anchor": "2026-04-14T14:00:00.000Z",
+                "retained_until": "2031-04-15T14:00:00.000Z"
               },
               "override": false,
               "conflict": null
@@ -6279,9 +6279,19 @@
           }
         },
         "effective_retention": "P1827D",
-        "retention_anchor": "2026-04-27T14:00:00.000Z"
+        "retention_anchor": "2026-04-14T14:00:00.000Z",
+        "payment_reference": "acme-2026-00042"
       },
-      "expected_error": null
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "assets_audit_chain",
+        "input": {
+          "compliance": {
+            "profile": "MIFID-II"
+          },
+          "compliance_note": "minimal compliance object from which the fixture's obligation_resolution is derived; it is the fixture's source, not the recovery of a historical message"
+        }
+      }
     },
     {
       "id": "ITV-97",
@@ -6713,7 +6723,7 @@
     },
     {
       "id": "ITV-102",
-      "description": "Valid audit record — ict_incident event_type — DORA incident record. Per Assets §6.2.3, State §7.1.",
+      "description": "Valid audit record — ict_incident (Assets §6.2.3, State §7.1): the record carries the fields of the incident event's payload.data with the same values; the event is ITV-139 (resolved_at a timestamp), payload_type arsiaprotocol.ict/incident and payload_hash the SHA-256 of its RFC 8785 payload (R23).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -6723,8 +6733,8 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "event",
-        "payload_type": "arsiaprotocol.assets/dora-incident",
-        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "b7adf1b220b9b9459c2542a73bc7a91bc6a139a534d2ae5c4b1c0eac57a88945",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
@@ -6734,9 +6744,22 @@
         "retention_source": "profile-minimum",
         "declared_retention": null,
         "effective_retention": "P1827D",
-        "retention_anchor": "2026-04-27T14:00:00.000Z"
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "network_failure",
+        "affected_service": "agent:arsialabs.payments.gateway",
+        "started_at": "2026-04-15T08:15:00.000Z",
+        "resolved_at": "2026-04-15T08:22:30.000Z",
+        "estimated_impact": "Transient network partition affected 2 pending transfers totaling EUR 1,200. Automatic retry succeeded after resolution.",
+        "severity": "low",
+        "original_payment_reference": "PAY-2026-04-NET-001"
       },
-      "expected_error": null
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "ict_incident_record",
+        "input": {
+          "event": "ITV-139"
+        }
+      }
     },
     {
       "id": "ITV-103",
@@ -41994,6 +42017,314 @@
       }
     },
     {
+      "id": "ITV-725",
+      "description": "Valid audit record — reversal record (Assets §3.3.2): event_type asset_transfer with payload_type arsiaprotocol.assets/transfer-reversal. payment_reference is the ORIGINAL transfer's reference (acme-2026-00042) and original_audit_id is the record_id of the original record (ITV-96). Its own record_id is the audit_id of the reversal receipt ITV-377, whose payment_reference is the new reference acme-2026-00042-REV-1: the receipt's reference differs from the record it references. The record documents the AssetTransferReversal of Assets §3.3.3; its obligation_resolution is resolved from that message's compliance at the record's processed_at (R23).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "a0000377-0000-4000-b000-000000000001",
+        "message_id": "f6a7b8c9-0123-4f01-a456-789012345678",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:acme.compliance-officer",
+        "to_agent": "agent:acme.transfer-processor",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-reversal",
+        "payload_hash": "ddbafa372a245835bea98fc2416580acfa09f3ae61b1e638990ff9d39597af76",
+        "processed_at": "2026-04-15T11:12:30.456Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": true
+              },
+              "fill": {
+                "value": true,
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": "P1827D"
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-15T11:12:30.456Z",
+                "retained_until": "2031-04-16T11:12:30.456Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "declared_retention": "P1827D",
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-15T11:12:30.456Z",
+        "retention_source": "per-message",
+        "retained_until": "2031-04-16T11:12:30.456Z",
+        "human_oversight_status": "not_required",
+        "payment_reference": "acme-2026-00042",
+        "original_audit_id": "b0000090-0001-4001-8001-000000000090"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "assets_audit_chain",
+        "input": {
+          "compliance": {
+            "profile": "MIFID-II",
+            "audit_required": true,
+            "retention": "P1827D"
+          },
+          "original": "ITV-96",
+          "receipt": "ITV-377"
+        }
+      }
+    },
+    {
+      "id": "ITV-726",
+      "description": "Valid audit record — ict_incident whose event (ITV-41) has resolved_at null: the record carries resolved_at null, as the event does (Assets §6.2.3, State §7.1; R23).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "ict_incident_record",
+        "input": {
+          "event": "ITV-41"
+        }
+      }
+    },
+    {
+      "id": "ITV-727",
+      "description": "Valid audit record — ict_incident whose event has no resolved_at member (ongoing incident): the record has no resolved_at either. The event is an explicit copy of ITV-41's payload without resolved_at, held in test_metadata (Assets §6.2.2, §6.2.3; R23).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "b0000727-0001-4001-8001-000000000727",
+        "message_id": "b0000727-0002-4001-8001-000000000727",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "8b9c6d25ef85fff2f6cac4467177cdc976f5ed639ac75b209520bbc19e62f33e",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": null,
+      "test_metadata": {
+        "scenario": "ict_incident_record",
+        "input": {
+          "event_payload": {
+            "type": "arsiaprotocol.ict/incident",
+            "version": "1.0",
+            "data": {
+              "incident_type": "provider_unavailable",
+              "affected_service": "agent:arsialabs.demo.payment-provider",
+              "started_at": "2026-04-10T14:45:00.000Z",
+              "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+              "severity": "high",
+              "original_payment_reference": "PAY-2026-04-001"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ITV-728",
+      "description": "Valid audit record — error record of an AssetTransferReversal request (payload_type arsiaprotocol.assets/transfer-reversal, event_type error) without payment_reference or original_audit_id. The reversal references are required by the compound condition event_type asset_transfer AND payload_type transfer-reversal, not by the payload type alone (State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "b0000728-0001-4001-8001-000000000728",
+        "message_id": "f6a7b8c9-0123-4f01-a456-789012345678",
+        "event_type": "error",
+        "from_agent": "agent:acme.compliance-officer",
+        "to_agent": "agent:acme.transfer-processor",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-reversal",
+        "payload_hash": "ddbafa372a245835bea98fc2416580acfa09f3ae61b1e638990ff9d39597af76",
+        "processed_at": "2026-04-15T11:12:30.456Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "declared_retention": "P1827D",
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-15T11:12:30.456Z",
+        "retention_source": "per-message",
+        "retained_until": "2031-04-16T11:12:30.456Z",
+        "human_oversight_status": "not_required",
+        "correlation_id": "f6a7b8c9-0123-4f01-a456-789012345678"
+      },
+      "expected_error": null
+    },
+    {
       "id": "INV-178",
       "description": "State §5.7: INVALID — breach notification with without notification_target, REQUIRED for both targets; it fails only the required constraint of notification_target.",
       "category": "state",
@@ -43327,6 +43658,868 @@
       },
       "skip_schema": true,
       "skip_reason": "Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1)"
+    },
+    {
+      "id": "INV-213",
+      "description": "INVALID — plain asset_transfer record (ITV-96) without payment_reference, REQUIRED on every asset_transfer record (State §7.1, Assets §3.2.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000090-0001-4001-8001-000000000090",
+        "message_id": "b0000090-0002-4001-8001-000000000090",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:acme.transfer-processor",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-14T14:00:00.000Z",
+        "retained_until": "2031-04-15T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-14T14:00:00.000Z",
+                "retained_until": "2031-04-15T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-14T14:00:00.000Z"
+      },
+      "expected_error": "payment_reference is required on asset_transfer — State §7.1"
+    },
+    {
+      "id": "INV-214",
+      "description": "INVALID — reversal record (ITV-725) without original_audit_id (Assets §3.3.2, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "a0000377-0000-4000-b000-000000000001",
+        "message_id": "f6a7b8c9-0123-4f01-a456-789012345678",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:acme.compliance-officer",
+        "to_agent": "agent:acme.transfer-processor",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-reversal",
+        "payload_hash": "ddbafa372a245835bea98fc2416580acfa09f3ae61b1e638990ff9d39597af76",
+        "processed_at": "2026-04-15T11:12:30.456Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": true
+              },
+              "fill": {
+                "value": true,
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": "P1827D"
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-15T11:12:30.456Z",
+                "retained_until": "2031-04-16T11:12:30.456Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "declared_retention": "P1827D",
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-15T11:12:30.456Z",
+        "retention_source": "per-message",
+        "retained_until": "2031-04-16T11:12:30.456Z",
+        "human_oversight_status": "not_required",
+        "payment_reference": "acme-2026-00042"
+      },
+      "expected_error": "original_audit_id is required on a reversal record — Assets §3.3.2"
+    },
+    {
+      "id": "INV-215",
+      "description": "INVALID — reversal record (ITV-725) without payment_reference (Assets §3.3.2, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "a0000377-0000-4000-b000-000000000001",
+        "message_id": "f6a7b8c9-0123-4f01-a456-789012345678",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:acme.compliance-officer",
+        "to_agent": "agent:acme.transfer-processor",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-reversal",
+        "payload_hash": "ddbafa372a245835bea98fc2416580acfa09f3ae61b1e638990ff9d39597af76",
+        "processed_at": "2026-04-15T11:12:30.456Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": true
+              },
+              "fill": {
+                "value": true,
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": true,
+                "value": "P1827D"
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "message"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-15T11:12:30.456Z",
+                "retained_until": "2031-04-16T11:12:30.456Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "declared_retention": "P1827D",
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-15T11:12:30.456Z",
+        "retention_source": "per-message",
+        "retained_until": "2031-04-16T11:12:30.456Z",
+        "human_oversight_status": "not_required",
+        "original_audit_id": "b0000090-0001-4001-8001-000000000090"
+      },
+      "expected_error": "payment_reference is required on a reversal record — Assets §3.3.2"
+    },
+    {
+      "id": "INV-216",
+      "description": "INVALID — ict_incident record (ITV-726) without incident_type, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "incident_type is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-217",
+      "description": "INVALID — ict_incident record (ITV-726) without affected_service, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "affected_service is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-218",
+      "description": "INVALID — ict_incident record (ITV-726) without started_at, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "started_at is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-219",
+      "description": "INVALID — ict_incident record (ITV-726) without estimated_impact, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "estimated_impact is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-220",
+      "description": "INVALID — ict_incident record (ITV-726) without severity, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "severity is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-221",
+      "description": "INVALID — ict_incident record (ITV-726) without original_payment_reference, REQUIRED as in the event payload (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high"
+      },
+      "expected_error": "original_payment_reference is required on ict_incident — State §7.1"
+    },
+    {
+      "id": "INV-222",
+      "description": "INVALID — ict_incident record with severity 'severe', outside the event payload's enum (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "severe",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "severity is not one of the allowed values — Assets §6.2.2"
+    },
+    {
+      "id": "INV-223",
+      "description": "INVALID — ict_incident record with started_at without milliseconds, outside the event payload's format (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "started_at does not match the RFC 3339 millisecond UTC format — Assets §6.2.2"
+    },
+    {
+      "id": "INV-224",
+      "description": "INVALID — ict_incident record with estimated_impact of 513 characters, above the event payload's 512 limit (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "severity": "high",
+        "original_payment_reference": "PAY-2026-04-001"
+      },
+      "expected_error": "estimated_impact is too long — Assets §6.2.2"
+    },
+    {
+      "id": "INV-225",
+      "description": "INVALID — ict_incident record with original_payment_reference of 129 characters, above the event payload's 128 limit (State §7.1, Assets §6.2.2).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "b0000726-0001-4001-8001-000000000726",
+        "message_id": "b0000726-0002-4001-8001-000000000726",
+        "event_type": "ict_incident",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "event",
+        "payload_type": "arsiaprotocol.ict/incident",
+        "payload_hash": "a2f2ba4c8b034675032c62e55cfd3711e79300ab84477f4c4c3c973ea6ee2e76",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z",
+        "incident_type": "provider_unavailable",
+        "affected_service": "agent:arsialabs.demo.payment-provider",
+        "started_at": "2026-04-10T14:45:00.000Z",
+        "resolved_at": null,
+        "estimated_impact": "3 pending transfers totalling EUR 125,000 delayed. Payment processing for EU zone temporarily unavailable.",
+        "severity": "high",
+        "original_payment_reference": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+      },
+      "expected_error": "original_payment_reference is too long — Assets §6.2.2"
     }
   ]
 }

@@ -214,7 +214,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 128,
-      "description": "Payment reference from the originating AssetTransferRequest. Present in escrow audit records for traceability. Per ARSIA-Assets.md §4.3."
+      "description": "Payment reference of the transfer the asset_transfer record belongs to: a plain transfer's own reference, the escrow transfer's reference on escrow records (ARSIA-Assets.md §4.3), and the original transfer's reference on a reversal record (ARSIA-Assets.md §3.3.2), whose receipt carries the reversal's new reference instead. REQUIRED on every asset_transfer record (ARSIA-State.md §7.1). A query by this reference can return several records of one chain; the receipt's audit_id identifies a single record."
     },
     "amount": {
       "description": "The escrowed or transferred amount. Present in escrow_created audit records. Per ARSIA-Assets.md §4.3.1.",
@@ -264,7 +264,7 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "UUID v4 referencing the audit_id from the escrow creation record. Links subsequent escrow events to the originating escrow. Per ARSIA-Assets.md §4.3.2–§4.3.4."
+          "description": "UUID v4: the record_id of the record this asset_transfer record links to: the escrow creation record (ARSIA-Assets.md §4.3.2–§4.3.4), or, on a reversal record, the original transfer's record, which the original receipt's audit_id references (ARSIA-Assets.md §3.3.2). REQUIRED on a reversal record (ARSIA-State.md §7.1)."
         }
       ]
     },
@@ -792,6 +792,27 @@
     "late": {
       "type": "boolean",
       "description": "true exactly when the decision completed the review as completed_late — Actions §3.9.4"
+    },
+    "incident_type": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/incident_type"
+    },
+    "affected_service": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/affected_service"
+    },
+    "started_at": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/started_at"
+    },
+    "resolved_at": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/resolved_at"
+    },
+    "estimated_impact": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/estimated_impact"
+    },
+    "severity": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/severity"
+    },
+    "original_payment_reference": {
+      "$ref": "arsia-dora-incident.schema.json#/properties/data/properties/original_payment_reference"
     }
   },
   "dependentRequired": {
@@ -933,6 +954,67 @@
           "dispute_reason",
           "arbitration_agent",
           "original_audit_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "asset_transfer"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "payment_reference"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "asset_transfer"
+          },
+          "payload_type": {
+            "const": "arsiaprotocol.assets/transfer-reversal"
+          }
+        },
+        "required": [
+          "event_type",
+          "payload_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "payment_reference",
+          "original_audit_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ict_incident"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "required": [
+          "incident_type",
+          "affected_service",
+          "started_at",
+          "estimated_impact",
+          "severity",
+          "original_payment_reference"
         ]
       }
     },

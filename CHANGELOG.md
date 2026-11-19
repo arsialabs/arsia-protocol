@@ -31,10 +31,11 @@ Draft-02 supersedes Draft-01. **Breaking release: wire version 2.0.** Full detai
 - State SET (Issue #2): the retention of an entry is fixed when its generation is created; an update that states another retention, or that falls under a higher floor, is rejected with `invalid_request` and `retention_fixed` details, and an update does not restart the period (State §2.1.8, §3.1.2 rule 7, §8.4).
 - SNAPSHOT `hash` (Issue #2) is now defined: `"sha-256:"` + lowercase hex SHA-256 over the RFC 8785 form of `{as_of, entries}` as carried, in the order carried; the schema enforces the format (State §3.2.1).
 - Relay attestation (Issue #2): `residency_zone` is the value of the message's `compliance.data_residency`, set unchanged by the broker; the recipient rejects with `unauthorized`, at step 3, an attestation whose zone is not equal to it as a string, with no containment in either direction (Routing §7.4.1).
+- Asset and incident audit records (Issue #2): every `asset_transfer` record carries `payment_reference`, the reference of the transfer it belongs to. A reversal record (`event_type` `asset_transfer` with `payload_type` `arsiaprotocol.assets/transfer-reversal`) carries the original transfer's `payment_reference` and, in `original_audit_id`, the `record_id` of the original record; the reversal receipt keeps its new reference. An `ict_incident` record carries the incident event's `payload.data` fields with the same values (six required, `resolved_at` as in the event) (Assets §3.3.2, §6.2.3; State §7.1).
 - Audit records: `compliance_profile` → declared/resolved pair + retention resolution fields + `counterparty_owner_id`; every asset receipt has an audit record; MiFID records immutable (`updated_at` removed); `dora_incident` → `ict_incident` with candidate-based trigger.
 
 ### Added
-- Core §4.3.9 `authorization`, §6.5 issuer trust, §6.6 agent resolution, §12.4 CORE-COMPLIANCE-04..09; reserved-capability registry additions (`echo`, `health`, `onboarding.evaluate`, `broker.use`); ActionDescriptor `supported_versions`; extension profiles via reverse-domain names; relay-attestation schema; IdentityRecord `regulated_entity`; discovery `iso4217_edition` + `strict_compliance`; subsequent-receipt delivery mechanism; key-revocation event; threat model +6 adversaries; in-repo conformance tooling (`check_consistency.py`, `runtime_harness.py`, `regen_v2.py`, `rtm_counts.py`); 970-vector suite (168 crypto blocks checked: 156 signatures verified, 9 signature negatives) with 211 classified runtime skips and 54 published test keypairs.
+- Core §4.3.9 `authorization`, §6.5 issuer trust, §6.6 agent resolution, §12.4 CORE-COMPLIANCE-04..09; reserved-capability registry additions (`echo`, `health`, `onboarding.evaluate`, `broker.use`); ActionDescriptor `supported_versions`; extension profiles via reverse-domain names; relay-attestation schema; IdentityRecord `regulated_entity`; discovery `iso4217_edition` + `strict_compliance`; subsequent-receipt delivery mechanism; key-revocation event; threat model +6 adversaries; in-repo conformance tooling (`check_consistency.py`, `runtime_harness.py`, `regen_v2.py`, `rtm_counts.py`); 987-vector suite (168 crypto blocks checked: 156 signatures verified, 9 signature negatives) with 211 classified runtime skips and 54 published test keypairs.
 
 ### Fixed
 - All 8 blocking, 22 high, 31 medium (2 partial-by-repo-state), and 8 low findings of the Draft-01 audit (`docs/auditoria-spec-draft-01.md`), plus 10 newly found defects — resolution evidence in `docs/draft-02-decisions.md`.
@@ -97,6 +98,9 @@ unchanged.
 
 ### Changed
 
+- Assets §6.2.2 (Issue #2): `resolved_at` of the ICT incident event is typed "string or
+  null" in the prose, as the schema and the §6.2.5 example already allowed; absent or
+  `null` means the incident is ongoing.
 - Routing §2.3.3 (Issue #2): `relay_id` and `attestation_id` are stated as distinct
   identifiers; no equality, inequality or mapping between them is required, and a
   consumer MUST NOT assume they are equal.

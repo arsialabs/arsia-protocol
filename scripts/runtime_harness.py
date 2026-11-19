@@ -54,6 +54,10 @@ Schema cannot express, executed as tests — including against the runtime
   R22 Relay attestation verification: signature, zone    (Routing §7.4.1; A-56, A-111)
       equality, broker authorisation, envelope and token
       binding, identities, window (profile skew), replay
+  R23 Assets audit chain: reversal record → original     (Assets §3.3.2, §6.2.3, State §7.1;
+      record and receipt, chronology; ict_incident record  A-112, A-113, A-121)
+      equal to its event's payload.data (resolved_at by
+      presence and value); resolution from the source
 
 Exit code 0 = all green.
 """
@@ -3871,11 +3875,131 @@ def r22(vectors):
             check(f"R22 (h) header with {name}: unauthorized at step 2, no exception", got == ("unauthorized", 2), str(got))
 
 
+# ---------------------------------------------------------------- R23 Assets audit chain
+INCIDENT_FIELDS = ("incident_type", "affected_service", "started_at", "resolved_at", "estimated_impact", "severity",
+                   "original_payment_reference")
+
+
+def reversal_chain_problems(original, reversal, receipt):
+    """Assets §3.3.2 / State §7.1: the reversal record references the original transfer's record and reference;
+    the reversal receipt references the reversal record and carries the reversal's own, different reference."""
+    out = []
+    res = receipt["payload"]["result"]
+    if original.get("event_type") != "asset_transfer":
+        out.append("event_type: the original record is not an asset_transfer record")
+    if reversal.get("event_type") != "asset_transfer" or reversal.get("payload_type") != "arsiaprotocol.assets/transfer-reversal":
+        out.append("event_type: the reversal record is not an asset_transfer record of a transfer-reversal")
+    if reversal.get("payment_reference") != original.get("payment_reference"):
+        out.append("payment_reference is not the original transfer's")
+    if reversal.get("original_audit_id") != original.get("record_id"):
+        out.append("original_audit_id is not the original record's record_id")
+    if res.get("audit_id") != reversal.get("record_id"):
+        out.append("the reversal receipt's audit_id is not the reversal record's record_id")
+    if res.get("payment_reference") == reversal.get("payment_reference"):
+        out.append("the reversal receipt carries the original reference instead of a new one")
+    if receipt.get("correlation_id") != reversal.get("message_id"):
+        out.append("the reversal receipt's correlation_id is not the reversal record's message_id")
+    if not iso(original["processed_at"]) < iso(reversal["processed_at"]) <= iso(receipt["ts"]):
+        out.append("chronology: original processed_at < reversal processed_at <= receipt ts does not hold")
+    return out
+
+
+def incident_record_problems(record, event_payload):
+    """Assets §6.2.3 / State §7.1: the ict_incident record carries the event's payload.data fields with the same
+    values; resolved_at is compared by presence and by value; payload_hash is that of the event's payload. The
+    event is the independent source, never rebuilt from the record."""
+    import hashlib
+    import rfc8785
+    out = []
+    if record.get("event_type") != "ict_incident":
+        out.append("event_type: the record is not an ict_incident record")
+    data = event_payload["data"]
+    for k in INCIDENT_FIELDS:
+        if (k in record) != (k in data):
+            out.append(f"{k}: present in the {'record' if k in record else 'event'} only")
+        elif k in record and record[k] != data[k]:
+            out.append(f"{k}: {record[k]!r} != the event's {data[k]!r}")
+    if record.get("payload_type") != event_payload.get("type"):
+        out.append("payload_type is not the event's payload type")
+    if record.get("payload_hash") != hashlib.sha256(rfc8785.dumps(event_payload)).hexdigest():
+        out.append("payload_hash is not the SHA-256 of the event's RFC 8785 payload")
+    return out
+
+
+def r23(vectors):
+    import hashlib
+    import rfc8785
+    by = {v["id"]: v for v in vectors}
+    body = lambda i: by[i].get("data") or by[i].get("message")
+    chain = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "assets_audit_chain"]
+    incidents = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "ict_incident_record"]
+    check("R23 audit chain and incident vectors present (ITV-96, ITV-725; ITV-102, ITV-726, ITV-727)",
+          {v["id"] for v in chain} == {"ITV-96", "ITV-725"}
+          and {v["id"] for v in incidents} == {"ITV-102", "ITV-726", "ITV-727"},
+          str(sorted(v["id"] for v in chain + incidents)))
+    # (a) reversal chain, from the sources named in the reversal record's input
+    rev = next((v for v in chain if "original" in v["test_metadata"]["input"]), None)
+    if rev is not None:
+        inp = rev["test_metadata"]["input"]
+        original, receipt = body(inp["original"]), body(inp["receipt"])
+        probs = reversal_chain_problems(original, rev["data"], receipt)
+        check(f"R23 (a) {rev['id']} references {inp['original']} (payment_reference, original_audit_id); "
+              f"{inp['receipt']} references {rev['id']} with a new reference; chronology holds",
+              not probs, "; ".join(probs), executed=[inp["original"], rev["id"], inp["receipt"]])
+    # (b) incident records against their event, by vector or explicit payload
+    for v in incidents:
+        inp = v["test_metadata"]["input"]
+        event = body(inp["event"]) if "event" in inp else inp["event_payload"]
+        probs = incident_record_problems(v["data"], event)
+        used = [v["id"]] + ([inp["event"]] if "event" in inp else [])
+        check(f"R23 (b) {v['id']} carries its event's payload.data fields with the same values and presence",
+              not probs, "; ".join(probs), executed=used)
+    # (c) the resolution of each chain record is the one its source compliance yields at its processed_at
+    for v in chain:
+        r = v["data"]
+        want = resolve_obligations("request", v["test_metadata"]["input"]["compliance"], anchor=r["processed_at"])
+        retention = legacy_retention(want, r["processed_at"])
+        ok = (r.get("obligation_resolution") == want and all(r.get(k) == x for k, x in retention.items())
+              and r["retained_until"] == stamp(add_duration(iso(r["retention_anchor"]), r["effective_retention"])))
+        check(f"R23 (c) {v['id']} obligation_resolution and retention fields are resolved from its source compliance "
+              "at its processed_at", ok, executed=[v["id"]])
+    # (d) permanent negative controls: each must be reported
+    if rev is None or len(incidents) < 3:
+        return
+    inp = rev["test_metadata"]["input"]
+    original, receipt = body(inp["original"]), body(inp["receipt"])
+    other = dict(rev["data"], original_audit_id=by["ITV-102"]["data"]["record_id"])
+    check("R23 (d) a reversal record whose original_audit_id is another record's (ITV-102) is reported",
+          any("original_audit_id" in p for p in reversal_chain_problems(original, other, receipt)))
+    for who, orig, revr in (("original", dict(original, event_type="error"), rev["data"]),
+                            ("reversal", original, dict(rev["data"], event_type="error"))):
+        check(f"R23 (d) a chain whose {who} record has event_type error (all else unchanged) is reported",
+              any(p.startswith("event_type") and who in p for p in reversal_chain_problems(orig, revr, receipt)))
+    early = dict(rev["data"], processed_at=stamp(iso(original["processed_at"]) - dt.timedelta(seconds=1)))
+    check("R23 (d) a reversal record processed before the original is reported",
+          any("chronology" in p for p in reversal_chain_problems(original, early, receipt)))
+    with_null = by["ITV-726"]["data"]
+    check("R23 (d) an incident record with event_type error (all else unchanged) is reported",
+          any(p.startswith("event_type") for p in incident_record_problems(dict(with_null, event_type="error"), body("ITV-41"))))
+    absent_event = copy.deepcopy(body("ITV-41")); del absent_event["data"]["resolved_at"]
+    check("R23 (d) record with resolved_at null against an event without the member is reported",
+          any(p.startswith("resolved_at") for p in incident_record_problems(with_null, absent_event)))
+    without = by["ITV-727"]["data"]
+    check("R23 (d) record without resolved_at against an event with resolved_at null is reported",
+          any(p.startswith("resolved_at") for p in incident_record_problems(without, body("ITV-41"))))
+    src = body("ITV-41")
+    forged = dict(with_null, severity=next(x for x in ("low", "medium", "high", "critical") if x != src["data"]["severity"]))
+    rebuilt = dict(src, data=dict(src["data"], severity=forged["severity"]))
+    forged["payload_hash"] = hashlib.sha256(rfc8785.dumps(rebuilt)).hexdigest()
+    check("R23 (d) independent source: a record with another allowed severity and a payload_hash recomputed for it "
+          "is reported against the intact event", any(p.startswith("severity") for p in incident_record_problems(forged, src)))
+
+
 def main() -> int:
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
-    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors)
+    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors); r23(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

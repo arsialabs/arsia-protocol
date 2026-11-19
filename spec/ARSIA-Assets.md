@@ -984,9 +984,11 @@ every field is REQUIRED.
   regardless of asset type, compliance profile, or the `audit_required` flag:
   because `audit_id` is REQUIRED on every receipt, the record it references must
   exist for every transfer, not only for those meeting the §6.1 MiFID conditions
-  (which additionally require the richer MiFID record). For transfers outside any
-  compliance profile, the record's retention follows the platform default
-  (`retention_source: "platform-default"`). The `audit_id` provides a direct link
+  (which additionally require the richer MiFID record). The record carries
+  `payment_reference` as defined in ARSIA-State.md §7.1. For a reversal, it carries the
+  original transfer's reference, while the reversal receipt carries the new reference
+  (§3.3.2). For transfers outside any compliance profile, the record's retention
+  follows the platform default (`retention_source: "platform-default"`). The `audit_id` provides a direct link
   from the receipt message to the audit storage, enabling auditors to retrieve the
   full audit record without searching by payment_reference or date range.
 
@@ -1195,8 +1197,15 @@ AssetTransferReceipt (§3.2) with the following characteristics:
 - `amount`: The amount actually reversed.
 - `audit_id`: A NEW audit_id referencing the reversal audit record.
 
-The reversal audit record MUST reference the original transfer's `audit_id` and
-`payment_reference` to maintain the chain of custody.
+The reversal audit record is the `asset_transfer` record of the AssetTransferReversal
+request; its `payload_type` is `"arsiaprotocol.assets/transfer-reversal"`
+(ARSIA-State.md §7.1). It MUST reference the original transfer: its
+`payment_reference` is the original transfer's `payment_reference`, and its
+`original_audit_id` is the `record_id` of the original transfer's audit record, the
+record that the original receipt's `audit_id` references. The reversal record has its
+own `record_id`, which the reversal receipt's `audit_id` references. The reversal
+receipt's `payment_reference` is the reversal's new reference, so it differs from the
+`payment_reference` of the record its `audit_id` references.
 
 #### 3.3.3 Complete AssetTransferReversal Example
 
@@ -1689,8 +1698,9 @@ agents, regulatory correction agents.
 **Constraints:**
 
 - Reversals are subject to the time-based constraints defined in §3.3.2.
-- Reversal requests MUST be logged in the audit trail with the original transfer's
-  `payment_reference` and `audit_id` for traceability.
+- Reversal requests MUST be logged in the audit trail as the reversal audit record of
+  §3.3.2, which carries the original transfer's `payment_reference` and, in
+  `original_audit_id`, the record that the original receipt's `audit_id` references.
 - The `arsiaprotocol.assets.transfer.reverse` capability does NOT grant the ability to initiate
   new transfers — it is scoped exclusively to reversals.
 
@@ -2171,12 +2181,12 @@ NOT, by itself, an incident candidate unless the operator's policy says so.
 
 ##### `resolved_at`
 
-- **Type:** string
+- **Type:** string or null
 - **Format:** RFC 3339 date-time with mandatory millisecond precision and UTC timezone
   designator.
 - **OPTIONAL.**
-- **Constraints:** When the incident was resolved. Absent if the incident is ongoing
-  at the time the event is generated. A subsequent DORA incident event with the same
+- **Constraints:** When the incident was resolved. Absent or `null` if the incident is
+  ongoing at the time the event is generated. A subsequent DORA incident event with the same
   `original_payment_reference` and a non-null `resolved_at` SHOULD be sent when the
   incident is resolved.
 
@@ -2243,7 +2253,10 @@ mechanism for this routing is implementation-defined. Common approaches include:
    regulators through the audit trail query interface.
 
 Regardless of the routing mechanism, the agent generating the DORA incident event MUST
-also log the event in its local audit trail with `event_type: "ict_incident"`.
+also log the event in its local audit trail with `event_type: "ict_incident"`. That
+record MUST carry the incident fields of the event's `payload.data` with the same
+values, and `resolved_at` MUST be present in the record exactly when it is present in
+the event (ARSIA-State.md §7.1).
 
 #### 6.2.4 DORA Reporting Obligations
 

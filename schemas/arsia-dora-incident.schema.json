@@ -72,7 +72,7 @@
               "type": "null"
             }
           ],
-          "description": "When the incident was resolved. Null or absent if the incident is ongoing. A subsequent event with the same original_payment_reference and non-null resolved_at SHOULD be sent when resolved. Per ARSIA-Assets.md §6.2.2."
+          "description": "When the incident was resolved. Absent or null if the incident is ongoing. A subsequent event with the same original_payment_reference and non-null resolved_at SHOULD be sent when resolved. Per ARSIA-Assets.md §6.2.2."
         },
         "estimated_impact": {
           "type": "string",

@@ -142,7 +142,7 @@
 | ASSETS-§3.3.2-05 | 3.3.2 | MUST | sdk | behavioural_positive | Cumulative reversals per payment_reference must not exceed the original transfer amount | — | ITV-375 | struct:ITV-375; untested(structural-only) |
 | ASSETS-§3.3.2-06 | 3.3.2 | MUST_NOT | sdk | behavioural_negative | Full reversal must not be issued after any partial reversal has been processed | — | ITV-376 | struct:ITV-376; untested(structural-only) |
 | ASSETS-§3.3.2-07 | 3.3.2 | MUST | sdk | behavioural_positive | Reversal receipt correlation_id must equal the AssetTransferReversal message id | — | ITV-377 | struct:ITV-377; untested(structural-only) |
-| ASSETS-§3.3.2-08 | 3.3.2 | MUST | sdk | behavioural_positive | Reversal audit record must reference original transfer's audit_id and payment_reference | — | — | untested(no-reference-model) |
+| ASSETS-§3.3.2-08 | 3.3.2 | MUST | sdk | behavioural_positive | The reversal audit record (asset_transfer, payload_type arsiaprotocol.assets/transfer-reversal) MUST reference the original transfer: payment_reference is the original's reference and original_audit_id the record_id of the original record; the reversal receipt keeps its new reference and its audit_id references the reversal record | arsia-audit-record | ITV-725, INV-214, INV-215 | schema-ref:arsia-audit-record; struct:ITV-725, INV-214, INV-215; exec:R23:ITV-96, ITV-725, ITV-377 |
 | ASSETS-§3.3.2-09 | 3.3.2 | RECOMMENDED | sdk | structural | Reversal payment_reference recommended format: {original_reference}-REV-{sequence} | — | — | — |
 | ASSETS-§4.1-01 | 4.1 | MUST | sdk | structural | EscrowConditions object MUST contain all specified fields | arsia-escrow-conditions | INV-13, ITV-121 | schema-ref:arsia-escrow-conditions; struct:INV-13, ITV-121 |
 | ASSETS-§4.1-02 | 4.1 | REQUIRED | sdk | structural | All EscrowConditions fields are required unless explicitly marked OPTIONAL | arsia-escrow-conditions | INV-13, ITV-121 | schema-ref:arsia-escrow-conditions; struct:INV-13, ITV-121 |
@@ -192,7 +192,7 @@
 | ASSETS-§5.1.2-07 | 5.1.2 | MAY | sdk | informational | An agent MAY hold both transfer.approve and oversight.approve capabilities | — | — | — |
 | ASSETS-§5.1.3-01 | 5.1.3 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.transfer.reverse: every use MUST generate an audit record | — | — | untested(no-reference-model) |
 | ASSETS-§5.1.3-02 | 5.1.3 | MAY | operational_policy | informational | arsiaprotocol.assets.transfer.reverse: human oversight MAY be required | — | — | — |
-| ASSETS-§5.1.3-03 | 5.1.3 | MUST | sdk | behavioural_positive | Reversal audit records MUST include original transfer's audit_id and payment_reference | — | — | untested(no-reference-model) |
+| ASSETS-§5.1.3-03 | 5.1.3 | MUST | sdk | behavioural_positive | Reversal requests MUST be logged as the reversal audit record of §3.3.2, carrying the original transfer's payment_reference and, in original_audit_id, the record the original receipt's audit_id references | arsia-audit-record | ITV-725, INV-214, INV-215 | schema-ref:arsia-audit-record; struct:ITV-725, INV-214, INV-215; exec:R23:ITV-96, ITV-725, ITV-377 |
 | ASSETS-§5.1.4-01 | 5.1.4 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.escrow.create: every use MUST generate an audit record | — | — | untested(no-reference-model) |
 | ASSETS-§5.1.4-02 | 5.1.4 | MAY | operational_policy | informational | arsiaprotocol.assets.escrow.create: human oversight MAY be required | — | — | — |
 | ASSETS-§5.1.4-03 | 5.1.4 | MUST | sdk | behavioural_positive | Escrow creator MUST specify a valid release_agent and timeout_at in EscrowConditions | arsia-escrow-conditions | ITV-394, ITV-395 | schema-ref:arsia-escrow-conditions; struct:ITV-394, ITV-395; untested(structural-only) |
@@ -243,7 +243,7 @@
 | ASSETS-§6.2.2-02 | 6.2.2 | REQUIRED | sdk | structural | incident_type field is required in DORA incident event | arsia-dora-incident | ITV-41, ITV-139, ITV-140, ITV-164, ITV-165, ITV-166 | schema-ref:arsia-dora-incident; struct:ITV-41, ITV-139, ITV-140, ITV-164, ITV-165, ITV-166 |
 | ASSETS-§6.2.2-03 | 6.2.2 | REQUIRED | sdk | structural | affected_service field is required in DORA incident event | arsia-dora-incident | ITV-41 | schema-ref:arsia-dora-incident; struct:ITV-41 |
 | ASSETS-§6.2.2-04 | 6.2.2 | REQUIRED | sdk | structural | started_at field is required in DORA incident event | arsia-dora-incident | ITV-41 | schema-ref:arsia-dora-incident; struct:ITV-41 |
-| ASSETS-§6.2.2-05 | 6.2.2 | OPTIONAL | sdk | structural | resolved_at field is optional in DORA incident event; absent when incident is ongoing | arsia-dora-incident | ITV-41, ITV-139 | — |
+| ASSETS-§6.2.2-05 | 6.2.2 | OPTIONAL | sdk | structural | resolved_at field is optional in DORA incident event; absent or null when the incident is ongoing (type string or null) | arsia-dora-incident | ITV-41, ITV-139 | — |
 | ASSETS-§6.2.2-06 | 6.2.2 | REQUIRED | sdk | structural | estimated_impact field is required in DORA incident event | arsia-dora-incident | ITV-41 | schema-ref:arsia-dora-incident; struct:ITV-41 |
 | ASSETS-§6.2.2-07 | 6.2.2 | REQUIRED | sdk | structural | severity field is required in DORA incident event | arsia-dora-incident | ITV-41, ITV-42 | schema-ref:arsia-dora-incident; struct:ITV-41, ITV-42 |
 | ASSETS-§6.2.2-08 | 6.2.2 | REQUIRED | sdk | structural | original_payment_reference field is required in DORA incident event | arsia-dora-incident | ITV-41 | schema-ref:arsia-dora-incident; struct:ITV-41 |
@@ -251,7 +251,9 @@
 | ASSETS-§6.2.2-10 | 6.2.2 | SHOULD | sdk_enabled | behavioural_positive | estimated_impact SHOULD include affected transfers, financial impact, services, and scope | — | — | — |
 | ASSETS-§6.2.2-11 | 6.2.2 | RECOMMENDED | operational_policy | informational | Severity-to-characteristic mapping is implementation-defined with recommended guidelines | — | — | — |
 | ASSETS-§6.2.3-01 | 6.2.3 | MUST | deployment | behavioural_positive | DORA incident events MUST be routed to the operator's DORA reporting system | — | — | out-of-repo(infrastructure) |
-| ASSETS-§6.2.3-02 | 6.2.3 | MUST | sdk | behavioural_positive | Agent MUST also log DORA incident events in its local audit trail | — | ITV-102 | struct:ITV-102; untested(structural-only) |
+| ASSETS-§6.2.3-02 | 6.2.3 | MUST | sdk | behavioural_positive | Agent MUST also log DORA incident events in its local audit trail with event_type ict_incident | arsia-audit-record | ITV-102, ITV-726, ITV-727 | schema-ref:arsia-audit-record; struct:ITV-102, ITV-726, ITV-727; untested(structural-only) |
+| ASSETS-§6.2.3-03 | 6.2.3 | MUST | sdk | behavioural_positive | The ict_incident record MUST carry the incident fields of the event's payload.data with the same values | arsia-audit-record | ITV-102, ITV-726, ITV-727 | schema-ref:arsia-audit-record; struct:ITV-102, ITV-726, ITV-727; exec:R23:ITV-102, ITV-139, ITV-726, ITV-41, ITV-727 |
+| ASSETS-§6.2.3-04 | 6.2.3 | MUST | sdk | behavioural_positive | resolved_at MUST be present in the ict_incident record exactly when it is present in the event (absent, null or a timestamp) | arsia-audit-record | ITV-102, ITV-726, ITV-727 | schema-ref:arsia-audit-record; struct:ITV-102, ITV-726, ITV-727; exec:R23:ITV-102, ITV-139, ITV-726, ITV-41, ITV-727 |
 | ASSETS-§6.3-01 | 6.3 | MUST | deployment | behavioural_positive | PSD2 SCA elements MUST be independent so breach of one does not compromise others | — | — | out-of-repo(infrastructure) |
 | ASSETS-§6.3-02 | 6.3 | MUST | deployment | behavioural_positive | PSD2 SCA elements MUST protect confidentiality of authentication data | — | — | out-of-repo(infrastructure) |
 | ASSETS-§6.3-03 | 6.3 | MUST | deployment | behavioural_positive | Implementations MUST use SCA Option A or B for financial capabilities with risk_level ≥ 7 | — | — | out-of-repo(infrastructure) |
@@ -277,11 +279,11 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 264 |
-| Schema ≠ — | 130 |
-| Vector ≠ — | 143 |
-| Both ≠ — | 102 |
-| Both = — (gaps) | 93 |
+| Total requirements | 266 |
+| Schema ≠ — | 135 |
+| Vector ≠ — | 147 |
+| Both ≠ — | 107 |
+| Both = — (gaps) | 91 |
 
 ### Per-section breakdown
 
@@ -289,10 +291,10 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 9 | 5 | 3 | 3 | 4 |
 | 2 | 25 | 18 | 19 | 17 | 5 |
-| 3 | 105 | 70 | 66 | 46 | 15 |
+| 3 | 105 | 71 | 67 | 47 | 14 |
 | 4 | 35 | 13 | 23 | 13 | 12 |
-| 5 | 36 | 5 | 10 | 5 | 26 |
-| 6 | 49 | 19 | 20 | 18 | 28 |
+| 5 | 36 | 6 | 11 | 6 | 25 |
+| 6 | 51 | 22 | 22 | 21 | 28 |
 | 7 | 4 | 0 | 2 | 0 | 2 |
 | Abstract | 1 | 0 | 0 | 0 | 1 |
 

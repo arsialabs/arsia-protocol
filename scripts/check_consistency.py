@@ -31,9 +31,7 @@ def check(name, cond, detail=""):
 
 # Rows of the State §7.1 extension table that the schema deliberately does not
 # enforce. Each needs a written reason; any other row must match the schema exactly.
-AUDIT_EXTENSION_EXCEPTIONS = {
-    "ict_incident": "extension promised by Assets §6.2 but no field is defined yet",
-}
+AUDIT_EXTENSION_EXCEPTIONS = {}
 
 # State §7.1 base fields whose prose requiredness deliberately differs from the schema's
 # top-level `required`. Each needs a written reason; any other divergence fails.
@@ -92,8 +90,10 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
         return frozenset(spec.get("enum", [spec["const"]] if "const" in spec else []))
 
     def needs_row(cond_props):
-        # DR-3/DR-4 conditions: covered records (intent) and nested resolution outcome
-        return "intent" in cond_props or any("properties" in v for v in cond_props.values())
+        # DR-3/DR-4 conditions: covered records (intent) and nested resolution outcome; the reversal record
+        # (Assets/audit cycle): a condition on payload_type is a record type of its own, never a sub-case
+        return ("intent" in cond_props or "payload_type" in cond_props
+                or any("properties" in v for v in cond_props.values()))
 
     matched_multi = set()
     exceptions_seen = set()
@@ -124,8 +124,9 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
             if nested:
                 want = {nested.group(1): ("nested", nested.group(2), frozenset([nested.group(3)]))}
             else:
-                want = {f: ("flat", None, frozenset(re.findall(r"`([a-z_]+)`", vals)))
-                        for f, vals in re.findall(r"`([a-z_]+)` (?:=|∈) ((?:`[a-z_]+`(?:, )?)+)", rcond)}
+                # condition values are read whole: a payload type carries ".", "/" and "-"
+                want = {f: ("flat", None, frozenset(re.findall(r"`([^`]+)`", vals)))
+                        for f, vals in re.findall(r"`([a-z_]+)` (?:=|∈) ((?:`[^`]+`(?:, )?)+)", rcond)}
             hit = None
             for i, (cond_props, req) in enumerate(multi):
                 got = {}
@@ -173,8 +174,9 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
                 problems.append(f"{rtype}: table alternatives {sorted(tab_alts)} != schema anyOf {sorted(alts)}")
         for cond_props, req in multi:
             spec = cond_props.get(field, {})
-            if spec.get("const") in vals and not req <= optional:
-                problems.append(f"{rtype}: conditional {sorted(req - optional)} not in table")
+            # a compound condition's fields may already be REQUIRED on the generic row
+            if spec.get("const") in vals and not req <= required | optional:
+                problems.append(f"{rtype}: conditional {sorted(req - required - optional)} not in table")
     for key, (req, _alts) in single.items():
         if key not in covered and req:
             problems.append(f"schema condition {key[0]}={sorted(key[1])} has no table row")
@@ -2475,6 +2477,95 @@ def set_fixture_problems(vectors, registry):
     return out
 
 
+REVERSAL_ROW = ("| `event_type` = `asset_transfer` and `payload_type` = `arsiaprotocol.assets/transfer-reversal` | "
+                "`payment_reference`, `original_audit_id` | — | ARSIA-Assets.md §3.3.2 |")
+
+
+def audit_parity_self_test(state_text, audit_schema, tombstone_schema):
+    """Synthetic self-test of audit_extension_parity (Assets/audit cycle): the real table and schema, where the
+    generic asset_transfer row and the reversal's compound row coexist, raise nothing; each defect is reported."""
+    import copy
+    out = []
+    if REVERSAL_ROW not in state_text:
+        return ["the reversal row of the State §7.1 table is not in its expected form"]
+    base = audit_extension_parity(state_text, audit_schema, tombstone_schema)
+    if base:
+        out.append(f"the real table and schema (both rows coexisting) raise {base[:2]}")
+
+    def reversal_entry(schema):
+        return next(e for e in schema["allOf"] if set(e.get("if", {}).get("properties", {})) == {"event_type", "payload_type"})
+
+    reduced = copy.deepcopy(audit_schema)
+    entry = reversal_entry(reduced)
+    del entry["if"]["properties"]["payload_type"]
+    entry["if"]["required"] = ["event_type"]
+    cases = {
+        "(a) the compound row reduced to the generic event": (state_text.replace(
+            REVERSAL_ROW, REVERSAL_ROW.replace(" and `payload_type` = `arsiaprotocol.assets/transfer-reversal`", "")), audit_schema),
+        "(b) the schema condition without its payload_type predicate": (state_text, reduced),
+        "(c) the payload_type value truncated in the table": (state_text.replace(
+            REVERSAL_ROW, REVERSAL_ROW.replace("`arsiaprotocol.assets/transfer-reversal`", "`arsiaprotocol`")), audit_schema),
+        "(d) the compound condition without a table row": (state_text.replace(REVERSAL_ROW + "\n", ""), audit_schema),
+    }
+    for name, (text, schema) in cases.items():
+        if text == state_text and schema is audit_schema:
+            out.append(f"{name}: the synthetic defect was not applied")
+        elif not audit_extension_parity(text, schema, tombstone_schema):
+            out.append(f"{name}: not reported")
+    return out
+
+
+def assets_cycle_echo_problems():
+    """Assets/audit cycle (A-112, A-113, A-121) anti-regression: the ict_incident record mirrors the incident
+    payload by reference, the reversal and asset_transfer rules are stated, and the replaced texts do not return."""
+    out = []
+    audit = strict_load("schemas/arsia-audit-record.schema.json")
+    inc = strict_load("schemas/arsia-dora-incident.schema.json")["properties"]["data"]
+    props = audit["properties"]
+    for name in inc["properties"]:
+        want = {"$ref": f"arsia-dora-incident.schema.json#/properties/data/properties/{name}"}
+        if props.get(name) != want:
+            out.append(f"audit-record {name}: not a $ref to the incident payload field (mirror)")
+    rule = next((e for e in audit["allOf"] if e.get("if", {}).get("properties") == {"event_type": {"const": "ict_incident"}}), None)
+    if rule is None or set(rule["then"].get("required", [])) != set(inc["required"]):
+        out.append("ict_incident rule: required differs from the incident payload's required")
+    for name in ("payment_reference", "original_audit_id"):
+        if "escrow" in json.dumps(props[name]) and "reversal" not in json.dumps(props[name]):
+            out.append(f"audit-record {name}: description scoped to escrow only")
+    flat = lambda f: re.sub(r"\s+", " ", open(f, encoding="utf-8").read())
+    assets, state = flat("spec/ARSIA-Assets.md"), flat("spec/ARSIA-State.md")
+    for where, text, needle in (
+            ("Assets §3.2.1", assets, "For a reversal, it carries the original transfer's reference, while the reversal "
+                                      "receipt carries the new reference (§3.3.2)."),
+            ("Assets §3.3.2", assets, "It MUST reference the original transfer: its `payment_reference` is the original "
+                                      "transfer's `payment_reference`, and its `original_audit_id` is the `record_id` of "
+                                      "the original transfer's audit record"),
+            ("Assets §3.3.2", assets, "The reversal receipt's `payment_reference` is the reversal's new reference, so it "
+                                      "differs from the `payment_reference` of the record its `audit_id` references."),
+            ("Assets §5.1.3", assets, "Reversal requests MUST be logged in the audit trail as the reversal audit record of §3.3.2"),
+            ("Assets §6.2.2", assets, "- **Type:** string or null"),
+            ("Assets §6.2.2", assets, "Absent or `null` if the incident is ongoing"),
+            ("Assets §6.2.3", assets, "That record MUST carry the incident fields of the event's `payload.data` with the "
+                                      "same values, and `resolved_at` MUST be present in the record exactly when it is "
+                                      "present in the event"),
+            ("State §7.1", state, "On every `asset_transfer` record, `payment_reference` is the reference of the transfer "
+                                  "the record belongs to"),
+            ("State §7.1", state, "An `ict_incident` record carries the fields of the ICT incident candidate event's "
+                                  "`payload.data`"),
+            ("State §7.1", state, "every row is enforced by the schema")):
+        if needle not in text:
+            out.append(f"{where}: {needle[:60]!r} is missing")
+    for where, text, old in (
+            ("Assets §3.3.2", assets, "The reversal audit record MUST reference the original transfer's `audit_id` and"),
+            ("Assets §5.1.3", assets, "with the original transfer's `payment_reference` and `audit_id` for traceability"),
+            ("Assets §6.2.2", assets, "Absent if the incident is ongoing"),
+            ("State §7.1", state, "not yet defined as schema extension fields"),
+            ("State §7.1", state, "the two rows marked as exceptions")):
+        if old in text:
+            out.append(f"{where}: the replaced text {old[:50]!r} is back")
+    return out
+
+
 def routing_cycle_echo_problems():
     """Routing cycle (A-111, A-117) anti-regression: the attestation's zone is bound to the zone the message
     declares, the relation of relay_id to attestation_id is stated, and the replaced step 3 does not come back."""
@@ -2859,6 +2950,10 @@ def main() -> int:
     probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"],
                                    schemas["arsia-audit-chain-tombstone.schema.json"])
     check("audit extension table == schema conditionals (A-59)", not probs, "; ".join(probs[:4]))
+    probs = audit_parity_self_test(state, schemas["arsia-audit-record.schema.json"],
+                                   schemas["arsia-audit-chain-tombstone.schema.json"])
+    check("A-59 guard self-test: the reversal's compound condition is read whole and matched predicate by predicate; "
+          "the generic asset_transfer row coexists with it", not probs, "; ".join(probs[:4]))
 
     # A-29 disposition: Core's SHOULD reconnect and Routing's MUST back off both hold; if
     # either modal changes, the disposition must be re-examined.
@@ -3160,6 +3255,9 @@ def main() -> int:
           "generation and the SNAPSHOT hash construction are stated, and the replaced rules are absent",
           not probs, "; ".join(probs[:4]))
 
+    probs = assets_cycle_echo_problems()
+    check("Assets/audit cycle anti-regression: the ict_incident record mirrors the incident payload, the reversal and "
+          "asset_transfer rules are stated, and the replaced texts are absent", not probs, "; ".join(probs[:4]))
     probs = routing_cycle_echo_problems()
     check("Routing cycle anti-regression: the attestation zone equality and the relation of relay_id to "
           "attestation_id are stated, and the replaced step 3 is absent", not probs, "; ".join(probs[:4]))
