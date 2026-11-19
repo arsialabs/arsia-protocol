@@ -93,6 +93,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Resolved in the Assets/audit cycle: registered and closed as A-121 ([§33][ev33]);
   `payment_reference` is REQUIRED on every `asset_transfer` record. The undefined
   payload type of eight fixtures found on the way is registered as A-122 (open).
+  A-122 resolved in the schema-alignment cycle ([§34][ev34]).
 - **`pii_special_categories` in `state_set` records (C3a observation):** it is
   required by the schema and the §7.1 table, but the originating operation
   prose (State §3.1.2 table, §8.3 rule 3) does not list it; §2.1.11 concerns
@@ -155,6 +156,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **Query-response schema (DR-5):** it admits tombstones in any response; State §7.4
   allows them only in `chain_id` queries (schema more permissive than prose).
   Registered as A-115 (post-merge triage: C; schema-alignment cycle).
+  Resolved in the schema-alignment cycle: structural coherence in the schema, the query
+  correspondence recorded as a runtime limit (A-115 closed, [§34][ev34]).
 - **Published counts after DR-5:** 32 schemas (incl. meta), 679 vectors
   (438/147/94), RTM 1922 / 1130. README.md, CLAUDE.md (also "R1-R13", no R14) and
   docs are left for the maintenance step. Resolved in LM2: `README.md`, `CLAUDE.md`,
@@ -275,6 +278,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   Art. 9(2) basis for sensitive entries) and INV-22 (State §2.1.11 exclusion) test
   cross-field rules JSON Schema could express; they stay runtime-only.
   Registered as A-116 (post-merge triage: C; schema-alignment cycle).
+  Resolved in the schema-alignment cycle: INV-20 and INV-22 are executed structurally
+  (A-116 closed, [§34][ev34]).
 - **Expectation vs description (observed in VC, not fixed):** ITV-417 and ITV-579 carry
   `expected: valid` while their descriptions state a runtime rejection.
   Resolved in cycle F (A-105): `expected_error: "invalid_request"` on both, with ITV-563,
@@ -600,6 +605,8 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `$def` for them; their examples are annotated `no-schema`. A candidate for a schema
   addition, which would be normative.
   Registered as A-114 (post-merge triage: C; schema-alignment cycle).
+  Resolved in the schema-alignment cycle, extended to the seven diagnostics of Core
+  §4.3.10.6 (A-114 closed, [§34][ev34]).
 - **Example annotations (coverage SC3):** every full ```json block in `spec/` carries
   `<!-- example: … -->` on the line above (vocabulary in `scripts/extract_examples.py`);
   a new example without one fails the extractor.
@@ -710,6 +717,57 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 - **State cycle, retention cost (declared):** an update does not restart the retention period of its generation; a version written late in the period is retained only for the remainder of it (State §2.1.8). A period of its own for each version would be the per-version model, not adopted.
 - **Routing cycle (for consumers):** a recipient now rejects with `unauthorized`, at step 3, a relay attestation whose `residency_zone` is not equal, as a string, to the message's `compliance.data_residency`; a broker sets the field to that value (Routing §7.4.1). `relay_id` and `attestation_id` are distinct identifiers and a consumer does not assume they are equal (Routing §2.3.3). 3 new vectors (ITV-724, INV-211, INV-212), none changed. Published counts: 970 vectors (495 schema-valid, 245 expected-invalid, 211 runtime-only, 19 raw), 54 keypairs, 150 consistency checks, RTM 2057 rows (1258 MUST + MUST_NOT; 1456 with REQUIRED), updated in README.md, CLAUDE.md, docs/getting-started.md, docs/FAQ.md, SECURITY.md, CHANGELOG.md and test-vectors/README.md.
 - **Assets/audit cycle (for consumers):** every `asset_transfer` audit record now requires `payment_reference`; a reversal record (`payload_type` `arsiaprotocol.assets/transfer-reversal`) requires the original transfer's `payment_reference` and `original_audit_id`, while the reversal receipt keeps its new reference; an `ict_incident` record requires the incident event's six required `payload.data` fields with the same values and carries `resolved_at` exactly as the event does (State §7.1; Assets §3.3.2, §6.2.3). ITV-96 and ITV-102 changed; R23 is new.
+- **Schema-alignment cycle (for consumers):** the `details` of the seven compliance
+  diagnostics are closed objects (`error-details-<diagnostic>`); `missing_legal_basis`
+  details lose `message`; the closed details accept `localized_description`; escrow audit
+  records carry the payload type of their transition's message, `escrow_created` requires
+  `payer_agent` and `payee_agent`, and `actual_timeout`/`cancellation_reason` are
+  exclusive; a SET of a sensitive entry with an Art. 6(1) basis, or a non-sensitive SET
+  with `pii_special_categories`, now fails the message schema; a query response with a
+  tombstone must be a structural chain response. INV-20, INV-22 and ITV-555 are no longer
+  `skip_schema`.
+- **Undefined `arsiaprotocol.*` payload types (A-127 inventory, schema-alignment
+  cycle):** 79 vectors, 38 types, defined by no specification or schema (exact match
+  against `spec/`, `schemas/` and `profiles/`). Intentional negatives of the type itself:
+  ITV-265, ITV-266 (`arsiaprotocol.state/custom-archive`, the reserved State prefix) and
+  ITV-480 (`arsiaprotocol.oversight/wrong`). The other 76 use the type accidentally (the
+  negatives among them fail for unrelated causes). By type:
+  `actions/approval-expired` ITV-94; `actions/pending-approval` ITV-93, ITV-105;
+  `actions/risk-assessment` ITV-525, ITV-526; `analytics/report` ITV-134;
+  `assets/escrow-release` ATV-05, ITV-290, ITV-291, ITV-292, ITV-591;
+  `assets/escrow-timeout` ATV-06; `assets/transfer-approve` ITV-289; `audit/chain`
+  STV-07; `audit/record` RTV-02, STV-06; `compliance/classification-alert` ITV-137;
+  `core/ping` INV-43, INV-44, ITV-24, ITV-25, ITV-26, ITV-27; `echo/response` ITV-176;
+  `error/certificate` ITV-470; `error/identity` ITV-451, ITV-452, ITV-454, ITV-464,
+  ITV-465, ITV-468, ITV-469, ITV-472, ITV-473, ITV-485, ITV-486, ITV-488;
+  `error/processing` ITV-101; `error/routing` ITV-489, ITV-493, ITV-496, ITV-499,
+  ITV-507, ITV-509; `escrow/release` ITV-121; `event/notification` ITV-100;
+  `gov/census-query` ITV-136; `hr/update` ITV-135; `identity/certificate-check` ITV-457..463;
+  `identity/key-rotate` ITV-17; `identity/record` ITV-01, ITV-02; `identity/rotate-key`
+  ITV-307; `identity/trust-check` ITV-466, ITV-467; `mifid/risk-assessment` ACTV-01;
+  `notes/manage` ACTV-02; `onboarding/phase1-result` ITV-475, ITV-476;
+  `onboarding/verify-token-result` ITV-487; `oversight/expired` ITV-584;
+  `oversight/wrong` ITV-480; `payment/charge` ITV-177; `risk/assess` INV-19, ITV-552;
+  `routing/relay-receipt` RTV-01; `state/custom-archive` ITV-265, ITV-266;
+  `status/changed` CTV-06; `test` ITV-548, ITV-549, ITV-550; `test/event` ITV-178 (all
+  prefixed `arsiaprotocol.`). The registration estimate (~87) included the eight A-122
+  fixtures.
+- **Escrow timeout `processed_at` (resolved in the schema-alignment cycle, owner's
+  double check):** ITV-90, the timeout record, and the negatives derived from it, INV-243
+  and INV-245, carried `processed_at` 2026-04-27T14:00:00.000Z, the creation instant,
+  earlier than their `actual_timeout` (2026-05-27T14:00:01.000Z), while Assets §4.3 states
+  that the timeout record's `processed_at` is the processing of the timeout. The three now
+  carry `processed_at` and `retention_anchor` 2026-05-27T14:00:01.000Z and `retained_until`
+  2031-05-28T14:00:01.000Z (P1827D), with the resolution's `anchor` and `retained_until`
+  updated together; their schema errors are unchanged. The link guard (iv) reports a
+  timeout record processed before its `actual_timeout` ([§34][ev34]).
+- **Receiver emission of two diagnostics (schema-alignment cycle, declared):** the
+  harness State SET path does not emit `missing_legal_basis`, so the State §5.2
+  correspondence of `pii_classification` with the entry is not executed; and a receiver
+  does not emit `sensitive_requires_art9_basis` for INV-20 (`receive` accepts it: the path
+  does not set `sensitive_entry`). R24 checks the contracts and the resolver's output when
+  the flag is given; CORE-§4.3.8-18 and STATE-§5.2-06 record the receiver part as
+  `untested(no-reference-model)`.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
@@ -717,4 +775,5 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
 [ev31]: draft-02-remediation-ledger-evidence.md#31-state-cycle-closure-evidence
 [ev32]: draft-02-remediation-ledger-evidence.md#32-routing-cycle-closure-evidence
 [ev33]: draft-02-remediation-ledger-evidence.md#33-assetsaudit-cycle-closure-evidence
+[ev34]: draft-02-remediation-ledger-evidence.md#34-schema-alignment-cycle-closure-evidence
 [reg8]: draft-02-remediation-ledger-regulatory.md#8-open-notes-regulatory

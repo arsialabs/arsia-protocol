@@ -1544,6 +1544,16 @@ append-only history of the escrow lifecycle (tamper evidence bounded per
 ARSIA-State.md §7.2) that can be reconstructed by
 auditors and compliance officers.
 
+Each record documents one message: its base fields `message_id`, `from_agent`,
+`to_agent`, `intent`, `payload_type` and `payload_hash` (ARSIA-State.md §7.1) MUST be
+those of the message named for the transition in the tables below. An escrow timeout
+has no incoming message; its record documents the AssetTransferRequest that created the
+escrow, so the creation record and the timeout record of one escrow share `message_id`
+and remain distinct records (`record_id`, `sub_type`), the timeout record's
+`processed_at` being the processing of the timeout. `from_agent` and `to_agent` are the
+envelope agents of that message; the payer and payee of the transfer, which MAY differ
+from them (§3.1.1), are recorded in `payer_agent` and `payee_agent` (§4.3.1).
+
 #### 4.3.1 Escrow Creation
 
 Generated when the initial AssetTransferReceipt with `status: "escrowed"` is produced.
@@ -1555,8 +1565,12 @@ Generated when the initial AssetTransferReceipt with `status: "escrowed"` is pro
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `amount`           | The escrowed amount                                         |
 | `currency_or_unit` | The transfer's `currency_or_unit`                           |
-| `from_agent`       | The payer's agent-id                                        |
-| `to_agent`         | The payee's agent-id                                        |
+| `message_id`       | The `id` of the AssetTransferRequest that created the escrow |
+| `payload_type`     | `"arsiaprotocol.assets/transfer-request"`                   |
+| `from_agent`       | The request's `from`                                        |
+| `to_agent`         | The request's `to`                                          |
+| `payer_agent`      | The payer: the request's `payload.args.from_agent` (§3.1.1) |
+| `payee_agent`      | The payee: the request's `payload.args.to_agent` (§3.1.1)   |
 | `release_agent`    | The authorised release agent's agent-id                     |
 | `timeout_at`       | The escrow deadline                                         |
 | `record_id`        | UUID v4 — the audit record identifier (ArsiaAuditRecord base field; Draft-01's `audit_id` label) |
@@ -1571,6 +1585,8 @@ Generated when the escrow transitions from `ESCROWED` (or `DISPUTED`, §4.2.3) t
 |--------------------|-------------------------------------------------------------|
 | `event_type`       | `"asset_transfer"`                                          |
 | `sub_type`         | `"escrow_released"`                                         |
+| `message_id`       | The `id` of the release message (§4.2.1)                    |
+| `payload_type`     | The release message's `payload.type`, equal to `release_trigger` |
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `released_by`      | The agent-id that sent the release trigger                  |
 | `release_trigger`  | The payload.type of the release message                     |
@@ -1587,6 +1603,8 @@ Generated when the escrow transitions from `ESCROWED` (or `DISPUTED`, §4.2.3) t
 |--------------------|-------------------------------------------------------------|
 | `event_type`       | `"asset_transfer"`                                          |
 | `sub_type`         | `"escrow_returned"`                                         |
+| `message_id`       | Timeout: the `id` of the AssetTransferRequest that created the escrow (§4.3). Cancellation: the `id` of the escrow-cancel message (§4.2.4) |
+| `payload_type`     | Timeout: `"arsiaprotocol.assets/transfer-request"`. Cancellation: `"arsiaprotocol.assets/escrow-cancel"` |
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `timeout_at`       | The original deadline that was reached                      |
 | `actual_timeout`   | RFC 3339 — the actual time the timeout was processed        |
@@ -1596,7 +1614,8 @@ Generated when the escrow transitions from `ESCROWED` (or `DISPUTED`, §4.2.3) t
 
 When the return results from a sender cancellation (§4.2.4) rather than a timeout, the
 record carries `cancellation_reason` in place of `actual_timeout`; `timeout_at` still
-records the original escrow deadline.
+records the original escrow deadline. A record MUST carry exactly one of
+`actual_timeout` and `cancellation_reason`.
 
 #### 4.3.4 Escrow Dispute
 
@@ -1606,6 +1625,8 @@ Generated when the escrow transitions from `ESCROWED` to `DISPUTED`.
 |--------------------|-------------------------------------------------------------|
 | `event_type`       | `"asset_transfer"`                                          |
 | `sub_type`         | `"escrow_disputed"`                                         |
+| `message_id`       | The `id` of the escrow-dispute message (§4.2.3)             |
+| `payload_type`     | `"arsiaprotocol.assets/escrow-dispute"`                     |
 | `payment_reference`| The transfer's `payment_reference`                          |
 | `disputed_by`      | The agent-id of the disputing party                         |
 | `dispute_reason`   | The human-readable dispute reason                           |

@@ -2,7 +2,7 @@
 <!-- Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda) -->
 # ARSIA Protocol — Test Vectors
 
-987 test vectors (499 schema-valid, 258 expected-invalid, 211 runtime-only, 19 raw parse vectors — validator classification) for
+1019 test vectors (512 schema-valid, 280 expected-invalid, 208 runtime-only, 19 raw parse vectors — validator classification) for
 validating ARSIA Protocol implementations. Vectors with a `crypto` block use real Ed25519,
 ES256 (ECDSA P-256), and RS256 (RSASSA-PKCS1-v1_5) signatures, and declare the expected
 verification outcome (`crypto.expect_signature`). Signatures outside a crypto block verify with the
@@ -13,7 +13,7 @@ catalog key of their `kid` unless the vector declares a signature negative (see
 
 | File | Description |
 |------|-------------|
-| [arsia-test-vectors.json](arsia-test-vectors.json) | 987 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
+| [arsia-test-vectors.json](arsia-test-vectors.json) | 1019 test vectors. Header: `version` `2.0.0` (the Draft-02 corpus, for wire 2.0; the Draft-01 corpora were 1.0.x) and `generated`, the instant this revision was prepared |
 | [keypairs.json](keypairs.json) | 54 test keypairs: 49 Ed25519, 2 ES256 (P-256), 3 RSA (NOT secrets — committed intentionally). 17 Draft-02 entries; 35 imported unchanged from the Draft-01.1 catalog (`origin/main 17dcf33`), only those a Draft-02 vector uses (34 in the port, one in the main reconciliation); 2 generated. The `provenance` member lists the three sets with their digests. `agent:acme.legacy-system#rsa1024` is an RSA key of 1024 bits, deliberately below the 2048-bit minimum of Core §5.1, for the key-size negative ITV-425 only. Derivations are stated in the file |
 
 ## Vector Formats
@@ -49,15 +49,15 @@ itself stops the tools.
 
 | Prefix | Category | Count |
 |--------|----------|-------|
-| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 728 |
-| `INV-` | Invalid (all specs) | 225 |
+| `ITV-` | Cross-spec (identity, state, routing, assets, actions, core) | 740 |
+| `INV-` | Invalid (all specs) | 245 |
 | `CTV-` | Core (envelope, intents, compliance, raw parsing) | 16 |
 | `STV-` | State (operations, audit records) | 7 |
 | `ATV-` | Assets (receipts, reversals, escrow) | 6 |
 | `ACTV-` | Actions (explainability, rollback) | 3 |
 | `RTV-` | Routing (broker relay) | 2 |
 
-Next available ID: **ITV-729** / **INV-226** / **CTV-17**
+Next available ID: **ITV-741** / **INV-246** / **CTV-17**
 
 ## Runtime-Only Vectors
 
@@ -75,7 +75,7 @@ shows that the binding holds, not that the vector's message is accepted (the vec
 be invalid for another reason). `token_binding` and `attestation` scenarios state the
 presented token explicitly.
 
-211 vectors have `skip_schema: true` with a corresponding `skip_reason`.
+208 vectors have `skip_schema: true` with a corresponding `skip_reason`.
 These test runtime constraints (e.g. signature verification, temporal
 checks) that cannot be validated by JSON Schema alone. A skip exempts only the
 runtime expectation: every runtime-only vector is still validated structurally

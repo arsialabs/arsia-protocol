@@ -319,7 +319,7 @@
     },
     "error-details-conflict-absent": {
       "type": "object",
-      "description": "Error details for a conditional SET on a key without a live entry — State §3.1.2 rule 4, §8.4. Consist of entry_live false and each precondition the request stated; no current_* or updated_* member and nothing that distinguishes a deleted key from a key never written.",
+      "description": "Error details for a conditional SET on a key without a live entry — State §3.1.2 rule 4, §8.4. Consist of entry_live false and each precondition the request stated; no current_* or updated_* member and nothing that distinguishes a deleted key from a key never written. MAY also carry localized_description (Core §11.1).",
       "required": [
         "entry_live"
       ],
@@ -347,6 +347,10 @@
         "expected_version": {
           "type": "integer",
           "minimum": 1
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
         }
       }
     },
@@ -739,7 +743,7 @@
     },
     "error-details-retention-override": {
       "type": "object",
-      "description": "Error details for a PURGE rejected because it is within retention and carries no retention_override — ARSIA-State.md §3.2.2, §8.4. Consist of within_retention (true) and entry_retained_until, both determined by the implementation from stored state.",
+      "description": "Error details for a PURGE rejected because it is within retention and carries no retention_override — ARSIA-State.md §3.2.2, §8.4. Consist of within_retention (true) and entry_retained_until, both determined by the implementation from stored state. MAY also carry localized_description (Core §11.1).",
       "required": [
         "within_retention",
         "entry_retained_until"
@@ -751,12 +755,16 @@
         },
         "entry_retained_until": {
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
         }
       }
     },
     "error-details-retention-fixed": {
       "type": "object",
-      "description": "Error details for a SET that updates an entry and is rejected because the retention preserved for the generation is fixed — ARSIA-State.md §3.1.2 rule 7, §8.4. Consist of retention_fixed (true), entry_retained_until (created_at + the preserved retention, or null when the generation has no retention period) and required_retained_until (the instant that the value or the floor that failed produces from the same created_at).",
+      "description": "Error details for a SET that updates an entry and is rejected because the retention preserved for the generation is fixed — ARSIA-State.md §3.1.2 rule 7, §8.4. Consist of retention_fixed (true), entry_retained_until (created_at + the preserved retention, or null when the generation has no retention period) and required_retained_until (the instant that the value or the floor that failed produces from the same created_at). MAY also carry localized_description (Core §11.1).",
       "required": [
         "retention_fixed",
         "entry_retained_until",
@@ -779,6 +787,205 @@
         },
         "required_retained_until": {
           "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-unknown-profile": {
+      "type": "object",
+      "description": "Error details for invalid_request: unknown profile in strict mode — Core §4.3.8 Rule 1, §4.3.10.6. Consist of unknown_profile (true). MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "unknown_profile"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "unknown_profile": {
+          "const": true
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-missing-legal-basis": {
+      "type": "object",
+      "description": "Error details for invalid_request: personal data without a legal basis — Core §4.3.8 Rule 2, §4.3.10.6; ARSIA-State.md §5.2. Consist of missing_legal_basis (true) and, for a SET of a personal or sensitive entry, OPTIONAL pii_classification, the classification of the entry the SET declares. MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "missing_legal_basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "missing_legal_basis": {
+          "const": true
+        },
+        "pii_classification": {
+          "enum": [
+            "personal",
+            "sensitive"
+          ],
+          "description": "The pii_classification of the entry the SET declares (ARSIA-State.md §5.2)."
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-high-risk-missing-oversight": {
+      "type": "object",
+      "description": "Error details for invalid_request: high-risk oversight restriction unmet — Core §4.3.8 Rule 3, §4.3.10.6. Consist of high_risk_missing_oversight (true), declared (the declared human_oversight value or null) and sources (the requirement sources). MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "high_risk_missing_oversight",
+        "declared",
+        "sources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "high_risk_missing_oversight": {
+          "const": true
+        },
+        "declared": {
+          "oneOf": [
+            {
+              "$ref": "arsia-compliance-field.schema.json#/properties/human_oversight"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "arsia-audit-record.schema.json#/$defs/resolution-source"
+          }
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-insufficient-retention": {
+      "type": "object",
+      "description": "Error details for invalid_request: declared retention below the profile floor — Core §4.3.8 Rule 4, §4.3.10.6. Consist of the eight members of Rule 4. MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "insufficient_retention",
+        "profile",
+        "declared_retention",
+        "minimum_retention",
+        "retention_anchor",
+        "declared_retained_until",
+        "minimum_retained_until",
+        "resolution_source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "insufficient_retention": {
+          "const": true
+        },
+        "profile": {
+          "type": "string"
+        },
+        "declared_retention": {
+          "type": "string",
+          "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$"
+        },
+        "minimum_retention": {
+          "type": "string",
+          "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$"
+        },
+        "retention_anchor": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "declared_retained_until": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "minimum_retained_until": {
+          "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
+        },
+        "resolution_source": {
+          "const": "per-message"
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-classification-escalation": {
+      "type": "object",
+      "description": "Error details for invalid_request: classification escalation — Core §4.3.8 Rule 6, §4.3.10.6. Consist of classification_escalation (true). MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "classification_escalation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "classification_escalation": {
+          "const": true
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-sensitive-requires-art9-basis": {
+      "type": "object",
+      "description": "Error details for invalid_request: special-category data without an Art. 9(2) basis — Core §4.3.8 Rule 8, §4.3.10.6. Consist of sensitive_requires_art9_basis (true). MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "sensitive_requires_art9_basis"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sensitive_requires_art9_basis": {
+          "const": true
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
+        }
+      }
+    },
+    "error-details-obligation-conflict": {
+      "type": "object",
+      "description": "Error details for invalid_request: any other obligation conflict — Core §4.3.10.5, §4.3.10.6. Consist of obligation_conflict (true), axis, declared, required and sources. MAY also carry localized_description (Core §11.1).",
+      "required": [
+        "obligation_conflict",
+        "axis",
+        "declared",
+        "required",
+        "sources"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "obligation_conflict": {
+          "const": true
+        },
+        "axis": {
+          "enum": [
+            "oversight",
+            "audit",
+            "explainability",
+            "retention",
+            "residency"
+          ]
+        },
+        "declared": {},
+        "required": {},
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "arsia-audit-record.schema.json#/$defs/resolution-source"
+          }
+        },
+        "localized_description": {
+          "type": "string",
+          "description": "Localized rendering of payload.error.description (Core §11.1); the English description remains authoritative. The schema permits the member: whether the originating request carried context.locale is not visible to it."
         }
       }
     }
@@ -1402,6 +1609,188 @@
                     "properties": {
                       "details": {
                         "$ref": "#/$defs/error-details-retention-fixed"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "unknown_profile"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-unknown-profile"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "missing_legal_basis"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-missing-legal-basis"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "high_risk_missing_oversight"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-high-risk-missing-oversight"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "insufficient_retention"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-insufficient-retention"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "classification_escalation"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-classification-escalation"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "sensitive_requires_art9_basis"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-sensitive-requires-art9-basis"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "code": {
+                        "const": "invalid_request"
+                      },
+                      "details": {
+                        "type": "object",
+                        "required": [
+                          "obligation_conflict"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "details"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "details": {
+                        "$ref": "#/$defs/error-details-obligation-conflict"
                       }
                     }
                   }
@@ -2177,6 +2566,93 @@
                   "arsiaprotocol.state/grant",
                   "arsiaprotocol.state/revoke"
                 ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Core §4.3.8 Rule 8: a SET of a sensitive entry that declares a legal basis declares an Art. 9(2) ground (an absent basis is Rule 2 / State §5.2)",
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "arsiaprotocol.state/set"
+              },
+              "args": {
+                "type": "object",
+                "properties": {
+                  "pii_classification": {
+                    "const": "sensitive"
+                  }
+                },
+                "required": [
+                  "pii_classification"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "args"
+            ]
+          },
+          "compliance": {
+            "type": "object",
+            "required": [
+              "legal_basis"
+            ]
+          }
+        },
+        "required": [
+          "payload",
+          "compliance"
+        ]
+      },
+      "then": {
+        "properties": {
+          "compliance": {
+            "properties": {
+              "legal_basis": {
+                "$ref": "arsia-compliance-field.schema.json#/$defs/art9-legal-basis"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "State §2.1.11: a SET carries pii_special_categories exactly when it declares a sensitive entry",
+      "if": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "arsiaprotocol.state/set"
+              },
+              "args": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type",
+              "args"
+            ]
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "args": {
+                "$ref": "arsia-state-operations.schema.json#/$defs/pii-special-categories"
               }
             }
           }

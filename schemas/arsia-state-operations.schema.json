@@ -306,21 +306,7 @@
           }
         },
         {
-          "if": {
-            "properties": {
-              "pii_classification": {
-                "const": "sensitive"
-              }
-            },
-            "required": [
-              "pii_classification"
-            ]
-          },
-          "then": {
-            "required": [
-              "pii_special_categories"
-            ]
-          }
+          "$ref": "#/$defs/pii-special-categories"
         }
       ]
     },
@@ -744,6 +730,31 @@
             {
               "description": "UUID of the revoked grant."
             }
+          ]
+        }
+      }
+    },
+    "pii-special-categories": {
+      "description": "State §2.1.11: pii_special_categories is REQUIRED when pii_classification is \"sensitive\" and MUST NOT be present otherwise.",
+      "if": {
+        "properties": {
+          "pii_classification": {
+            "const": "sensitive"
+          }
+        },
+        "required": [
+          "pii_classification"
+        ]
+      },
+      "then": {
+        "required": [
+          "pii_special_categories"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "pii_special_categories"
           ]
         }
       }

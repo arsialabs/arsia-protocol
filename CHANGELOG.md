@@ -32,6 +32,10 @@ Draft-02 supersedes Draft-01. **Breaking release: wire version 2.0.** Full detai
 - SNAPSHOT `hash` (Issue #2) is now defined: `"sha-256:"` + lowercase hex SHA-256 over the RFC 8785 form of `{as_of, entries}` as carried, in the order carried; the schema enforces the format (State §3.2.1).
 - Relay attestation (Issue #2): `residency_zone` is the value of the message's `compliance.data_residency`, set unchanged by the broker; the recipient rejects with `unauthorized`, at step 3, an attestation whose zone is not equal to it as a string, with no containment in either direction (Routing §7.4.1).
 - Asset and incident audit records (Issue #2): every `asset_transfer` record carries `payment_reference`, the reference of the transfer it belongs to. A reversal record (`event_type` `asset_transfer` with `payload_type` `arsiaprotocol.assets/transfer-reversal`) carries the original transfer's `payment_reference` and, in `original_audit_id`, the `record_id` of the original record; the reversal receipt keeps its new reference. An `ict_incident` record carries the incident event's `payload.data` fields with the same values (six required, `resolved_at` as in the event) (Assets §3.3.2, §6.2.3; State §7.1).
+- Compliance rejection details: the `details` of the seven Core §4.3.10.6 diagnostics are closed objects carrying exactly the members their rule defines (`arsia-message.schema.json` `error-details-<diagnostic>`, applied to `invalid_request` when the diagnostic member is present, which must be `true`). State §5.2's `missing_legal_basis` details carry the indicator and an optional `pii_classification`, with no `message` member: the explanation is `payload.error.description` (Core §4.3.10.6, §11.1; State §5.2).
+- Escrow audit records: each record documents the message of its transition — `payload_type` `arsiaprotocol.assets/transfer-request` on creation and on timeout (a timeout record documents the request that created the escrow), the `release_trigger` on release, `arsiaprotocol.assets/escrow-dispute` and `arsiaprotocol.assets/escrow-cancel`; `from_agent`/`to_agent` are the envelope agents, and the creation record adds REQUIRED `payer_agent`/`payee_agent`; an `escrow_returned` record carries exactly one of `actual_timeout` and `cancellation_reason` (Assets §4.3, State §7.1).
+- State SET at the envelope: a SET of a `sensitive` entry that declares a legal basis declares an Art. 9(2) ground, and `pii_special_categories` is present exactly when the entry is `sensitive`; the message, `set-args` and state-entry schemas enforce both (Core §4.3.8 Rule 8, State §2.1.11).
+- Audit query responses: a response that contains a tombstone is a chain response — every entry MUST carry `chain_id` and `chain_seq`, and `next_cursor`, when present, MUST be an integer `chain_seq`; matching the query parameters stays a runtime obligation (State §7.4).
 - Audit records: `compliance_profile` → declared/resolved pair + retention resolution fields + `counterparty_owner_id`; every asset receipt has an audit record; MiFID records immutable (`updated_at` removed); `dora_incident` → `ict_incident` with candidate-based trigger.
 
 ### Added
@@ -98,6 +102,8 @@ unchanged.
 
 ### Changed
 
+- Core §11.1: `details.localized_description` is accepted in every `details` object,
+  including those whose members are otherwise fixed (Core §4.3.10.6; State §8.4).
 - Assets §6.2.2 (Issue #2): `resolved_at` of the ICT incident event is typed "string or
   null" in the prose, as the schema and the §6.2.5 example already allowed; absent or
   `null` means the incident is ongoing.

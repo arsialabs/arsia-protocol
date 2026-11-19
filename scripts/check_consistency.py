@@ -80,11 +80,13 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
     for entry in audit_schema.get("allOf", []):
         c = condition(entry)
         then = entry.get("then", {})
-        alts = {f for a in then.get("anyOf", []) for f in a.get("required", [])}
+        # alternatives: anyOf (at least one) or oneOf (exactly one, A-124); the kind is kept for the table check
+        alts = {f for a in then.get("anyOf", []) + then.get("oneOf", []) for f in a.get("required", [])}
+        exclusive = bool(then.get("oneOf")) and not then.get("anyOf")
         if c is None:
             multi.append((entry.get("if", {}).get("properties", {}), set(then.get("required", []))))
         else:
-            single[c] = (set(then.get("required", [])), alts)
+            single[c] = (set(then.get("required", [])), alts, exclusive)
 
     def spec_values(spec):
         return frozenset(spec.get("enum", [spec["const"]] if "const" in spec else []))
@@ -162,22 +164,24 @@ def audit_extension_parity(state_text, audit_schema, tombstone_schema=None):
             continue
         field, vals = m.group(1), frozenset(re.findall(r"`([a-z_]+)`", m.group(2)))
         covered.add((field, vals))
-        req_schema, alts = single.get((field, vals), (set(), set()))
+        req_schema, alts, exclusive = single.get((field, vals), (set(), set(), False))
         if req_schema != required:
             problems.append(f"{rtype}: table REQUIRED {sorted(required)} != schema {sorted(req_schema)}")
         if not alts <= optional:
             problems.append(f"{rtype}: schema alternatives {sorted(alts - optional)} not in table")
-        if "exactly as applicable" in optional_cell:  # table alternatives must be schema anyOf
+        if "exactly as applicable" in optional_cell:  # table alternatives must be the schema's exclusive oneOf
             tab_alts = set(re.findall(r"`([a-z_]+)`", re.sub(
                 r"\([^)]*\)", "", optional_cell.split("exactly as applicable", 1)[1])))
             if tab_alts != alts:
-                problems.append(f"{rtype}: table alternatives {sorted(tab_alts)} != schema anyOf {sorted(alts)}")
+                problems.append(f"{rtype}: table alternatives {sorted(tab_alts)} != schema alternatives {sorted(alts)}")
+            elif not exclusive:
+                problems.append(f"{rtype}: table alternatives are exclusive, schema alternatives are not a oneOf")
         for cond_props, req in multi:
             spec = cond_props.get(field, {})
             # a compound condition's fields may already be REQUIRED on the generic row
             if spec.get("const") in vals and not req <= required | optional:
                 problems.append(f"{rtype}: conditional {sorted(req - required - optional)} not in table")
-    for key, (req, _alts) in single.items():
+    for key, (req, _alts, _exclusive) in single.items():
         if key not in covered and req:
             problems.append(f"schema condition {key[0]}={sorted(key[1])} has no table row")
     for i, (cond_props, req) in enumerate(multi):
@@ -1938,15 +1942,16 @@ def port_fixture_problems(vectors, registry):
 EXCLUSIVE_PAIR = {"ITV-423": ("payload", "args", "result")}
 
 
-def single_cause_problems(vectors, registry, only=None):
+def single_cause_problems(vectors, registry, only=None, table=None):
     """Single-cause negatives: the general --check-errors comparator matches a keyword ("required", "enum") and
-    would accept a second defect next to the announced one, so each fails with exactly its errors."""
+    would accept a second defect next to the announced one, so each fails with exactly its errors. `table`
+    defaults to SINGLE_CAUSE; a cycle passes its own."""
     import copy as _copy
     import validate_vectors as vv
     from jsonschema import Draft202012Validator
     out = []
     by_id = {v["id"]: v for v in vectors}
-    for vid, fmt, ref, want in SINGLE_CAUSE:
+    for vid, fmt, ref, want in (SINGLE_CAUSE if table is None else table):
         if only is not None and vid not in only:
             continue
         v = by_id.get(vid)
@@ -2499,6 +2504,10 @@ def audit_parity_self_test(state_text, audit_schema, tombstone_schema):
     entry = reversal_entry(reduced)
     del entry["if"]["properties"]["payload_type"]
     entry["if"]["required"] = ["event_type"]
+    inclusive = copy.deepcopy(audit_schema)  # schema-alignment cycle (A-124): exclusive alternatives
+    returned = next(e for e in inclusive["allOf"]
+                    if e.get("if", {}).get("properties", {}).get("sub_type", {}).get("const") == "escrow_returned")
+    returned["then"]["anyOf"] = returned["then"].pop("oneOf")
     cases = {
         "(a) the compound row reduced to the generic event": (state_text.replace(
             REVERSAL_ROW, REVERSAL_ROW.replace(" and `payload_type` = `arsiaprotocol.assets/transfer-reversal`", "")), audit_schema),
@@ -2506,6 +2515,7 @@ def audit_parity_self_test(state_text, audit_schema, tombstone_schema):
         "(c) the payload_type value truncated in the table": (state_text.replace(
             REVERSAL_ROW, REVERSAL_ROW.replace("`arsiaprotocol.assets/transfer-reversal`", "`arsiaprotocol`")), audit_schema),
         "(d) the compound condition without a table row": (state_text.replace(REVERSAL_ROW + "\n", ""), audit_schema),
+        "(e) exclusive table alternatives against a schema anyOf": (state_text, inclusive),
     }
     for name, (text, schema) in cases.items():
         if text == state_text and schema is audit_schema:
@@ -2605,6 +2615,283 @@ def routing_cycle_echo_problems():
         for old in ("`attestation_id` is not the `relay_id`", "distinct from attestation_id"):
             if old in text:
                 out.append(f"{where}: the wording {old!r}, which reads as required inequality, is back")
+    return out
+
+
+# ---------------------------------------------------------------- schema-alignment cycle (A-114..A-116, A-122..A-126)
+AUDIT_REF = "arsia-audit-record.schema.json"
+ESCROW_BASE_FIELDS = ("message_id", "from_agent", "to_agent", "intent", "payload_type", "payload_hash")
+# Negatives whose declared cause is a base-field divergence from the creation record: only that comparison is
+# dispensed, the other base fields and payment_reference stay checked (A-122).
+ESCROW_LINK_EXCEPTIONS = {
+    "INV-243": ("payload_type", "timeout record with payload_type escrow-cancel: its declared cause is that payload_type"),
+}
+# Each fails with exactly its errors; --check-errors would accept a second defect next to the announced one.
+ESCROW_SINGLE_CAUSE = (
+    ("ITV-92", "data", AUDIT_REF, [("required", (), "'release_agent' is a required property")]),
+    ("INV-47", "data", AUDIT_REF, "oneOf "),  # its context: exactly the two presence errors (escrow_single_cause_problems)
+    ("INV-239", "data", AUDIT_REF, [("required", (), "'payer_agent' is a required property")]),
+    ("INV-240", "data", AUDIT_REF, [("required", (), "'payee_agent' is a required property")]),
+    ("INV-241", "data", AUDIT_REF, "const payload_type"),
+    ("INV-242", "data", AUDIT_REF, "const payload_type"),
+    ("INV-243", "data", AUDIT_REF, "const payload_type"),
+    ("INV-244", "data", AUDIT_REF, "const payload_type"),
+    ("INV-245", "data", AUDIT_REF, "oneOf "),  # both members: valid under each branch, no payload_type error
+)
+
+
+def escrow_records(vectors):
+    """Every escrow audit record (sub_type escrow_*) of the corpus, at any depth of a vector's data or message —
+    the record itself, the records of a query response, a record carried in a message — with its vector and path."""
+    def walk(node, path):
+        if isinstance(node, dict):
+            if str(node.get("sub_type", "")).startswith("escrow_"):
+                yield path, node
+            for k, x in node.items():
+                yield from walk(x, f"{path}/{k}")
+        elif isinstance(node, list):
+            for i, x in enumerate(node):
+                yield from walk(x, f"{path}/{i}")
+    for v in vectors:
+        for root in ("data", "message"):
+            for path, r in walk(v.get(root), root):
+                yield v, path, r
+
+
+def _instant(s):
+    import datetime as _dt
+    try:
+        return _dt.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except (TypeError, ValueError):
+        return None
+
+
+def escrow_link_problems(vectors, exceptions=None):
+    """A-122/A-125 on every escrow record of the corpus, nested ones included (escrow_records):
+    (ii) a release record's payload_type is its release_trigger, whether or not its creation record is in the corpus;
+    (iv) a timeout record (actual_timeout without cancellation_reason) is processed at or after its actual_timeout;
+    and, when original_audit_id resolves (by record_id) to an escrow_created record of the corpus,
+    (i) the transition carries that record's payment_reference and (iii) a timeout record has its six base fields.
+    An original_audit_id outside the corpus is not a problem; only (i) and (iii) depend on it. The release
+    comparison proves the coherence of the record's fields, not the link to an external message. A declared
+    exception dispenses one base-field comparison of the vector's own record (path data), nothing else."""
+    exceptions = ESCROW_LINK_EXCEPTIONS if exceptions is None else exceptions
+    out = []
+    recs = list(escrow_records(vectors))
+    created = {}
+    for v, path, r in recs:
+        if r.get("sub_type") == "escrow_created":
+            prev = created.get(r.get("record_id"))
+            if prev is not None and prev[1] != r:
+                out.append(f"{v['id']} {path}: record_id shared with a different creation record {prev[0]}")
+            created.setdefault(r.get("record_id"), (f"{v['id']} {path}", r))
+    by_id = {v["id"]: v for v in vectors}
+    for vid, (field, _reason) in exceptions.items():
+        v = by_id.get(vid)
+        if v is None:
+            out.append(f"{vid}: declared link exception without a vector")
+            continue
+        r = v.get("data") if isinstance(v.get("data"), dict) else {}
+        if v.get("expected") != "invalid":
+            out.append(f"{vid}: link exception declared for a vector that is not invalid")
+        if field not in str(v.get("expected_error") or ""):
+            out.append(f"{vid}: link exception for {field}, which its expected_error does not name")
+        if not ("actual_timeout" in r and "cancellation_reason" not in r):
+            out.append(f"{vid}: link exception declared for a record that is not a timeout record")
+    linked = 0
+    for v, path, r in recs:
+        if r.get("sub_type") == "escrow_created":
+            continue
+        where = f"{v['id']} {path}"
+        timeout = "actual_timeout" in r and "cancellation_reason" not in r
+        if r.get("sub_type") == "escrow_released" and r.get("payload_type") != r.get("release_trigger"):
+            out.append(f"{where}: release record payload_type differs from its release_trigger")
+        if timeout:
+            done, due = _instant(r.get("processed_at")), _instant(r.get("actual_timeout"))
+            if done is None or due is None or done < due:
+                out.append(f"{where}: timeout record processed_at {r.get('processed_at')} precedes its "
+                           f"actual_timeout {r.get('actual_timeout')}")
+        if r.get("original_audit_id") not in created:
+            continue
+        linked += 1
+        cid, c = created[r["original_audit_id"]]
+        if r.get("payment_reference") != c.get("payment_reference"):
+            out.append(f"{where}: payment_reference {r.get('payment_reference')!r} differs from creation record "
+                       f"{cid} ({c.get('payment_reference')!r})")
+        if timeout:
+            exempt = {exceptions[v["id"]][0]} if v["id"] in exceptions and path == "data" else set()
+            for k in ESCROW_BASE_FIELDS:
+                if k not in exempt and r.get(k) != c.get(k):
+                    out.append(f"{where}: timeout record {k} differs from creation record {cid}")
+    if not linked:
+        out.append("no escrow transition record resolves to a creation record (guard dead?)")
+    return out
+
+
+def escrow_link_self_test():
+    """Synthetic: a sound set — with a release whose creation record is outside the set and a query response
+    carrying a release and a timeout record — passes; each divergence, in a direct or a nested record, a release
+    with an unresolved original_audit_id whose payload_type is not its release_trigger, a timeout processed before
+    it occurred, a second defect on the excepted record and a malformed exception are reported."""
+    import copy as _copy
+    T0, T1 = "2026-04-27T14:00:00.000Z", "2026-05-27T14:00:01.000Z"
+    base = {"message_id": "00000000-0000-4000-8000-0000000000a1", "from_agent": "agent:example.sender",
+            "to_agent": "agent:example.holder", "intent": "request", "payload_type": "arsiaprotocol.assets/transfer-request",
+            "payload_hash": "0" * 64, "processed_at": T0}
+    cre = dict(base, record_id="00000000-0000-4000-8000-0000000000c1", sub_type="escrow_created", payment_reference="R1")
+    tim = dict(base, record_id="00000000-0000-4000-8000-0000000000c2", sub_type="escrow_returned", payment_reference="R1",
+               original_audit_id=cre["record_id"], actual_timeout=T1, processed_at=T1)
+    rel = dict(base, record_id="00000000-0000-4000-8000-0000000000c3", sub_type="escrow_released", payment_reference="R1",
+               original_audit_id=cre["record_id"], payload_type="com.example.delivery/confirmed",
+               release_trigger="com.example.delivery/confirmed")
+    exc = dict(tim, record_id="00000000-0000-4000-8000-0000000000c4", payload_type="arsiaprotocol.assets/escrow-cancel")
+    ext = dict(rel, record_id="00000000-0000-4000-8000-0000000000c5", original_audit_id="00000000-0000-4000-8000-0000000000ff",
+               payment_reference="R9")
+    nrel = dict(rel, record_id="00000000-0000-4000-8000-0000000000c6")
+    ntim = dict(tim, record_id="00000000-0000-4000-8000-0000000000c7")
+
+    def vec(vid, data, invalid=False, err=None, ref=AUDIT_REF):
+        return {"id": vid, "schema_ref": ref, "expected": "invalid" if invalid else "valid", "data": data,
+                "expected_error": err}
+    ex = {"SYN-E": ("payload_type", "synthetic")}
+    sound = [vec("SYN-C", cre), vec("SYN-T", tim), vec("SYN-R", rel),
+             vec("SYN-E", exc, True, "payload_type must be arsiaprotocol.assets/transfer-request"),
+             vec("SYN-X", ext),
+             vec("SYN-Q", {"records": [nrel, ntim], "total": 2, "has_more": False},
+                 ref="arsia-audit-query-response.schema.json")]
+    out = []
+    if escrow_link_problems(sound, ex):
+        out.append(f"sound synthetic set reported: {escrow_link_problems(sound, ex)[:2]}")
+
+    def variant(i, nested=None, **kw):
+        s = _copy.deepcopy(sound)
+        (s[i]["data"] if nested is None else s[i]["data"]["records"][nested]).update(kw)
+        return s
+    cases = {
+        "(i) payment_reference divergence": (variant(2, payment_reference="R2"), ex),
+        "(ii) release payload_type != release_trigger": (variant(2, payload_type="com.example.other/event"), ex),
+        "(iii) timeout message_id divergence": (variant(1, message_id="00000000-0000-4000-8000-0000000000a2"), ex),
+        "(iv) timeout processed before its actual_timeout": (variant(1, processed_at=T0), ex),
+        "(i) nested release payment_reference divergence": (variant(5, 0, payment_reference="R2"), ex),
+        "(ii) nested release payload_type != release_trigger": (variant(5, 0, payload_type="com.example.other/event"), ex),
+        "(iii) nested timeout message_id divergence": (variant(5, 1, message_id="00000000-0000-4000-8000-0000000000a2"), ex),
+        "(iv) nested timeout processed before its actual_timeout": (variant(5, 1, processed_at=T0), ex),
+        "(ii) unresolved release payload_type != release_trigger": (variant(4, payload_type="com.example.other/event"), ex),
+        "second defect on the excepted record (message_id)": (variant(3, message_id="00000000-0000-4000-8000-0000000000a2"), ex),
+        "exception declared for a valid vector": (sound, {"SYN-T": ("payload_type", "x")}),
+        "exception whose expected_error does not name the field": (sound, {"SYN-E": ("payload_hash", "x")}),
+    }
+    for name, (vs, exs) in cases.items():
+        if not escrow_link_problems(vs, exs):
+            out.append(f"{name}: not reported")
+    return out
+
+
+def escrow_single_cause_problems(vectors, registry):
+    """ITV-92, INV-47 and the escrow negatives fail with exactly their declared errors (single_cause_problems), and
+    INV-47's oneOf carries exactly the two presence errors, none on payload_type."""
+    import validate_vectors as vv
+    from jsonschema import Draft202012Validator
+    out = single_cause_problems(vectors, registry, table=ESCROW_SINGLE_CAUSE)
+    v47 = next((v for v in vectors if v["id"] == "INV-47"), None)
+    if v47 is None:
+        return out + ["INV-47 missing"]
+    errs = list(Draft202012Validator(vv.resolve_schema(AUDIT_REF, registry), registry=registry).iter_errors(v47["data"]))
+    ctx = sorted((c.validator, c.message) for e in errs for c in e.context)
+    want = [("required", "'actual_timeout' is a required property"),
+            ("required", "'cancellation_reason' is a required property")]
+    if ctx != want:
+        out.append(f"INV-47: the oneOf context is not exactly the two presence errors: {ctx}")
+    return out
+
+
+def schema_alignment_echo_problems():
+    """Schema-alignment cycle anti-regression: the seven closed diagnostic details and their presence dispatch, the
+    localized member of the closed details, the query-response coherence, the SET conditionals and the escrow
+    payload_type constants are in the schemas; the new texts are stated and the replaced ones absent."""
+    out = []
+    msg = strict_load("schemas/arsia-message.schema.json")
+    want = {"unknown_profile": [], "missing_legal_basis": [], "classification_escalation": [],
+            "sensitive_requires_art9_basis": [], "high_risk_missing_oversight": ["declared", "sources"],
+            "obligation_conflict": ["axis", "declared", "required", "sources"],
+            "insufficient_retention": ["profile", "declared_retention", "minimum_retention", "retention_anchor",
+                                       "declared_retained_until", "minimum_retained_until", "resolution_source"]}
+    err = msg["properties"]["payload"]["oneOf"][1]["properties"]["error"]["allOf"]
+    for key, members in want.items():
+        name = "error-details-" + key.replace("_", "-")
+        d = msg["$defs"].get(name)
+        if not d:
+            out.append(f"{name} missing")
+            continue
+        if d.get("additionalProperties") is not False or d["properties"].get(key) != {"const": True}:
+            out.append(f"{name}: not closed, or {key} not const true")
+        if d.get("required") != [key] + members or "localized_description" not in d["properties"]:
+            out.append(f"{name}: required {d.get('required')} or localized_description differs from Core §4.3.8")
+        hit = [e for e in err if e.get("then", {}).get("properties", {}).get("details", {}).get("$ref") == f"#/$defs/{name}"]
+        cond = hit[0]["if"]["properties"] if hit else {}
+        if not hit or cond.get("code") != {"const": "invalid_request"} or cond.get("details", {}).get("required") != [key] \
+                or "properties" in cond.get("details", {}):
+            out.append(f"{name}: no dispatch on invalid_request + presence of {key}")
+    for name in ("error-details-conflict-absent", "error-details-retention-override", "error-details-retention-fixed"):
+        if msg["$defs"][name]["properties"].get("localized_description", {}).get("type") != "string":
+            out.append(f"{name}: localized_description (Core §11.1) not accepted")
+    audit = strict_load("schemas/arsia-audit-record.schema.json")
+    sub = {e["if"]["properties"]["sub_type"]["const"]: e["then"] for e in audit["allOf"]
+           if set(e.get("if", {}).get("properties", {})) == {"sub_type"}}
+    const = lambda th: th.get("properties", {}).get("payload_type", {}).get("const")
+    if const(sub["escrow_created"]) != "arsiaprotocol.assets/transfer-request" or \
+            not {"payer_agent", "payee_agent"} <= set(sub["escrow_created"]["required"]):
+        out.append("escrow_created: payload_type constant or payer/payee requirement missing")
+    if const(sub["escrow_disputed"]) != "arsiaprotocol.assets/escrow-dispute":
+        out.append("escrow_disputed: payload_type constant missing")
+    ret = sub["escrow_returned"]
+    modal = {tuple(e["if"].get("required", [])): (e["if"].get("not"), const(e["then"])) for e in ret.get("allOf", [])}
+    if "anyOf" in ret or ret.get("oneOf") != [{"required": ["actual_timeout"]}, {"required": ["cancellation_reason"]}] or \
+            modal != {("actual_timeout",): ({"required": ["cancellation_reason"]}, "arsiaprotocol.assets/transfer-request"),
+                      ("cancellation_reason",): ({"required": ["actual_timeout"]}, "arsiaprotocol.assets/escrow-cancel")}:
+        out.append("escrow_returned: exclusive oneOf or the exclusive modality constants differ")
+    q = strict_load("schemas/arsia-audit-query-response.schema.json")
+    tomb = (q.get("allOf") or [{}])[0]
+    if tomb.get("if", {}).get("properties", {}).get("records", {}).get("contains") != {"$ref": "#/$defs/ChainTombstone"} \
+            or tomb.get("then", {}).get("properties", {}).get("next_cursor") != {"type": "integer"}:
+        out.append("query response: the tombstone coherence condition is missing")
+    ops = strict_load("schemas/arsia-state-operations.schema.json")
+    entry = strict_load("schemas/arsia-state-entry.schema.json")
+    if {"$ref": "#/$defs/pii-special-categories"} not in ops["$defs"]["set-args"]["allOf"] or \
+            "else" not in ops["$defs"]["pii-special-categories"] or not any("else" in e for e in entry["allOf"]):
+        out.append("pii_special_categories: the exclusion (else) is missing from set-args or the state entry")
+    roots = json.dumps(msg["allOf"])
+    for ref in ("arsia-compliance-field.schema.json#/$defs/art9-legal-basis",
+                "arsia-state-operations.schema.json#/$defs/pii-special-categories"):
+        if ref not in roots:
+            out.append(f"message schema: the SET conditional referencing {ref} is missing")
+    flat = lambda f: re.sub(r"\s+", " ", open(f, encoding="utf-8").read())
+    core, state, assets = flat("spec/ARSIA-Core.md"), flat("spec/ARSIA-State.md"), flat("spec/ARSIA-Assets.md")
+    for where, text, needle in (
+            ("Core §4.3.8 Rule 2", core, "the details MAY also carry `pii_classification` (ARSIA-State.md §5.2)"),
+            ("Core §4.3.10.6", core, "The `details` object of each diagnostic MUST carry exactly the members its rule defines"),
+            ("Core §11.1", core, "This member is permitted in every `details` object, including those whose members are "
+                                 "otherwise fixed"),
+            ("State §5.2", state, "when present, it MUST be the `pii_classification` of the entry that the SET declares"),
+            ("State §5.2", state, "The details object does not carry a `message` member"),
+            ("State §7.1", state, "On an escrow record (`sub_type` present), the base fields"),
+            ("State §7.4", state, "A response that contains a tombstone is therefore a chain response: every entry in "
+                                  "it MUST carry `chain_id` and `chain_seq`, and `next_cursor`, when present, MUST be a "
+                                  "`chain_seq`"),
+            ("State §8.4", state, "The absent-entry conflict details, PURGE retention details and fixed-retention details "
+                                  "MAY additionally carry `localized_description`"),
+            ("Assets §4.3", assets, "Each record documents one message: its base fields"),
+            ("Assets §4.3.1", assets, "| `payer_agent` | The payer: the request's `payload.args.from_agent` (§3.1.1) |"),
+            ("Assets §4.3.3", assets, "A record MUST carry exactly one of `actual_timeout` and `cancellation_reason`.")):
+        if needle not in text:
+            out.append(f"{where}: {needle[:60]!r} is missing")
+    for where, text, old in (
+            ("State §5.2", state, '"message": "GDPR Art. 6 requires a legal basis'),
+            ("Core §4.3.8 Rule 4", core, "example: no-schema — an invalid_request details object"),
+            ("Assets §4.3.1", assets, "| `from_agent` | The payer's agent-id |"),
+            ("Assets §4.3.1", assets, "| `to_agent` | The payee's agent-id |")):
+        if old in text:
+            out.append(f"{where}: the replaced text {old[:50]!r} is back")
     return out
 
 
@@ -2946,6 +3233,14 @@ def main() -> int:
         )
         check(label, ok, detail)
 
+    # schema-alignment cycle (A-116): the Art. 9(2) subset the envelope applies to a sensitive SET
+    import runtime_harness as rh
+    art9_prose = prose_values(core, "- **Enum (Art. 9(2) conditions")
+    art9_schema = set(cf.get("$defs", {}).get("art9-legal-basis", {}).get("enum", []))
+    check("Art. 9(2) legal bases: compliance-field art9-legal-basis == Core §4.3.6.8 prose == harness (A-116)",
+          bool(art9_prose) and art9_prose == art9_schema == set(rh.ART9_BASES),
+          f"prose={sorted(art9_prose)} schema={sorted(art9_schema)} harness={sorted(rh.ART9_BASES)}")
+
     # audit-record extension fields: State §7.1 table == schema conditionals (A-59)
     probs = audit_extension_parity(state, schemas["arsia-audit-record.schema.json"],
                                    schemas["arsia-audit-chain-tombstone.schema.json"])
@@ -3261,6 +3556,20 @@ def main() -> int:
     probs = routing_cycle_echo_problems()
     check("Routing cycle anti-regression: the attestation zone equality and the relation of relay_id to "
           "attestation_id are stated, and the replaced step 3 is absent", not probs, "; ".join(probs[:4]))
+    probs = schema_alignment_echo_problems()
+    check("Schema-alignment cycle anti-regression: closed diagnostic details with presence dispatch, localized member, "
+          "query-response coherence, SET conditionals and escrow payload_type constants; texts stated, replaced absent",
+          not probs, "; ".join(probs[:4]))
+    probs = escrow_link_problems(corpus_vectors)
+    check("escrow records, nested ones included: release payload_type == release_trigger, timeout processed at or "
+          "after actual_timeout; linked to their creation record: payment_reference, timeout base fields (A-122, A-125)",
+          not probs, "; ".join(probs[:4]))
+    probs = escrow_link_self_test()
+    check("escrow link guard self-test: direct and nested divergences, an unresolved release, an early timeout, a "
+          "second defect on the excepted record and malformed exceptions are reported", not probs, "; ".join(probs[:4]))
+    probs = escrow_single_cause_problems(corpus_vectors, registry)
+    check("ITV-92, INV-47 and the escrow negatives fail for their declared cause only; INV-47's oneOf carries exactly "
+          "the two presence errors", not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     import validate_vectors as vv

@@ -1320,8 +1320,10 @@ extension):
 
 **Rule 2 — PII requires legal basis.** If `compliance.pii_involved` is `true` and
 `compliance.legal_basis` is not set, the message MUST be rejected with error code
-`"invalid_request"` and `details: { "missing_legal_basis": true }`. This enforces
-GDPR Article 6(1): processing of personal data requires a lawful basis.
+`"invalid_request"` and `details: { "missing_legal_basis": true }`. For a SET operation
+whose entry is classified `"personal"` or `"sensitive"`, the details MAY also carry
+`pii_classification` (ARSIA-State.md §5.2). This enforces GDPR Article 6(1): processing
+of personal data requires a lawful basis.
 
 **Rule 3 — High-risk requires human oversight.** For a message with `intent`
 `"request"` to which the high-risk requirement set applies (§4.3.10.3), the composed
@@ -1347,7 +1349,7 @@ declares** a `retention` value, the receiving agent MUST compare the two per
 `declared_until < minimum_until`, the message MUST be rejected with error code
 `"invalid_request"` and details:
 
-<!-- example: no-schema — an invalid_request details object required by Core §4.3.8 Rule 4; arsia-message.schema.json defines no $def for it -->
+<!-- example: arsia-message.schema.json#/$defs/error-details-insufficient-retention; template=/profile,/declared_retention,/minimum_retention,/retention_anchor,/declared_retained_until,/minimum_retained_until -->
 ```json
 {
   "insufficient_retention": true,
@@ -1635,6 +1637,12 @@ the generic one:
 | Classification escalation (Rule 6) | `classification_escalation: true` |
 | Special-category data without an Art. 9(2) basis (Rule 8) | `sensitive_requires_art9_basis: true` |
 | Any other conflict between an explicit declaration and a requirement, an empty residency intersection, an entry zone outside the composed residency restriction (ARSIA-State.md §8.3), or a post-execution mode lacking its review configuration (§4.3.10.5) | `obligation_conflict: true`, with `axis`, `declared`, `required` and `sources` |
+
+The `details` object of each diagnostic MUST carry exactly the members its rule defines
+— the diagnostic member, with the value `true`, and the members listed for it above and
+in §4.3.8 — and MAY also carry `localized_description` (§11.1).
+`arsia-message.schema.json` defines each of these objects as `error-details-<diagnostic>`,
+with the diagnostic's underscores written as hyphens.
 
 When several failures apply, the reported diagnostic is the first in the order of
 the rules of §4.3.8, with `obligation_conflict` last; the provenance records every
@@ -3507,7 +3515,9 @@ The `description` field is intended for developers and operators. It MUST be wri
 in English — the stable single language for cross-organisation tooling and audit
 review. When the originating request carried `context.locale` (§4.3.3), the error
 MAY additionally carry a localized rendering in `details.localized_description`;
-the English `description` remains authoritative. The `description` MUST NOT contain sensitive information such as internal implementation
+the English `description` remains authoritative. This member is permitted in every
+`details` object, including those whose members are otherwise fixed (§4.3.10.6;
+ARSIA-State.md §8.4). The `description` MUST NOT contain sensitive information such as internal implementation
 details, stack traces, database queries, file system paths, or credentials.
 
 The `details` field provides machine-readable context that helps the sender diagnose

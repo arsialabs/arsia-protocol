@@ -32,7 +32,7 @@
           }
         ]
       },
-      "description": "Array of ArsiaAuditRecord objects ordered by processed_at ascending; for a query with chain_id, the chain's entries — records and tombstones — ordered by chain_seq ascending. Tombstones are returned only by queries with chain_id (a query-dependent rule enforced at runtime). Per ARSIA-State.md §7.4."
+      "description": "Array of ArsiaAuditRecord objects ordered by processed_at ascending; for a query with chain_id, the chain's entries — records and tombstones — ordered by chain_seq ascending. Per ARSIA-State.md §7.4. The schema enforces the structural coherence of a response that contains a tombstone (every entry carries chain_id and chain_seq; next_cursor, when present, is an integer chain_seq). Whether the response matches the query parameters — tombstones only for a query with chain_id, entries of the queried chain only — is a runtime obligation the response alone cannot show. Chained records are not limited to chain queries."
     },
     "total": {
       "type": "integer",
@@ -55,5 +55,37 @@
       ],
       "description": "The record_id (UUID v4) of the last record in the current page, passed as after_record_id; for a query with chain_id, the chain_seq (integer) of the last returned entry, passed as after_chain_seq. Present when has_more is true. Per ARSIA-State.md §7.4."
     }
-  }
+  },
+  "allOf": [
+    {
+      "$comment": "State §7.4: a response that contains a tombstone is a chain response (structural coherence only)",
+      "if": {
+        "properties": {
+          "records": {
+            "contains": {
+              "$ref": "#/$defs/ChainTombstone"
+            }
+          }
+        },
+        "required": [
+          "records"
+        ]
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "items": {
+              "required": [
+                "chain_id",
+                "chain_seq"
+              ]
+            }
+          },
+          "next_cursor": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ]
 }

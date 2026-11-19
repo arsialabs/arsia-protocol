@@ -2298,3 +2298,179 @@ ITV-102); runtime-only 211 (unchanged); crypto blocks 168 (unchanged); consisten
 150 → 152; harness checks 873 → 888 (R23 new); RTM 2057 → 2062 rows (MUST + MUST_NOT
 1258 → 1260; with REQUIRED 1456 → 1461); findings register 125 rows (open 5 → 4, closed
 121).
+
+## 34. Schema-alignment cycle closure evidence
+
+Baseline `bdcca34`. Schema-alignment cycle for the four class-4 findings reserved to it
+(A-114, A-115, A-116, A-122), decided by the owner on 2026-11-19 (schema-alignment cycle
+addendum), with five findings registered on the way (A-123..A-127). The owner's reviews
+of the plan added, before implementation: ITV-92's `payload_type` change with its single
+cause; the exclusive recognition of each `escrow_returned` modality; the link exception
+bound to its declared cause, with a second-defect control; the single-cause control,
+which `--check-errors` does not provide; the wording of State §5.2 and §8.4; the
+distinction between `schema-ref:` and `struct:` evidence; and the exact evidence of
+CORE-§4.3.8-18. The owner's double check of the implementation added: the timeout
+chronology of ITV-90, INV-243 and INV-245; the link guard over nested escrow records and
+over releases whose creation record is not in the corpus; and the explicit MUSTs of State
+§7.4. All are part of this cycle.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-114 | Core §4.3.8 Rule 2 (optional `pii_classification`) and Rule 4 (example validated), §4.3.10.6 (MUST of exact members); State §5.2 (no `message`, MUST on `pii_classification`); seven closed `error-details-<diagnostic>` `$def`s with presence dispatch | ITV-729..735, INV-226..232, INV-234 | validator; R10 (12 emitted details); R24; cycle check | (s1a)–(s1c), (s2), (s3), (s5)–(s7), (s29), (s31), (s32) |
+| A-123 | Core §11.1; State §8.4; `localized_description` in the ten closed `$def`s | ITV-736..738, INV-233 | validator; R24 (a) | (s4), (s30), (s35) |
+| A-115 | State §7.4 (MUSTs); query-response conditional | ITV-739, ITV-740, INV-235, INV-236 | validator; cycle check | (s8), (s9), (s34), (s44) |
+| A-116 | message-schema conditionals (Rule 8, `pii-special-categories`); `set-args` and state-entry exclusion; `art9-legal-basis` | INV-20, INV-22, ITV-555 (no longer `skip_schema`), INV-237, INV-238 | validator; Art. 9(2) parity | (s10)–(s12) |
+| A-122 | Assets §4.3 (MUST), §4.3.1–§4.3.4 tables; State §7.1 paragraph; schema constants | ITV-88..92, ITV-95, ITV-586, INV-47 (changed); INV-241..245 | validator; link guard; single-cause control; R14 | (s14)–(s20), (s26), (s28), (s33), (s36), (s39)–(s43) |
+| A-124 | Assets §4.3.3 (MUST of exactly one); State §7.1 "never both"; `oneOf`; A-59 exclusive alternatives | INV-245 | validator; A-59 and self-test (e) | (s13), (s18), (s38) |
+| A-125 | escrow references; link guard (i) | ITV-89, ITV-90, ITV-91, ITV-586, INV-47 | link guard and self-test | (s21), (s23)–(s25), (s27) |
+| A-126 | Assets §4.3, §4.3.1; State §7.1; `payer_agent`, `payee_agent` | ITV-88, ITV-92, INV-239, INV-240 | validator; A-59 | (s22), (s37) |
+| A-127 | registered, not corrected | — | — | — |
+
+**A-114 and A-123, details contracts.**
+- The seven diagnostics of Core §4.3.10.6 have closed `$def`s carrying exactly their
+  rule's members: the indicator `const: true`; `declared` and `sources` for
+  `high_risk_missing_oversight`; `axis`, `declared`, `required` and `sources` for
+  `obligation_conflict`; the eight members of Rule 4 for `insufficient_retention`; and,
+  for `missing_legal_basis`, an OPTIONAL `pii_classification` (`personal` |
+  `sensitive`). Each accepts `localized_description` (string).
+- The error envelope applies each `$def` when `code` is `invalid_request` and the
+  diagnostic member is present, whatever its value; the `$def` then requires it `true`,
+  so a `false` value does not escape (R24 (b), all seven). Other `invalid_request`
+  details are not captured (R24 (b) control).
+- R10 validates every details object the resolver emits for a corpus vector (INV-07,
+  ITV-603, ITV-604, ITV-605, ITV-607, ITV-608, ITV-618, ITV-622, INV-62, INV-207,
+  INV-208, INV-209: four diagnostics) against its `$def` and in an envelope, and requires
+  the variant with the indicator `false` to be rejected by the same function, so a
+  stubbed validation is reported. R24 (c) adds the State SET path's Rule 4 details and
+  the resolver's output for `unknown_profile`, `classification_escalation` and
+  `sensitive_requires_art9_basis`; for the last one the flag `sensitive_entry` is passed
+  to the resolver directly.
+- A-123: `error-details-conflict-absent`, `-retention-override` and `-retention-fixed`
+  were closed without `localized_description`, which Core §11.1 allows in any error. The
+  ten closed `$def`s now accept it; R24 (a) checks each with the member as a string
+  (accepted), with a non-string value and with an unknown member (both rejected), alone
+  and in its envelope. Permitting the member does not validate that the request carried
+  `context.locale`, which belongs to the request.
+- The Rule 4 and State §5.2 examples are annotated with their `$def`s; no example of
+  `spec/` is `no-schema` any more.
+- Not executed (declared): the receiver's emission of `sensitive_requires_art9_basis`
+  for a SET (`receive(INV-20)` accepts it, the path does not set `sensitive_entry`), and
+  the State §5.2 correspondence of `pii_classification` with the entry (the harness State
+  path does not emit `missing_legal_basis`). CORE-§4.3.8-18 and STATE-§5.2-06 record them
+  as `untested(no-reference-model)`; CORE-§4.3.8-18's `struct:INV-20` proves the
+  structural rejection of the combination, R24 the diagnostic's contract.
+
+**A-115, query responses.** A response that contains a tombstone requires `chain_id` and
+`chain_seq` on every entry and an integer `next_cursor`, so a record cursor with a
+tombstone is rejected (INV-235) and so is a tombstone beside an unchained record
+(INV-236). A chained record in an ordinary query stays valid (ITV-740). The limit is
+recorded: the response does not carry the query, so a tombstone returned to a query
+without `chain_id`, even in a structurally coherent response, and entries of another
+chain are a runtime obligation of the serving implementation (State §7.4).
+
+**A-116, SET conditionals.** The message schema applies, on `arsiaprotocol.state/set`,
+the Art. 9(2) subset to a declared `legal_basis` of a `sensitive` entry (absence stays
+with Rule 2 and State §5.2) and `pii-special-categories` to `payload.args`; `set-args`
+and the state entry exclude `pii_special_categories` when the classification is not
+`sensitive`. INV-20, INV-22 and ITV-555 are validated structurally without changing their
+bytes or signatures; no other vector changes result. `art9-legal-basis` equals the Core
+§4.3.6.8 prose and the harness set (parity check).
+
+**A-122, A-124, A-125, A-126, escrow records.**
+- Each escrow record documents the message of its transition: creation and timeout
+  `arsiaprotocol.assets/transfer-request`, release the `release_trigger`, dispute
+  `arsiaprotocol.assets/escrow-dispute`, cancellation `arsiaprotocol.assets/escrow-cancel`.
+  The schema fixes the constant types; within `escrow_returned`, the timeout
+  (`actual_timeout` without `cancellation_reason`) and the cancellation
+  (`cancellation_reason` without `actual_timeout`) are recognised exclusively, and the
+  `oneOf` handles "neither" and "both": INV-47 and INV-245 fail only the `oneOf`.
+- A timeout record documents the request that created the escrow: ITV-90 carries
+  ITV-88's `message_id`, `from_agent`, `to_agent`, `intent`, `payload_type` and
+  `payload_hash`, with its own `record_id`. ITV-586 (cancellation) gets its own
+  `message_id`. ITV-89 uses `com.example.delivery/confirmed` (the Assets §4.1 example)
+  as `release_trigger` and `payload_type`. ITV-95 moves to `transfer-request` and its
+  `hash_chain` is recomputed (R14).
+- `from_agent`/`to_agent` of the creation record are the envelope agents; `payer_agent`
+  and `payee_agent` (REQUIRED) are the request's `payload.args.from_agent`/`to_agent`;
+  ITV-88 has participants different from its envelope agents.
+- The link guard reads every escrow record (`sub_type` `escrow_*`) at any depth of a
+  vector's `data` or `message`, negatives included: the audit-record vectors, the
+  `records` of a query response, a record carried in a message. On every record: a
+  release's `payload_type` equal to its `release_trigger` (ii), which proves the
+  coherence of the record's fields, not the link to an external message; a timeout
+  record (`actual_timeout` without `cancellation_reason`) processed at or after its
+  `actual_timeout` (iv). When `original_audit_id` resolves by `record_id` to an
+  `escrow_created` record of the corpus: same `payment_reference` (i); a timeout's six
+  base fields equal to the creation record's (iii). An `original_audit_id` outside the
+  corpus is not a problem; only (i) and (iii) depend on it. INV-243, whose declared cause
+  is its `payload_type`, is excepted from that one comparison of its own record only; the
+  exception requires an invalid vector whose `expected_error` names the field. The
+  self-test passes a sound set that includes a release with an unresolved
+  `original_audit_id` and a query response carrying a release and a timeout record, and
+  reports each divergence in a direct and in a nested record, a release with an
+  unresolved `original_audit_id` whose `payload_type` is not its `release_trigger`, a
+  timeout processed before it occurred, a second defect (`message_id`) on the excepted
+  record, and malformed exceptions.
+- ITV-90, INV-243 and INV-245 are processed at their `actual_timeout`
+  (2026-05-27T14:00:01.000Z), with `retention_anchor`, `retained_until` (P1827D,
+  2031-05-28T14:00:01.000Z) and the resolution's `anchor` and `retained_until` derived
+  from it; their schema errors are unchanged.
+- The single-cause control requires the exact errors of ITV-92 (`release_agent`), INV-47
+  (one `oneOf` whose context is the two presence errors, none on `payload_type`) and the
+  seven escrow negatives.
+
+**A-127 (registered, open).** 79 vectors carry 38 undefined `arsiaprotocol.*` payload
+types; the inventory by ID, with the three intentional negatives, is in the notes (§8).
+No guard and no correction in this cycle.
+
+**Mutations (candidate copy identical to the final tree; 46 of 46 detected).**
+- (s1a)–(s1c) the dispatch of `unknown_profile`, `insufficient_retention` and
+  `obligation_conflict` removed → R24 (b), the cycle check.
+- (s2) `missing_legal_basis` `const: true` replaced by `type: boolean` → INV-227, R24 (b).
+- (s3) the `missing_legal_basis` `$def` reopened → INV-234, R24 (a).
+- (s4) `localized_description` removed from `error-details-retention-fixed` → ITV-738, R24 (a).
+- (s5) `minimum_retained_until` out of the Rule 4 `required` → R24 (b).
+- (s6) R10's details validation stubbed → R10 (the indicator-false variant is no longer rejected).
+- (s7) dispatch by value (`const: true` in the condition) instead of presence → R24 (b).
+- (s8) the tombstone condition removed → INV-235, INV-236; (s9) its `next_cursor`
+  restriction removed → INV-235.
+- (s10) the `else` of `pii-special-categories` removed → INV-22, INV-237; (s11) the Rule 8
+  conditional removed → INV-20; (s12) `art9-legal-basis` without one ground → parity.
+- (s13) `oneOf` back to `anyOf` → INV-245 (valid under `anyOf`), A-59.
+- (s14)–(s17) the creation, dispute, timeout and cancellation constants removed, one at a
+  time → INV-241, INV-242, INV-243, INV-244.
+- (s18) the cancellation modality without its `not` → the single-cause control (INV-245
+  gains a `payload_type` error); (s19) without its discriminator → the single-cause
+  control (INV-47 gains one, which `--check-errors` accepts).
+- (s20) ITV-92 without its `payload_type` change → the single-cause control.
+- (s21) the link exception widened to the whole record → the link self-test (second defect).
+- (s22) `payer_agent` out of the `escrow_created` `required` → INV-239, A-59.
+- (s23)–(s25) the link guard without its `payment_reference`, `release_trigger` or
+  timeout base-field comparison → the link self-test.
+- (s26) ITV-90 with its old `message_id` and (s27) ITV-89 with `PAY-2026-04-0089` → the
+  link guard; (s28) ITV-95 with its old `hash_chain` → R14.
+- (s29)–(s38) Core §4.3.10.6, §11.1 and Rule 2; State §5.2, §7.1, §7.4 and §8.4;
+  Assets §4.3, §4.3.1 and §4.3.3 texts reverted → the cycle check.
+- (s39) the link guard reading only the vector's own record, not nested ones → the link
+  self-test (nested cases).
+- (s40) the release comparison made conditional on the creation record → the link
+  self-test (unresolved release).
+- (s41) the timeout chronology comparison removed → the link self-test (iv).
+- (s42) ITV-90 back to `processed_at`, `retention_anchor` and `retained_until` (and the
+  resolution) of the creation instant → the link guard (iv); (s43) the same on INV-243 →
+  the link guard (iv).
+- (s44) State §7.4 back to the declarative wording (no MUST) → the cycle check.
+
+**Regression.** The campaigns of the earlier cycles ran on the same candidate and
+detected every mutation: Assets 30, Routing 22, State 39, maintenance 21, cycle F 18,
+main reconciliation 10, port 23, coverage SC4 23. The maintenance campaign checks that the
+retention guard prints its record and control counts; its expected text was "130
+records, 19 controls" and is now "147 records, 19 controls": this cycle adds 17 audit
+records (INV-239..245 and the 10 records nested in ITV-739, ITV-740, INV-235 and
+INV-236). The 19 controls are unchanged.
+
+**Counts.** Vectors 987 → 1019 (32 new: ITV-729..740, INV-226..245; 8 changed: ITV-88,
+ITV-89, ITV-90, ITV-91, ITV-92, ITV-95, ITV-586, INV-47); runtime-only 211 → 208 (INV-20,
+INV-22, ITV-555); crypto blocks 168 (unchanged); consistency checks 152 → 157; harness
+checks 888 → 956 (R24 new); RTM 2062 → 2069 rows (MUST + MUST_NOT 1260 → 1265; with
+REQUIRED 1461 → 1466); findings register 125 → 130 rows (open 4 → 1, closed 121 → 129).

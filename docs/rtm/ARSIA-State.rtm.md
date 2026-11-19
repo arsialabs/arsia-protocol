@@ -86,12 +86,12 @@
 | STATE-§2.1.10-09 | 2.1.10 | MUST | operational_policy | behavioural_positive | Personal entries MUST be included in GDPR Art. 30 records of processing activities | — | — | out-of-repo(operator) |
 | STATE-§2.1.10-10 | 2.1.10 | MUST | deployment | behavioural_positive | Implementations MUST encrypt personal data at rest (§10.4). | — | — | out-of-repo(infrastructure) |
 | STATE-§2.1.10-11 | 2.1.10 | MUST | sdk | behavioural_positive | Changing pii_classification requires a new SET creating a new version with the updated value | — | ITV-203 | struct:ITV-203; untested(structural-only) |
-| STATE-§2.1.10-12 | 2.1.10 | MUST | sdk | behavioural_negative | "sensitive" entries: legal_basis MUST be an Art. 9(2) ground (Core §4.3.8, Rule 8) | arsia-compliance-field | ITV-555, INV-20 | schema-ref:arsia-compliance-field; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| STATE-§2.1.10-12 | 2.1.10 | MUST | sdk | behavioural_negative | "sensitive" entries: legal_basis MUST be an Art. 9(2) ground (Core §4.3.8, Rule 8) | arsia-compliance-field, arsia-message | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-message; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
 | STATE-§2.1.10-13 | 2.1.10 | MUST | sdk | structural | "sensitive" entries: pii_special_categories MUST be present with at least one value | arsia-state-entry, arsia-state-operations | INV-21 | schema-ref:arsia-state-entry; schema-ref:arsia-state-operations; struct:INV-21 |
 | STATE-§2.1.10-14 | 2.1.10 | MUST | deployment | behavioural_positive | "sensitive" entries: implementations MUST encrypt data at rest | — | — | out-of-repo(infrastructure) |
 | STATE-§2.1.10-15 | 2.1.10 | SHOULD | deployment | behavioural_positive | "sensitive" entries: implementations SHOULD restrict read access to authorized agents for the specific category | — | — | — |
 | STATE-§2.1.11-01 | 2.1.11 | REQUIRED | sdk | structural | pii_special_categories is REQUIRED when pii_classification is "sensitive" | arsia-state-entry, arsia-state-operations | INV-21 | schema-ref:arsia-state-entry; schema-ref:arsia-state-operations; struct:INV-21 |
-| STATE-§2.1.11-02 | 2.1.11 | MUST_NOT | sdk | behavioural_negative | pii_special_categories MUST NOT be present when pii_classification is not "sensitive" | — | INV-22 | struct:INV-22; crypto:INV-22 |
+| STATE-§2.1.11-02 | 2.1.11 | MUST_NOT | sdk | behavioural_negative | pii_special_categories MUST NOT be present when pii_classification is not "sensitive" | arsia-message, arsia-state-entry, arsia-state-operations | INV-22, INV-237, INV-238 | schema-ref:arsia-message; schema-ref:arsia-state-entry; schema-ref:arsia-state-operations; struct:INV-22, INV-237, INV-238; crypto:INV-22 |
 | STATE-§2.1.11-03 | 2.1.11 | MUST | sdk | structural | pii_special_categories MUST contain at least one value from the GDPR Art. 9(1) enum | arsia-state-entry | — | schema-ref:arsia-state-entry |
 | STATE-§2.1.12-01 | 2.1.12 | MUST | sdk | behavioural_positive | SET with expected_version MUST verify current version matches before applying the update | arsia-state-operations | — | schema-ref:arsia-state-operations; untested(structural-only) |
 | STATE-§2.1.12-02 | 2.1.12 | MUST | sdk | behavioural_positive | SET MUST fail with error code "conflict" when expected_version does not match current version | arsia-message | ITV-82 | schema-ref:arsia-message; struct:ITV-82; untested(structural-only) |
@@ -277,9 +277,10 @@
 | STATE-§5.1-02 | 5.1 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD provide tooling (reports, exports, APIs) to facilitate Art. 30 compliance | — | — | — |
 | STATE-§5.2-01 | 5.2 | MUST | sdk | behavioural_positive | compliance.legal_basis MUST be set to a GDPR Art. 6(1) value for SET operations on personal entries | arsia-compliance-field | — | schema-ref:arsia-compliance-field; untested(structural-only) |
 | STATE-§5.2-02 | 5.2 | MUST | sdk | behavioural_positive | SET for personal entries MUST be rejected when compliance.legal_basis is missing from the envelope | — | ITV-257 | struct:ITV-257; untested(structural-only) |
-| STATE-§5.2-03 | 5.2 | MUST | sdk | behavioural_positive | The rejection error MUST use code "invalid_request" with details including missing_legal_basis | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
+| STATE-§5.2-03 | 5.2 | MUST | sdk | behavioural_positive | The rejection error MUST use code "invalid_request" with details including missing_legal_basis | arsia-message | ITV-730, INV-234 | schema-ref:arsia-message; struct:ITV-730, INV-234; untested(structural-only) |
 | STATE-§5.2-04 | 5.2 | SHOULD | sdk_enabled | behavioural_positive | Pseudonymised entries SHOULD include a legal_basis but are not required to | — | — | — |
 | STATE-§5.2-05 | 5.2 | MUST | operational_policy | behavioural_positive | When the legal basis changes, the operator MUST delete the entry or update it with a new SET carrying the new basis | — | — | out-of-repo(operator) |
+| STATE-§5.2-06 | 5.2 | MUST | sdk | behavioural_positive | When the missing_legal_basis details carry pii_classification, it MUST be the pii_classification of the entry the SET declares | arsia-message | ITV-730 | schema-ref:arsia-message; struct:ITV-730; untested(no-reference-model) |
 | STATE-§5.3.1-01 | 5.3.1 | MAY | operational_policy | behavioural_positive | Operators MAY decline an Art. 17 erasure request when an Art. 17(3) exception applies | — | — | — |
 | STATE-§5.3.1-02 | 5.3.1 | MUST | operational_policy | behavioural_positive | Operators declining erasure MUST inform the data subject of the grounds for refusal | — | — | out-of-repo(operator) |
 | STATE-§5.3.1-03 | 5.3.1 | SHOULD | deployment | behavioural_positive | Purge propagation to backup media SHOULD complete within 30 days | — | — | — |
@@ -299,7 +300,7 @@
 | STATE-§5.4-11 | 5.4 | SHOULD | operational_policy | behavioural_positive | Implementations SHOULD issue warnings when an agent approaches its storage limits | — | — | — |
 | STATE-§5.4-12 | 5.4 | SHOULD | operational_policy | behavioural_positive | Storage limit warnings SHOULD be issued at 80% of any configured limit | — | — | — |
 | STATE-§5.5-01 | 5.5 | MAY | operational_policy | behavioural_positive | Operators MAY transform exported entries into other formats (CSV, XML, etc.) for portability requests | — | — | — |
-| STATE-§5.6-01 | 5.6 | MUST | sdk | behavioural_negative | "sensitive" entries MUST declare an Art. 9(2) legal basis; Art. 6(1) grounds rejected (Core §4.3.8, Rule 8) | arsia-compliance-field | ITV-555, INV-20 | schema-ref:arsia-compliance-field; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| STATE-§5.6-01 | 5.6 | MUST | sdk | behavioural_negative | "sensitive" entries MUST declare an Art. 9(2) legal basis; Art. 6(1) grounds rejected (Core §4.3.8, Rule 8) | arsia-compliance-field, arsia-message | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-message; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
 | STATE-§5.6-02 | 5.6 | SHOULD | operational_policy | behavioural_positive | Art. 30 records SHOULD include pii_special_categories values in "categories of personal data" | — | — | — |
 | STATE-§5.7-01 | 5.7 | MUST | sdk | behavioural_positive | Breach notification payload type is arsiaprotocol.compliance/breach-notification with intent "event" | arsia-breach-notification, arsia-message | ITV-556, ITV-557 | schema-ref:arsia-breach-notification; schema-ref:arsia-message; struct:ITV-556, ITV-557; untested(structural-only) |
 | STATE-§5.7-02 | 5.7 | MUST | sdk | schema_positive | REQUIRED fields: notification_target, breach_id, nature_of_breach, awareness_timestamp, dpo_contact, likely_consequences, measures_taken (GDPR Art. 33(3)(a)-(d), Art. 34(2)) | arsia-breach-notification | ITV-713, ITV-714, ITV-715, ITV-716, INV-178, INV-179, INV-180, INV-181, INV-182, INV-183, INV-184, INV-185, INV-186, INV-187, INV-188, INV-189, INV-190, INV-191, INV-192, INV-193, INV-194, INV-195, INV-196, INV-197, INV-198, INV-199, INV-200, INV-201, INV-202, INV-203, INV-204, INV-205, INV-206 | schema-ref:arsia-breach-notification; struct:ITV-713, ITV-714, ITV-715, ITV-716, INV-178, INV-179, INV-180, INV-181, INV-182, INV-183, INV-184, INV-185, INV-186, INV-187, INV-188, INV-189, INV-190, INV-191, INV-192, INV-193, INV-194, INV-195, INV-196, INV-197, INV-198, INV-199, INV-200, INV-201, INV-202, INV-203, INV-204, INV-205, INV-206 |
@@ -392,6 +393,7 @@
 | STATE-§7.4-04 | 7.4 | SHOULD | sdk_enabled | behavioural_positive | Access tokens for arsiaprotocol.audit.read SHOULD have a short lifetime | — | — | — |
 | STATE-§7.4-05 | 7.4 | RECOMMENDED | sdk_enabled | behavioural_positive | A maximum lifetime of 300 seconds for arsiaprotocol.audit.read tokens is RECOMMENDED | — | — | — |
 | STATE-§7.4-06 | 7.4 | MAY | sdk_enabled | behavioural_positive | Implementations MAY enforce additional record-level access controls on audit queries | — | — | — |
+| STATE-§7.4-07 | 7.4 | MUST | deployment | behavioural_positive | Tombstones are returned only by queries with chain_id: in a response containing a tombstone every entry MUST carry chain_id and chain_seq, and next_cursor, when present, MUST be a chain_seq, which the schema enforces; its correspondence with the query parameters is a runtime obligation | arsia-audit-query-response | ITV-739, ITV-740, INV-235, INV-236 | schema-ref:arsia-audit-query-response; struct:ITV-739, ITV-740, INV-235, INV-236; untested(no-reference-model) |
 | STATE-§8.1-01 | 8.1 | MUST_NOT | sdk | behavioural_negative | Custom state operations MUST NOT use the reserved arsiaprotocol.state/ payload type prefix | arsia-state-operations, arsia-message | ITV-265, ITV-266 | schema-ref:arsia-state-operations; schema-ref:arsia-message; struct:ITV-265, ITV-266; untested(structural-only) |
 | STATE-§8.1-02 | 8.1 | MUST | sdk | behavioural_positive | State extensions MUST use a non-reserved prefix (e.g., com.example.state/custom-operation) | arsia-state-operations, arsia-message | ITV-265, ITV-266 | schema-ref:arsia-state-operations; schema-ref:arsia-message; struct:ITV-265, ITV-266; untested(structural-only) |
 | STATE-§8.2.1-01 | 8.2.1 | MUST | sdk | behavioural_positive | arsiaprotocol.state.purge and .snapshot MUST be explicitly granted; wildcards do not include them (non-delegable per Actions §1.2 condition 3) | — | ITV-267, INV-23, INV-24 | struct:ITV-267, INV-23, INV-24; untested(structural-only) |
@@ -412,6 +414,7 @@
 | STATE-§8.4-03 | 8.4 | MUST_NOT | sdk | behavioural_negative | Absent-entry conflict details MUST NOT include current_generation, current_version, updated_at or updated_by | arsia-message | INV-87 | schema-ref:arsia-message; struct:INV-87; crypto:INV-87 |
 | STATE-§8.4-04 | 8.4 | MUST | sdk | behavioural_positive | PURGE retention error details MUST consist of within_retention (true) and entry_retained_until | arsia-message | ITV-685, INV-97, INV-98 | schema-ref:arsia-message; struct:ITV-685, INV-97, INV-98; crypto:ITV-685, INV-97, INV-98; exec:R18:ITV-685 |
 | STATE-§8.4-05 | 8.4 | MUST | sdk | behavioural_positive | Fixed retention error details MUST consist of retention_fixed (true), entry_retained_until (or null) and required_retained_until | arsia-message | ITV-720, ITV-721, ITV-722 | schema-ref:arsia-message; struct:ITV-720, ITV-721, ITV-722; crypto:ITV-720, ITV-721, ITV-722; exec:R18:ITV-720, ITV-721, ITV-722 |
+| STATE-§8.4-06 | 8.4 | MAY | sdk | structural | The absent-entry conflict, PURGE retention and fixed-retention details MAY additionally carry localized_description; their other members remain those specified | arsia-message | ITV-736, ITV-737, ITV-738 | — |
 | STATE-§9-01 | 9 | MUST | sdk_enabled | behavioural_positive | Conformant implementations MUST pass all conformance tests at their applicable level | — | — | untested(integration) → docs/draft-02-conformance-tests.md |
 | STATE-§9-02 | 9 | MUST_NOT | sdk | behavioural_negative | PURGE audit event MUST NOT include the purged entry value (STATE-03 test) | arsia-audit-record | ITV-270 | schema-ref:arsia-audit-record; struct:ITV-270; untested(structural-only) |
 | STATE-§9-03 | 9 | MUST_NOT | sdk | behavioural_negative | Implementation MUST NOT physically remove entries before the retention period elapses (STATE-05 test) | arsia-state-entry | ITV-271 | schema-ref:arsia-state-entry; struct:ITV-271; untested(structural-only) |
@@ -458,10 +461,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 445 |
-| Schema ≠ — | 180 |
-| Vector ≠ — | 242 |
-| Both ≠ — | 126 |
+| Total requirements | 448 |
+| Schema ≠ — | 184 |
+| Vector ≠ — | 246 |
+| Both ≠ — | 131 |
 | Both = — (gaps) | 149 |
 
 ### Per-section breakdown
@@ -469,13 +472,13 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
-| 2 | 83 | 32 | 48 | 22 | 25 |
+| 2 | 83 | 33 | 48 | 23 | 25 |
 | 3 | 112 | 55 | 93 | 48 | 12 |
 | 4 | 36 | 5 | 8 | 1 | 24 |
-| 5 | 33 | 8 | 12 | 6 | 19 |
+| 5 | 34 | 9 | 14 | 8 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
-| 7 | 67 | 44 | 31 | 27 | 19 |
-| 8 | 20 | 9 | 18 | 8 | 1 |
+| 7 | 68 | 45 | 32 | 28 | 19 |
+| 8 | 21 | 10 | 19 | 9 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |
 | 11 | 11 | 1 | 4 | 1 | 7 |

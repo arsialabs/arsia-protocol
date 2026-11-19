@@ -184,7 +184,7 @@ validator.validate(signed)  # raises on error
 
 ## 5. Run the Validation Script
 
-The spec repo includes a validation script that checks all 987 test vectors against the JSON Schemas, with optional cryptographic signature verification:
+The spec repo includes a validation script that checks all 1019 test vectors against the JSON Schemas, with optional cryptographic signature verification:
 
 ```bash
 cd scripts/
@@ -193,7 +193,7 @@ python validate_vectors.py               # schema validation only
 python validate_vectors.py --check-crypto # + signature verification
 ```
 
-The test vectors in [`test-vectors/`](../test-vectors/) include 499 schema-valid, 258 expected-invalid, 211 runtime-only and 19 raw parse cases; their signatures are real Ed25519, ES256 and RS256 signatures, and each verifies unless its vector declares a signature negative. Use them to verify your own implementation produces and accepts correct envelopes.
+The test vectors in [`test-vectors/`](../test-vectors/) include 512 schema-valid, 280 expected-invalid, 208 runtime-only and 19 raw parse cases; their signatures are real Ed25519, ES256 and RS256 signatures, and each verifies unless its vector declares a signature negative. Use them to verify your own implementation produces and accepts correct envelopes.
 
 ---
 

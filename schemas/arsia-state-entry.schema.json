@@ -236,6 +236,13 @@
         "required": [
           "pii_special_categories"
         ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "pii_special_categories"
+          ]
+        }
       }
     }
   ]

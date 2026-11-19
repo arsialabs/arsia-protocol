@@ -179,6 +179,8 @@
 | ASSETS-§4.2.4-02 | 4.2.4 | MUST | sdk | behavioural_negative | Cancellation requests from agents other than from_agent (or the arbitration_agent while DISPUTED) MUST be rejected with "forbidden" | — | — | untested(no-reference-model) |
 | ASSETS-§4.2.4-03 | 4.2.4 | MUST | sdk | structural | Cancellation is only permitted while the escrow is ESCROWED (or DISPUTED, for the arbitration_agent) and not terminal | — | — | untested(no-reference-model) |
 | ASSETS-§4.3-01 | 4.3 | MUST | sdk | behavioural_positive | Every escrow state transition MUST generate an audit record | arsia-audit-record | ATV-03, ATV-05, ATV-06, ITV-88, ITV-89, ITV-90, ITV-91, ITV-92 | schema-ref:arsia-audit-record; struct:ATV-03, ATV-05, ATV-06, ITV-88, ITV-89, ITV-90, ITV-91, ITV-92; crypto:ATV-03, ATV-05, ATV-06 |
+| ASSETS-§4.3-02 | 4.3 | MUST | sdk | behavioural_positive | Each escrow record's base fields (message_id, from_agent, to_agent, intent, payload_type, payload_hash) MUST be those of the message named for its transition; a timeout record documents the AssetTransferRequest that created the escrow; payer and payee are recorded in payer_agent and payee_agent | arsia-audit-record | ITV-88, ITV-89, ITV-90, ITV-91, ITV-586, INV-239, INV-240, INV-241, INV-242, INV-243, INV-244 | schema-ref:arsia-audit-record; struct:ITV-88, ITV-89, ITV-90, ITV-91, ITV-586, INV-239, INV-240, INV-241, INV-242, INV-243, INV-244; check:`escrow records, nested ones included: release payload_type == release_trigger, timeout processed at or after actual_timeout; linked to their creation record: payment_reference, timeout base fields (A-122, A-125)` |
+| ASSETS-§4.3.3-01 | 4.3.3 | MUST | sdk | structural | An escrow_returned record MUST carry exactly one of actual_timeout and cancellation_reason | arsia-audit-record | ITV-90, ITV-586, INV-47, INV-245 | schema-ref:arsia-audit-record; struct:ITV-90, ITV-586, INV-47, INV-245; check:`ITV-92, INV-47 and the escrow negatives fail for their declared cause only; INV-47's oneOf carries exactly the two presence errors` |
 | ASSETS-§5.1.1-01 | 5.1.1 | MUST | sdk | behavioural_positive | arsiaprotocol.assets.transfer.initiate: every use MUST generate an audit record | — | ITV-96 | struct:ITV-96; untested(structural-only) |
 | ASSETS-§5.1.1-02 | 5.1.1 | MAY | operational_policy | informational | arsiaprotocol.assets.transfer.initiate: human oversight MAY be required | — | — | — |
 | ASSETS-§5.1.1-03 | 5.1.1 | SHOULD | operational_policy | procedural | Operators SHOULD define threshold-based oversight policies for transfer initiation | — | — | — |
@@ -279,10 +281,10 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 266 |
-| Schema ≠ — | 135 |
-| Vector ≠ — | 147 |
-| Both ≠ — | 107 |
+| Total requirements | 268 |
+| Schema ≠ — | 137 |
+| Vector ≠ — | 149 |
+| Both ≠ — | 109 |
 | Both = — (gaps) | 91 |
 
 ### Per-section breakdown
@@ -292,7 +294,7 @@ Generated: 2026-07-29 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 9 | 5 | 3 | 3 | 4 |
 | 2 | 25 | 18 | 19 | 17 | 5 |
 | 3 | 105 | 71 | 67 | 47 | 14 |
-| 4 | 35 | 13 | 23 | 13 | 12 |
+| 4 | 37 | 15 | 25 | 15 | 12 |
 | 5 | 36 | 6 | 11 | 6 | 25 |
 | 6 | 51 | 22 | 22 | 21 | 28 |
 | 7 | 4 | 0 | 2 | 0 | 2 |

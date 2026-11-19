@@ -175,5 +175,23 @@
       "pii_involved": false,
       "data_residency": "EU"
     }
-  ]
+  ],
+  "$defs": {
+    "art9-legal-basis": {
+      "type": "string",
+      "enum": [
+        "explicit_consent",
+        "employment_social_security",
+        "vital_interests_incapacity",
+        "legitimate_activities",
+        "manifestly_public",
+        "legal_claims",
+        "substantial_public_interest",
+        "health_medicine",
+        "public_health",
+        "archiving_research"
+      ],
+      "description": "The Art. 9(2) grounds of legal_basis (Core §4.3.6.8): the bases a SET of a sensitive entry may declare (Core §4.3.8, Rule 8; ARSIA-State.md §2.1.10)."
+    }
+  }
 }

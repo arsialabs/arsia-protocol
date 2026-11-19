@@ -147,6 +147,17 @@ catalog edition via the new discovery field `iso4217_edition`.
   `severity` and `original_payment_reference`, with the values, types and limits of
   the event's `payload.data`, and `resolved_at` exactly as in the event (absent, `null`
   or a timestamp).
+- **Escrow audit records (Assets §4.3; State §7.1).** Each record's base fields
+  (`message_id`, `from_agent`, `to_agent`, `intent`, `payload_type`, `payload_hash`)
+  document the message of its transition: the AssetTransferRequest on creation
+  (`arsiaprotocol.assets/transfer-request`), the release message on release
+  (`payload_type` equal to `release_trigger`), the `escrow-dispute` and `escrow-cancel`
+  messages. A timeout has no incoming message: its record documents the request that
+  created the escrow and shares its `message_id`, with its own `record_id` and
+  `processed_at`. `from_agent`/`to_agent` are envelope agents; the creation record
+  carries the payer and payee in the REQUIRED `payer_agent`/`payee_agent`. An
+  `escrow_returned` record carries exactly one of `actual_timeout` and
+  `cancellation_reason`.
 
 ## 8. Compliance profiles
 
@@ -276,6 +287,8 @@ catalog edition via the new discovery field `iso4217_edition`.
 - In runtime-only schema-ref vectors, `expected` is the structural result and the
   runtime outcome is `expected_error`.
 - INV-21 is a schema-ref vector against `#/$defs/set-args`.
+- INV-20, INV-22 and ITV-555 are no longer runtime-only: the message schema executes
+  the Rule 8 basis and the `pii_special_categories` exclusion on a SET.
 
 ## 14. Oversight authority and post-execution review
 
@@ -341,6 +354,11 @@ catalog edition via the new discovery field `iso4217_edition`.
   the specific diagnostic in `details`. Every compliance rejection, for any intent,
   produces an audit record with `rejection_cause: "compliance"`, whatever
   `audit_required` the message declares.
+- **Rejection details (Core §4.3.10.6, §11.1; State §5.2, §8.4).** Each diagnostic's
+  `details` carry exactly the members its rule defines, with the diagnostic member
+  `true`, and may add `localized_description`. `missing_legal_basis` details have no
+  `message` member; for a SET they may carry the entry's `pii_classification`. The
+  closed details of State §8.4 also accept `localized_description`.
 - **Onboarding (Identity §7.2 Step 7).** The gateway prepares the agent's authenticated
   context in Phase 1, CHECK-05 verifies it, and it is bound to the admission. It is
   one of the sources of the resolution.
@@ -357,7 +375,9 @@ catalog edition via the new discovery field `iso4217_edition`.
   Full levels and RECOMMENDED at Core.
 - **Chains and queries (State §7.4).** A log may hold several chains. The query
   endpoint retrieves a chain by `chain_id`, ordered by `chain_seq`, with
-  `after_chain_seq` as the cursor.
+  `after_chain_seq` as the cursor. A response that contains a tombstone is a chain
+  response: every entry carries `chain_id` and `chain_seq`, and `next_cursor` is the
+  integer `chain_seq`.
 - **Permanent deletion (State §7.2, §7.3).** Only an operator-controlled maintenance
   path, separate from application roles, deletes a chained record. It writes a
   tombstone (`arsia-audit-chain-tombstone.schema.json`) carrying only the chain

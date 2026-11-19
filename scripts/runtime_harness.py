@@ -58,6 +58,9 @@ Schema cannot express, executed as tests — including against the runtime
       record and receipt, chronology; ict_incident record  A-112, A-113, A-121)
       equal to its event's payload.data (resolved_at by
       presence and value); resolution from the source
+  R24 Error details contracts: the closed details of the  (Core §4.3.10.6, §11.1; State §8.4;
+      compliance diagnostics and of State §8.4, presence   A-114, A-123)
+      dispatch in the error envelope, localized member
 
 Exit code 0 = all green.
 """
@@ -744,6 +747,27 @@ def schema_errors(instance, schema_file, defs=None):
     return [e.message for e in Draft202012Validator(schema, registry=reg).iter_errors(instance)]
 
 
+def error_envelope(code, details):
+    """A structurally complete error message carrying `details` (signature not verified by the schema)."""
+    return {"v": "2.0", "id": "00000000-0000-4000-8000-0000000000c1", "ts": "2026-10-31T00:00:00.500Z",
+            "from": "agent:acme.executor", "to": "agent:acme.analyst", "intent": "error",
+            "correlation_id": "00000000-0000-4000-8000-0000000000c2",
+            "root_request_id": "00000000-0000-4000-8000-0000000000c2",
+            "payload": {"type": "arsiaprotocol.error",
+                        "error": {"code": code, "description": "Request rejected.", "details": details}},
+            "security": {"alg": "EdDSA", "kid": "agent:acme.executor#key1", "sig": "A" * 86}}
+
+
+def details_contract_errors(details):
+    """Core §4.3.10.6: a compliance rejection's details carry exactly one diagnostic and satisfy its $def, and an
+    invalid_request envelope carrying them satisfies arsia-message.schema.json (the presence dispatch)."""
+    keys = [d for d in DIAGNOSTIC_ORDER if isinstance(details, dict) and d in details]
+    if len(keys) != 1:
+        return [f"details carry {keys}, not exactly one diagnostic"]
+    return (schema_errors(details, "arsia-message.schema.json", "error-details-" + keys[0].replace("_", "-"))
+            + schema_errors(error_envelope("invalid_request", details), "arsia-message.schema.json"))
+
+
 # Identity §7.2 Step 7 / §7.6 / §7.7: authenticated context, binding and router
 def context_well_formed(ctx):
     return isinstance(ctx, dict) and not schema_errors(ctx, "arsia-onboarding-decision.schema.json",
@@ -1075,7 +1099,7 @@ def r10(vectors):
           out["accepted"] and [r["event_type"] for r in out["records"]] == ["request", "compliance_warning"]
           and not errs, "; ".join(errs[:3]))
     with_meta = [v for v in vectors if v.get("test_metadata", {}).get("scenario") in ("resolution", "router")]
-    emitted = 0
+    emitted, detailed = 0, set()
     for v in with_meta:
         got = scenario_result(v["test_metadata"], v.get("message"))
         miss = subset_match(v["test_metadata"]["expect"], got)
@@ -1083,7 +1107,21 @@ def r10(vectors):
         errs = [e for r in got["emitted"] for e in schema_errors(r, "arsia-audit-record.schema.json")]
         emitted += len(got["emitted"])
         check(f"R10 {v['id']} every emitted record is schema-valid", not errs, "; ".join(errs[:3]))
+        # Core §4.3.10.6 (A-114): the details the resolver emits satisfy their $def and the envelope dispatch
+        details = (got["error"].get("details") if isinstance(got.get("error"), dict)
+                   else got.get("details") if got.get("error") == "invalid_request" else None)
+        if details is not None:
+            validate = details_contract_errors
+            key = next((k for k in DIAGNOSTIC_ORDER if k in details), None)
+            errs = validate(details)
+            flipped = validate(dict(details, **{key: False})) if key else ["no diagnostic member"]
+            detailed.update(k for k in DIAGNOSTIC_ORDER if k in details)
+            check(f"R10 {v['id']} emitted details satisfy their $def and the envelope dispatch; the indicator-false "
+                  f"variant is rejected (Core §4.3.10.6)", not errs and bool(flipped), "; ".join(errs[:3]),
+                  executed=[v["id"]])
     check("R10 runtime vectors emitted records to validate", emitted > 0, str(emitted))
+    check("R10 runtime vectors emitted details of several diagnostics to validate", len(detailed) >= 4,
+          str(sorted(detailed)))
 
 
 # ------------------------------- R15 executor oversight and post-execution review (DR-1, DR-2)
@@ -3995,11 +4033,99 @@ def r23(vectors):
           "is reported against the intact event", any(p.startswith("severity") for p in incident_record_problems(forged, src)))
 
 
+# --------------------------------------------------------- R24 error details contracts
+# Core §4.3.10.6, §11.1; State §8.4 (A-114, A-123). Permitting localized_description in the schema does not
+# validate that the originating request carried context.locale: that condition belongs to the request.
+CLOSED_DETAILS = {
+    "error-details-unknown-profile": {"unknown_profile": True},
+    "error-details-missing-legal-basis": {"missing_legal_basis": True},
+    "error-details-high-risk-missing-oversight": {"high_risk_missing_oversight": True, "declared": None, "sources": []},
+    "error-details-insufficient-retention": {
+        "insufficient_retention": True, "profile": "MIFID-II", "declared_retention": "P1D", "minimum_retention": "P1827D",
+        "retention_anchor": "2026-10-31T00:00:00.000Z", "declared_retained_until": "2026-11-01T00:00:00.000Z",
+        "minimum_retained_until": "2031-11-01T00:00:00.000Z", "resolution_source": "per-message"},
+    "error-details-classification-escalation": {"classification_escalation": True},
+    "error-details-sensitive-requires-art9-basis": {"sensitive_requires_art9_basis": True},
+    "error-details-obligation-conflict": {"obligation_conflict": True, "axis": "residency", "declared": "US",
+                                          "required": "non-empty intersection", "sources": []},
+    "error-details-conflict-absent": {"entry_live": False, "expected_version": 3},
+    "error-details-retention-override": {"within_retention": True, "entry_retained_until": "2031-04-27T14:00:00.000Z"},
+    "error-details-retention-fixed": {"retention_fixed": True, "entry_retained_until": None,
+                                      "required_retained_until": "2027-03-28T09:00:00.000Z"},
+}
+CLOSED_DETAILS_CODE = {"error-details-conflict-absent": "conflict"}
+
+
+def r24(vectors):
+    for name, base in CLOSED_DETAILS.items():
+        code = CLOSED_DETAILS_CODE.get(name, "invalid_request")
+        errs = schema_errors(base, "arsia-message.schema.json", name) + \
+            schema_errors(error_envelope(code, base), "arsia-message.schema.json")
+        check(f"R24 (a) {name}: the minimal object is valid alone and in its error envelope", not errs, "; ".join(errs[:2]))
+        loc = dict(base, localized_description="Pedido rejeitado.")
+        errs = schema_errors(loc, "arsia-message.schema.json", name) + \
+            schema_errors(error_envelope(code, loc), "arsia-message.schema.json")
+        check(f"R24 (a) {name}: localized_description (string) accepted (Core §11.1)", not errs, "; ".join(errs[:2]))
+        bad = dict(base, localized_description=42)
+        check(f"R24 (a) {name}: a non-string localized_description is rejected, alone and in the envelope",
+              bool(schema_errors(bad, "arsia-message.schema.json", name))
+              and bool(schema_errors(error_envelope(code, bad), "arsia-message.schema.json")))
+        extra = dict(base, message="Human text belongs in payload.error.description.")
+        check(f"R24 (a) {name}: an unknown member is rejected, alone and in the envelope",
+              bool(schema_errors(extra, "arsia-message.schema.json", name))
+              and bool(schema_errors(error_envelope(code, extra), "arsia-message.schema.json")))
+    for key in DIAGNOSTIC_ORDER:
+        base = CLOSED_DETAILS["error-details-" + key.replace("_", "-")]
+        check(f"R24 (b) {key} false: the envelope dispatch is by presence, so the $def rejects it",
+              bool(schema_errors(error_envelope("invalid_request", dict(base, **{key: False})),
+                                 "arsia-message.schema.json")))
+    short = dict(CLOSED_DETAILS["error-details-insufficient-retention"])
+    del short["minimum_retained_until"]
+    check("R24 (b) insufficient_retention without minimum_retained_until is rejected in the envelope",
+          bool(schema_errors(error_envelope("invalid_request", short), "arsia-message.schema.json")))
+    check("R24 (b) other invalid_request details (no diagnostic key) are not captured by the seven contracts",
+          not schema_errors(error_envelope("invalid_request", {"reason": "malformed envelope"}), "arsia-message.schema.json"))
+    # the State SET path of the harness emits Rule 4 details (it does not emit missing_legal_basis: the
+    # correspondence of pii_classification with the entry, State §5.2, stays a runtime obligation not executed here)
+    st = StateStore()
+    out = st.set("agent:acme.billing/agent/record", "v1", "2026-03-28T09:00:00.000Z", retention="P1Y",
+                 compliance={"profile": "EU-AI-ACT-HIGH-RISK", "retention": "P1D"})
+    errs = details_contract_errors(out.get("details"))
+    check("R24 (c) State SET path: Rule 4 details satisfy their $def and the envelope dispatch",
+          out.get("rejection_cause") == "compliance" and not errs, "; ".join(errs[:3]))
+    # resolver output for the diagnostics the R10 vectors do not emit; sensitive_entry is passed to the resolver
+    # directly: this checks the details contract, not that a receiver emits the diagnostic for a SET (INV-20)
+    ident = {"agent_id": "agent:acme.analyst", "ai_system_classification": "limited-risk",
+             "evidence": dict(TEST_EVIDENCE, agent_id="agent:acme.analyst")}
+    for key, res in (
+            ("unknown_profile", resolve_obligations("request", {"profile": "ACME-INTERNAL"}, strict=True)),
+            ("classification_escalation", resolve_obligations("event", {"profile": "GDPR-STANDARD",
+                                                                          "ai_system_classification": "high-risk"}, ident)),
+            ("sensitive_requires_art9_basis", resolve_obligations("request", {
+                "profile": "GDPR-STANDARD", "pii_involved": True, "legal_basis": "consent"}, sensitive_entry=True))):
+        first = res["conflicts"][0]["diagnostic"] if res.get("conflicts") else None
+        details = error_details(res["conflicts"][0], res, "2026-10-31T00:00:00.000Z") if first else None
+        errs = details_contract_errors(details)
+        check(f"R24 (c) resolver output for {key}: its details satisfy their $def and the envelope dispatch",
+              res["outcome"] == "rejected" and first == key and not errs, f"{first} {errs[:2]}")
+    ids = [f"ITV-{n}" for n in range(729, 736)]
+    by = {v["id"]: v for v in vectors}
+    errs = [f"{i}: {e}" for i in ids for e in details_contract_errors(by[i]["data"])]
+    check("R24 (d) the seven details vectors are valid in an invalid_request envelope (dispatch)", not errs,
+          "; ".join(errs[:3]), executed=ids)
+    inv = [f"INV-{n}" for n in range(226, 233)]
+    missed = [i for i in inv if not schema_errors(error_envelope("invalid_request", by[i]["data"]),
+                                                  "arsia-message.schema.json")]
+    check("R24 (d) the seven indicator-false vectors are rejected in an invalid_request envelope (dispatch)",
+          not missed, str(missed), executed=inv)
+
+
 def main() -> int:
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
     r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors); r23(vectors)
+    r24(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

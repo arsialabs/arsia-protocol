@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 14, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 15, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 211.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 14, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 208.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -102,9 +102,6 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-19 | — | Runtime signature verification — schema cannot validate cryptographic correctness of RSA signatures | crypto-behaviour | behavioural-runtime | — | executed: --check-crypto |
 | ITV-553 | — | Runtime constraint — audit_required override is runtime behaviour not enforceable by JSON Schema | token | behavioural-runtime | yes | none — conformance test against an implementation |
 | ITV-554 | — | Runtime constraint — audit_required override is runtime behaviour not enforceable by JSON Schema | token | behavioural-runtime | yes | none — conformance test against an implementation |
-| ITV-555 | — | Runtime constraint — cross-object validation between payload.args.pii_classification and compliance.legal_basi | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-20 | — | Runtime constraint — cross-object validation between payload.args.pii_classification and compliance.legal_basi | cross-object | behavioural-runtime | yes | none — conformance test against an implementation |
-| INV-22 | — | Runtime constraint — schema cannot enforce mutual exclusion (MUST NOT be present when not sensitive) | other | behavioural-runtime | yes | none — conformance test against an implementation |
 | INV-23 | — | Runtime constraint — wildcard matching exclusion for non-delegable capabilities is not schema-enforceable | capability | behavioural-runtime | yes | partial: R3 "R3 reserved root wildcard satisfies nothing" — arsiaprotocol.state.purge is not exercised |
 | INV-24 | — | Runtime constraint — wildcard matching exclusion for non-delegable capabilities is not schema-enforceable | capability | behavioural-runtime | yes | partial: R3 "R3 reserved root wildcard satisfies nothing" — arsiaprotocol.state.snapshot is not exercised |
 | INV-25 | — | Runtime constraint — wildcard matching exclusion for non-delegable capabilities is not schema-enforceable | capability | behavioural-runtime | — | equivalent: R3 "R3 reserved via wildcard (ITV-567)" |

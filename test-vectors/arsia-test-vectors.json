@@ -4972,7 +4972,7 @@
     },
     {
       "id": "ITV-88",
-      "description": "Valid audit record — escrow_created sub_type with all 5 conditional required fields (payment_reference, amount, currency_or_unit, release_agent, timeout_at). Exercises the escrow_created if/then branch. Per Assets §4.3.1, State §7.1.",
+      "description": "Valid audit record — escrow_created (Assets §4.3.1, State §7.1): the record documents the AssetTransferRequest that created the escrow (payload_type arsiaprotocol.assets/transfer-request). from_agent and to_agent are the request's envelope agents; payer_agent and payee_agent are the financial participants (payload.args.from_agent / to_agent, Assets §3.1.1) and differ from them here, as delegation allows. Carries the 7 conditional required fields (payment_reference, amount, currency_or_unit, release_agent, timeout_at, payer_agent, payee_agent).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -4982,7 +4982,7 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
@@ -4992,6 +4992,8 @@
         "amount": "25000.00",
         "currency_or_unit": "EUR",
         "release_agent": "agent:arsialabs.demo.escrow-release",
+        "payer_agent": "agent:arsialabs.demo.buyer",
+        "payee_agent": "agent:arsialabs.demo.seller",
         "timeout_at": "2026-05-27T14:00:00.000Z",
         "human_oversight_status": "not_required",
         "compliance_profile_declared": "MIFID-II",
@@ -5152,7 +5154,7 @@
     },
     {
       "id": "ITV-89",
-      "description": "Valid audit record — escrow_released sub_type with all 4 conditional required fields (payment_reference, released_by, release_trigger, original_audit_id). Also exercises human_oversight_status 'approved' with approver_id. Per Assets §4.3.2, State §7.1.",
+      "description": "Valid audit record — escrow_released (Assets §4.3.2): payment_reference, released_by, release_trigger and original_audit_id (the escrow creation record ITV-88, same payment_reference). The record documents the release message: payload_type equals release_trigger (com.example.delivery/confirmed, the Assets §4.1 example). Also exercises human_oversight_status 'approved'.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -5162,15 +5164,15 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "com.example.delivery/confirmed",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "sub_type": "escrow_released",
-        "payment_reference": "PAY-2026-04-0089",
+        "payment_reference": "PAY-2026-04-0088",
         "released_by": "agent:arsialabs.demo.escrow-release",
-        "release_trigger": "arsiaprotocol.assets/escrow-release",
+        "release_trigger": "com.example.delivery/confirmed",
         "original_audit_id": "b0000088-0001-4001-8001-000000000088",
         "human_oversight_status": "approved",
         "approver_id": "agent:arsialabs.demo.oversight-panel",
@@ -5332,23 +5334,23 @@
     },
     {
       "id": "ITV-90",
-      "description": "Valid audit record — escrow_returned sub_type with all 4 conditional required fields (payment_reference, timeout_at, actual_timeout, original_audit_id). Exercises the escrow timeout return path. Per Assets §4.3.3, State §7.1.",
+      "description": "Valid audit record — escrow_returned by timeout (Assets §4.2.2, §4.3.3): payment_reference, timeout_at, actual_timeout and original_audit_id (the creation record ITV-88, same payment_reference). A timeout has no incoming message: the record documents the AssetTransferRequest that created the escrow, so message_id, from_agent, to_agent, intent, payload_type and payload_hash are those of ITV-88, while record_id is its own.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
         "record_id": "b000008a-0001-4001-8001-00000000008a",
-        "message_id": "b000008a-0002-4001-8001-00000000008a",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
         "event_type": "asset_transfer",
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
-        "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2031-04-28T14:00:00.000Z",
+        "processed_at": "2026-05-27T14:00:01.000Z",
+        "retained_until": "2031-05-28T14:00:01.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "sub_type": "escrow_returned",
-        "payment_reference": "PAY-2026-04-0090",
+        "payment_reference": "PAY-2026-04-0088",
         "timeout_at": "2026-05-27T14:00:00.000Z",
         "actual_timeout": "2026-05-27T14:00:01.000Z",
         "original_audit_id": "b0000088-0001-4001-8001-000000000088",
@@ -5447,8 +5449,8 @@
               ],
               "result": {
                 "duration": "P1827D",
-                "anchor": "2026-04-27T14:00:00.000Z",
-                "retained_until": "2031-04-28T14:00:00.000Z"
+                "anchor": "2026-05-27T14:00:01.000Z",
+                "retained_until": "2031-05-28T14:00:01.000Z"
               },
               "override": false,
               "conflict": null
@@ -5505,13 +5507,13 @@
           }
         },
         "effective_retention": "P1827D",
-        "retention_anchor": "2026-04-27T14:00:00.000Z"
+        "retention_anchor": "2026-05-27T14:00:01.000Z"
       },
       "expected_error": null
     },
     {
       "id": "ITV-91",
-      "description": "Valid audit record — escrow_disputed sub_type with all 5 conditional required fields (payment_reference, disputed_by, dispute_reason, arbitration_agent, original_audit_id). Exercises the dispute resolution path. Per Assets §4.3.4, State §7.1.",
+      "description": "Valid audit record — escrow_disputed (Assets §4.3.4): payment_reference, disputed_by, dispute_reason, arbitration_agent and original_audit_id (the creation record ITV-88, same payment_reference). The record documents the escrow-dispute message (payload_type arsiaprotocol.assets/escrow-dispute).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
@@ -5521,13 +5523,13 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/escrow-dispute",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "sub_type": "escrow_disputed",
-        "payment_reference": "PAY-2026-04-0091",
+        "payment_reference": "PAY-2026-04-0088",
         "disputed_by": "agent:arsialabs.demo.buyer-agent",
         "dispute_reason": "Goods not delivered within escrow period",
         "arbitration_agent": "agent:arsialabs.demo.arbitrator",
@@ -5691,7 +5693,7 @@
     },
     {
       "id": "ITV-92",
-      "description": "INVALID — escrow_created sub_type missing required 'release_agent'. The allOf conditional requires release_agent when sub_type is 'escrow_created'. Per Assets §4.3.1.",
+      "description": "INVALID — escrow_created record (otherwise as ITV-88: payload_type transfer-request, payer_agent and payee_agent present) missing required 'release_agent'. The allOf conditional requires release_agent when sub_type is 'escrow_created'; it is the only cause. Per Assets §4.3.1.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -5701,7 +5703,7 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
@@ -5711,6 +5713,8 @@
         "amount": "25000.00",
         "currency_or_unit": "EUR",
         "timeout_at": "2026-05-27T14:00:00.000Z",
+        "payer_agent": "agent:arsialabs.demo.buyer",
+        "payee_agent": "agent:arsialabs.demo.seller",
         "human_oversight_status": "not_required",
         "compliance_profile_declared": "MIFID-II",
         "compliance_profile_resolved": "MIFID-II",
@@ -5943,7 +5947,7 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
@@ -5955,7 +5959,7 @@
         "chain_id": "d5c00095-0001-4001-8001-000000000095",
         "chain_seq": 1,
         "chain_format": 1,
-        "hash_chain": "3c6bd44cc1968f5d9251d58d711f8d24e3f9e95a51b0dc869db0f96cb4598901",
+        "hash_chain": "3cb7633b131cd9f81670755fdeff7989ed314ac04ba81c38118ae8c304394de2",
         "declared_retention": null,
         "obligation_resolution": {
           "outcome": "accepted",
@@ -23832,11 +23836,9 @@
     },
     {
       "id": "ITV-555",
-      "description": "Core §4.3.8, Rule 8: valid SET with pii_classification 'sensitive', pii_special_categories ['health'], and Art. 9(2) legal_basis 'health_medicine'. All constraints satisfied.",
+      "description": "Core §4.3.8, Rule 8: valid SET with pii_classification 'sensitive', pii_special_categories ['health'], and Art. 9(2) legal_basis 'health_medicine'. All constraints satisfied. Executed structurally by arsia-message.schema.json (positive control of the Rule 8 conditional).",
       "category": "state",
       "valid": true,
-      "skip_schema": true,
-      "skip_reason": "Runtime constraint — cross-object validation between payload.args.pii_classification and compliance.legal_basis not enforceable by JSON Schema",
       "message": {
         "v": "2.0",
         "id": "d0555001-b1c2-4a3d-8e4f-567890abcdef",
@@ -23894,11 +23896,9 @@
     },
     {
       "id": "INV-20",
-      "description": "Core §4.3.8, Rule 8: INVALID — SET with pii_classification 'sensitive' but Art. 6(1) legal_basis 'consent' instead of Art. 9(2) ground. Cross-object rule rejects the SET.",
+      "description": "Core §4.3.8, Rule 8: INVALID — SET with pii_classification 'sensitive' but Art. 6(1) legal_basis 'consent' instead of Art. 9(2) ground. Cross-object rule rejects the SET. Executed structurally by arsia-message.schema.json (Rule 8 conditional on a SET).",
       "category": "state",
       "valid": false,
-      "skip_schema": true,
-      "skip_reason": "Runtime constraint — cross-object validation between payload.args.pii_classification and compliance.legal_basis not enforceable by JSON Schema",
       "message": {
         "v": "2.0",
         "id": "d0556001-b1c2-4a3d-8e4f-567890abcdef",
@@ -23970,11 +23970,9 @@
     },
     {
       "id": "INV-22",
-      "description": "State §2.1.11: INVALID — SET with pii_classification 'personal' but pii_special_categories present. pii_special_categories MUST NOT be present when pii_classification is not 'sensitive'.",
+      "description": "State §2.1.11: INVALID — SET with pii_classification 'personal' but pii_special_categories present. pii_special_categories MUST NOT be present when pii_classification is not 'sensitive'. Executed structurally by arsia-message.schema.json (pii-special-categories on a SET).",
       "category": "state",
       "valid": false,
-      "skip_schema": true,
-      "skip_reason": "Runtime constraint — schema cannot enforce mutual exclusion (MUST NOT be present when not sensitive)",
       "message": {
         "v": "2.0",
         "id": "d0558001-b1c2-4a3d-8e4f-567890abcdef",
@@ -25753,23 +25751,23 @@
     },
     {
       "id": "ITV-586",
-      "description": "Valid audit record — escrow_returned generated by a sender cancellation (Assets §4.2.4): carries cancellation_reason in place of actual_timeout; timeout_at keeps the original deadline. Per ARSIA-Assets.md §4.2.4, §4.3.3.",
+      "description": "Valid audit record — escrow_returned generated by a cancellation (Assets §4.2.4, §4.3.3): carries cancellation_reason in place of actual_timeout; timeout_at keeps the original deadline. The record documents the escrow-cancel message (its own message_id, payload_type arsiaprotocol.assets/escrow-cancel); original_audit_id is the creation record ITV-88, with the same payment_reference.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
         "record_id": "c3a10006-0000-4000-8000-000000000006",
-        "message_id": "b000008a-0002-4001-8001-00000000008a",
+        "message_id": "b0000586-0002-4001-8001-000000000586",
         "event_type": "asset_transfer",
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/escrow-cancel",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "sub_type": "escrow_returned",
-        "payment_reference": "PAY-2026-04-0090",
+        "payment_reference": "PAY-2026-04-0088",
         "timeout_at": "2026-05-27T14:00:00.000Z",
         "original_audit_id": "b0000088-0001-4001-8001-000000000088",
         "human_oversight_status": "not_required",
@@ -26189,7 +26187,7 @@
     },
     {
       "id": "INV-47",
-      "description": "INVALID — escrow_returned audit record with neither actual_timeout (timeout) nor cancellation_reason (cancellation). Per ARSIA-Assets.md §4.3.3, §4.2.4.",
+      "description": "INVALID — escrow_returned audit record with neither actual_timeout (timeout) nor cancellation_reason (cancellation): exactly one is required, and its absence is the only cause. Per ARSIA-Assets.md §4.3.3, §4.2.4.",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "invalid",
       "data": {
@@ -26199,13 +26197,13 @@
         "from_agent": "agent:arsialabs.demo.escrow-manager",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
-        "payload_type": "arsiaprotocol.assets/transfer",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
         "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
         "processed_at": "2026-04-27T14:00:00.000Z",
         "retained_until": "2031-04-28T14:00:00.000Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
         "sub_type": "escrow_returned",
-        "payment_reference": "PAY-2026-04-0090",
+        "payment_reference": "PAY-2026-04-0088",
         "timeout_at": "2026-05-27T14:00:00.000Z",
         "original_audit_id": "b0000088-0001-4001-8001-000000000088",
         "human_oversight_status": "not_required",
@@ -42325,6 +42323,513 @@
       "expected_error": null
     },
     {
+      "id": "ITV-729",
+      "description": "Valid invalid_request details for an unknown profile in strict mode (Core §4.3.8 Rule 1, §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-unknown-profile",
+      "expected": "valid",
+      "data": {
+        "unknown_profile": true
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-730",
+      "description": "Valid invalid_request details for a SET of a personal entry without legal_basis: the indicator and the OPTIONAL pii_classification of the entry (Core §4.3.8 Rule 2, State §5.2).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-missing-legal-basis",
+      "expected": "valid",
+      "data": {
+        "missing_legal_basis": true,
+        "pii_classification": "personal"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-731",
+      "description": "Valid invalid_request details for an unmet high-risk oversight restriction: indicator, declared (null) and sources, as carried by ITV-452 (Core §4.3.8 Rule 3, §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-high-risk-missing-oversight",
+      "expected": "valid",
+      "data": {
+        "high_risk_missing_oversight": true,
+        "declared": null,
+        "sources": [
+          {
+            "class": "protocol-rule",
+            "id": "high-risk-request",
+            "sha256": "5da4fa5225be04c4899675752fbce01f4db0234ee3cf7715a8ac8cf4e9eb0b20"
+          }
+        ]
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-732",
+      "description": "Valid invalid_request details for a declared retention below the profile floor: the eight members of Rule 4, as the resolver emits them for ITV-622's input (MIFID-II, P1D) at 2026-10-31 (Core §4.3.8 Rule 4).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-insufficient-retention",
+      "expected": "valid",
+      "data": {
+        "insufficient_retention": true,
+        "profile": "MIFID-II",
+        "declared_retention": "P1D",
+        "minimum_retention": "P1827D",
+        "retention_anchor": "2026-10-31T00:00:00.000Z",
+        "declared_retained_until": "2026-11-01T00:00:00.000Z",
+        "minimum_retained_until": "2031-11-01T00:00:00.000Z",
+        "resolution_source": "per-message"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-733",
+      "description": "Valid invalid_request details for a classification escalation (Core §4.3.8 Rule 6, §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-classification-escalation",
+      "expected": "valid",
+      "data": {
+        "classification_escalation": true
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-734",
+      "description": "Valid invalid_request details for special-category data without an Art. 9(2) basis (Core §4.3.8 Rule 8, §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-sensitive-requires-art9-basis",
+      "expected": "valid",
+      "data": {
+        "sensitive_requires_art9_basis": true
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-735",
+      "description": "Valid invalid_request details for an obligation conflict: indicator, axis, declared, required and sources, as ITV-647 expects them (Core §4.3.10.5, §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-obligation-conflict",
+      "expected": "valid",
+      "data": {
+        "obligation_conflict": true,
+        "axis": "oversight",
+        "declared": null,
+        "required": {
+          "mode": "required_post_execution",
+          "missing": "post_execution_review_period"
+        },
+        "sources": []
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-736",
+      "description": "Valid error-details-conflict-absent with localized_description (Core §11.1): a closed details object accepts the localized rendering besides its members (State §3.1.2 rule 4, §8.4). The schema permits the member; it does not validate that the request carried context.locale.",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-conflict-absent",
+      "expected": "valid",
+      "data": {
+        "entry_live": false,
+        "expected_generation": 1,
+        "expected_version": 3,
+        "localized_description": "Pedido rejeitado: consulte a descrição em inglês."
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-737",
+      "description": "Valid error-details-retention-override with localized_description (Core §11.1): a closed details object accepts the localized rendering besides its members (State §3.2.2, §8.4). The schema permits the member; it does not validate that the request carried context.locale.",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-retention-override",
+      "expected": "valid",
+      "data": {
+        "within_retention": true,
+        "entry_retained_until": "2031-04-27T14:00:00.000Z",
+        "localized_description": "Pedido rejeitado: consulte a descrição em inglês."
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-738",
+      "description": "Valid error-details-retention-fixed with localized_description (Core §11.1): a closed details object accepts the localized rendering besides its members (State §3.1.2 rule 7, §8.4). The schema permits the member; it does not validate that the request carried context.locale.",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-retention-fixed",
+      "expected": "valid",
+      "data": {
+        "retention_fixed": true,
+        "entry_retained_until": "2027-04-27T14:00:00.000Z",
+        "required_retained_until": "2028-04-27T14:00:00.000Z",
+        "localized_description": "Pedido rejeitado: consulte a descrição em inglês."
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-739",
+      "description": "Valid audit query response to a query with chain_id: the entries of chain ITV-592..596 in chain_seq order, including the tombstone ITV-595; every entry carries chain_id and chain_seq and next_cursor is the chain_seq of the last entry (State §7.4). The schema checks this structural coherence; the correspondence with the query parameters is a runtime obligation.",
+      "schema_ref": "arsia-audit-query-response.schema.json",
+      "expected": "valid",
+      "data": {
+        "records": [
+          {
+            "record_id": "d5c00592-0001-4001-8001-000000000592",
+            "message_id": "d5c00592-0002-4001-8001-000000000592",
+            "event_type": "pending_approval",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.compliance-checker",
+            "intent": "pending_approval",
+            "payload_type": "com.example.notes/delete",
+            "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:00:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:00:00.000Z",
+            "retained_until": "2027-03-28T10:00:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "correlation_id": "d5c00590-0002-4001-8001-000000000590",
+            "root_request_id": "d5c00590-0002-4001-8001-000000000590",
+            "approval_deadline": "2026-09-28T11:00:00.000Z",
+            "human_oversight_status": "pending",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 1,
+            "chain_format": 1,
+            "hash_chain": "8cbed68058570818e4598c299f26a695ebd8fd7d677dc37c2e1f3e6f336b068f"
+          },
+          {
+            "record_id": "d5c00593-0001-4001-8001-000000000593",
+            "message_id": "d5c00593-0002-4001-8001-000000000593",
+            "event_type": "approval_decision",
+            "from_agent": "agent:acme.billing",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "approval_decision",
+            "payload_type": "com.example.notes/delete",
+            "payload_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:05:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:05:00.000Z",
+            "retained_until": "2027-03-28T10:05:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "correlation_id": "d5c00592-0002-4001-8001-000000000592",
+            "root_request_id": "d5c00590-0002-4001-8001-000000000590",
+            "decision": "approved",
+            "approver_id": "agent:acme.billing",
+            "reason": null,
+            "human_oversight_status": "approved",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 2,
+            "chain_format": 1,
+            "hash_chain": "abf07746678f4e4231f43878a9538be0a44533fcc5eb177ef1de7be35786ba20"
+          },
+          {
+            "record_id": "d5c00594-0001-4001-8001-000000000594",
+            "message_id": "d5c00594-0002-4001-8001-000000000594",
+            "event_type": "state_set",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "request",
+            "payload_type": "arsiaprotocol.state/set",
+            "payload_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:06:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:06:00.000Z",
+            "retained_until": "2027-03-28T10:06:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
+            "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
+            "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+            "generation": 1,
+            "version": 1,
+            "pii_classification": "none",
+            "timestamp": "2026-09-28T10:06:00.000Z",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 3,
+            "chain_format": 1,
+            "hash_chain": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe",
+            "obligation_resolution": {
+              "outcome": "accepted",
+              "profile": {
+                "declared": "EU-AI-ACT-HIGH-RISK",
+                "applied": "EU-AI-ACT-HIGH-RISK",
+                "source": {
+                  "name": "EU-AI-ACT-HIGH-RISK",
+                  "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                }
+              },
+              "facts": [],
+              "axes": {
+                "oversight": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "required_before_execution",
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": [
+                    "required_before_execution"
+                  ],
+                  "override": false,
+                  "conflict": null
+                },
+                "audit": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "explainability": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "retention": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "P6M",
+                    "source": "profile-default"
+                  },
+                  "requirements": [
+                    {
+                      "kind": "floor",
+                      "source": {
+                        "class": "profile-floor",
+                        "id": "EU-AI-ACT-HIGH-RISK",
+                        "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                      },
+                      "fact": null,
+                      "minimum": "P6M"
+                    }
+                  ],
+                  "result": {
+                    "duration": "P6M",
+                    "anchor": "2026-09-28T10:06:00.000Z",
+                    "retained_until": "2027-03-28T10:06:00.000Z"
+                  },
+                  "override": false,
+                  "conflict": null
+                },
+                "residency": {
+                  "status": "no-value",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": null,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": null,
+                  "override": false,
+                  "conflict": null
+                }
+              }
+            }
+          },
+          {
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 4,
+            "chain_format": 1,
+            "hash_chain": "d4e0f1c017b63f54f8f5c100a4a65a5c06faa76a7523c382fed9b5b146ee041a",
+            "previous_chain_value": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe"
+          },
+          {
+            "record_id": "d5c00596-0001-4001-8001-000000000596",
+            "message_id": "d5c00596-0002-4001-8001-000000000596",
+            "event_type": "rollback",
+            "from_agent": "agent:arsialabs.demo.compliance-checker",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "request",
+            "payload_type": "com.example.notes/delete/rollback",
+            "payload_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:10:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:10:00.000Z",
+            "retained_until": "2027-03-28T10:10:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "original_message_id": "d5c00595-0002-4001-8001-000000000595",
+            "action_id": "com.example.notes/delete",
+            "partial_rollback": false,
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 5,
+            "chain_format": 1,
+            "hash_chain": "3bfc1ad981e5226b8816846d57c381fa5e992b07ba4bc6fabf020e3d9ad8c9c9",
+            "obligation_resolution": {
+              "outcome": "accepted",
+              "profile": {
+                "declared": "EU-AI-ACT-HIGH-RISK",
+                "applied": "EU-AI-ACT-HIGH-RISK",
+                "source": {
+                  "name": "EU-AI-ACT-HIGH-RISK",
+                  "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                }
+              },
+              "facts": [],
+              "axes": {
+                "oversight": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "required_before_execution",
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": [
+                    "required_before_execution"
+                  ],
+                  "override": false,
+                  "conflict": null
+                },
+                "audit": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "explainability": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "retention": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "P6M",
+                    "source": "profile-default"
+                  },
+                  "requirements": [
+                    {
+                      "kind": "floor",
+                      "source": {
+                        "class": "profile-floor",
+                        "id": "EU-AI-ACT-HIGH-RISK",
+                        "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                      },
+                      "fact": null,
+                      "minimum": "P6M"
+                    }
+                  ],
+                  "result": {
+                    "duration": "P6M",
+                    "anchor": "2026-09-28T10:10:00.000Z",
+                    "retained_until": "2027-03-28T10:10:00.000Z"
+                  },
+                  "override": false,
+                  "conflict": null
+                },
+                "residency": {
+                  "status": "no-value",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": null,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": null,
+                  "override": false,
+                  "conflict": null
+                }
+              }
+            }
+          }
+        ],
+        "total": 6,
+        "has_more": true,
+        "next_cursor": 5
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-740",
+      "description": "Valid audit query response to an ordinary query (no chain_id): a chained record (ITV-592) with a record_id cursor. Chained records are not limited to chain queries: at the Compliance and Full levels every served record carries the chain fields (State §7.4).",
+      "schema_ref": "arsia-audit-query-response.schema.json",
+      "expected": "valid",
+      "data": {
+        "records": [
+          {
+            "record_id": "d5c00592-0001-4001-8001-000000000592",
+            "message_id": "d5c00592-0002-4001-8001-000000000592",
+            "event_type": "pending_approval",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.compliance-checker",
+            "intent": "pending_approval",
+            "payload_type": "com.example.notes/delete",
+            "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:00:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:00:00.000Z",
+            "retained_until": "2027-03-28T10:00:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "correlation_id": "d5c00590-0002-4001-8001-000000000590",
+            "root_request_id": "d5c00590-0002-4001-8001-000000000590",
+            "approval_deadline": "2026-09-28T11:00:00.000Z",
+            "human_oversight_status": "pending",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 1,
+            "chain_format": 1,
+            "hash_chain": "8cbed68058570818e4598c299f26a695ebd8fd7d677dc37c2e1f3e6f336b068f"
+          }
+        ],
+        "total": 3,
+        "has_more": true,
+        "next_cursor": "d5c00592-0001-4001-8001-000000000592"
+      },
+      "expected_error": null
+    },
+    {
       "id": "INV-178",
       "description": "State §5.7: INVALID — breach notification with without notification_target, REQUIRED for both targets; it fails only the required constraint of notification_target.",
       "category": "state",
@@ -44520,6 +45025,1893 @@
         "original_payment_reference": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
       },
       "expected_error": "original_payment_reference is too long — Assets §6.2.2"
+    },
+    {
+      "id": "INV-226",
+      "description": "INVALID — error-details-unknown-profile with unknown_profile false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-unknown-profile",
+      "expected": "invalid",
+      "data": {
+        "unknown_profile": false
+      },
+      "expected_error": "unknown_profile must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-227",
+      "description": "INVALID — error-details-missing-legal-basis with missing_legal_basis false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-missing-legal-basis",
+      "expected": "invalid",
+      "data": {
+        "missing_legal_basis": false,
+        "pii_classification": "personal"
+      },
+      "expected_error": "missing_legal_basis must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-228",
+      "description": "INVALID — error-details-high-risk-missing-oversight with high_risk_missing_oversight false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-high-risk-missing-oversight",
+      "expected": "invalid",
+      "data": {
+        "high_risk_missing_oversight": false,
+        "declared": null,
+        "sources": [
+          {
+            "class": "protocol-rule",
+            "id": "high-risk-request",
+            "sha256": "5da4fa5225be04c4899675752fbce01f4db0234ee3cf7715a8ac8cf4e9eb0b20"
+          }
+        ]
+      },
+      "expected_error": "high_risk_missing_oversight must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-229",
+      "description": "INVALID — error-details-insufficient-retention with insufficient_retention false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-insufficient-retention",
+      "expected": "invalid",
+      "data": {
+        "insufficient_retention": false,
+        "profile": "MIFID-II",
+        "declared_retention": "P1D",
+        "minimum_retention": "P1827D",
+        "retention_anchor": "2026-10-31T00:00:00.000Z",
+        "declared_retained_until": "2026-11-01T00:00:00.000Z",
+        "minimum_retained_until": "2031-11-01T00:00:00.000Z",
+        "resolution_source": "per-message"
+      },
+      "expected_error": "insufficient_retention must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-230",
+      "description": "INVALID — error-details-classification-escalation with classification_escalation false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-classification-escalation",
+      "expected": "invalid",
+      "data": {
+        "classification_escalation": false
+      },
+      "expected_error": "classification_escalation must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-231",
+      "description": "INVALID — error-details-sensitive-requires-art9-basis with sensitive_requires_art9_basis false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-sensitive-requires-art9-basis",
+      "expected": "invalid",
+      "data": {
+        "sensitive_requires_art9_basis": false
+      },
+      "expected_error": "sensitive_requires_art9_basis must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-232",
+      "description": "INVALID — error-details-obligation-conflict with obligation_conflict false: the details object requires the diagnostic member with the value true, so a false value does not escape validation (Core §4.3.10.6).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-obligation-conflict",
+      "expected": "invalid",
+      "data": {
+        "obligation_conflict": false,
+        "axis": "oversight",
+        "declared": null,
+        "required": {
+          "mode": "required_post_execution",
+          "missing": "post_execution_review_period"
+        },
+        "sources": []
+      },
+      "expected_error": "obligation_conflict must be true — Core §4.3.10.6"
+    },
+    {
+      "id": "INV-233",
+      "description": "INVALID — missing_legal_basis details with a numeric localized_description: the member is a string (Core §11.1).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-missing-legal-basis",
+      "expected": "invalid",
+      "data": {
+        "missing_legal_basis": true,
+        "localized_description": 42
+      },
+      "expected_error": "localized_description must be a string — Core §11.1"
+    },
+    {
+      "id": "INV-234",
+      "description": "INVALID — missing_legal_basis details with the former message member: the human-readable explanation is payload.error.description, and message is not a member of the details (State §5.2, Core §11.1).",
+      "schema_ref": "arsia-message.schema.json#/$defs/error-details-missing-legal-basis",
+      "expected": "invalid",
+      "data": {
+        "missing_legal_basis": true,
+        "pii_classification": "personal",
+        "message": "GDPR Art. 6 requires a legal basis for processing personal data."
+      },
+      "expected_error": "message is not a permitted member of the missing_legal_basis details — State §5.2"
+    },
+    {
+      "id": "INV-235",
+      "description": "INVALID — audit query response containing a tombstone (ITV-595) with a record_id (UUID) next_cursor: a response that contains a tombstone is a chain response, whose next_cursor is a chain_seq (State §7.4).",
+      "schema_ref": "arsia-audit-query-response.schema.json",
+      "expected": "invalid",
+      "data": {
+        "records": [
+          {
+            "record_id": "d5c00592-0001-4001-8001-000000000592",
+            "message_id": "d5c00592-0002-4001-8001-000000000592",
+            "event_type": "pending_approval",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.compliance-checker",
+            "intent": "pending_approval",
+            "payload_type": "com.example.notes/delete",
+            "payload_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:00:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:00:00.000Z",
+            "retained_until": "2027-03-28T10:00:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "correlation_id": "d5c00590-0002-4001-8001-000000000590",
+            "root_request_id": "d5c00590-0002-4001-8001-000000000590",
+            "approval_deadline": "2026-09-28T11:00:00.000Z",
+            "human_oversight_status": "pending",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 1,
+            "chain_format": 1,
+            "hash_chain": "8cbed68058570818e4598c299f26a695ebd8fd7d677dc37c2e1f3e6f336b068f"
+          },
+          {
+            "record_id": "d5c00593-0001-4001-8001-000000000593",
+            "message_id": "d5c00593-0002-4001-8001-000000000593",
+            "event_type": "approval_decision",
+            "from_agent": "agent:acme.billing",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "approval_decision",
+            "payload_type": "com.example.notes/delete",
+            "payload_hash": "3333333333333333333333333333333333333333333333333333333333333333",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:05:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:05:00.000Z",
+            "retained_until": "2027-03-28T10:05:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "correlation_id": "d5c00592-0002-4001-8001-000000000592",
+            "root_request_id": "d5c00590-0002-4001-8001-000000000590",
+            "decision": "approved",
+            "approver_id": "agent:acme.billing",
+            "reason": null,
+            "human_oversight_status": "approved",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 2,
+            "chain_format": 1,
+            "hash_chain": "abf07746678f4e4231f43878a9538be0a44533fcc5eb177ef1de7be35786ba20"
+          },
+          {
+            "record_id": "d5c00594-0001-4001-8001-000000000594",
+            "message_id": "d5c00594-0002-4001-8001-000000000594",
+            "event_type": "state_set",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "request",
+            "payload_type": "arsiaprotocol.state/set",
+            "payload_hash": "4444444444444444444444444444444444444444444444444444444444444444",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:06:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:06:00.000Z",
+            "retained_until": "2027-03-28T10:06:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "key": "agent:arsialabs.demo.risk-assessor/agent/notes/n-1",
+            "owner_agent_id": "agent:arsialabs.demo.risk-assessor",
+            "actor_agent_id": "agent:arsialabs.demo.risk-assessor",
+            "generation": 1,
+            "version": 1,
+            "pii_classification": "none",
+            "timestamp": "2026-09-28T10:06:00.000Z",
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 3,
+            "chain_format": 1,
+            "hash_chain": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe",
+            "obligation_resolution": {
+              "outcome": "accepted",
+              "profile": {
+                "declared": "EU-AI-ACT-HIGH-RISK",
+                "applied": "EU-AI-ACT-HIGH-RISK",
+                "source": {
+                  "name": "EU-AI-ACT-HIGH-RISK",
+                  "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                }
+              },
+              "facts": [],
+              "axes": {
+                "oversight": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "required_before_execution",
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": [
+                    "required_before_execution"
+                  ],
+                  "override": false,
+                  "conflict": null
+                },
+                "audit": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "explainability": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "retention": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "P6M",
+                    "source": "profile-default"
+                  },
+                  "requirements": [
+                    {
+                      "kind": "floor",
+                      "source": {
+                        "class": "profile-floor",
+                        "id": "EU-AI-ACT-HIGH-RISK",
+                        "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                      },
+                      "fact": null,
+                      "minimum": "P6M"
+                    }
+                  ],
+                  "result": {
+                    "duration": "P6M",
+                    "anchor": "2026-09-28T10:06:00.000Z",
+                    "retained_until": "2027-03-28T10:06:00.000Z"
+                  },
+                  "override": false,
+                  "conflict": null
+                },
+                "residency": {
+                  "status": "no-value",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": null,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": null,
+                  "override": false,
+                  "conflict": null
+                }
+              }
+            }
+          },
+          {
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 4,
+            "chain_format": 1,
+            "hash_chain": "d4e0f1c017b63f54f8f5c100a4a65a5c06faa76a7523c382fed9b5b146ee041a",
+            "previous_chain_value": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe"
+          },
+          {
+            "record_id": "d5c00596-0001-4001-8001-000000000596",
+            "message_id": "d5c00596-0002-4001-8001-000000000596",
+            "event_type": "rollback",
+            "from_agent": "agent:arsialabs.demo.compliance-checker",
+            "to_agent": "agent:arsialabs.demo.risk-assessor",
+            "intent": "request",
+            "payload_type": "com.example.notes/delete/rollback",
+            "payload_hash": "6666666666666666666666666666666666666666666666666666666666666666",
+            "compliance_profile_declared": "EU-AI-ACT-HIGH-RISK",
+            "compliance_profile_resolved": "EU-AI-ACT-HIGH-RISK",
+            "declared_retention": null,
+            "effective_retention": "P6M",
+            "retention_anchor": "2026-09-28T10:10:00.000Z",
+            "retention_source": "profile-minimum",
+            "processed_at": "2026-09-28T10:10:00.000Z",
+            "retained_until": "2027-03-28T10:10:00.000Z",
+            "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+            "original_message_id": "d5c00595-0002-4001-8001-000000000595",
+            "action_id": "com.example.notes/delete",
+            "partial_rollback": false,
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 5,
+            "chain_format": 1,
+            "hash_chain": "3bfc1ad981e5226b8816846d57c381fa5e992b07ba4bc6fabf020e3d9ad8c9c9",
+            "obligation_resolution": {
+              "outcome": "accepted",
+              "profile": {
+                "declared": "EU-AI-ACT-HIGH-RISK",
+                "applied": "EU-AI-ACT-HIGH-RISK",
+                "source": {
+                  "name": "EU-AI-ACT-HIGH-RISK",
+                  "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                }
+              },
+              "facts": [],
+              "axes": {
+                "oversight": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "required_before_execution",
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": [
+                    "required_before_execution"
+                  ],
+                  "override": false,
+                  "conflict": null
+                },
+                "audit": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "explainability": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": true,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": true,
+                  "override": false,
+                  "conflict": null
+                },
+                "retention": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "P6M",
+                    "source": "profile-default"
+                  },
+                  "requirements": [
+                    {
+                      "kind": "floor",
+                      "source": {
+                        "class": "profile-floor",
+                        "id": "EU-AI-ACT-HIGH-RISK",
+                        "sha256": "8fae10ab790fb43e062b52158948cbb31ab3978eb1166222a0666487e5eb3242"
+                      },
+                      "fact": null,
+                      "minimum": "P6M"
+                    }
+                  ],
+                  "result": {
+                    "duration": "P6M",
+                    "anchor": "2026-09-28T10:10:00.000Z",
+                    "retained_until": "2027-03-28T10:10:00.000Z"
+                  },
+                  "override": false,
+                  "conflict": null
+                },
+                "residency": {
+                  "status": "no-value",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": null,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": null,
+                  "override": false,
+                  "conflict": null
+                }
+              }
+            }
+          }
+        ],
+        "total": 6,
+        "has_more": true,
+        "next_cursor": "d5c00594-0001-4001-8001-000000000594"
+      },
+      "expected_error": "next_cursor must be an integer chain_seq when the response contains a tombstone — State §7.4"
+    },
+    {
+      "id": "INV-236",
+      "description": "INVALID — audit query response containing a tombstone (ITV-595) and a record without chain fields (the record of ITV-55): every entry of a response that contains a tombstone carries chain_id and chain_seq (State §7.4).",
+      "schema_ref": "arsia-audit-query-response.schema.json",
+      "expected": "invalid",
+      "data": {
+        "records": [
+          {
+            "record_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+            "message_id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "event_type": "request",
+            "from_agent": "agent:arsialabs.demo.risk-assessor",
+            "to_agent": "agent:arsialabs.demo.compliance-checker",
+            "intent": "request",
+            "payload_type": "arsiaprotocol.compliance/check",
+            "payload_hash": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+            "processed_at": "2026-04-10T14:30:00.000Z",
+            "retained_until": "2026-07-09T14:30:00.000Z",
+            "operator_id": "org:arsialabs",
+            "compliance_profile_declared": "GDPR-STANDARD",
+            "compliance_profile_resolved": "GDPR-STANDARD",
+            "retention_source": "platform-default",
+            "declared_retention": null,
+            "obligation_resolution": {
+              "outcome": "accepted",
+              "profile": {
+                "declared": "GDPR-STANDARD",
+                "applied": "GDPR-STANDARD",
+                "source": {
+                  "name": "GDPR-STANDARD",
+                  "sha256": "e0dbf3183e6abd5afc366b5c9f327ef20f72086b158609cfee6f664405e7beb4"
+                }
+              },
+              "facts": [],
+              "axes": {
+                "oversight": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "not_required",
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": [],
+                  "override": false,
+                  "conflict": null
+                },
+                "audit": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": false,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": false,
+                  "override": false,
+                  "conflict": null
+                },
+                "explainability": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": false,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": false,
+                  "override": false,
+                  "conflict": null
+                },
+                "retention": {
+                  "status": "resolved",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": "P90D",
+                    "source": "platform-default"
+                  },
+                  "requirements": [],
+                  "result": {
+                    "duration": "P90D",
+                    "anchor": "2026-04-10T14:30:00.000Z",
+                    "retained_until": "2026-07-09T14:30:00.000Z"
+                  },
+                  "override": false,
+                  "conflict": null
+                },
+                "residency": {
+                  "status": "no-value",
+                  "declared": {
+                    "present": false
+                  },
+                  "fill": {
+                    "value": null,
+                    "source": "profile-default"
+                  },
+                  "requirements": [],
+                  "result": null,
+                  "override": false,
+                  "conflict": null
+                }
+              }
+            },
+            "effective_retention": "P90D",
+            "retention_anchor": "2026-04-10T14:30:00.000Z"
+          },
+          {
+            "chain_id": "d5c00592-0000-4000-8000-000000000592",
+            "chain_seq": 4,
+            "chain_format": 1,
+            "hash_chain": "d4e0f1c017b63f54f8f5c100a4a65a5c06faa76a7523c382fed9b5b146ee041a",
+            "previous_chain_value": "b0a28dcedbcbf7f1b4edd26cde98581d355b55b67bfc7c531a250632a456bffe"
+          }
+        ],
+        "total": 2,
+        "has_more": false
+      },
+      "expected_error": "chain_id is required on every entry of a response that contains a tombstone — State §7.4"
+    },
+    {
+      "id": "INV-237",
+      "description": "INVALID — SET payload with pii_classification 'personal' and pii_special_categories: the member MUST NOT be present when pii_classification is not 'sensitive' (State §2.1.11; the payload of INV-22).",
+      "schema_ref": "arsia-state-operations.schema.json",
+      "expected": "invalid",
+      "data": {
+        "type": "arsiaprotocol.state/set",
+        "args": {
+          "key": "agent:acme.health-processor/agent/patient-record-558",
+          "value": {
+            "name": "Test Patient"
+          },
+          "scope": "agent",
+          "pii_classification": "personal",
+          "pii_special_categories": [
+            "health"
+          ],
+          "data_residency": "EU"
+        }
+      },
+      "expected_error": "pii_special_categories MUST NOT be present when pii_classification is not sensitive — State §2.1.11"
+    },
+    {
+      "id": "INV-238",
+      "description": "INVALID — state entry with pii_classification 'personal' and pii_special_categories (ITV-203 with the member added): the member MUST NOT be present when pii_classification is not 'sensitive' (State §2.1.11).",
+      "schema_ref": "arsia-state-entry.schema.json",
+      "expected": "invalid",
+      "data": {
+        "key": "agent:acme.billing/agent/customer-profile",
+        "value": {
+          "name": "João Santos",
+          "classification": "retail"
+        },
+        "owner_agent_id": "agent:acme.billing",
+        "scope": "agent",
+        "created_at": "2026-03-01T00:00:00.000Z",
+        "updated_at": "2026-04-15T10:00:00.000Z",
+        "pii_classification": "personal",
+        "data_residency": "PT",
+        "generation": 1,
+        "version": 2,
+        "pii_special_categories": [
+          "health"
+        ]
+      },
+      "expected_error": "pii_special_categories MUST NOT be present when pii_classification is not sensitive — State §2.1.11"
+    },
+    {
+      "id": "INV-239",
+      "description": "INVALID — escrow_created record (ITV-88) without payer_agent, REQUIRED on escrow_created (Assets §4.3.1, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20239-0000-4000-8000-000000000239",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_created",
+        "payment_reference": "PAY-2026-04-0088",
+        "amount": "25000.00",
+        "currency_or_unit": "EUR",
+        "release_agent": "agent:arsialabs.demo.escrow-release",
+        "payee_agent": "agent:arsialabs.demo.seller",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2031-04-28T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "payer_agent is required on escrow_created — Assets §4.3.1"
+    },
+    {
+      "id": "INV-240",
+      "description": "INVALID — escrow_created record (ITV-88) without payee_agent, REQUIRED on escrow_created (Assets §4.3.1, State §7.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20240-0000-4000-8000-000000000240",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_created",
+        "payment_reference": "PAY-2026-04-0088",
+        "amount": "25000.00",
+        "currency_or_unit": "EUR",
+        "release_agent": "agent:arsialabs.demo.escrow-release",
+        "payer_agent": "agent:arsialabs.demo.buyer",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2031-04-28T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "payee_agent is required on escrow_created — Assets §4.3.1"
+    },
+    {
+      "id": "INV-241",
+      "description": "INVALID — escrow_created record (ITV-88) with payload_type escrow-cancel: the creation record documents the AssetTransferRequest (payload_type arsiaprotocol.assets/transfer-request, Assets §4.3.1).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20241-0000-4000-8000-000000000241",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/escrow-cancel",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_created",
+        "payment_reference": "PAY-2026-04-0088",
+        "amount": "25000.00",
+        "currency_or_unit": "EUR",
+        "release_agent": "agent:arsialabs.demo.escrow-release",
+        "payer_agent": "agent:arsialabs.demo.buyer",
+        "payee_agent": "agent:arsialabs.demo.seller",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2031-04-28T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "payload_type must be arsiaprotocol.assets/transfer-request on escrow_created — Assets §4.3.1"
+    },
+    {
+      "id": "INV-242",
+      "description": "INVALID — escrow_disputed record (ITV-91) with payload_type transfer-request: the dispute record documents the escrow-dispute message (Assets §4.3.4).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20242-0000-4000-8000-000000000242",
+        "message_id": "b000008b-0002-4001-8001-00000000008b",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_disputed",
+        "payment_reference": "PAY-2026-04-0088",
+        "disputed_by": "agent:arsialabs.demo.buyer-agent",
+        "dispute_reason": "Goods not delivered within escrow period",
+        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2031-04-28T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "payload_type must be arsiaprotocol.assets/escrow-dispute on escrow_disputed — Assets §4.3.4"
+    },
+    {
+      "id": "INV-243",
+      "description": "INVALID — escrow_returned timeout record (ITV-90) with payload_type escrow-cancel: a timeout record documents the AssetTransferRequest that created the escrow (Assets §4.3, §4.3.3).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20243-0000-4000-8000-000000000243",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/escrow-cancel",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-05-27T14:00:01.000Z",
+        "retained_until": "2031-05-28T14:00:01.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_returned",
+        "payment_reference": "PAY-2026-04-0088",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "actual_timeout": "2026-05-27T14:00:01.000Z",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-05-27T14:00:01.000Z",
+                "retained_until": "2031-05-28T14:00:01.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-05-27T14:00:01.000Z"
+      },
+      "expected_error": "payload_type must be arsiaprotocol.assets/transfer-request on a timeout escrow_returned record — Assets §4.3.3"
+    },
+    {
+      "id": "INV-244",
+      "description": "INVALID — escrow_returned cancellation record (ITV-586) with payload_type transfer-request: a cancellation record documents the escrow-cancel message (Assets §4.3.3).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20244-0000-4000-8000-000000000244",
+        "message_id": "b0000586-0002-4001-8001-000000000586",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-04-27T14:00:00.000Z",
+        "retained_until": "2031-04-28T14:00:00.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_returned",
+        "payment_reference": "PAY-2026-04-0088",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "cancellation_reason": "Payer cancelled before release",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-27T14:00:00.000Z",
+                "retained_until": "2031-04-28T14:00:00.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-27T14:00:00.000Z"
+      },
+      "expected_error": "payload_type must be arsiaprotocol.assets/escrow-cancel on a cancellation escrow_returned record — Assets §4.3.3"
+    },
+    {
+      "id": "INV-245",
+      "description": "INVALID — escrow_returned record (ITV-90) carrying both actual_timeout and cancellation_reason: a record carries exactly one of them (Assets §4.3.3).",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "invalid",
+      "data": {
+        "record_id": "c3a20245-0000-4000-8000-000000000245",
+        "message_id": "b0000088-0002-4001-8001-000000000088",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/transfer-request",
+        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
+        "processed_at": "2026-05-27T14:00:01.000Z",
+        "retained_until": "2031-05-28T14:00:01.000Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "sub_type": "escrow_returned",
+        "payment_reference": "PAY-2026-04-0088",
+        "timeout_at": "2026-05-27T14:00:00.000Z",
+        "actual_timeout": "2026-05-27T14:00:01.000Z",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "human_oversight_status": "not_required",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "retention_source": "profile-minimum",
+        "declared_retention": null,
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-05-27T14:00:01.000Z",
+                "retained_until": "2031-05-28T14:00:01.000Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-05-27T14:00:01.000Z",
+        "cancellation_reason": "Payer cancelled before release"
+      },
+      "expected_error": "escrow_returned carries exactly one of actual_timeout and cancellation_reason — Assets §4.3.3"
     }
   ]
 }

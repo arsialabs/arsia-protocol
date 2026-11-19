@@ -135,7 +135,7 @@ ARSIA defines three conformance levels that allow implementations to progressive
 
 **Traceability.** Six Requirements Traceability Matrices (2,046 rows) in [`docs/rtm/`](docs/rtm/) map every MUST, SHOULD, and MAY in the specifications to the corresponding JSON Schema and test vector.
 
-**Validation.** 987 test vectors (499 schema-valid, 258 expected-invalid, 211 runtime-only, 19 raw parse) in [`test-vectors/`](test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
+**Validation.** 1019 test vectors (512 schema-valid, 280 expected-invalid, 208 runtime-only, 19 raw parse) in [`test-vectors/`](test-vectors/) provide machine-verifiable conformance validation with real Ed25519, ES256, and RS256 cryptographic operations.
 
 ---
 

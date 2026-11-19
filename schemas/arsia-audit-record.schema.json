@@ -236,6 +236,26 @@
       ],
       "description": "Agent-id of the authorised escrow release agent. Present in escrow_created audit records. Per ARSIA-Assets.md §4.3.1."
     },
+    "payer_agent": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/agent-id"
+        },
+        {
+          "description": "The payer of the escrowed transfer: the AssetTransferRequest's payload.args.from_agent (ARSIA-Assets.md §3.1.1). Present in escrow_created audit records; it MAY differ from from_agent, the envelope sender. Per ARSIA-Assets.md §4.3.1."
+        }
+      ]
+    },
+    "payee_agent": {
+      "allOf": [
+        {
+          "$ref": "arsia-common.schema.json#/$defs/agent-id"
+        },
+        {
+          "description": "The payee of the escrowed transfer: the AssetTransferRequest's payload.args.to_agent (ARSIA-Assets.md §3.1.1). Present in escrow_created audit records; it MAY differ from to_agent, the envelope recipient. Per ARSIA-Assets.md §4.3.1."
+        }
+      ]
+    },
     "timeout_at": {
       "allOf": [
         {
@@ -881,8 +901,15 @@
           "amount",
           "currency_or_unit",
           "release_agent",
-          "timeout_at"
-        ]
+          "timeout_at",
+          "payer_agent",
+          "payee_agent"
+        ],
+        "properties": {
+          "payload_type": {
+            "const": "arsiaprotocol.assets/transfer-request"
+          }
+        }
       }
     },
     {
@@ -922,7 +949,7 @@
           "timeout_at",
           "original_audit_id"
         ],
-        "anyOf": [
+        "oneOf": [
           {
             "required": [
               "actual_timeout"
@@ -932,6 +959,46 @@
             "required": [
               "cancellation_reason"
             ]
+          }
+        ],
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "actual_timeout"
+              ],
+              "not": {
+                "required": [
+                  "cancellation_reason"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "payload_type": {
+                  "const": "arsiaprotocol.assets/transfer-request"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "cancellation_reason"
+              ],
+              "not": {
+                "required": [
+                  "actual_timeout"
+                ]
+              }
+            },
+            "then": {
+              "properties": {
+                "payload_type": {
+                  "const": "arsiaprotocol.assets/escrow-cancel"
+                }
+              }
+            }
           }
         ]
       }
@@ -954,7 +1021,12 @@
           "dispute_reason",
           "arbitration_agent",
           "original_audit_id"
-        ]
+        ],
+        "properties": {
+          "payload_type": {
+            "const": "arsiaprotocol.assets/escrow-dispute"
+          }
+        }
       }
     },
     {

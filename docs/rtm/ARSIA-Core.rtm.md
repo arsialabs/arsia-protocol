@@ -109,7 +109,7 @@
 | CORE-§4.3.6.7-02 | 4.3.6.7 | MUST | sdk | behavioural_positive | Agents MUST apply GDPR Art. 5(1)(f) data protection for pii_involved messages | — | — | untested(no-reference-model) |
 | CORE-§4.3.6.7-03 | 4.3.6.7 | SHOULD | sdk | behavioural_positive | PII data SHOULD be encrypted in transit and at rest | — | — | — |
 | CORE-§4.3.6.8-01 | 4.3.6.8 | REQUIRED | sdk | structural | legal_basis field is REQUIRED when pii_involved is true | arsia-compliance-field | CTV-02, ITV-18, ITV-19, ITV-161, ITV-162 | schema-ref:arsia-compliance-field; struct:CTV-02, ITV-18, ITV-19, ITV-161, ITV-162; crypto:CTV-02, ITV-161, ITV-162 |
-| CORE-§4.3.6.8-02 | 4.3.6.8 | MUST | sdk | behavioural_negative | When pii_classification is "sensitive", legal_basis MUST be an Art. 9(2) ground | arsia-compliance-field | ITV-555, INV-20 | schema-ref:arsia-compliance-field; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| CORE-§4.3.6.8-02 | 4.3.6.8 | MUST | sdk | behavioural_negative | When pii_classification is "sensitive", legal_basis MUST be an Art. 9(2) ground | arsia-compliance-field, arsia-message | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-message; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
 | CORE-§4.3.6.9-01 | 4.3.6.9 | MAY | sdk | informational | High-risk agent MAY send a minimal-risk message (downgrade allowed) | arsia-compliance-field | ITV-136 | — |
 | CORE-§4.3.6.9-02 | 4.3.6.9 | MUST_NOT | sdk | behavioural_negative | Minimal-risk agent MUST NOT send a high-risk message (escalation prohibited) | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
 | CORE-§4.3.7-01 | 4.3.7 | MUST | sdk | behavioural_negative | Classification escalation MUST cause rejection with invalid_request and classification_escalation detail | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
@@ -130,8 +130,8 @@
 | CORE-§4.3.8-14 | 4.3.8 | MUST | sdk | behavioural_negative | Classification escalation MUST reject with invalid_request and classification_escalation detail | — | ITV-418 | struct:ITV-418; crypto:ITV-418 |
 | CORE-§4.3.8-15 | 4.3.8 | MUST | sdk | behavioural_positive | Rule 7: when pii_involved is true, effective audit_required MUST be true (silent override) | arsia-compliance-field | ITV-553, ITV-554 | schema-ref:arsia-compliance-field; struct:ITV-553, ITV-554; crypto:ITV-553, ITV-554 |
 | CORE-§4.3.8-16 | 4.3.8 | SHOULD | sdk | behavioural_positive | Rule 7: when audit_required is overridden, agent SHOULD log a compliance_warning event | — | ITV-553 | — |
-| CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-state-operations; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
-| CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | — | INV-20 | struct:INV-20; crypto:INV-20 |
+| CORE-§4.3.8-17 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: SET with pii_classification "sensitive" MUST have Art. 9(2) legal_basis in the compliance envelope | arsia-compliance-field, arsia-state-operations, arsia-message | ITV-555, INV-20 | schema-ref:arsia-compliance-field; schema-ref:arsia-state-operations; schema-ref:arsia-message; struct:ITV-555, INV-20; crypto:ITV-555, INV-20 |
+| CORE-§4.3.8-18 | 4.3.8 | MUST | sdk | behavioural_negative | Rule 8: Art. 6(1) legal_basis for a sensitive entry MUST be rejected with invalid_request and sensitive_requires_art9_basis | arsia-message | INV-20 | schema-ref:arsia-message; struct:INV-20; crypto:INV-20; check:`R24 (a) error-details-sensitive-requires-art9-basis: the minimal object is valid alone and in its error envelope`; check:`R24 (c) resolver output for sensitive_requires_art9_basis: its details satisfy their $def and the envelope dispatch`; untested(no-reference-model) |
 | CORE-§4.3.9-01 | 4.3.9 | MUST | sdk | behavioural_negative | When authorization is present, the receiving agent MUST compute SHA-256 over the exact octets of the presented access token and reject with unauthorized when it differs from authorization.token_hash | arsia-message | ITV-692, INV-113, INV-114 | schema-ref:arsia-message; struct:ITV-692, INV-113, INV-114; crypto:ITV-692, INV-113, INV-114; exec:R21:ITV-692, INV-113, INV-114; check:`R21 (a) every authorization binding of the corpus matches its synthetic-token:<ID> (binding only)` |
 | CORE-§4.3.10-01 | 4.3.10.4 | MUST | sdk | procedural | Receiving agent MUST resolve a message's obligations in order: fill, collect, compose, evaluate, record (sufficiency evaluated on the composed result) | arsia-obligation-rules | ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 | schema-ref:arsia-obligation-rules; struct:ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621; exec:R10:ITV-603, ITV-606, ITV-609, ITV-612, ITV-617, ITV-620, ITV-621 |
 | CORE-§4.3.10-02 | 4.3.10.2 | MUST | sdk | behavioural_positive | Receiving agent MUST retain the raw signed IdentityRecord body bytes, retrievable by signed_body_sha256, while any referencing audit record is retained | — | — | untested(no-reference-model) |
@@ -141,6 +141,7 @@
 | CORE-§4.3.10-06 | 4.3.10.2 | MUST | operational_policy | behavioural_positive | Publishers of ActionDescriptors and CapabilityPolicies MUST keep published revisions retrievable by digest, and executing agents MUST retain risk-assessment records retrievable by digest, while referenced | — | — | out-of-repo(operator) |
 | CORE-§4.3.10-07 | 4.3.10.7 | MUST | sdk | behavioural_positive | Executing agent MUST carry the resolution in payload.obligation_resolution of its pending_approval and of the response or error reporting the outcome | arsia-message | ITV-631, ITV-640, ITV-644 | schema-ref:arsia-message; struct:ITV-631, ITV-640, ITV-644; crypto:ITV-631; exec:R15:ITV-640, ITV-644 |
 | CORE-§4.3.10-08 | 4.3.10.5 | MUST | sdk | behavioural_negative | The zone a state SET declares in payload.args.data_residency for an entry subject to State §8.3 rule 1 MUST be a subset of the composed residency result; a zone that is not is a conflict on the residency axis, never widened to nor replaced by the composed result | — | ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209 | struct:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209; crypto:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209; exec:R10:ITV-537, ITV-717, ITV-718, INV-207, INV-208, INV-209 |
+| CORE-§4.3.10-09 | 4.3.10.6 | MUST | sdk | structural | The details object of each compliance diagnostic MUST carry exactly the members its rule defines (the diagnostic member, true, and the members listed for it) and MAY also carry localized_description | arsia-message | ITV-729, ITV-730, ITV-731, ITV-732, ITV-733, ITV-734, ITV-735, INV-226, INV-227, INV-228, INV-229, INV-230, INV-231, INV-232, INV-234 | schema-ref:arsia-message; struct:ITV-729, ITV-730, ITV-731, ITV-732, ITV-733, ITV-734, ITV-735, INV-226, INV-227, INV-228, INV-229, INV-230, INV-231, INV-232, INV-234; exec:R10:INV-07, ITV-603, ITV-604, ITV-605, ITV-607, ITV-608, ITV-618, ITV-622, INV-62, INV-207, INV-208, INV-209; exec:R24:ITV-729, ITV-730, ITV-731, ITV-732, ITV-733, ITV-734, ITV-735, INV-226, INV-227, INV-228, INV-229, INV-230, INV-231, INV-232 |
 | CORE-§4.4-01 | 4.4 | MUST | sdk | structural | Payload object, when present, MUST contain a type field | arsia-message | CTV-07 | schema-ref:arsia-message; struct:CTV-07; crypto:CTV-07 |
 | CORE-§4.4-02 | 4.4 | MAY | sdk | structural | Payload MAY contain additional intent-dependent fields (args, result, data, error) | arsia-message | — | — |
 | CORE-§4.4.1-01 | 4.4.1 | REQUIRED | sdk | structural | payload.type field is REQUIRED within the payload object | arsia-message | — | schema-ref:arsia-message |
@@ -382,6 +383,7 @@
 | CORE-§11.1-07 | 11.1 | OPTIONAL | sdk | structural | payload.error.details (object) is OPTIONAL; provides structured error context | arsia-message | — | — |
 | CORE-§11.1-08 | 11.1 | MUST | sdk | behavioural_positive | Error description text MUST be written in English | — | — | untested(no-reference-model) |
 | CORE-§11.1-09 | 11.1 | MUST_NOT | sdk | behavioural_negative | Error description MUST NOT contain stack traces, DB queries, file paths, or credentials | — | — | untested(no-reference-model) |
+| CORE-§11.1-10 | 11.1 | MAY | sdk | structural | details.localized_description MAY be carried in every details object, including those whose members are otherwise fixed (§4.3.10.6; State §8.4) | arsia-message | ITV-736, ITV-737, ITV-738, INV-233 | — |
 | CORE-§11.1.1-01 | 11.1.1 | MAY | sdk_enabled | interoperability | Transport-level HTTP errors (401, 403) MAY use plain JSON without ARSIA envelope or signing | arsia-message | — | — |
 | CORE-§11.1.1-02 | 11.1.1 | SHOULD | sdk | behavioural_positive | Transport-level error responses SHOULD include at least a status and reason field | arsia-message | — | — |
 | CORE-§11.2-01 | 11.2 | MUST | sdk | interoperability | Implementations MUST use the standard error codes for their defined conditions | arsia-message | ITV-73, ITV-74, ITV-75, ITV-79, ITV-83, ITV-84, ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160, ITV-14 | schema-ref:arsia-message; struct:ITV-73, ITV-74, ITV-75, ITV-79, ITV-83, ITV-84, ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160, ITV-14; crypto:ITV-148, ITV-149, ITV-150, ITV-151, ITV-152, ITV-153, ITV-154, ITV-155, ITV-156, ITV-157, ITV-158, ITV-159, ITV-160 |
@@ -425,10 +427,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 410 |
-| Schema ≠ — | 185 |
-| Vector ≠ — | 162 |
-| Both ≠ — | 91 |
+| Total requirements | 412 |
+| Schema ≠ — | 188 |
+| Vector ≠ — | 164 |
+| Both ≠ — | 94 |
 | Both = — (gaps) | 154 |
 
 ### Per-section breakdown
@@ -438,14 +440,14 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 12 | 6 | 2 | 2 | 6 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 139 | 82 | 82 | 49 | 24 |
+| 4 | 140 | 84 | 83 | 51 | 24 |
 | 5 | 43 | 9 | 29 | 6 | 11 |
 | 6 | 39 | 24 | 17 | 10 | 8 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
 | 9 | 21 | 4 | 1 | 1 | 17 |
 | 10 | 15 | 2 | 0 | 0 | 13 |
-| 11 | 31 | 15 | 7 | 6 | 15 |
+| 11 | 32 | 16 | 8 | 7 | 15 |
 | 12 | 5 | 1 | 0 | 0 | 4 |
 | 13 | 3 | 1 | 0 | 0 | 2 |
 | 14 | 2 | 0 | 2 | 0 | 0 |

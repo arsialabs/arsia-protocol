@@ -2178,15 +2178,18 @@ special category data and MUST be rejected (Core §4.3.8, Rule 8).
 
 **Enforcement:** Implementations MUST reject SET operations for entries with
 `pii_classification` of `"personal"` or `"sensitive"` when `compliance.legal_basis` is missing from
-the message envelope. The error response MUST use error code `"invalid_request"` with
-details:
+the message envelope. The error response MUST use error code `"invalid_request"` with the
+`missing_legal_basis` details of ARSIA-Core.md §4.3.8, Rule 2. The details MAY also carry
+`pii_classification`; when present, it MUST be the `pii_classification` of the entry that
+the SET declares. The authoritative human-readable explanation is carried in
+`payload.error.description`, in English (ARSIA-Core.md §11.1). The details object does not
+carry a `message` member; it MAY carry `localized_description` under that section:
 
-<!-- example: no-schema — an invalid_request details object required by State §5.2 (missing legal basis); arsia-message.schema.json defines no $def for it -->
+<!-- example: arsia-message.schema.json#/$defs/error-details-missing-legal-basis -->
 ```json
 {
   "missing_legal_basis": true,
-  "pii_classification": "personal",
-  "message": "GDPR Art. 6 requires a legal basis for processing personal data."
+  "pii_classification": "personal"
 }
 ```
 
@@ -3484,9 +3487,9 @@ that equality; every row is enforced by the schema.
 | `event_type` = `state_revoke` | `grant_id`, `grantor_agent_id`, `grantee_agent_id`, `timestamp` | — | §3.3.2 |
 | `event_type` = `asset_transfer` | `payment_reference` | `original_audit_id` (escrow transitions after creation; REQUIRED for a reversal, row below) | ARSIA-Assets.md §3.2.1, §3.3.2, §4.3 |
 | `event_type` = `asset_transfer` and `payload_type` = `arsiaprotocol.assets/transfer-reversal` | `payment_reference`, `original_audit_id` | — | ARSIA-Assets.md §3.3.2 |
-| `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at` | — | ARSIA-Assets.md §4.3.1 |
+| `sub_type` = `escrow_created` | `payment_reference`, `amount`, `currency_or_unit`, `release_agent`, `timeout_at`, `payer_agent`, `payee_agent` | — | ARSIA-Assets.md §4.3.1 |
 | `sub_type` = `escrow_released` | `payment_reference`, `released_by`, `release_trigger`, `original_audit_id` | — | ARSIA-Assets.md §4.3.2 |
-| `sub_type` = `escrow_returned` | `payment_reference`, `timeout_at`, `original_audit_id` | exactly as applicable: `actual_timeout` (timeout) or `cancellation_reason` (cancellation) | ARSIA-Assets.md §4.3.3, §4.2.4 |
+| `sub_type` = `escrow_returned` | `payment_reference`, `timeout_at`, `original_audit_id` | exactly as applicable: `actual_timeout` (timeout) or `cancellation_reason` (cancellation), never both | ARSIA-Assets.md §4.3.3, §4.2.4 |
 | `sub_type` = `escrow_disputed` | `payment_reference`, `disputed_by`, `dispute_reason`, `arbitration_agent`, `original_audit_id` | — | ARSIA-Assets.md §4.3.4 |
 | `event_type` = `broker_relay` | `broker_agent_id`, `message_ts`, `residency_zone`, `received_at`, `forwarding_result` | `attestation_id`, `forwarded_at`, `relay_latency_ms` (present together when the broker initiated forwarding; REQUIRED when `forwarding_result` is `success`; ARSIA-Routing.md §7.4.2) | ARSIA-Routing.md §7.3 Rule 7, §7.4.2; ARSIA-Core.md §9.2 |
 | `event_type` = `key_rotation` | — | `reason` (`"revocation"` for a key revocation) | ARSIA-Identity.md §2.5 |
@@ -3522,6 +3525,14 @@ creation record (ARSIA-Assets.md §4.3.2–§4.3.4), or, on a reversal record, t
 original transfer's record, which the original receipt's `audit_id` references. A
 query by `payment_reference` can return several records of one chain; it does not by
 itself identify a single record, which the receipt's `audit_id` does.
+
+On an escrow record (`sub_type` present), the base fields `message_id`, `from_agent`,
+`to_agent`, `intent`, `payload_type` and `payload_hash` document the message of the
+transition named in ARSIA-Assets.md §4.3; for an escrow timeout, which has no incoming
+message, they document the AssetTransferRequest that created the escrow, while
+`record_id` and `processed_at` identify the timeout record and its processing.
+`from_agent` and `to_agent` are envelope agents; the payer and payee of the escrowed
+transfer are `payer_agent` and `payee_agent` of the escrow creation record.
 
 An `ict_incident` record carries the fields of the ICT incident candidate event's
 `payload.data` (ARSIA-Assets.md §6.2.2) with the same types, values and limits, so the
@@ -3774,7 +3785,14 @@ The `records` array contains `ArsiaAuditRecord` objects ordered by `processed_at
 ascending. For a query with `chain_id`, it instead contains that chain's entries —
 records and tombstones — ordered by `chain_seq` ascending, and `next_cursor` holds
 the `chain_seq` of the last returned entry, to be passed as `after_chain_seq`.
-Tombstones are returned only by queries with `chain_id`. The `total` field contains the total number of records matching the query
+Tombstones are returned only by queries with `chain_id`. A response that contains a
+tombstone is therefore a chain response: every entry in it MUST carry `chain_id` and
+`chain_seq`, and `next_cursor`, when present, MUST be a `chain_seq`. The response schema
+enforces this structural coherence. Whether a response matches the query parameters — no
+tombstone in the response to a query without `chain_id`, and only the entries of the
+queried chain — is an obligation of the serving implementation that the response alone
+cannot show. Chained records are not limited to chain queries: at the Compliance and Full
+conformance levels every served record carries the chain fields. The `total` field contains the total number of records matching the query
 filters (regardless of `limit`). The `has_more` field indicates whether additional
 records exist beyond the current page. The `next_cursor` field, when present, contains
 the `record_id` of the last record in the current page and can be passed as
@@ -4009,6 +4027,10 @@ the value or the floor that failed produces from the same `created_at`):
   "required_retained_until": "2028-04-27T14:00:00.000Z"
 }
 ```
+
+The absent-entry conflict details, PURGE retention details and fixed-retention details
+MAY additionally carry `localized_description` under ARSIA-Core.md §11.1; their other
+permitted members remain those specified above.
 
 ---
 
