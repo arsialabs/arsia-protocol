@@ -42,6 +42,16 @@ Draft-02 supersedes Draft-01. **Breaking release: wire version 2.0.** Full detai
 ### Added
 - Core §4.3.9 `authorization`, §6.5 issuer trust, §6.6 agent resolution, §12.4 CORE-COMPLIANCE-04..09; reserved-capability registry additions (`echo`, `health`, `onboarding.evaluate`, `broker.use`); ActionDescriptor `supported_versions`; extension profiles via reverse-domain names; relay-attestation schema; IdentityRecord `regulated_entity`; discovery `iso4217_edition` + `strict_compliance`; subsequent-receipt delivery mechanism; key-revocation event; threat model +6 adversaries; in-repo conformance tooling (`check_consistency.py`, `runtime_harness.py`, `regen_v2.py`, `rtm_counts.py`); 987-vector suite (168 crypto blocks checked: 156 signatures verified, 9 signature negatives) with 211 classified runtime skips and 54 published test keypairs.
 
+### Changed
+- Core §11.1: `details.localized_description` is accepted in every `details` object,
+  including those whose members are otherwise fixed (Core §4.3.10.6; State §8.4).
+- Assets §6.2.2 (Issue #2): `resolved_at` of the ICT incident event is typed "string or
+  null" in the prose, as the schema and the §6.2.5 example already allowed; absent or
+  `null` means the incident is ongoing.
+- Routing §2.3.3 (Issue #2): `relay_id` and `attestation_id` are stated as distinct
+  identifiers; no equality, inequality or mapping between them is required, and a
+  consumer MUST NOT assume they are equal.
+
 ### Fixed
 - All 8 blocking, 22 high, 31 medium (2 partial-by-repo-state), and 8 low findings of the Draft-01 audit (`docs/auditoria-spec-draft-01.md`), plus 10 newly found defects — resolution evidence in `docs/draft-02-decisions.md`.
 - Test vectors: no vector uses an `arsiaprotocol.*` payload type that the specification does not define, apart from three declared negatives of the type itself and two types the specification names only in examples (`arsiaprotocol.compliance/check`, `arsiaprotocol.onboarding/ping`; an open finding); application payloads use non-reserved types, and error responses carry the type of the original request (Core §11.1).
@@ -104,14 +114,6 @@ unchanged.
 
 ### Changed
 
-- Core §11.1: `details.localized_description` is accepted in every `details` object,
-  including those whose members are otherwise fixed (Core §4.3.10.6; State §8.4).
-- Assets §6.2.2 (Issue #2): `resolved_at` of the ICT incident event is typed "string or
-  null" in the prose, as the schema and the §6.2.5 example already allowed; absent or
-  `null` means the incident is ongoing.
-- Routing §2.3.3 (Issue #2): `relay_id` and `attestation_id` are stated as distinct
-  identifiers; no equality, inequality or mapping between them is required, and a
-  consumer MUST NOT assume they are equal.
 - VERSIONING.md: errata may also correct published artefacts (test vectors,
   keypairs, documentation) without changing the wire version; test vectors carry
   a Semantic Versioning `version` field (the test-vector file is now 1.0.1);
