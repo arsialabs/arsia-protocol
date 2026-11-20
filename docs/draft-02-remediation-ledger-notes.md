@@ -822,6 +822,18 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   does not set `sensitive_entry`). R24 checks the contracts and the resolver's output when
   the flag is given; CORE-§4.3.8-18 and STATE-§5.2-06 record the receiver part as
   `untested(no-reference-model)`.
+- **Security audit registration (A-132..A-143):** the audit was read-only, on a copy of
+  `1b2b202` with the corpus hygiene changes then in the working tree; its report and probe
+  results are held outside this repository. Each finding was verified again on `55ba397`:
+  A-134 (version strings, `id`, `from`, timestamps), A-136 (ITV-163 with `intent` changed),
+  A-137 (1100 nested arrays) and A-138 (the traversal key against `state-key`) by
+  reproducing the probe in memory; the others by reading the cited sections. For A-134,
+  an ECMA 262 matcher rejects both malformed version strings, so the defect is in the
+  Python tools (`$` and `\d`), while the missing calendar validation of timestamps holds
+  in any dialect. The audit's side observations confirmed on the same tree and not
+  registered as findings: Core Appendix B.3 expands AAIF as "Agent Interoperability
+  Forum" and says adoption "gives AAIF protocols access to this market"; Actions §4.4
+  leaves risk 0–4 with unrestricted network access; the SDK still declares wire 1.0.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
