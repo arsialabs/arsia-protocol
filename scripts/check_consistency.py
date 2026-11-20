@@ -1005,19 +1005,29 @@ def retention_parity_problems(state_text, catalog):
 def resigner_contract_problems():
     """A-40: scripts/regen_v2.py re-signs only the named valid vectors, writes nothing on any refusal (observed
     by mtime and hash, so an identical rewrite also counts), changes only the signature fields, preserves the
-    file format, refuses before signing on a key mismatch, and refuses to write a signature that does not verify."""
+    file format, refuses before signing on a key mismatch, and refuses to write a signature that does not verify.
+    The cases run in a working directory of this run's own, removed on every exit (return or exception)."""
+    import shutil
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="regen-contract-")
+    try:
+        return _resigner_contract_cases(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _resigner_contract_cases(tmp):
+    """The A-40 cases of resigner_contract_problems, writing their copies only under `tmp`."""
     import contextlib
     import hashlib
     import io
     import subprocess
-    import tempfile
     sys.path.insert(0, "scripts")
     import regen_v2
     import validate_vectors as vv
     src = "test-vectors/arsia-test-vectors.json"
     original = open(src, encoding="utf-8").read()
     out = []
-    tmp = tempfile.mkdtemp(prefix="regen-contract-")
 
     def copy_with(edit=None, name="c.json"):
         path = os.path.join(tmp, name)
