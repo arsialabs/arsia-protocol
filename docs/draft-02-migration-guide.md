@@ -233,6 +233,12 @@ catalog edition via the new discovery field `iso4217_edition`.
   deadline is compared at the instant of receipt, with no clock-skew tolerance.
   Path 3 (deadline expired) applies only while the `pending_approval` is still
   pending.
+- **Expiry record (Actions §3.5; State §7.1).** The `approval_expired` audit record
+  documents the `pending_approval` whose deadline was reached: it carries that
+  message's `message_id`, `timestamp`, `from_agent`, `to_agent`, `intent`,
+  `payload_type` and `payload_hash`, its `correlation_id` is the pending's `id`, and
+  it is processed no earlier than the `approval_deadline`. `timestamp` is REQUIRED on
+  this record.
 - **Rejected decisions.** A decision that fails verification, arrives late or is
   a duplicate is logged as a `decision_rejected` audit record, with its
   `rejection_code` (Core §4.2.1; State §7.1). The log is now a MUST; the replies to
@@ -289,6 +295,12 @@ catalog edition via the new discovery field `iso4217_edition`.
 - INV-21 is a schema-ref vector against `#/$defs/set-args`.
 - INV-20, INV-22 and ITV-555 are no longer runtime-only: the message schema executes
   the Rule 8 basis and the `pii_special_categories` exclusion on a SET.
+- No vector uses an `arsiaprotocol.*` payload type that the specification does not
+  define, apart from three declared negatives of the type itself (ITV-265, ITV-266,
+  ITV-480) and `arsiaprotocol.compliance/check` and `arsiaprotocol.onboarding/ping`,
+  which the specification names only in examples. Application payloads use
+  non-reserved types (`com.example.*`, `eu.mifid.risk/assess`), and error responses
+  carry the type of the original request (Core §11.1).
 
 ## 14. Oversight authority and post-execution review
 

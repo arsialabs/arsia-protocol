@@ -358,6 +358,7 @@
 | STATE-§7.1-30 | 7.1 | REQUIRED | sdk | structural | payment_reference is REQUIRED on every asset_transfer record: the reference of the transfer the record belongs to (a plain transfer's own, the escrow transfer's, the original's on a reversal) | arsia-audit-record | ITV-96, INV-213 | schema-ref:arsia-audit-record; struct:ITV-96, INV-213 |
 | STATE-§7.1-31 | 7.1 | REQUIRED | sdk | structural | A reversal record (event_type asset_transfer and payload_type arsiaprotocol.assets/transfer-reversal) requires payment_reference and original_audit_id; the payload type alone does not (an error record of a reversal request carries neither) | arsia-audit-record | ITV-725, ITV-728, INV-214, INV-215 | schema-ref:arsia-audit-record; struct:ITV-725, ITV-728, INV-214, INV-215; check:`A-59 guard self-test: the reversal's compound condition is read whole and matched predicate by predicate; the generic asset_transfer row coexists with it` |
 | STATE-§7.1-32 | 7.1 | REQUIRED | sdk | structural | ict_incident records require incident_type, affected_service, started_at, estimated_impact, severity and original_payment_reference with the incident payload's types, enums, formats and limits; resolved_at is OPTIONAL (absent, null or a timestamp) | arsia-audit-record | ITV-102, ITV-726, ITV-727, INV-216, INV-217, INV-218, INV-219, INV-220, INV-221, INV-222, INV-223, INV-224, INV-225 | schema-ref:arsia-audit-record; struct:ITV-102, ITV-726, ITV-727, INV-216, INV-217, INV-218, INV-219, INV-220, INV-221, INV-222, INV-223, INV-224, INV-225; check:`Assets/audit cycle anti-regression: the ict_incident record mirrors the incident payload, the reversal and asset_transfer rules are stated, and the replaced texts are absent` |
+| STATE-§7.1-33 | 7.1 | REQUIRED | sdk | structural | An approval_expired record carries timestamp, the ts of the pending_approval it documents (State §7.1 table; Actions §3.5) | arsia-audit-record | ITV-94, ITV-584, INV-248 | schema-ref:arsia-audit-record; struct:ITV-94, ITV-584, INV-248 |
 | STATE-§7.2-01 | 7.2 | MUST | deployment | behavioural_positive | Audit records MUST be append-only. | — | STV-07 | struct:STV-07; crypto:STV-07 |
 | STATE-§7.2-02 | 7.2 | MUST_NOT | deployment | behavioural_negative | Once an ArsiaAuditRecord is written, it MUST NOT be modified. | — | — | out-of-repo(infrastructure) |
 | STATE-§7.2-03 | 7.2 | MUST | sdk | procedural | New audit records MUST be created for status changes; existing records MUST NOT be updated | — | STV-07 | struct:STV-07; crypto:STV-07 |
@@ -461,10 +462,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 448 |
-| Schema ≠ — | 184 |
-| Vector ≠ — | 246 |
-| Both ≠ — | 131 |
+| Total requirements | 449 |
+| Schema ≠ — | 185 |
+| Vector ≠ — | 247 |
+| Both ≠ — | 132 |
 | Both = — (gaps) | 149 |
 
 ### Per-section breakdown
@@ -477,7 +478,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 34 | 9 | 14 | 8 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
-| 7 | 68 | 45 | 32 | 28 | 19 |
+| 7 | 69 | 46 | 33 | 29 | 19 |
 | 8 | 21 | 10 | 19 | 9 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
 | 10 | 23 | 3 | 3 | 1 | 18 |

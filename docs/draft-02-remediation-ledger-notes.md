@@ -727,7 +727,7 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   tombstone must be a structural chain response. INV-20, INV-22 and ITV-555 are no longer
   `skip_schema`.
 - **Undefined `arsiaprotocol.*` payload types (A-127 inventory, schema-alignment
-  cycle):** 79 vectors, 38 types, defined by no specification or schema (exact match
+  cycle; resolved in the corpus hygiene cycle, see the next note):** 79 vectors, 38 types, defined by no specification or schema (exact match
   against `spec/`, `schemas/` and `profiles/`). Intentional negatives of the type itself:
   ITV-265, ITV-266 (`arsiaprotocol.state/custom-archive`, the reserved State prefix) and
   ITV-480 (`arsiaprotocol.oversight/wrong`). The other 76 use the type accidentally (the
@@ -752,6 +752,60 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   `status/changed` CTV-06; `test` ITV-548, ITV-549, ITV-550; `test/event` ITV-178 (all
   prefixed `arsiaprotocol.`). The registration estimate (~87) included the eight A-122
   fixtures.
+- **A-127 resolution (corpus hygiene cycle):** with `action_id` (a `payload.type`,
+  Actions §2.1) and `details.unsupported_type` also read, in `message`, `data` and
+  `test_metadata`, nested included, the inventory is 85 vectors and 44 types; the six the
+  registration missed are ITV-53, ITV-54, ITV-155, ITV-168, ITV-169 and ITV-288. ITV-265,
+  ITV-266 and ITV-480 stay, declared by vector, path and cause. The other 82 carry, by
+  basis (D: defined type whose content and intent match; V: link derived from the
+  scenario; F: fixture choice, non-reserved type):
+  - F: CTV-06 `com.example.status/changed`; STV-06, RTV-02 `com.example.audit/record`;
+    STV-07 `com.example.audit/chain`; ATV-05, ITV-291, ITV-292, ITV-591 and ITV-121
+    (`release_trigger`) `com.example.delivery/confirmed` (the release message has the
+    type of the `release_trigger`, Assets §4.3.2; the escrow conditions are not in the
+    corpus, so the trigger is the Assets §4.1 example); ATV-06 `com.example.escrow/timeout`
+    (no protocol timeout message); ITV-01, ITV-02 `com.example.identity/record`; RTV-01
+    `com.example.routing/relay-receipt` (an application example: its `result` is not
+    the Routing §2.3 receipt); ACTV-01, ITV-552, INV-19, ITV-525, ITV-526
+    `eu.mifid.risk/assess`; ACTV-02 `com.example.notes/manage`; ITV-134..137
+    `com.example.analytics/report`, `com.example.hr/update`,
+    `com.example.gov/census-query`, `com.example.compliance/classification-alert`;
+    ITV-176 `com.example.echo/response` (its `result` is not an echoed payload);
+    ITV-177 `com.example.payments/charge`; ITV-178 `com.example.test/event`;
+    ITV-548..550 `com.example.test`; ITV-24..27, INV-43, INV-44 `com.example.trace/ping`;
+    ITV-457..463 `com.example.identity/certificate-check`; ITV-466, ITV-467
+    `com.example.identity/trust-check`; ITV-475, ITV-476
+    `com.example.onboarding/phase1-result`; ITV-487
+    `com.example.onboarding/verify-token-result`; ITV-17 `com.example.identity/key-rotate`;
+    ITV-100 `com.example.events/notification`; ITV-101 `com.example.data/process`;
+    ITV-53, ITV-54, ITV-168, ITV-169 `com.example.finance/transfer`,
+    `com.example.data/read`, `com.example.messaging/send-notification`,
+    `com.example.system/rotate-keys`; ITV-307 `com.example.identity/rotate-key` (with its
+    reference request and descriptor; `request_payload_hash` and the descriptor source
+    recomputed); ITV-155 `com.example.experimental/quantum-transfer` (`payload.type`
+    stays `arsiaprotocol.error`: the original is unknown).
+  - D: ITV-93, ITV-105 `arsiaprotocol.oversight/pending` (Record 2 documents the
+    `pending_approval`); ITV-288 `arsiaprotocol.assets/transfer-request` (the transfer's
+    `action_id`, Assets §5.2).
+  - Error responses, the original request's type: ITV-289 `arsiaprotocol.oversight/decision`
+    (V: the approval decision of Assets §5.2 step 4); ITV-290
+    `com.example.delivery/confirmed` (V: the release message); fixture choices (F):
+    ITV-451, ITV-452 `com.acme.payments/charge`; ITV-454, ITV-464, ITV-465, ITV-468,
+    ITV-469, ITV-470, ITV-473, ITV-485, ITV-488, ITV-489, ITV-499 `com.acme.echo/ping`;
+    ITV-472, ITV-486 `com.example.code/refactor`; ITV-493 `eu.mifid.risk/assess`;
+    ITV-496, ITV-507, ITV-509 `com.acme.billing/create-invoice`.
+  - ITV-94 and ITV-584 per A-128. The causes of the negatives are unchanged: their schema
+    error trees are identical before and after.
+- **Example-only payload types (A-129 inventory, corpus hygiene cycle):**
+  `arsiaprotocol.compliance/check` (Actions §2.1) is used by 38 vectors in `message` or
+  `data` and 54 in any surface (`test_metadata` adds 16 vectors, mainly the reference
+  envelopes of the attestation scenarios); `arsiaprotocol.onboarding/ping` (Identity
+  §7.3) by ITV-477 only. Together 39 vectors in `message`/`data` and 55 counting
+  `test_metadata` (vectors, not occurrences). The hygiene guard accepts the two exact
+  names as a documented exception; no change in this cycle is motivated by them.
+- **ITV-307's descriptor digest:** the descriptor `sha256` and the `request_payload_hash`
+  are recomputed from the reference request in `test_metadata` by the harness functions
+  that `migrated_oversight_problems` uses.
 - **Escrow timeout `processed_at` (resolved in the schema-alignment cycle, owner's
   double check):** ITV-90, the timeout record, and the negatives derived from it, INV-243
   and INV-245, carried `processed_at` 2026-04-27T14:00:00.000Z, the creation instant,

@@ -1465,8 +1465,9 @@ class Run:
         if self.path != "pending" or iso(now) < iso(self.pending["payload"]["args"]["approval_deadline"]):
             return codes  # resolved already, or the deadline is not reached: no expiry
         p = self.pending
+        # A-128: the expiry record documents the pending_approval, timestamp included (Actions §3.5, Record 3)
         self.record(p, "approval_expired", now, correlation_id=p["id"], root_request_id=p["root_request_id"],
-                    decision="expired", reason=None)
+                    decision="expired", reason=None, timestamp=p["ts"])
         self._finish_error(now, "forbidden", "Action approval deadline exceeded",
                            {"oversight_decision": "expired", "deadline": p["payload"]["args"]["approval_deadline"]})
         return codes
@@ -1866,6 +1867,21 @@ def execution_case(inp):
     return out
 
 
+def expiry_documents_pending(r):
+    """A-128 (Actions §3.5, Record 3): the emitted approval_expired record carries the identity of the
+    pending_approval message. A field absent on both sides does not count as equal."""
+    exp = [x for x in r["emitted"] if x["event_type"] == "approval_expired"]
+    pend = [m for m in r["messages"] if m.get("intent") == "pending_approval"]
+    if len(exp) != 1 or len(pend) != 1:
+        return False
+    e, p = exp[0], pend[0]
+    want = {"message_id": p["id"], "timestamp": p["ts"], "from_agent": p["from"], "to_agent": p["to"],
+            "intent": p["intent"], "payload_type": p["payload"]["type"], "payload_hash": payload_hash(p),
+            "correlation_id": p["id"], "root_request_id": p["root_request_id"]}
+    return all(k in e and e[k] is not None and e[k] == w for k, w in want.items()) and \
+        iso(e["processed_at"]) >= iso(p["payload"]["args"]["approval_deadline"])
+
+
 def r15(vectors):
     # F-1 equivalence: a descriptor `false` is no veto (Actions §3.7); the MIFID-II default demands prior approval
     r = execution_case({"case": "source", "compliance": {"profile": "MIFID-II"}, "high_risk_sender": True})
@@ -1887,6 +1903,9 @@ def r15(vectors):
                         "expire_at": "2026-10-31T11:00:00.000Z"})
     check("R15 A-80: multi-approval expiry with N=1 -> 5 records", r["event_types"] ==
           ["request", "pending_approval", "approval_decision", "approval_expired", "error"])
+    check("R15 A-128: the approval_expired record documents the pending_approval — timestamp present and equal to "
+          "its ts, its message_id, agents, intent, payload_type and payload_hash, correlation_id its id, processed "
+          "at or after its deadline (Actions §3.5)", expiry_documents_pending(r))
     # ASSETS-06: expiry gives the Path 3 error, no receipt
     r = execution_case({"case": "assets", "payload": {"type": "arsiaprotocol.assets/transfer-request",
                                                        "args": {"amount": "50000.00"}},

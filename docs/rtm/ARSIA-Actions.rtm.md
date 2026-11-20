@@ -242,6 +242,8 @@
 | ACT-§3.4-35 | 3.4 | MUST | sdk | behavioural_negative | Path 3 applies only while the pending_approval is still pending, after the decisions received before the deadline are verified; a resolved flow is never resolved again by expiry | — | ITV-705, ITV-706, ITV-707 | struct:ITV-705, ITV-706, ITV-707; exec:R15:ITV-705, ITV-706, ITV-707 |
 | ACT-§3.4-36 | 3.4 | MUST | sdk | behavioural_negative | A duplicate or late decision is rejected with invalid_request only when no earlier verification step failed | — | INV-152 | struct:INV-152; exec:R15:INV-152 |
 | ACT-§3.5-01 | 3.5 | MUST | sdk | procedural | Every oversight cycle MUST generate at least four audit records: request, pending_approval, decision, and response | arsia-audit-record | ITV-93, ITV-105, ITV-581, ITV-582, ITV-583, ITV-584, ITV-585 | schema-ref:arsia-audit-record; struct:ITV-93, ITV-105, ITV-581, ITV-582, ITV-583, ITV-584, ITV-585; untested(structural-only) |
+| ACT-§3.5-02 | 3.5 | MUST | sdk | behavioural_positive | The approval_expired record MUST carry the message_id, timestamp, from_agent, to_agent, intent, payload_type and payload_hash of the pending_approval message whose deadline was reached, its correlation_id MUST be the id of that message and its root_request_id the original request | arsia-audit-record | ITV-94, ITV-584, INV-246, INV-247, INV-248 | schema-ref:arsia-audit-record; struct:ITV-94, ITV-584, INV-246, INV-247, INV-248; check:`R15 A-128: the approval_expired record documents the pending_approval — timestamp present and equal to its ts, its message_id, agents, intent, payload_type and payload_hash, correlation_id its id, processed at or after its deadline (Actions §3.5)`; check:`approval_expired records document their pending_approval: message_id, timestamp, agents, intent, payload_type and payload_hash present and equal, correlation_id, deadline (A-128)` |
+| ACT-§3.5-03 | 3.5 | MUST_NOT | sdk | behavioural_negative | The processed_at of the approval_expired record MUST NOT be earlier than the approval_deadline | arsia-audit-record | ITV-94, ITV-584 | schema-ref:arsia-audit-record; struct:ITV-94, ITV-584; check:`R15 A-128: the approval_expired record documents the pending_approval — timestamp present and equal to its ts, its message_id, agents, intent, payload_type and payload_hash, correlation_id its id, processed at or after its deadline (Actions §3.5)`; check:`approval_expired records document their pending_approval: message_id, timestamp, agents, intent, payload_type and payload_hash present and equal, correlation_id, deadline (A-128)` |
 | ACT-§3.6-01 | 3.6 | MAY | sdk_enabled | procedural | Implementations MAY require multiple independent approvals for actions with risk_level 10 | — | — | — |
 | ACT-§3.6-02 | 3.6 | OPTIONAL | sdk | informational | Multiple approval level support is OPTIONAL in ARSIA Protocol v1.0 | — | — | — |
 | ACT-§3.6-03 | 3.6 | SHOULD | sdk | behavioural_positive | Implementations SHOULD support single-approval for all risk levels at minimum | — | — | — |
@@ -370,10 +372,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 357 |
-| Schema ≠ — | 166 |
-| Vector ≠ — | 151 |
-| Both ≠ — | 78 |
+| Total requirements | 359 |
+| Schema ≠ — | 168 |
+| Vector ≠ — | 153 |
+| Both ≠ — | 80 |
 | Both = — (gaps) | 118 |
 
 ### Per-section breakdown
@@ -382,7 +384,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 72 | 21 | 26 | 8 | 33 |
 | 2 | 82 | 48 | 28 | 19 | 25 |
-| 3 | 111 | 54 | 72 | 36 | 21 |
+| 3 | 113 | 56 | 74 | 38 | 21 |
 | 4 | 55 | 17 | 15 | 8 | 31 |
 | 5 | 28 | 18 | 7 | 5 | 8 |
 | 6 | 9 | 8 | 3 | 2 | 0 |

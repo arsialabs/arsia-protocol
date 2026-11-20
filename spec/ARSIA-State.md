@@ -3478,7 +3478,7 @@ that equality; every row is enforced by the schema.
 | `event_type` = `request` | — | `risk_level` (first record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 1 |
 | `event_type` = `pending_approval` | `correlation_id`, `root_request_id`, `approval_deadline` | — | ARSIA-Actions.md §3.5, Record 2 |
 | `event_type` = `approval_decision` | `correlation_id`, `root_request_id`, `decision`, `approver_id` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 |
-| `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, `decision` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 (expiry) |
+| `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, `decision`, `timestamp` | `reason` (string or null) | ARSIA-Actions.md §3.5, Record 3 (expiry) |
 | `event_type` = `response` or `error` | — | `correlation_id`, `root_request_id`, `outcome` (final record of an oversight cycle) | ARSIA-Actions.md §3.5, Record 4 |
 | `event_type` = `state_set` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `pii_classification`, `timestamp` | `legal_basis` (when `pii_classification` is `personal` or `sensitive`); OPTIONAL: `pii_special_categories` (the entry's categories, when `sensitive`) | §3.1.2; §8.3 rule 3; §2.1.11 |
 | `event_type` = `state_delete` | `key`, `owner_agent_id`, `actor_agent_id`, `generation`, `version`, `timestamp` | — | §3.1.3 |

@@ -1152,11 +1152,18 @@
         "required": [
           "correlation_id",
           "root_request_id",
-          "decision"
+          "decision",
+          "timestamp"
         ],
         "properties": {
           "decision": {
             "const": "expired"
+          },
+          "intent": {
+            "const": "pending_approval"
+          },
+          "payload_type": {
+            "const": "arsiaprotocol.oversight/pending"
           }
         }
       }

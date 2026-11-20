@@ -2474,3 +2474,117 @@ ITV-89, ITV-90, ITV-91, ITV-92, ITV-95, ITV-586, INV-47); runtime-only 211 → 2
 INV-22, ITV-555); crypto blocks 168 (unchanged); consistency checks 152 → 157; harness
 checks 888 → 956 (R24 new); RTM 2062 → 2069 rows (MUST + MUST_NOT 1260 → 1265; with
 REQUIRED 1461 → 1466); findings register 125 → 130 rows (open 4 → 1, closed 121 → 129).
+
+## 35. Corpus hygiene cycle closure evidence
+
+Baseline `1b2b202`. Corpus hygiene cycle for A-127, the last open finding of the
+register, decided by the owner on 2026-11-19 and 2026-11-20 (corpus hygiene cycle
+addendum), with four findings registered on the way (A-128..A-131). The owner's reviews
+of the plan added, before implementation: the `timestamp` of the expiry record in the
+norm, the schema, State §7.1, the fixtures and the harness emission; declared expiry
+pairs that a changed `correlation_id` cannot escape; the corrected count of changed
+vectors (82, ITV-94 and ITV-584 among them); and the `check:` token for the synthetic
+R15 check. All are part of this cycle.
+
+| Finding | Text | Vectors | Execution | Mutations |
+|---|---|---|---|---|
+| A-127 | — (corpus only) | 82 changed (by-ID table in the notes, §8); ITV-265, ITV-266, ITV-480 declared | hygiene guard and self-test; validator; `--check-crypto` | (h1)–(h8), (h20) |
+| A-128 | Actions §3.5 paragraph; State §7.1 row; schema conditional | ITV-93, ITV-94, ITV-584; INV-246..248 | validator; single-cause control; expiry guard and self-test; R15 | (h9)–(h19), (h21), (h23)–(h25) |
+| A-129 | — (registered) | — | example-only class of the hygiene guard | (h3) |
+| A-130, A-131 | — (registered) | — | — | — |
+
+**A-127, payload types.**
+- Inventory: 85 vectors and 44 types once `action_id` (a `payload.type`, Actions §2.1)
+  and `details.unsupported_type` are read in `message`, `data` and `test_metadata`,
+  nested included; the registration (79, 38) missed ITV-53, ITV-54, ITV-155, ITV-168,
+  ITV-169 and ITV-288.
+- A defined type only where the semantics, the content, the intent and the conditions
+  of the type match (ITV-93, ITV-105, ITV-288, ITV-289); otherwise a non-reserved type
+  keeping the area and action. Error responses carry the original request's type: the
+  original's where the scenario identifies it (ITV-289, ITV-290), otherwise a fixture
+  choice, recorded per vector in the notes. No payload is remodelled; descriptions that
+  presented a protocol message change (RTV-01, ATV-06, ITV-288, ITV-94, ITV-584).
+- The schema error trees of the 85 vectors (validator, path, schema path, message with
+  types normalised, nested contexts) are identical before and after the substitutions.
+- Signatures: 21 crypto blocks re-signed with `regen_v2.py --ids` and 13 envelopes
+  outside crypto blocks with `--catalog` (ITV-24..27, ITV-289..291, ITV-307, ITV-526,
+  ITV-548, ITV-549, INV-43, INV-44; the plan named 5, the corpus has 13); INV-19 rebuilt
+  as at baseline, ITV-552's envelope with the first signature byte inverted.
+- `payload_type_hygiene_problems` reads every `arsiaprotocol.*` value of the keys
+  `type`, `payload_type`, `release_trigger`, `action_id` and `unsupported_type` at any
+  depth of `message`, `data` and `test_metadata`. A value is accepted when the registry
+  of defined types lists it and its cited section names it (25 types, each checked with
+  `spec_section`), when it is one of the two exact example-only names (A-129), or when
+  it is a declared intentional negative at its own path, the vector invalid and its
+  `expected_error` naming the cause. It is a corpus-hygiene rule, not a normative
+  reservation of the namespace. The self-test reports a third undefined type in
+  `message`, in nested records and in `test_metadata`, an inexact example-only name, an
+  exception at another path, for a valid vector or not naming its cause, and a registry
+  entry whose section lacks the type.
+
+**A-128, the expiry record.**
+- Actions §3.5: the `approval_expired` record documents the `pending_approval` whose
+  deadline was reached (`message_id`, `timestamp`, `from_agent`, `to_agent`, `intent`,
+  `payload_type`, `payload_hash` MUST be those of that message; `correlation_id` MUST be
+  its `id`; `processed_at` MUST NOT be earlier than the `approval_deadline`). State
+  §7.1 lists `timestamp` among the REQUIRED fields of the record; the schema requires it
+  and fixes `intent` `pending_approval` and `payload_type`
+  `arsiaprotocol.oversight/pending`.
+- ITV-93 gains `timestamp` (a fixture choice, the pending's `ts`); ITV-94 documents
+  ITV-93's pending, processed at its deadline (15:00, retention re-derived); ITV-584
+  documents ITV-582's. INV-246 (`payload_type` of the request), INV-247 (`intent`
+  `error`) and INV-248 (no `timestamp`) fail for their cause only.
+- `Run.expire` emits `timestamp` = the pending's `ts`; R15 checks that the emitted
+  record carries the pending's identity, a field absent on both sides never counting as
+  equal.
+- `approval_expiry_link_problems` compares each expiry record with its pending, every
+  documented field present on both sides and equal. The declared pairs (ITV-94 → ITV-93;
+  ITV-584, INV-246, INV-247, INV-248 → ITV-582) fix the pending whatever the
+  `correlation_id` says, and require the `correlation_id` to be its `message_id`. Each
+  declared expiry fixture is checked directly to carry an `approval_expired` record in
+  `data`, before the walker selects records by `event_type`: otherwise a fixture whose
+  `event_type` changed would leave the comparison silently while the other records keep
+  the dead-guard control satisfied (owner review). The three negatives are excepted from
+  their own field only. The self-test reports each divergence, `timestamp` absent on both
+  sides, an early expiry, a nested record, a declared expiry fixture with another
+  `event_type` or without `data`, a declared pair with only its `correlation_id` changed,
+  a second defect on the excepted record and malformed exceptions.
+
+**A-129, A-130, A-131 (registered, open).** Inventories in the register (§4) and the
+notes (§8). No correction in this cycle.
+
+**Mutations (candidate copy identical to the final tree; 25 of 25 detected).**
+- (h1) the registry without `oversight/pending` and (h2) `arsiaprotocol.error` citing
+  Core §11.2 → the hygiene guard.
+- (h3) the example-only class accepting a prefix, (h4) the guard without
+  `test_metadata`, (h5) without nested lists, (h6) the intentional exception not bound to
+  its path → the hygiene self-test.
+- (h7) ITV-24 back to `arsiaprotocol.core/ping` and (h8) ITV-307 with the old
+  `action_id` only in `test_metadata` → the hygiene guard.
+- (h9) the `payload_type` constant and (h10) the `intent` constant removed → INV-246,
+  INV-247, the cycle check; (h11) `timestamp` out of the `required` → INV-248, A-59.
+- (h12) the expiry guard without `message_id`, (h13) accepting `timestamp` absent on
+  both sides, (h14) without the chronology, (h15) with the exception widened, (h16)
+  without the declared pairs → the expiry self-test.
+- (h17) ITV-94 with only its `correlation_id` changed and (h19) ITV-94 back to 14:00 →
+  the expiry guard.
+- (h18) `Run.expire` without `timestamp` → R15.
+- (h20) INV-19 with the valid signature → `--check-crypto`.
+- (h21) the Actions §3.5 paragraph reverted and (h22) RTV-01's description back → the
+  cycle check.
+- (h23) the expiry guard without the direct check of a declared fixture's `event_type` →
+  the expiry self-test; (h24) ITV-94 and (h25) ITV-584 with `event_type` `error` → the
+  expiry guard.
+
+**Regression.** The campaigns of the earlier cycles ran on the same candidate and
+detected every mutation. The maintenance campaign's expected count text was "147
+records, 19 controls" and is now "150 records, 19 controls": the cycle adds the 3
+audit records INV-246..248. The 19 controls are unchanged. The schema-alignment
+campaign's mutation (s39), which removes the nested walk of the escrow link guard, located
+its loop by text that the expiry guard's walker now repeats; it is redirected to the escrow
+walker by the line that precedes the loop, which only that walker has.
+
+**Counts.** Vectors 1019 → 1022 (3 new: INV-246..248; 82 changed); runtime-only 208
+(unchanged); crypto blocks 168 (unchanged); consistency checks 157 → 163; harness checks
+956 → 957; RTM 2069 → 2072 rows (MUST + MUST_NOT 1265 → 1267; with REQUIRED 1466 →
+1469); findings register 130 → 134 rows (open 1 → 3, closed 129 → 131).

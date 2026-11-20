@@ -2895,6 +2895,366 @@ def schema_alignment_echo_problems():
     return out
 
 
+# ---------------------------------------------------------------- corpus hygiene cycle (A-127, A-128)
+PAYLOAD_TYPE_KEYS = ("type", "payload_type", "release_trigger", "action_id", "unsupported_type")
+RESERVED_PAYLOAD_TYPE = re.compile(r"^arsiaprotocol(\.[A-Za-z][A-Za-z0-9]*)+(/[A-Za-z][A-Za-z0-9_-]*)*$")
+_AP = "arsiaprotocol."
+# A-127: the arsiaprotocol.* payload types the corpus uses, each with the section that defines it (a corpus-hygiene
+# registry, not a normative reservation of the namespace). The guard checks that the section names the type.
+DEFINED_PAYLOAD_TYPES = {
+    **{_AP + f"state/{op}": ("spec/ARSIA-State.md", "§8.1")
+       for op in ("get", "set", "delete", "query", "snapshot", "purge", "grant", "revoke")},
+    _AP + "oversight/pending": ("spec/ARSIA-Actions.md", "§3.2"),
+    _AP + "oversight/decision": ("spec/ARSIA-Actions.md", "§3.3"),
+    **{_AP + f"oversight/review-{k}": ("spec/ARSIA-Actions.md", "§3.9.3") for k in ("pending", "decision", "overdue")},
+    _AP + "assets/transfer-request": ("spec/ARSIA-Assets.md", "§3.1"),
+    _AP + "assets/transfer-receipt": ("spec/ARSIA-Assets.md", "§3.2"),
+    _AP + "assets/transfer-reversal": ("spec/ARSIA-Assets.md", "§3.3"),
+    _AP + "assets/escrow-dispute": ("spec/ARSIA-Assets.md", "§4.2.3"),
+    _AP + "assets/escrow-cancel": ("spec/ARSIA-Assets.md", "§4.2.4"),
+    _AP + "ict/incident": ("spec/ARSIA-Assets.md", "§6.2.2"),
+    _AP + "identity/key-revocation": ("spec/ARSIA-Identity.md", "§2.5"),
+    _AP + "onboarding/decision": ("spec/ARSIA-Identity.md", "§7.6"),
+    _AP + "broker/relay-receipt": ("spec/ARSIA-Routing.md", "§2.3.3"),
+    _AP + "broker/relay-error": ("spec/ARSIA-Routing.md", "§2.3.3"),
+    _AP + "compliance/breach-notification": ("spec/ARSIA-State.md", "§5.7"),
+    "arsiaprotocol.error": ("spec/ARSIA-Core.md", "§11.1"),
+}
+# A-129: named by the specification only in an example, without a contract. Accepted by exact name only, as a
+# documented corpus-hygiene exception, never counted as defined.
+EXAMPLE_ONLY_PAYLOAD_TYPES = {
+    _AP + "compliance/check": ("spec/ARSIA-Actions.md", "§2.1", "A-129"),
+    _AP + "onboarding/ping": ("spec/ARSIA-Identity.md", "§7.3", "A-129"),
+}
+# Intentional negatives of the type itself: (vector, path) -> (text its expected_error names, cause).
+INTENTIONAL_PAYLOAD_TYPE_NEGATIVES = {
+    ("ITV-265", "data/type"): ("forbidden", "custom operation under the reserved arsiaprotocol.state/ prefix (State §8.1)"),
+    ("ITV-266", "message/payload/type"): ("forbidden", "custom operation under the reserved arsiaprotocol.state/ prefix (State §8.1)"),
+    ("ITV-480", "message/payload/type"): ("arsiaprotocol.oversight/pending", "pending_approval intent with another payload.type"),
+}
+
+
+def payload_type_values(vectors):
+    """(vector, path, value) for every arsiaprotocol.* value of a payload-type key (PAYLOAD_TYPE_KEYS) at any depth
+    of a vector's message, data or test_metadata."""
+    def walk(node, path, key):
+        if isinstance(node, dict):
+            for k, x in node.items():
+                yield from walk(x, f"{path}/{k}", k)
+        elif isinstance(node, list):
+            for i, x in enumerate(node):
+                yield from walk(x, f"{path}/{i}", key)
+        elif isinstance(node, str) and key in PAYLOAD_TYPE_KEYS and RESERVED_PAYLOAD_TYPE.match(node):
+            yield path, node
+    for v in vectors:
+        for root in ("message", "data", "test_metadata"):
+            if root in v:
+                for path, value in walk(v[root], root, None):
+                    yield v, path, value
+
+
+def payload_type_hygiene_problems(vectors, defined=None, example_only=None, intentional=None):
+    """A-127 (corpus hygiene): every arsiaprotocol.* payload type in the corpus is defined by the section its registry
+    entry cites, or is one of the two exact example-only names (A-129), or is a declared intentional negative at its
+    own path, the vector invalid and its expected_error naming the cause."""
+    defined = DEFINED_PAYLOAD_TYPES if defined is None else defined
+    example_only = EXAMPLE_ONLY_PAYLOAD_TYPES if example_only is None else example_only
+    intentional = INTENTIONAL_PAYLOAD_TYPE_NEGATIVES if intentional is None else intentional
+    out, texts = [], {}
+
+    def named_in(t, f, sec):
+        texts.setdefault(f, open(f, encoding="utf-8").read())
+        body = spec_section(texts[f], sec)
+        return body is not None and (f"`{t}`" in body or f'"{t}"' in body)
+    for t, (f, sec) in defined.items():
+        if not named_in(t, f, sec):
+            out.append(f"registry: {t} is not named in {f} {sec}")
+    for t, (f, sec, finding) in example_only.items():
+        if t in defined:
+            out.append(f"registry: {t} is example-only ({finding}) and must not be counted as defined")
+        if not named_in(t, f, sec):
+            out.append(f"registry: example-only {t} is not cited in {f} {sec}")
+    by_id = {v["id"]: v for v in vectors}
+    seen = {}
+    for v, path, value in payload_type_values(vectors):
+        seen[(v["id"], path)] = value
+        if value in defined or value in example_only or (v["id"], path) in intentional:
+            continue
+        out.append(f"{v['id']} {path}: {value} is not a defined payload type")
+    for (vid, path), (names, _cause) in intentional.items():
+        v = by_id.get(vid)
+        if v is None:
+            out.append(f"{vid}: declared intentional negative without a vector")
+            continue
+        if v.get("valid", v.get("expected") == "valid") is not False:
+            out.append(f"{vid}: declared intentional negative that is not invalid")
+        if names not in str(v.get("expected_error") or ""):
+            out.append(f"{vid}: expected_error does not name {names!r}")
+        if (vid, path) not in seen:
+            out.append(f"{vid}: no arsiaprotocol.* payload type at the declared path {path}")
+        elif seen[(vid, path)] in defined:
+            out.append(f"{vid} {path}: a declared negative carries the defined type {seen[(vid, path)]}")
+    if not any(value in defined for value in seen.values()):
+        out.append("no defined payload type seen (guard dead?)")
+    return out
+
+
+def payload_type_hygiene_self_test():
+    """Synthetic: a sound set passes; a third undefined type in message, in nested records and in test_metadata, an
+    inexact example-only name, an exception at another path, for a valid vector or not naming its cause, and a
+    registry entry whose section lacks the type are reported."""
+    import copy as _copy
+    neg = {("SYN-N", "message/payload/type"): ("forbidden", "synthetic")}
+    sound = [
+        {"id": "SYN-D", "valid": True, "message": {"payload": {"type": _AP + "state/set"}},
+         "data": {"records": [{"payload_type": "com.example.notes/delete"}]},
+         "test_metadata": {"reference_request": {"payload": {"type": _AP + "compliance/check"}}}},
+        {"id": "SYN-N", "valid": False, "expected_error": "forbidden",
+         "message": {"payload": {"type": _AP + "state/custom-x"}}},
+    ]
+    out = []
+    if payload_type_hygiene_problems(sound, intentional=neg):
+        out.append(f"sound synthetic set reported: {payload_type_hygiene_problems(sound, intentional=neg)[:2]}")
+    U = _AP + "zzz/undefined"
+
+    def variant(fn):
+        s = _copy.deepcopy(sound)
+        fn({v["id"]: v for v in s})
+        return s
+    # each case names the problem it must produce, so that another rule reporting the set does not mask it
+    cases = {
+        "third undefined type in message": (variant(lambda V: V["SYN-D"]["message"]["payload"].update(type=U)), None,
+                                            f"SYN-D message/payload/type: {U}"),
+        "third undefined type in nested records": (
+            variant(lambda V: V["SYN-D"]["data"]["records"][0].update(payload_type=U)), None,
+            f"SYN-D data/records/0/payload_type: {U}"),
+        "third undefined type in test_metadata": (
+            variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"].update(type=U)), None,
+            f"SYN-D test_metadata/reference_request/payload/type: {U}"),
+        "example-only name not exact": (variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"]
+                                                .update(type=_AP + "compliance/checks")), None,
+                                        "compliance/checks is not a defined payload type"),
+        "exception at another path": (variant(lambda V: V["SYN-N"]["message"].update(
+            payload={"type": _AP + "state/set", "args": {"action_id": _AP + "state/custom-x"}})), None,
+            f"SYN-N message/payload/args/action_id: {_AP}state/custom-x is not a defined payload type"),
+        "exception for a valid vector": (variant(lambda V: V["SYN-N"].update(valid=True)), None,
+                                         "SYN-N: declared intentional negative that is not invalid"),
+        "exception whose expected_error does not name its cause": (
+            variant(lambda V: V["SYN-N"].update(expected_error="invalid_request")), None,
+            "SYN-N: expected_error does not name"),
+        "registry entry whose section lacks the type": (
+            sound, {_AP + "state/set": ("spec/ARSIA-Core.md", "§11.1")}, "registry: arsiaprotocol.state/set is not named"),
+    }
+    for name, (vs, defined, needle) in cases.items():
+        if not any(needle in p for p in payload_type_hygiene_problems(vs, defined=defined, intentional=neg)):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+# A-128 (Actions §3.5, Record 3): the approval_expired record documents the pending_approval message.
+EXPIRY_DOCUMENTED_FIELDS = ("message_id", "timestamp", "from_agent", "to_agent", "intent", "payload_type",
+                            "payload_hash")
+# The cycle's expiry fixtures and the Record 2 they document: checked through the declared pair, whatever their
+# correlation_id says.
+APPROVAL_EXPIRY_PAIRS = {"ITV-94": "ITV-93", "ITV-584": "ITV-582", "INV-246": "ITV-582", "INV-247": "ITV-582",
+                         "INV-248": "ITV-582"}
+# Negatives whose declared cause is one documented field: only that comparison is dispensed, on the vector's own record.
+APPROVAL_EXPIRY_EXCEPTIONS = {
+    "INV-246": ("payload_type", "the original request's type instead of the pending_approval's"),
+    "INV-247": ("intent", "intent error instead of pending_approval"),
+    "INV-248": ("timestamp", "timestamp absent"),
+}
+
+
+def oversight_records(vectors, event_type):
+    """(vector, path, record) for every audit record of `event_type` at any depth of a vector's data or message."""
+    def walk(node, path):
+        if isinstance(node, dict):
+            if node.get("event_type") == event_type:
+                yield path, node
+            for k, x in node.items():
+                yield from walk(x, f"{path}/{k}")
+        elif isinstance(node, list):
+            for i, x in enumerate(node):
+                yield from walk(x, f"{path}/{i}")
+    for v in vectors:
+        for root in ("data", "message"):
+            for path, r in walk(v.get(root), root):
+                yield v, path, r
+
+
+def approval_expiry_link_problems(vectors, pairs=None, exceptions=None):
+    """A-128: an approval_expired record carries the message_id, timestamp, from_agent, to_agent, intent,
+    payload_type and payload_hash of the pending_approval it documents — present on both sides and equal —, its
+    root_request_id, and is processed at or after its approval_deadline. A declared pair fixes the pending (Record 2)
+    and requires correlation_id to be its message_id; otherwise the pending is the pending_approval record of the
+    corpus whose message_id is the correlation_id (a reference outside the corpus is not a problem)."""
+    pairs = APPROVAL_EXPIRY_PAIRS if pairs is None else pairs
+    exceptions = APPROVAL_EXPIRY_EXCEPTIONS if exceptions is None else exceptions
+    out, compared = [], 0
+    by_id = {v["id"]: v for v in vectors}
+    pendings = {}
+    for v, path, r in oversight_records(vectors, "pending_approval"):
+        pendings.setdefault(r.get("message_id"), (f"{v['id']} {path}", r))
+    for vid, pid in pairs.items():
+        pv = by_id.get(pid)
+        if vid not in by_id or pv is None or not isinstance(pv.get("data"), dict) or \
+                pv["data"].get("event_type") != "pending_approval":
+            out.append(f"{vid} -> {pid}: declared pair without an expiry vector or a pending_approval record")
+        # checked here, not through the walker: a fixture whose event_type changed would leave the comparison
+        # silently while the other records keep it alive
+        xv = by_id.get(vid)
+        if xv is not None and (not isinstance(xv.get("data"), dict) or
+                               xv["data"].get("event_type") != "approval_expired"):
+            out.append(f"{vid} -> {pid}: declared expiry fixture has no approval_expired record in data")
+    for vid, (field, _reason) in exceptions.items():
+        v = by_id.get(vid)
+        if v is None:
+            out.append(f"{vid}: declared expiry exception without a vector")
+            continue
+        if v.get("expected") != "invalid":
+            out.append(f"{vid}: expiry exception declared for a vector that is not invalid")
+        if field not in str(v.get("expected_error") or ""):
+            out.append(f"{vid}: expiry exception for {field}, which its expected_error does not name")
+    for v, path, r in oversight_records(vectors, "approval_expired"):
+        where = f"{v['id']} {path}"
+        if v["id"] in pairs and path == "data":
+            pv = by_id.get(pairs[v["id"]])
+            if pv is None or not isinstance(pv.get("data"), dict):
+                continue
+            pwhere, p = pairs[v["id"]], pv["data"]
+            if r.get("correlation_id") != p.get("message_id"):
+                out.append(f"{where}: correlation_id is not the message_id of its pending_approval {pwhere}")
+        elif r.get("correlation_id") in pendings:
+            pwhere, p = pendings[r["correlation_id"]]
+        else:
+            continue
+        compared += 1
+        exempt = {exceptions[v["id"]][0]} if v["id"] in exceptions and path == "data" else set()
+        for k in EXPIRY_DOCUMENTED_FIELDS:
+            if k not in exempt and (k not in r or k not in p or r[k] != p[k]):
+                out.append(f"{where}: {k} is not the {k} of its pending_approval {pwhere}")
+        if r.get("root_request_id") != p.get("root_request_id"):
+            out.append(f"{where}: root_request_id differs from its pending_approval {pwhere}")
+        done, due = _instant(r.get("processed_at")), _instant(p.get("approval_deadline"))
+        if done is None or due is None or done < due:
+            out.append(f"{where}: processed_at {r.get('processed_at')} precedes the approval_deadline "
+                       f"{p.get('approval_deadline')} of {pwhere}")
+    if not compared:
+        out.append("no approval_expired record compared with its pending_approval (guard dead?)")
+    return out
+
+
+def approval_expiry_self_test():
+    """Synthetic: a sound set passes; each documented-field divergence, timestamp absent on both sides, an expiry
+    processed before the deadline, a nested record, a declared expiry fixture whose data is not an approval_expired
+    record, a declared pair with only its correlation_id changed, a second defect on the excepted record and
+    malformed exceptions are reported."""
+    import copy as _copy
+    T0, T1 = "2026-04-27T14:00:00.000Z", "2026-04-27T15:00:00.000Z"
+    pend = {"record_id": "00000000-0000-4000-8000-0000000000d1", "message_id": "00000000-0000-4000-8000-0000000000e1",
+            "event_type": "pending_approval", "timestamp": T0, "from_agent": "agent:example.executor",
+            "to_agent": "agent:example.requester", "intent": "pending_approval", "payload_type": _AP + "oversight/pending",
+            "payload_hash": "0" * 64, "correlation_id": "00000000-0000-4000-8000-0000000000f1",
+            "root_request_id": "00000000-0000-4000-8000-0000000000f1", "approval_deadline": T1, "processed_at": T0}
+    exp = dict({k: pend[k] for k in EXPIRY_DOCUMENTED_FIELDS}, record_id="00000000-0000-4000-8000-0000000000d2",
+               event_type="approval_expired", correlation_id=pend["message_id"],
+               root_request_id=pend["root_request_id"], decision="expired", processed_at=T1)
+
+    def vec(vid, data, invalid=False, err=None):
+        return {"id": vid, "expected": "invalid" if invalid else "valid", "data": data, "expected_error": err}
+    pairs = {"SYN-X": "SYN-P", "SYN-E": "SYN-P"}
+    ex = {"SYN-E": ("payload_type", "synthetic")}
+    sound = [vec("SYN-P", pend), vec("SYN-X", exp),
+             vec("SYN-E", dict(exp, record_id="00000000-0000-4000-8000-0000000000d3", payload_type="com.example.x/y"),
+                 True, "payload_type must be arsiaprotocol.oversight/pending"),
+             vec("SYN-Q", {"records": [dict(exp, record_id="00000000-0000-4000-8000-0000000000d4")]})]
+    out = []
+    if approval_expiry_link_problems(sound, pairs, ex):
+        out.append(f"sound synthetic set reported: {approval_expiry_link_problems(sound, pairs, ex)[:2]}")
+
+    def variant(i, nested=False, drop=(), **kw):
+        s = _copy.deepcopy(sound)
+        target = s[i]["data"]["records"][0] if nested else s[i]["data"]
+        target.update(kw)
+        for k in drop:
+            target.pop(k, None)
+        return s
+
+    def without_timestamp():
+        """timestamp absent from every record, the pending included: only the presence rule can report it."""
+        s = _copy.deepcopy(sound)
+        for x in (s[0]["data"], s[1]["data"], s[2]["data"], s[3]["data"]["records"][0]):
+            x.pop("timestamp")
+        return s
+    # each case names the problem it must produce, so that another rule reporting the set does not mask it
+    cases = {
+        "message_id divergence": (variant(1, message_id="00000000-0000-4000-8000-0000000000e2"), ex,
+                                  "SYN-X data: message_id is not"),
+        "timestamp divergence": (variant(1, timestamp="2026-04-27T14:00:05.000Z"), ex, "SYN-X data: timestamp is not"),
+        "intent divergence": (variant(1, intent="error"), ex, "SYN-X data: intent is not"),
+        "timestamp absent on both sides": (without_timestamp(), ex, "SYN-X data: timestamp is not"),
+        "processed before the deadline": (variant(1, processed_at=T0), ex, "SYN-X data: processed_at"),
+        "nested record divergence": (variant(3, nested=True, payload_hash="1" * 64), ex,
+                                     "SYN-Q data/records/0: payload_hash is not"),
+        "declared expiry fixture with another event_type": (variant(1, event_type="error"), ex,
+                                                            "SYN-X -> SYN-P: declared expiry fixture has no"),
+        "declared expiry fixture without data": (
+            [x if x["id"] != "SYN-X" else dict(x, data=None) for x in sound], ex,
+            "SYN-X -> SYN-P: declared expiry fixture has no"),
+        "declared pair with only its correlation_id changed": (
+            variant(1, correlation_id="00000000-0000-4000-8000-0000000000e9"), ex,
+            "SYN-X data: correlation_id is not the message_id"),
+        "second defect on the excepted record (message_id)": (
+            variant(2, message_id="00000000-0000-4000-8000-0000000000e2"), ex, "SYN-E data: message_id is not"),
+        "exception declared for a valid vector": (sound, {"SYN-X": ("payload_type", "x")}, "SYN-X: expiry exception declared"),
+        "exception whose expected_error does not name the field": (sound, {"SYN-E": ("intent", "x")},
+                                                                   "SYN-E: expiry exception for intent"),
+    }
+    for name, (vs, exs, needle) in cases.items():
+        if not any(needle in p for p in approval_expiry_link_problems(vs, pairs, exs)):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+CORPUS_HYGIENE_SINGLE_CAUSE = (
+    ("INV-246", "data", AUDIT_REF, "const payload_type"),
+    ("INV-247", "data", AUDIT_REF, "const intent"),
+    ("INV-248", "data", AUDIT_REF, [("required", (), "'timestamp' is a required property")]),
+)
+
+
+def corpus_hygiene_echo_problems():
+    """Corpus hygiene cycle anti-regression: the A-128 paragraph, the State §7.1 row and the schema conditional are
+    stated; RTV-01 claims no conformance with the Routing §2.3 receipt."""
+    out = []
+    norm = lambda s: re.sub(r"\s+", " ", s)
+    actions = norm(open("spec/ARSIA-Actions.md", encoding="utf-8").read())
+    state = open("spec/ARSIA-State.md", encoding="utf-8").read()
+    for where, text, needle in (
+            ("Actions §3.5", actions, "The `approval_expired` record documents the `pending_approval` message whose "
+                                      "deadline was reached: its `message_id`, `timestamp`, `from_agent`, `to_agent`, "
+                                      "`intent`, `payload_type` and `payload_hash` MUST be those of that message"),
+            ("Actions §3.5", actions, "Its `processed_at` is the processing of the expiry and MUST NOT be earlier than "
+                                      "the `approval_deadline`."),
+            ("State §7.1", state, "| `event_type` = `approval_expired` | `correlation_id`, `root_request_id`, "
+                                  "`decision`, `timestamp` |")):
+        if needle not in text:
+            out.append(f"{where}: {needle[:60]!r} is missing")
+    aud = strict_load("schemas/arsia-audit-record.schema.json")
+    cond = next((e for e in aud["allOf"] if (e.get("if", {}).get("properties", {}).get("event_type") or {})
+                 .get("const") == "approval_expired"), None)
+    then = (cond or {}).get("then", {})
+    if "timestamp" not in then.get("required", []) or \
+            then.get("properties", {}).get("payload_type") != {"const": _AP + "oversight/pending"} or \
+            then.get("properties", {}).get("intent") != {"const": "pending_approval"}:
+        out.append("audit-record schema: the approval_expired conditional lacks timestamp or its constants")
+    rtv = next((v for v in strict_load("test-vectors/arsia-test-vectors.json")["vectors"] if v["id"] == "RTV-01"), {})
+    if "claims no conformance with it" not in rtv.get("description", ""):
+        out.append("RTV-01: the description presents it again as the Routing §2.3 relay receipt")
+    return out
+
+
 def state_cycle_echo_problems():
     """State cycle (A-108, A-110) anti-regression: the replaced rules do not come back, and each echo cites the
     rule that now governs it."""
@@ -3570,6 +3930,28 @@ def main() -> int:
     probs = escrow_single_cause_problems(corpus_vectors, registry)
     check("ITV-92, INV-47 and the escrow negatives fail for their declared cause only; INV-47's oneOf carries exactly "
           "the two presence errors", not probs, "; ".join(probs[:4]))
+    probs = payload_type_hygiene_problems(corpus_vectors)
+    check("payload types: every arsiaprotocol.* type in the corpus is defined by its cited section, one of the two "
+          "example-only names (A-129) or a declared intentional negative at its path (A-127)", not probs,
+          "; ".join(probs[:4]))
+    probs = payload_type_hygiene_self_test()
+    check("payload type hygiene self-test: undefined types in message, nested records and test_metadata, an inexact "
+          "example-only name, misplaced or malformed exceptions and an unsupported registry entry are reported",
+          not probs, "; ".join(probs[:4]))
+    probs = approval_expiry_link_problems(corpus_vectors)
+    check("approval_expired records document their pending_approval: message_id, timestamp, agents, intent, "
+          "payload_type and payload_hash present and equal, correlation_id, deadline (A-128)", not probs,
+          "; ".join(probs[:4]))
+    probs = approval_expiry_self_test()
+    check("approval expiry link self-test: divergences, timestamp absent on both sides, early expiry, nested record, "
+          "a declared fixture without an approval_expired record, a changed correlation_id on a declared pair, a "
+          "second defect and malformed exceptions are reported",
+          not probs, "; ".join(probs[:4]))
+    probs = single_cause_problems(corpus_vectors, registry, table=CORPUS_HYGIENE_SINGLE_CAUSE)
+    check("INV-246, INV-247 and INV-248 fail for their declared cause only", not probs, "; ".join(probs[:4]))
+    probs = corpus_hygiene_echo_problems()
+    check("Corpus hygiene cycle anti-regression: the approval_expired contract in Actions §3.5, State §7.1 and the "
+          "schema; RTV-01 not presented as the Routing §2.3 receipt", not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     import validate_vectors as vv

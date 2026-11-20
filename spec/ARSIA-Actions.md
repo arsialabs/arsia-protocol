@@ -1738,6 +1738,15 @@ This record captures who made the oversight decision, what they decided, and why
 case of a deadline expiry (Path 3), this record is replaced by a record with
 `event_type: "approval_expired"` and `decision: "expired"`.
 
+The expiry has no incoming message. The `approval_expired` record documents the
+`pending_approval` message whose deadline was reached: its `message_id`, `timestamp`,
+`from_agent`, `to_agent`, `intent`, `payload_type` and `payload_hash` MUST be those of
+that message, so Record 2 and the expiry record share `message_id` and remain distinct
+records (`record_id`, `event_type`). Its `correlation_id` MUST be the `id` of the
+`pending_approval` message and its `root_request_id` the `id` of the original request;
+`decision` is `"expired"`. Its `processed_at` is the processing of the expiry and MUST
+NOT be earlier than the `approval_deadline`.
+
 One Record 3 is written for each `approval_decision` verified and admitted to the flow
 (§3.4). A rejected decision is logged as `decision_rejected` and is not a Record 3.
 
