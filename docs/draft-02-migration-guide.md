@@ -48,6 +48,31 @@ signature verifies) and enforces algorithm/key-type coherence.
 - `payload.version` absent now means exactly `"1.0"` (was: "latest known to
   receiver").
 
+- **Idempotency retention (Core §10.2, §10.3).** Reserve the envelope's
+  `idempotency.key` atomically before any effect, and keep the association at least
+  until the latest of `idempotency.expires_at`, the end of the message's acceptance
+  window (`expires_at` plus the clock skew tolerance, that instant included) and
+  the determined outcome of the operation. A message without `expires_at` is kept
+  for as long as the server would accept it. Store the terminal response, success
+  or error; release a reservation for retry only when the attempt has ended, the
+  server has established that no effect occurred, no execution remains pending and
+  the attempt produced no response or an error response — an undetermined outcome
+  keeps the reservation; never after an effect. For an encrypted payload the scope
+  uses the `type` of the decrypted payload, taken after the decryption procedure
+  (Core §5.3) has succeeded. A duplicate of a reservation without a
+  stored response gets `conflict` (a MUST, formerly a SHOULD), and a rejected
+  message returns no stored response and releases nothing.
+- **Encrypted payloads (Core §5.3).** Any message may be encrypted, errors
+  included: the message schema requires the error object only of an unencrypted
+  error. After decryption, parse the plaintext strictly and validate the decrypted
+  view (the envelope with the decrypted `payload` and `encrypted` taken as
+  `false`) against every requirement of an unencrypted message; reject a failed
+  decryption with `unauthorized` and an invalid plaintext with `invalid_request`.
+  Verify the signature over the received envelope only.
+- **Dispute resolution (Core §5.3.1).** Audit records are not individually
+  signed; matching hashes show that records identify the same content and do not
+  prove transmission or receipt.
+
 ## 3. Retention model (BREAKING behaviour)
 
 - Below-floor declarations are **rejected** (`invalid_request` +
@@ -225,6 +250,13 @@ catalog edition via the new discovery field `iso4217_edition`.
 - Receiving agents implement the Identity §3.3 DPoP checks, the nonce challenge,
   and an atomic, shared single-use `jti` store that holds each `jti` until
   `iat` + S.
+- **The token's binding decides whether a proof is required (Identity §3.3).** A
+  token that carries `cnf.jkt` is DPoP-bound: verify a proof for it and reject it
+  with `unauthorized` when it is presented under `Bearer` or without a `DPoP`
+  header ([RFC 9449] §7.2). A `cnf` that is present and malformed is rejected,
+  never treated as no binding; a token without `cnf.jkt` under the `DPoP` scheme
+  is rejected. Identity §7.7 no longer says "Bearer" and no longer leaves the
+  verification as a SHOULD.
 
 ## 11. Approval decisions and key revocation
 
@@ -279,9 +311,12 @@ catalog edition via the new discovery field `iso4217_edition`.
 ## 13. Test vectors and keys (for implementations that use the corpus)
 
 - The corpus header is `version` `2.0.0` (the Draft-01 corpora were 1.0.x).
-- `keypairs.json` has 54 entries with a `provenance` member: 17 Draft-02 entries,
-  35 imported unchanged from the Draft-01.1 catalog, and 2 generated. An agent's
-  additional key is indexed by its full `kid`.
+- `keypairs.json` has 54 signature entries with a `provenance` member: 17 Draft-02
+  entries, 35 imported unchanged from the Draft-01.1 catalog, and 2 generated. An
+  agent's additional key is indexed by its full `kid`. One X25519 encryption
+  keypair is published apart from them, in `encryption_keypairs`, for the
+  encrypted-payload vectors (ITV-742, INV-249..251, INV-253, INV-254), whose JWEs
+  are real (ECDH-ES direct key agreement, A256GCM).
   The RSA-1024 key `agent:acme.legacy-system#rsa1024` is deliberately below the
   protocol's minimum key size. ITV-425 carries a mathematically valid signature
   that a conformant verifier rejects for insufficient key size.
@@ -297,7 +332,7 @@ catalog edition via the new discovery field `iso4217_edition`.
   the Rule 8 basis and the `pii_special_categories` exclusion on a SET.
 - No vector uses an `arsiaprotocol.*` payload type that the specification does not
   define, apart from three declared negatives of the type itself (ITV-265, ITV-266,
-  ITV-480) and `arsiaprotocol.compliance/check` and `arsiaprotocol.onboarding/ping`,
+  ITV-480), the declared plaintext of the encrypted negative INV-251, and `arsiaprotocol.compliance/check` and `arsiaprotocol.onboarding/ping`,
   which the specification names only in examples. Application payloads use
   non-reserved types (`com.example.*`, `eu.mifid.risk/assess`), and error responses
   carry the type of the original request (Core §11.1).

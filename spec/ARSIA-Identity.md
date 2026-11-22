@@ -573,9 +573,22 @@ Payload:
 }
 ```
 
+**When a proof is required.** Whether a proof is required follows from the access
+token, not from the scheme the sender chose. A receiving agent MUST treat an access
+token bound to a key — one that carries `cnf.jkt` — as DPoP-bound: it MUST verify a
+DPoP proof for it as specified below, and MUST reject with error code `unauthorized`
+a request that presents such a token under the `Bearer` scheme or without a `DPoP`
+header ([RFC 9449] §7.2). A `cnf` claim that is present but does not carry a
+well-formed `jkt` MUST be rejected with `unauthorized`; it is never treated as the
+absence of a binding. *ARSIA profile:* a token presented under the `DPoP` scheme that
+carries no `cnf.jkt` MUST be rejected with `unauthorized`, since check 12 cannot hold.
+Only a token that the receiving agent has authenticated and that carries no `cnf` is
+a bearer token, presented under the `Bearer` scheme; a receiving agent MAY refuse
+bearer tokens (§9.2).
+
 **Verification by receiving agent.** A receiving agent presented with a DPoP-bound
-access token (`Authorization: DPoP …`) MUST verify the DPoP proof as follows and MUST
-NOT accept the request unless every check succeeds. Checks 1–12 are those of
+access token MUST verify the DPoP proof as follows and MUST NOT accept the request
+unless every check succeeds. Checks 1–12 are those of
 [RFC 9449] §4.3 and may be performed in any order; text marked *ARSIA profile* states a
 restriction of this protocol that RFC 9449 leaves to deployments.
 
@@ -1753,10 +1766,11 @@ intent).
 After receiving an approved onboarding decision, the external agent enters the operational
 phase. During this phase:
 
-**Token presentation.** The external agent MUST present the issued token as a Bearer token
-in the `Authorization` header when sending messages through the infrastructure router, per
-ARSIA-Core.md §6.3. The token contains the agent's effective capabilities as the `scope`
-claim.
+**Token presentation.** The external agent MUST present the issued token in the
+`Authorization` header when sending messages through the infrastructure router, per
+ARSIA-Core.md §6.3: under the `DPoP` scheme with a proof when the token is DPoP-bound,
+otherwise as a Bearer token. The token contains the agent's effective capabilities as the
+`scope` claim.
 
 **Token verification.** The infrastructure router MUST verify the token on every incoming
 request by calling the gateway's token verification endpoint:
@@ -1812,9 +1826,9 @@ original claim lists. The executing agent resolves the requirement (ARSIA-Core.m
 §4.3.10, §6.4) and responds with `pending_approval` per ARSIA-Actions.md §3.2 before
 executing the action.
 
-**DPoP binding.** External agents SHOULD use DPoP (ARSIA-Identity.md §3.3) when
-presenting tokens to the infrastructure router, to prevent token theft and replay. The
-router SHOULD verify DPoP proofs when present.
+**DPoP binding.** External agents SHOULD use DPoP-bound tokens (§3.3) when presenting
+tokens to the infrastructure router, to prevent token theft and replay. The router
+verifies proofs as §3.3 requires: for a DPoP-bound token the verification is mandatory.
 
 **Token renewal.** When the token approaches expiry, the external agent MAY re-initiate
 the onboarding flow to obtain a new token. Implementations MAY provide a lightweight
@@ -2053,8 +2067,10 @@ theft and replay attacks by binding the access token to the sender's cryptograph
 
 When DPoP is in use:
 
-- The external agent MUST present a DPoP proof JWT alongside the access token.
-- The infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request.
+- The external agent MUST present a DPoP proof JWT alongside the access token, under the
+  `DPoP` scheme (§3.3).
+- The infrastructure router MUST verify the DPoP proof per §3.3 before accepting the
+  request, and MUST reject a DPoP-bound token presented as a Bearer token.
 - The token MUST contain a `cnf` claim binding it to the agent's Ed25519 key.
 
 Organizations with high-security requirements SHOULD mandate DPoP for all external agents

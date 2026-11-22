@@ -911,7 +911,7 @@ def policy_identity_problems(vectors):
 
 
 COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16",
-                 "token_binding": "R21", "attestation": "R22", "revocation": "R13"}
+                 "token_binding": "R21", "attestation": "R22", "revocation": "R13", "encrypted-payload": "R26"}
 
 
 def coverage_claim_problems(skip_doc, vectors, passing=None):
@@ -2066,12 +2066,67 @@ def github_slug(heading):
     return re.sub(r"[^\w\- ]", "", heading.strip().lower()).replace(" ", "-")
 
 
+def git_file_sets():
+    """(tracked, untracked and not ignored) repository paths, or None when there is no Git metadata here (a plain
+    copy of the tree) or Git cannot be run."""
+    import subprocess
+
+    def ls(*args):
+        p = subprocess.run(["git", "ls-files", "-z", *args], capture_output=True)
+        if p.returncode != 0:
+            raise RuntimeError(p.stderr.decode("utf-8", "replace"))
+        return {x for x in p.stdout.decode("utf-8").split("\0") if x}
+    try:
+        inside = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True)
+        if inside.returncode != 0 or inside.stdout.strip() != "true":
+            return None
+        return ls(), ls("--others", "--exclude-standard")
+    except Exception:  # noqa: BLE001 - no usable Git: the caller checks every file
+        return None
+
+
+def spdx_scope(files, git_sets):
+    """The files the SPDX guard checks, of the Markdown files found on disk: a tracked file (even one that an
+    ignore rule matches) and a new file that is not ignored are checked; a local file that is ignored and
+    untracked is not. Without Git metadata every file found is checked — never none. Returns (files, problems)."""
+    files = sorted(files)
+    if git_sets is None:
+        return files, []
+    tracked, visible = git_sets
+    kept = [f for f in files if f in tracked or f in visible]
+    problems = [] if kept or not files else ["SPDX guard: Git metadata present and no Markdown file selected"]
+    return kept, problems
+
+
+def spdx_scope_selftest():
+    """Synthetic: the three Git situations and the copy without Git metadata."""
+    files = ["README.md", "docs/new.md", "docs/plans/local.md", "docs/plans/kept.md"]
+    tracked, visible = {"README.md", "docs/plans/kept.md"}, {"docs/new.md"}
+    out = []
+    got, probs = spdx_scope(files, (tracked, visible))
+    if "docs/plans/kept.md" not in got:
+        out.append("SPDX scope self-test: a tracked file matched by an ignore rule is not checked")
+    if "docs/new.md" not in got:
+        out.append("SPDX scope self-test: a new file that is not ignored is not checked")
+    if "docs/plans/local.md" in got:
+        out.append("SPDX scope self-test: a local ignored, untracked file is checked")
+    if spdx_scope(files, None) != (sorted(files), []):
+        out.append("SPDX scope self-test: without Git metadata not every file is checked")
+    if spdx_scope(files, (set(), set()))[1] == []:
+        out.append("SPDX scope self-test: an empty selection with Git metadata is not reported")
+    return out
+
+
 def repository_text_problems():
-    """Cycle F (F1-F4): every Markdown file at the root, in spec/ and in docs/ opens with the SPDX/Copyright pair
+    """Cycle F (F1-F4): every Markdown file at the root, in spec/ and in docs/ that Git tracks or would add (a
+    local ignored, untracked file is outside the repository's content; every file when there is no Git
+    metadata) opens with the SPDX/Copyright pair
     (LICENSE.md excepted); the profiles README retention column equals each profile's retention_minimum; every
     internal anchor of the six specs resolves to a heading; an RFC section is cited with the bracketed RFC."""
     out = []
     md = sorted(set(glob.glob("*.md") + glob.glob("spec/*.md") + glob.glob("docs/**/*.md", recursive=True)))
+    md, scope_problems = spdx_scope(md, git_file_sets())
+    out += scope_problems + spdx_scope_selftest()
     for f in md:
         if os.path.basename(f) in SPDX_EXEMPT and os.path.dirname(f) == "":
             continue
@@ -2941,6 +2996,8 @@ INTENTIONAL_PAYLOAD_TYPE_NEGATIVES = {
     ("ITV-265", "data/type"): ("forbidden", "custom operation under the reserved arsiaprotocol.state/ prefix (State §8.1)"),
     ("ITV-266", "message/payload/type"): ("forbidden", "custom operation under the reserved arsiaprotocol.state/ prefix (State §8.1)"),
     ("ITV-480", "message/payload/type"): ("arsiaprotocol.oversight/pending", "pending_approval intent with another payload.type"),
+    # the plaintext of an encrypted request, declared in test_metadata: the decrypted view applies the State rule
+    ("INV-251", "test_metadata/plaintext/type"): ("invalid_request", "undefined operation under the reserved arsiaprotocol.state/ prefix, in the plaintext of an encrypted payload (Core §5.3; State §8.1)"),
 }
 
 
@@ -3263,6 +3320,313 @@ def corpus_hygiene_echo_problems():
     if "claims no conformance with it" not in rtv.get("description", ""):
         out.append("RTV-01: the description presents it again as the Routing §2.3 relay receipt")
     return out
+
+
+# ---- Security contracts cycle (A-132, A-133, A-135, A-136, A-139) ----
+SECURITY_CONTRACT_ECHOES = (
+    # (file, section, sentence that must be in the section's body; "*" is the whole file)
+    ("spec/ARSIA-Core.md", "§2.2", "except for the safe release permitted by §10.2 item 2"),
+    ("spec/ARSIA-Core.md", "§4.3.2", "Except for the safe release permitted by §10.2 item 2, the server MUST NOT discard"),
+    ("spec/ARSIA-Core.md", "§10.2", "the server MUST atomically reserve the key"),
+    ("spec/ARSIA-Core.md", "§10.2", "An error code does not by itself establish that no effect occurred"),
+    ("spec/ARSIA-Core.md", "§10.2", "Once an effect has occurred, the reservation MUST NOT be released for retry"),
+    ("spec/ARSIA-Core.md", "§10.2", "has no instant under this item at which the association may be discarded"),
+    ("spec/ARSIA-Core.md", "§10.2", "MAY discard the association only after the retention window has ended, the "
+                                    "operation has terminated with a determined outcome, and its terminal response "
+                                    "has been stored"),
+    ("spec/ARSIA-Core.md", "§10.3", "its rejection does not return a stored response and does not release an existing "
+                                    "reservation"),
+    ("spec/ARSIA-Core.md", "§10.3", "the server MUST NOT execute the request and MUST reject it with error code "
+                                    "`conflict`"),
+    ("spec/ARSIA-Core.md", "§10.4", "The retention, safe-release and discard rules are those of §10.2."),
+    ("spec/ARSIA-Core.md", "§13.2.2", "except where §10.2 item 2 permits a safe release"),
+    ("spec/ARSIA-Identity.md", "§3.3", "Whether a proof is required follows from the access token, not from the "
+                                       "scheme the sender chose"),
+    ("spec/ARSIA-Identity.md", "§3.3", "under the `Bearer` scheme or without a `DPoP` header ([RFC 9449] §7.2)"),
+    ("spec/ARSIA-Identity.md", "§3.3", "it is never treated as the absence of a binding"),
+    ("spec/ARSIA-Identity.md", "§7.7", "for a DPoP-bound token the verification is mandatory"),
+    ("spec/ARSIA-Identity.md", "§9.2", "MUST reject a DPoP-bound token presented as a Bearer token"),
+    ("spec/ARSIA-Core.md", "§6.3", "MUST NOT accept a DPoP-bound token presented under the `Bearer` scheme"),
+    ("spec/ARSIA-Core.md", "§5.3", "Any message may carry an encrypted payload, error messages included."),
+    ("spec/ARSIA-Core.md", "§5.3", "a copy of the received envelope in which `payload` is the decrypted object and "
+                                   "`security.encrypted` is taken as `false`"),
+    ("spec/ARSIA-Core.md", "§5.3", "the signature is verified over the received envelope alone (step 1), never over "
+                                   "the view"),
+    ("spec/ARSIA-Core.md", "§5.3", "the recipient MUST reject the message with error code `invalid_request`"),
+    ("spec/ARSIA-Core.md", "§5.3.1", "They do not, by themselves, prove transmission or receipt."),
+    ("spec/ARSIA-Core.md", "§5.3.1", "audit records are not individually signed"),
+    # the scope of an encrypted message's key, and the safe release as §10.2 item 2 states it
+    ("spec/ARSIA-Core.md", "§10.2", "the `payload.type` of the scope is the `type` of the decrypted payload"),
+    ("spec/ARSIA-Core.md", "§10.2", "the server has established that no effect of the operation occurred"),
+    ("spec/ARSIA-Core.md", "§5.3", "its `type` is the `payload.type` that scopes an idempotency key (§10.2 item 1)"),
+    ("docs/draft-02-migration-guide.md", "*", "the server has established that no effect occurred"),
+    ("docs/rtm/ARSIA-Core.rtm.md", "*", "the server has established that no effect occurred"),
+    ("CHANGELOG.md", "*", "the server has established that no effect occurred"),
+    ("SECURITY.md", "*", "except for the safe release that Core §10.2 item 2 permits"),
+)
+SECURITY_CONTRACT_GONE = (
+    # (file, text that must not come back, what it was)
+    ("spec/ARSIA-Core.md", "the server MAY discard the stored idempotency record", "§4.3.2 discard at the declared instant"),
+    ("spec/ARSIA-Core.md", "is used as the retention duration", "§10.4 retention summary"),
+    ("spec/ARSIA-Core.md", "the server SHOULD return HTTP 409", "§10.3 in-progress duplicate as a SHOULD"),
+    ("spec/ARSIA-Core.md", "signed audit records", "§5.3.1 signed audit records"),
+    ("spec/ARSIA-Core.md", "signature on each audit record", "§5.3.1 per-record signature"),
+    ("spec/ARSIA-Core.md", "prove the same ciphertext was transmitted and received", "§5.3.1 proof of receipt"),
+    ("spec/ARSIA-Identity.md", "MUST present the issued token as a Bearer token", "§7.7 Bearer-only presentation"),
+    ("SECURITY.md", "retention_days", "the Draft-01 retention field"),
+    ("SECURITY.md", "excluded from the signing input", "the Draft-01 signing profile"),
+    ("docs/draft-02-migration-guide.md", "no effect is established", "a safe release on an undetermined outcome"),
+    ("docs/rtm/ARSIA-Core.rtm.md", "no effect is established", "a safe release on an undetermined outcome"),
+    ("CHANGELOG.md", "no effect is established", "a safe release on an undetermined outcome"),
+)
+DPOP_VERIFY_SECTIONS = (("spec/ARSIA-Identity.md", "§7.7"), ("spec/ARSIA-Identity.md", "§9.2"),
+                        ("spec/ARSIA-Core.md", "§6.3"))
+
+
+def rtm_row_total():
+    """Rows of the six RTM tables, counted from their headers as scripts/rtm_counts.py does."""
+    import glob
+    n = 0
+    for path in sorted(glob.glob("docs/rtm/ARSIA-*.rtm.md")):
+        header = None
+        for line in open(path, encoding="utf-8"):
+            line = line.rstrip("\n")
+            if not line.startswith("|"):
+                header = None
+                continue
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            if header is None:
+                header = cells if any(c.lower() == "id" for c in cells) else None
+                continue
+            if set("".join(cells)) <= set("-: "):
+                continue
+            n += 1
+    return n
+
+
+def security_contract_echo_problems(texts=None, schemas=None, rtm_rows=None):
+    """A-132, A-133, A-135, A-136, A-139 anti-regression: each rule is stated in its section, the replaced wording
+    is gone, no SHOULD is left on verifying a required DPoP proof (the SHOULD of adopting DPoP stays), the error
+    conditional applies to an unencrypted error only, and SECURITY.md publishes the current RTM row count."""
+    out = []
+    norm = lambda t: re.sub(r"\s+", " ", t)
+    read = lambda f: texts[f] if texts is not None else open(f, encoding="utf-8").read()
+    for f, sec, needle in SECURITY_CONTRACT_ECHOES:
+        body = read(f) if sec == "*" else spec_section(read(f), sec)
+        if body is None or needle not in norm(body):
+            out.append(f"{f} {sec}: {needle[:60]!r} is missing")
+    for f, old, what in SECURITY_CONTRACT_GONE:
+        if old in norm(read(f)):
+            out.append(f"{f}: {what} is back ({old!r})")
+    for f, sec in DPOP_VERIFY_SECTIONS:
+        body = norm(spec_section(read(f), sec) or "")
+        if re.search(r"SHOULD (?:NOT )?verify", body):
+            out.append(f"{f} {sec}: a SHOULD on verifying a DPoP proof")
+    load = lambda n: schemas[n] if schemas is not None else strict_load(f"schemas/{n}")
+    msg = load("arsia-message.schema.json")
+    enc_if = next((e["if"] for e in msg["allOf"] if e.get("then") == {"properties": {"payload": {"type": "string"}}}), None)
+    err = [e for e in msg["allOf"] if e.get("then") == {"properties": {"payload": {"type": "object", "required": ["error"]}}}]
+    want_if = {"properties": {"intent": {"const": "error"}}, "required": ["intent"], "not": enc_if}
+    if enc_if is None or len(err) != 1 or err[0].get("if") != want_if:
+        out.append("message schema: the error conditional is not 'intent error and the message is not encrypted'")
+    desc = load("arsia-audit-record.schema.json").get("description", "")
+    if "A hash is not automatically anonymous" not in desc or "exempt from GDPR Art. 17" in desc:
+        out.append("audit-record schema description: the general GDPR exemption is back")
+    sec_md = read("SECURITY.md")
+    rows = rtm_row_total() if rtm_rows is None else rtm_rows
+    published = [int(x.replace(",", "")) for x in re.findall(r"\(([\d,]+) rows\)", sec_md)]
+    if published != [rows]:
+        out.append(f"SECURITY.md: RTM rows published {published} != {rows}")
+    return out
+
+
+def security_contract_echo_self_test():
+    """Synthetic: the real texts pass; each kind of regression is reported by name."""
+    import copy as _copy
+    files = sorted({f for f, _, _ in SECURITY_CONTRACT_ECHOES} | {f for f, _, _ in SECURITY_CONTRACT_GONE})
+    texts = {f: open(f, encoding="utf-8").read() for f in files}
+    schemas = {n: strict_load(f"schemas/{n}") for n in ("arsia-message.schema.json", "arsia-audit-record.schema.json")}
+    rows = rtm_row_total()
+    if security_contract_echo_problems(texts, schemas, rows):
+        return ["the real texts are reported (the cases are built from them)"]
+    out = []
+
+    def text_case(f, old, new):
+        t = dict(texts)
+        pat = re.compile(r"\s+".join(re.escape(w) for w in old.split()))  # the sentence may wrap in the source
+        assert len(pat.findall(t[f])) == 1, (f, old)
+        t[f] = pat.sub(lambda _m: new, t[f])
+        return t, schemas, rows
+
+    def schema_case(edit):
+        s = _copy.deepcopy(schemas)
+        edit(s["arsia-message.schema.json"], s["arsia-audit-record.schema.json"])
+        return texts, s, rows
+
+    def err_cond(m):
+        return next(e for e in m["allOf"] if e.get("then") == {"properties": {"payload": {"type": "object", "required": ["error"]}}})
+    cases = {
+        "§10.4 back to a partial summary": (text_case("spec/ARSIA-Core.md", "The retention, safe-release and discard rules are those of §10.2.",
+                                                      "The `idempotency.expires_at` field from the envelope is used as the retention duration."),
+                                            "§10.4 retention summary is back"),
+        "§10.2 without the reservation": (text_case("spec/ARSIA-Core.md", "MUST atomically reserve the key", "SHOULD reserve the key"),
+                                          "§10.2: 'the server MUST atomically reserve"),
+        "§7.7 verification as a SHOULD": (text_case("spec/ARSIA-Identity.md", "for a DPoP-bound token the verification is mandatory",
+                                                    "the router SHOULD verify DPoP proofs when present"),
+                                          "§7.7: a SHOULD on verifying a DPoP proof"),
+        "§5.3.1 proof of receipt": (text_case("spec/ARSIA-Core.md", "They do not, by themselves, prove transmission or receipt.",
+                                              "They prove the same ciphertext was transmitted and received."),
+                                    "§5.3.1 proof of receipt is back"),
+        "error conditional without intent": (schema_case(lambda m, a: err_cond(m)["if"].pop("properties")),
+                                             "message schema: the error conditional"),
+        "error conditional unconditioned by encryption": (schema_case(lambda m, a: err_cond(m)["if"].pop("not")),
+                                                          "message schema: the error conditional"),
+        "audit description exemption": (schema_case(lambda m, a: a.update(description=a["description"] + " Records are exempt from GDPR Art. 17.")),
+                                        "audit-record schema description"),
+        "SECURITY.md retention_days": (text_case("SECURITY.md", "`compliance.retention`", "`compliance.retention_days`"),
+                                       "SECURITY.md: the Draft-01 retention field is back"),
+        "SECURITY.md stale RTM count": ((texts, schemas, rows + 1), "SECURITY.md: RTM rows published"),
+        "guide: release on an undetermined outcome": (
+            text_case("docs/draft-02-migration-guide.md", "the server has established that no effect occurred",
+                      "no effect is established"), "a safe release on an undetermined outcome is back"),
+        "SECURITY.md without the safe release": (
+            text_case("SECURITY.md", ", except for the safe release that Core §10.2 item 2 permits once the server has "
+                      "established that no effect occurred", ""), "SECURITY.md *: 'except for the safe release"),
+        "§10.2 scope of an encrypted message": (
+            text_case("spec/ARSIA-Core.md", "the `payload.type` of the scope is the `type` of the decrypted payload",
+                      "the `payload.type` of the scope is taken from the envelope"), "§10.2: 'the `payload.type` of the scope"),
+    }
+    for name, (args, needle) in cases.items():
+        if not any(needle in p for p in security_contract_echo_problems(*args)):
+            out.append(f"{name}: not reported ({needle!r})")
+    # the SHOULD of adopting DPoP is not a problem
+    adopt = dict(texts)
+    if "SHOULD use DPoP-bound tokens" not in adopt["spec/ARSIA-Identity.md"] or \
+            any("SHOULD on verifying" in p for p in security_contract_echo_problems(adopt, schemas, rows)):
+        out.append("the SHOULD of adopting DPoP is reported or missing")
+    return out
+
+
+def encrypted_error_matrix_problems(vectors, registry, schema=None):
+    """A-136: the error conditional over `security.encrypted` absent, false and true, with an object and a string
+    payload — variants in memory of the unencrypted error ITV-155 and the encrypted error ITV-742 — and not applied
+    to a message that is not an error (the request ITV-741)."""
+    import copy as _copy
+    import validate_vectors as vv
+    by_id = {v["id"]: v for v in vectors}
+    schema = schema or vv.resolve_schema("arsia-message.schema.json", registry)
+    plain, enc = by_id["ITV-155"]["message"], by_id["ITV-742"]["message"]
+
+    def variant(base, encrypted, payload=None):
+        m = _copy.deepcopy(base)
+        if encrypted == "absent":
+            m["security"].pop("encrypted", None)
+        else:
+            m["security"]["encrypted"] = encrypted
+        if payload is not None:
+            m["payload"] = payload
+        return m
+    no_error = {"type": "com.acme.billing/create-invoice", "result": {}}
+    ERR, ENC = "allOf/3/then", "allOf/6/then"
+    rows = (("absent, intent request with an object payload without error (the rule is of errors only)",
+             _copy.deepcopy(by_id["ITV-741"]["message"]), []),
+            ("absent, object with error", variant(plain, "absent"), []),
+            ("absent, string", variant(plain, "absent", "x"), [("type", ERR)]),
+            ("false, string", variant(enc, False), [("type", ERR)]),
+            ("false, object without error", variant(enc, False, no_error), [("required", ERR)]),
+            ("true, string", variant(enc, True), []),
+            ("true, object", variant(enc, True, _copy.deepcopy(plain["payload"])), [("type", ENC)]))
+    out = []
+    for name, m, want in rows:
+        got = [(e.validator, "/".join(map(str, list(e.absolute_schema_path)[:3])))
+               for e in vv.message_errors(m, schema, registry)[1]]
+        if got != want:
+            out.append(f"encrypted {name}: {got} != {want}")
+    return out
+
+
+def encryption_key_problems(doc, vectors=()):
+    """A-136: encryption keys are published apart from the signature keys, declared by use, kty and crv — never
+    recognised by the length of their bytes —, derive from their private key under X25519, share no kid or
+    material with a signature key, and sign nothing."""
+    import hashlib
+    import rfc8785
+    out = []
+    enc = doc.get("encryption_keypairs")
+    sig = {e["kid"]: e for e in doc["keypairs"].values()}
+    if not isinstance(enc, dict) or not enc:
+        return ["keypairs.json: no encryption_keypairs"]
+    for name, e in enc.items():
+        kid = e.get("kid")
+        if name != kid or (e.get("use"), e.get("kty"), e.get("crv")) != ("enc", "OKP", "X25519"):
+            out.append(f"{name}: not declared as use enc, kty OKP, crv X25519 under its kid")
+            continue
+        try:
+            from cryptography.hazmat.primitives import serialization as _s
+            from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+            pub = X25519PrivateKey.from_private_bytes(bytes.fromhex(e["private_key_hex"])).public_key() \
+                .public_bytes(_s.Encoding.Raw, _s.PublicFormat.Raw).hex()
+        except Exception:  # noqa: BLE001
+            pub = None
+        if pub != e.get("public_key_hex"):
+            out.append(f"{kid}: the public key does not derive from the private key under X25519")
+        if kid in sig:
+            out.append(f"{kid}: also a signature kid")
+        if any(e.get(k) == s.get(k) for s in sig.values() for k in ("public_key_hex", "private_key_hex")):
+            out.append(f"{kid}: key material shared with a signature key")
+    for kid, e in sig.items():
+        if any(k in e for k in ("use", "kty", "crv")) and e.get("use") == "enc":
+            out.append(f"{kid}: an encryption key among the signature keys")
+    prov = (doc.get("provenance") or {}).get("encryption") or {}
+    if sorted(prov.get("kids") or []) != sorted(enc) or \
+            prov.get("sha256") != "sha-256:" + hashlib.sha256(rfc8785.dumps({k: enc[k] for k in sorted(enc)})).hexdigest():
+        out.append("encryption entries differ from their recorded digest")
+    for v in vectors:
+        for root in ("message", "data"):
+            sec = v.get(root, {}).get("security") if isinstance(v.get(root), dict) else None
+            if isinstance(sec, dict) and sec.get("kid") in enc:
+                out.append(f"{v['id']}: signed with the encryption key {sec['kid']}")
+    return out
+
+
+def encryption_key_self_test(doc):
+    """Synthetic: the catalog passes; a key moved among the signature keys, an undeclared type, a wrong public
+    key, a shared kid and a vector signed with the encryption kid are each reported."""
+    import copy as _copy
+    if encryption_key_problems(doc):
+        return ["the real catalog is reported (the cases are built from it)"]
+    out = []
+    kid = next(iter(doc["encryption_keypairs"]))
+
+    def case(edit, vectors=()):
+        d = _copy.deepcopy(doc)
+        edit(d)
+        return encryption_key_problems(d, vectors)
+    moved = lambda d: d["keypairs"].update({kid: d["encryption_keypairs"][kid]})
+    cases = {
+        "moved among the signature keys": (case(moved), "also a signature kid"),
+        "moved among the signature keys (catalog digest)": (catalog_problems(_copy.deepcopy(
+            dict(doc, keypairs=dict(doc["keypairs"], **{kid: doc["encryption_keypairs"][kid]})))), "catalog kids"),
+        "type left to the byte length": (case(lambda d: [d["encryption_keypairs"][kid].pop(k) for k in ("use", "kty", "crv")]),
+                                         "not declared as use enc"),
+        "public key not derived": (case(lambda d: d["encryption_keypairs"][kid].update(
+            public_key_hex=next(iter(d["keypairs"].values()))["public_key_hex"])), "does not derive"),
+        "signature key material reused": (case(lambda d: d["encryption_keypairs"][kid].update(
+            private_key_hex=next(iter(d["keypairs"].values()))["private_key_hex"])), "shared with a signature key"),
+        "digest not updated": (case(lambda d: d["provenance"]["encryption"].update(sha256="sha-256:" + "0" * 64)),
+                               "recorded digest"),
+        "a vector signed with the encryption kid": (case(lambda d: None, [{"id": "SYN-1", "message": {"security": {"kid": kid}}}]),
+                                                    "signed with the encryption key"),
+    }
+    for name, (probs, needle) in cases.items():
+        if not any(needle in p for p in probs):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+SECURITY_CONTRACTS_SINGLE_CAUSE = (
+    ("INV-252", "message", "arsia-message.schema.json", [("type", ("payload",), "'not-an-object' is not of type 'object'")]),
+)
 
 
 def state_cycle_echo_problems():
@@ -3962,6 +4326,26 @@ def main() -> int:
     probs = corpus_hygiene_echo_problems()
     check("Corpus hygiene cycle anti-regression: the approval_expired contract in Actions §3.5, State §7.1 and the "
           "schema; RTV-01 not presented as the Routing §2.3 receipt", not probs, "; ".join(probs[:4]))
+
+    # Security contracts cycle (A-132, A-133, A-135, A-136, A-139)
+    probs = security_contract_echo_problems()
+    check("Security contracts cycle anti-regression: idempotency retention and its echoes (A-132), the DPoP binding "
+          "rule with no SHOULD on verifying a required proof (A-133), the decrypted view and the error conditional "
+          "(A-136), the audit guarantees (A-139), SECURITY.md (A-135)", not probs, "; ".join(probs[:4]))
+    probs = security_contract_echo_self_test()
+    check("security contracts echo self-test: each regression reported by name; the SHOULD of adopting DPoP accepted",
+          not probs, "; ".join(probs[:4]))
+    probs = encrypted_error_matrix_problems(corpus_vectors, registry)
+    check("error conditional matrix: encrypted absent, false and true against an object and a string payload, and a "
+          "non-error message untouched (ITV-155, ITV-742, ITV-741; A-136)", not probs, "; ".join(probs[:4]))
+    probs = encryption_key_problems(kp_doc, corpus_vectors)
+    check("encryption keys: published apart from the signature keys, declared by use/kty/crv, derived under X25519, "
+          "sharing nothing with a signature key and signing nothing (A-136)", not probs, "; ".join(probs[:4]))
+    probs = encryption_key_self_test(kp_doc)
+    check("encryption key guard self-test: moved, undeclared, underived, shared and signing keys reported",
+          not probs, "; ".join(probs[:4]))
+    probs = single_cause_problems(corpus_vectors, registry, table=SECURITY_CONTRACTS_SINGLE_CAUSE)
+    check("INV-252 fails for its declared cause only", not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     import validate_vectors as vv

@@ -62,6 +62,14 @@ Schema cannot express, executed as tests — including against the runtime
       compliance diagnostics and of State §8.4, presence   A-114, A-123)
       dispatch in the error envelope, localized member
 
+  R25 Idempotency retention: reservation, stored response (Core §10.2, §10.3; A-132)
+      and safe release, retention window against the message's
+      acceptance window, evaluation order, conflict
+  R26 Encrypted payloads: signature, JWE decryption        (Core §5.3, §5.3.1; A-136)
+      (ECDH-ES over X25519, A256GCM), strict parsing and the
+      decrypted view; decoder against RFC 8037 A.6 and
+      RFC 7518 Appendix C
+
 Exit code 0 = all green.
 """
 import calendar
@@ -733,8 +741,8 @@ def receive(message, identity=None, anchor="2026-10-31T00:00:00.000Z", strict=Fa
 _REGISTRY = []
 
 
-def schema_errors(instance, schema_file, defs=None):
-    """Messages of the errors of instance against schemas/<schema_file> (or its $defs/<defs>)."""
+def schema_error_objects(instance, schema_file, defs=None):
+    """The validation errors of instance against schemas/<schema_file> (or its $defs/<defs>)."""
     import glob
     from jsonschema import Draft202012Validator
     from referencing import Registry, Resource
@@ -744,7 +752,12 @@ def schema_errors(instance, schema_file, defs=None):
     reg = _REGISTRY[0]
     sid = strict_load(f"schemas/{schema_file}")["$id"]
     schema = {"$ref": f"{sid}#/$defs/{defs}"} if defs else {"$ref": sid}
-    return [e.message for e in Draft202012Validator(schema, registry=reg).iter_errors(instance)]
+    return list(Draft202012Validator(schema, registry=reg).iter_errors(instance))
+
+
+def schema_errors(instance, schema_file, defs=None):
+    """Messages of the errors of instance against schemas/<schema_file> (or its $defs/<defs>)."""
+    return [e.message for e in schema_error_objects(instance, schema_file, defs)]
 
 
 def error_envelope(code, details):
@@ -3253,6 +3266,40 @@ def dpop_verify(req, now, store, bindings, nonce_policy=None, skew=DPOP_SKEW):
     return {"status": 200, "headers": {}, "code": None, "check": None}
 
 
+JKT_RE = re.compile(r"\A[A-Za-z0-9_-]{43}\Z")  # base64url SHA-256 JWK thumbprint (RFC 7638)
+
+
+def token_presentation(req, token_facts):
+    """Identity §3.3 "When a proof is required": the presentation scheme against the token's binding.
+
+    token_facts maps a presented token to the claims of a token the receiving agent has ALREADY authenticated
+    (signature, issuer, audience, validity): it is trusted context given to this model, which verifies only the
+    choice and rejection of the presentation scheme. A token absent from it is unknown or invalid.
+    Returns {"route": "dpop" | "bearer" | None, "code": None | "unauthorized", "reason"}."""
+    no = lambda reason: {"route": None, "code": "unauthorized", "reason": reason}
+    auth = [v for k, v in req["headers"] if k.lower() == "authorization"]
+    if len(auth) != 1 or " " not in auth[0]:
+        return no("authorization header")
+    scheme, token = auth[0].split(" ", 1)
+    if scheme not in ("Bearer", "DPoP"):
+        return no("scheme")
+    facts = token_facts.get(token)
+    if facts is None:                                   # unknown or invalid token: never a bearer token
+        return no("token not authenticated")
+    if "cnf" in facts:
+        cnf = facts["cnf"]
+        if not isinstance(cnf, dict) or not isinstance(cnf.get("jkt"), str) or not JKT_RE.match(cnf["jkt"]):
+            return no("malformed cnf")                 # present and malformed is not the absence of a binding
+        if scheme != "DPoP":
+            return no("DPoP-bound token presented as Bearer")
+        if not any(k.lower() == "dpop" for k, _ in req["headers"]):
+            return no("DPoP-bound token without a DPoP header")
+        return {"route": "dpop", "code": None, "reason": None}
+    if scheme == "DPoP":
+        return no("DPoP scheme with a token that has no cnf.jkt")
+    return {"route": "bearer", "code": None, "reason": None}
+
+
 def dpop_request(proof, token=None, url=DPOP_INBOX, extra=()):
     token = token or DPOP_TOKEN
     return {"method": "POST", "url": url,
@@ -3607,6 +3654,42 @@ def token_binding(envelope, presented_token):
         return "accept"
     digest = "sha-256:" + hashlib.sha256(presented_token.encode("utf-8")).hexdigest()
     return "accept" if digest == auth.get("token_hash") else "unauthorized"
+
+
+def r20_presentation():
+    """A-133: the proof is required by the token's binding, not by the scheme the sender chose."""
+    t0 = DPOP_T0
+    bound, unbound, unknown, broken = DPOP_TOKEN, "eyJhbGciOiJFZERTQSJ9.bearer-token.sig", \
+        "eyJhbGciOiJFZERTQSJ9.unknown-token.sig", "eyJhbGciOiJFZERTQSJ9.broken-cnf-token.sig"
+    thumb = jkt(_jwk(DPOP_SENDER))
+    facts = {bound: {"cnf": {"jkt": thumb}}, unbound: {}, broken: {"cnf": {"jkt": 7}}}
+    proof = lambda tok: make_proof(DPOP_SENDER, DPOP_INBOX, t0, dpop_jti(9000 + len(tok)), tok, None)
+    req = lambda scheme, tok, with_proof: {"method": "POST", "url": DPOP_INBOX, "headers":
+                                           [("Authorization", f"{scheme} {tok}")] + ([("DPoP", proof(tok))] if with_proof else [])}
+    rej = lambda r, reason: r["route"] is None and r["code"] == "unauthorized" and r["reason"] == reason
+    tp = token_presentation
+    check("R20 (k) A-133: a DPoP-bound token presented under Bearer is unauthorized, with or without a proof",
+          rej(tp(req("Bearer", bound, False), facts), "DPoP-bound token presented as Bearer")
+          and rej(tp(req("Bearer", bound, True), facts), "DPoP-bound token presented as Bearer"))
+    check("R20 (k) A-133: a DPoP-bound token under DPoP without a DPoP header is unauthorized",
+          rej(tp(req("DPoP", bound, False), facts), "DPoP-bound token without a DPoP header"))
+    check("R20 (k) A-133: a token without cnf.jkt presented under DPoP is unauthorized (ARSIA profile)",
+          rej(tp(req("DPoP", unbound, True), facts), "DPoP scheme with a token that has no cnf.jkt"))
+    check("R20 (k) A-133: an unknown token is unauthorized under either scheme, never a bearer token",
+          rej(tp(req("Bearer", unknown, False), facts), "token not authenticated")
+          and rej(tp(req("DPoP", unknown, True), facts), "token not authenticated"))
+    check("R20 (k) A-133: a cnf present and malformed is unauthorized, never the absence of a binding",
+          rej(tp(req("Bearer", broken, False), facts), "malformed cnf")
+          and rej(tp(req("DPoP", broken, True), facts), "malformed cnf")
+          and rej(tp(req("Bearer", bound, False), {bound: {"cnf": "x"}}), "malformed cnf")
+          and rej(tp(req("Bearer", bound, False), {bound: {"cnf": {}}}), "malformed cnf"))
+    r = req("DPoP", bound, True)
+    routed = tp(r, facts)
+    check("R20 (k) A-133: a DPoP-bound token under DPoP with a proof goes to the proof verification, which accepts it",
+          routed["route"] == "dpop" and dpop_verify(r, t0, JtiStore(), {bound: facts[bound]["cnf"]["jkt"]})["status"] == 200)
+    check("R20 (k) A-133: an authenticated token without cnf under Bearer takes the bearer path (presentation only: "
+          "the token's validity is given context, not verified here)",
+          tp(req("Bearer", unbound, False), facts) == {"route": "bearer", "code": None, "reason": None})
 
 
 def r21(vectors):
@@ -4139,12 +4222,625 @@ def r24(vectors):
           not missed, str(missed), executed=inv)
 
 
+# ------------------------------------------- R25 idempotency retention (Core §10.2, §10.3; A-132)
+NO_LIMIT = "no-limit"   # no finite instant: the association is kept for as long as the message is acceptable
+
+
+def acceptance_window_end(message, skew, ts_limit):
+    """Core §10.2 item 3, second term: the last instant at which the server would still accept the message,
+    that instant included. ts_limit: seconds after `ts` up to which this server accepts a message without
+    expires_at under its own validation of ts (§8.3, a MAY), or None when it sets no such limit."""
+    if "expires_at" in message:
+        return iso(message["expires_at"]) + dt.timedelta(seconds=skew)
+    if ts_limit is None:
+        return NO_LIMIT
+    return iso(message["ts"]) + dt.timedelta(seconds=ts_limit)
+
+
+def idempotency_retain_until(message, skew, ts_limit):
+    """Core §10.2 item 3, first two terms: the latest of idempotency.expires_at and the acceptance window end."""
+    end = acceptance_window_end(message, skew, ts_limit)
+    if end == NO_LIMIT:
+        return NO_LIMIT
+    return max(iso(message["idempotency"]["expires_at"]), end)
+
+
+class IdempotencyStore:
+    """Reference model of Core §10.2 and §10.3. An association is in one state:
+    in_progress | undetermined | effect_no_response | stored."""
+
+    def __init__(self, skew=DEFAULT_SKEW, ts_limit=None, use_header=False):
+        import threading
+        self.skew, self.ts_limit, self.use_header = skew, ts_limit, use_header
+        self.entries, self.executions, self._lock = {}, [], threading.Lock()
+        self.between_lookup_and_write = None                 # test hook: runs inside the reservation
+
+    def _rejection(self, message, now, verified):
+        """§10.3 item 1: the verifications that apply to any message, expiration included."""
+        if not verified:
+            return "unauthorized"
+        end = acceptance_window_end(message, self.skew, self.ts_limit)
+        if end != NO_LIMIT and now > end:
+            return "invalid_request"
+        return None
+
+    def _discardable(self, entry, now):
+        """§10.2 item 5: only after the window, with a determined outcome and the terminal response stored."""
+        return entry["state"] == "stored" and entry["retain_until"] != NO_LIMIT and now > entry["retain_until"]
+
+    def receive(self, message, now, verified=True, header_key=None, payload_type=None):
+        """Returns {"outcome": code | "conflict" | "stored" | "execute", "key", "response"} in the §10.3 order.
+        payload_type: for an encrypted payload, the type of the decrypted payload, known only after the §5.3
+        procedure succeeded (§10.2 item 1); the received envelope holds a JWE string and gives no type."""
+        code = self._rejection(message, now, verified)
+        if code:                                             # rejected: nothing executed, returned or released
+            return {"outcome": code, "key": None, "response": None}
+        idem = message.get("idempotency")
+        if idem is not None:
+            key, until = idem["key"], idempotency_retain_until(message, self.skew, self.ts_limit)
+        elif header_key is not None and self.use_header:     # §10.4 item 3: a courtesy the server may offer
+            key, until = header_key, now + dt.timedelta(hours=24)
+        else:
+            self.executions.append(message["id"])
+            return {"outcome": "execute", "key": None, "response": None}
+        if isinstance(message["payload"], str):
+            if payload_type is None:
+                raise ValueError("encrypted payload: the scope needs the type of the decrypted payload")
+        elif payload_type is not None:
+            raise ValueError("payload_type is given only for an encrypted payload")
+        else:
+            payload_type = message["payload"]["type"]
+        scoped = (message["from"], message["to"], payload_type, key)
+        with self._lock:                                     # §10.2 item 1: the reservation is atomic
+            entry = self.entries.get(scoped)
+            if entry is not None and self._discardable(entry, now):
+                del self.entries[scoped]
+                entry = None
+            if entry is None:
+                if self.between_lookup_and_write:
+                    self.between_lookup_and_write()
+                self.entries[scoped] = {"state": "in_progress", "retain_until": until, "response": None}
+                self.executions.append(message["id"])
+                return {"outcome": "execute", "key": scoped, "response": None}
+        if entry["state"] == "stored":                       # §10.3 item 3
+            return {"outcome": "stored", "key": scoped, "response": entry["response"]}
+        return {"outcome": "conflict", "key": scoped, "response": None}   # §10.3 item 2
+
+    def complete(self, scoped, response):
+        """§10.2 item 2: the terminal response, success or error, is stored with the reservation."""
+        self.entries[scoped].update(state="stored", response=response)
+
+    def interrupt(self, scoped):
+        self.entries[scoped]["state"] = "undetermined"
+
+    def confirm_effect(self, scoped):
+        self.entries[scoped]["state"] = "effect_no_response"
+
+    def release(self, scoped, attempt_ended, no_effect_established, pending_execution, response):
+        """§10.2 item 2, safe release: all four conditions; an error code alone establishes nothing."""
+        entry = self.entries.get(scoped)
+        safe = (entry is not None and entry["state"] == "in_progress" and attempt_ended and no_effect_established
+                and not pending_execution and response in (None, "error"))
+        if safe:
+            del self.entries[scoped]
+        return safe
+
+
+def r25(vectors):
+    import threading
+    by_id = {v["id"]: v for v in vectors}
+    msg = by_id["ITV-741"]["message"]
+    t = lambda s: iso(msg["ts"]) + dt.timedelta(seconds=s)
+    ms = dt.timedelta(milliseconds=1)
+    resp = {"intent": "response", "correlation_id": msg["id"]}
+    S = DEFAULT_SKEW
+    check("R25 ITV-741 is acceptable for 30 s while its idempotency.expires_at is 1 s after ts",
+          iso(msg["expires_at"]) == t(30) and iso(msg["idempotency"]["expires_at"]) == t(1), executed=["ITV-741"])
+    check("R25 retention ends at expires_at + tolerance, not at idempotency.expires_at",
+          idempotency_retain_until(msg, S, None) == t(30 + S), executed=["ITV-741"])
+
+    def started(store=None, m=msg, at=0):
+        store = store or IdempotencyStore()
+        return store, store.receive(m, t(at))["key"]
+
+    st, k = started(); st.complete(k, resp)
+    r = st.receive(msg, t(2))
+    check("R25 a repetition at second 2, after idempotency.expires_at, returns the stored response without execution",
+          r["outcome"] == "stored" and r["response"] is resp and len(st.executions) == 1, executed=["ITV-741"])
+    r_at, r_after = st.receive(msg, t(30 + S)), st.receive(msg, t(30 + S) + ms)
+    check("R25 at the exact instant expires_at + tolerance the message is still deduplicated; one millisecond later "
+          "the same envelope is rejected as expired",
+          r_at["outcome"] == "stored" and r_after["outcome"] == "invalid_request" and len(st.executions) == 1,
+          executed=["ITV-741"])
+    prof = dict(msg, compliance={"profile": "MIFID-II"})
+    tol, source = skew_tolerance(prof)
+    st60, k60 = started(IdempotencyStore(skew=tol)); st60.complete(k60, resp)
+    check("R25 a profile clock_skew_seconds (MIFID-II, 60 s) moves the instant",
+          (tol, source) == (60, "profile:MIFID-II") and idempotency_retain_until(msg, tol, None) == t(90)
+          and st60.receive(msg, t(90))["outcome"] == "stored" and st60.receive(msg, t(90) + ms)["outcome"] == "invalid_request")
+    # no expires_at on the message (an event): finite ts limit, then no limit
+    ev = {k: v for k, v in msg.items() if k not in ("expires_at", "capabilities")}
+    ev["intent"] = "event"
+    stf, kf = started(IdempotencyStore(ts_limit=600), ev); stf.complete(kf, resp)
+    check("R25 without expires_at and with a finite ts limit: kept until that limit, that instant included",
+          idempotency_retain_until(ev, S, 600) == t(600) and stf.receive(ev, t(600))["outcome"] == "stored"
+          and stf.receive(ev, t(600) + ms)["outcome"] == "invalid_request")
+    stn, kn = started(IdempotencyStore(ts_limit=None), ev); stn.complete(kn, resp)
+    far = stn.receive(ev, t(10 * 365 * 86400))
+    check("R25 without expires_at and without a ts limit there is no discard instant: still deduplicated long after "
+          "idempotency.expires_at (the MAY of §8.3 is not turned into ts + tolerance)",
+          idempotency_retain_until(ev, S, None) == NO_LIMIT and far["outcome"] == "stored" and len(stn.executions) == 1)
+    # concurrency
+    race, outs = IdempotencyStore(), []
+    ths = [threading.Thread(target=lambda: outs.append(race.receive(msg, t(0))["outcome"])) for _ in range(32)]
+    [x.start() for x in ths]; [x.join() for x in ths]
+    check("R25 of 32 concurrent messages with the same scoped key exactly one obtains the reservation",
+          outs.count("execute") == 1 and outs.count("conflict") == 31 and len(race.executions) == 1)
+    # deterministic: a second message arrives between the first one's lookup and its write
+    gap, second = IdempotencyStore(), []
+    other = threading.Thread(target=lambda: second.append(gap.receive(msg, t(0))["outcome"]))
+
+    def arrive():
+        gap.between_lookup_and_write = None
+        other.start()
+        other.join(0.3)                                      # blocked by the reservation, unless it is not atomic
+    gap.between_lookup_and_write = arrive
+    first = gap.receive(msg, t(0))["outcome"]
+    other.join()
+    check("R25 a message arriving between the lookup and the write of another cannot obtain the reservation",
+          first == "execute" and second == ["conflict"] and len(gap.executions) == 1, f"{first} {second}")
+    st, k = started()
+    check("R25 a duplicate while the operation is in progress gets conflict and is not executed",
+          st.receive(msg, t(1))["outcome"] == "conflict" and len(st.executions) == 1)
+    # undetermined after both instants: the expired original and a new admissible message, apart
+    st, k = started(); st.interrupt(k)
+    late = t(30 + S) + dt.timedelta(seconds=60)
+    newer = dict(msg, id="0e741001-0000-4000-8000-000000000741", ts="2026-11-20T10:06:30.000Z",
+                 expires_at="2026-11-20T10:07:00.000Z",
+                 idempotency={"key": msg["idempotency"]["key"], "expires_at": "2026-11-20T10:06:31.000Z"})
+    r_old, kept, r_new = st.receive(msg, late), k in st.entries, st.receive(newer, late)
+    no_release = st.release(k, True, True, False, None)      # every flag favourable: the state alone refuses
+    check("R25 undetermined outcome after both instants: the expired original envelope gets invalid_request and the "
+          "reservation is kept; a new admissible message with the same scoped key gets conflict; nothing executes; "
+          "an undetermined reservation is never released",
+          r_old["outcome"] == "invalid_request" and kept and r_new["outcome"] == "conflict" and len(st.executions) == 1
+          and no_release is False and k in st.entries)
+    st, k = started()
+    check("R25 a retryable error with an uncertain outcome (after an external call) does not release: conflict",
+          st.release(k, True, False, False, "error") is False and st.receive(msg, t(2))["outcome"] == "conflict"
+          and len(st.executions) == 1)
+    # error after an effect: stored and returned
+    st, k = started(); err = {"intent": "error", "code": "internal_error"}; st.complete(k, err)
+    check("R25 an operation that ends in an error after an effect: the duplicate gets the stored error, no second effect",
+          st.receive(msg, t(2))["response"] is err and len(st.executions) == 1)
+    st, k = started(); st.confirm_effect(k)
+    c1 = st.receive(msg, t(2))["outcome"]
+    refused = st.release(k, True, True, False, None)         # every flag favourable: an effect occurred
+    still = st.receive(newer, late)["outcome"]
+    st.complete(k, resp)
+    after = st.receive(msg, t(3))
+    check("R25 effect confirmed by recovery, response not yet available: conflict, never released for retry, still "
+          "reserved after the window; once the response is rebuilt the duplicate gets it",
+          c1 == "conflict" and refused is False and still == "conflict" and after["response"] is resp
+          and len(st.executions) == 1)
+    # safe release
+    st, k = started()
+    ok_none = st.release(k, True, True, False, None)
+    again = st.receive(msg, t(2))["outcome"]
+    st2, k2 = started()
+    ok_err = st2.release(k2, True, True, False, "error")
+    check("R25 safe release: attempt ended, absence of effect established, nothing pending, no response or an error response "
+          "— the key is new again",
+          ok_none and again == "execute" and ok_err and st2.receive(msg, t(2))["outcome"] == "execute")
+    st, k = started()
+    check("R25 no release while an execution is pending, while the attempt has not ended, or for a success response",
+          not st.release(k, True, True, True, None) and not st.release(k, False, True, False, None)
+          and not st.release(k, True, True, False, "success") and k in st.entries)
+    rd = dict(msg, payload={"type": "com.acme.billing/get-invoice", "args": {"invoice": "INV-1"}})
+    st, k = started(m=rd)
+    kept_read = st.release(k, True, True, False, "success") is False   # no effect, yet a success: stored, not released
+    if k in st.entries:
+        st.complete(k, resp)
+    check("R25 a successful response of an operation that modified nothing (a read) stays stored and is returned",
+          kept_read and st.receive(rd, t(2))["response"] is resp)
+    st, k = started(); st.complete(k, resp)
+    at_end, past_end = st._discardable(st.entries[k], t(30 + S)), st._discardable(st.entries[k], t(30 + S) + ms)
+    r_disc = st.receive(newer, late)
+    check("R25 response stored and window ended: not discardable at the window's last instant, discardable after "
+          "it; the key is then new again and the new message executes once",
+          at_end is False and past_end is True and r_disc["outcome"] == "execute" and len(st.executions) == 2)
+    # verification failure
+    st = IdempotencyStore()
+    bad = st.receive(msg, t(0), verified=False)
+    st.receive(msg, t(0))
+    k = next(iter(st.entries))
+    st.receive(msg, t(1), verified=False)
+    check("R25 a message that fails verification reserves nothing and releases no existing reservation",
+          bad["outcome"] == "unauthorized" and bad["key"] is None and k in st.entries and len(st.executions) == 1)
+    # header-only key
+    hdr = {x: y for x, y in msg.items() if x != "idempotency"}
+    off, on = IdempotencyStore(use_header=False), IdempotencyStore(use_header=True)
+    o1, o2 = off.receive(hdr, t(0), header_key="h-1")["outcome"], off.receive(hdr, t(1), header_key="h-1")["outcome"]
+    kh = on.receive(hdr, t(0), header_key="h-1")["key"]
+    check("R25 a key provided only via the HTTP header: using it is the server's choice; when used, kept 24 hours",
+          (o1, o2) == ("execute", "execute") and not off.entries and on.entries[kh]["retain_until"] == t(86400))
+
+
+# ------------------------------------------- R26 encrypted payloads (Core §5.3; A-136)
+class DecryptionFailed(Exception):
+    """Core §5.3 decryption step 4, first sentence: the JWE cannot be decrypted. `cause` names why."""
+
+    def __init__(self, cause):
+        super().__init__(cause)
+        self.cause = cause
+
+
+def concat_kdf(z, algorithm_id, keybits, apu=b"", apv=b""):
+    """RFC 7518 §4.6.2: Concat KDF (NIST SP 800-56A §5.8.1) with SHA-256. AlgorithmID, PartyUInfo and
+    PartyVInfo are length-prefixed (32-bit big-endian); SuppPubInfo is keydatalen; SuppPrivInfo is empty."""
+    import hashlib
+    import struct
+    lp = lambda b: struct.pack(">I", len(b)) + b
+    other = lp(algorithm_id.encode("ascii")) + lp(apu) + lp(apv) + struct.pack(">I", keybits)
+    out, counter = b"", 1
+    while len(out) * 8 < keybits:
+        out += hashlib.sha256(struct.pack(">I", counter) + z + other).digest()
+        counter += 1
+    return out[:keybits // 8]
+
+
+def x25519_shared(private_bytes, public_bytes):
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+    return X25519PrivateKey.from_private_bytes(private_bytes).exchange(X25519PublicKey.from_public_bytes(public_bytes))
+
+
+JWE_SEGMENT = re.compile(r"[A-Za-z0-9_-]*\Z")
+
+
+def jwe_segment(segment):
+    """One base64url value of a JWE (RFC 7515 §2): the URL-safe alphabet only, without padding, line breaks or
+    any character a lenient decoder would discard, and the canonical encoding of the octets it yields (no unused
+    bit set). Raises ValueError otherwise."""
+    import base64
+    if not isinstance(segment, str) or not JWE_SEGMENT.match(segment) or len(segment) % 4 == 1:
+        raise ValueError("base64url")
+    raw = base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+    if base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii") != segment:
+        raise ValueError("base64url: not canonical")
+    return raw
+
+
+def jwe_decrypt(jwe, enc_alg, enc_method, private_key_bytes):
+    """Reference decryption of a JWE Compact Serialization (RFC 7516 §5.2): ECDH-ES in Direct Key Agreement
+    mode (RFC 7518 §4.6) over X25519 (RFC 8037 §3.2) with A256GCM. Returns the plaintext octets; raises
+    DecryptionFailed with the cause — format (five segments, each strict base64url; the JWE Encrypted Key
+    segment literally empty), header (the protected header against security.enc_alg and security.enc_method),
+    critical (a `crit` header: this reference understands no extension, RFC 7516 §4.1.13), agreement or
+    authentication. Decryption only: the corpus holds the JWEs."""
+    from cryptography.exceptions import InvalidTag
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    parts = jwe.split(".") if isinstance(jwe, str) else []
+    if len(parts) != 5 or not parts[0]:
+        raise DecryptionFailed("format")
+    try:
+        header = strict_json(jwe_segment(parts[0]))
+    except Exception:
+        raise DecryptionFailed("format") from None
+    if not isinstance(header, dict):
+        raise DecryptionFailed("format")
+    if header.get("alg") != enc_alg or header.get("enc") != enc_method:
+        raise DecryptionFailed("header")
+    if (header.get("alg"), header.get("enc")) != ("ECDH-ES", "A256GCM"):
+        raise DecryptionFailed("header")          # the only combination this reference decrypts
+    if "crit" in header:
+        raise DecryptionFailed("critical")        # no extension is understood, so none may be critical
+    if parts[1] != "":                            # direct agreement: the segment itself is empty, not its decoding
+        raise DecryptionFailed("format")
+    try:
+        iv, ct, tag = (jwe_segment(x) for x in parts[2:])
+    except ValueError:
+        raise DecryptionFailed("format") from None
+    epk = header.get("epk")
+    if len(iv) != 12 or len(tag) != 16:
+        raise DecryptionFailed("format")
+    try:
+        if not isinstance(epk, dict) or epk.get("kty") != "OKP" or epk.get("crv") != "X25519":
+            raise ValueError("epk")
+        z = x25519_shared(private_key_bytes, jwe_segment(epk["x"]))
+        apu, apv = (jwe_segment(header[k]) if k in header else b"" for k in ("apu", "apv"))
+    except Exception:
+        raise DecryptionFailed("agreement") from None
+    key = concat_kdf(z, enc_method, 256, apu, apv)
+    try:
+        return AESGCM(key).decrypt(iv, ct + tag, parts[0].encode("ascii"))
+    except InvalidTag:
+        raise DecryptionFailed("authentication") from None
+
+
+def jwe_encrypt_control(label, plaintext, recipient_public_bytes, extra_header=None):
+    """JWE for a synthetic control of this harness only (ECDH-ES direct over X25519, A256GCM), with the ephemeral
+    key and IV derived from `label`. The corpus JWEs are not produced by it."""
+    import base64
+    import hashlib
+    from cryptography.hazmat.primitives import serialization as _s
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+    eph = hashlib.sha256(f"harness control ephemeral {label}".encode()).digest()
+    iv = hashlib.sha256(f"harness control iv {label}".encode()).digest()[:12]
+    epk = {"kty": "OKP", "crv": "X25519",
+           "x": b64(X25519PrivateKey.from_private_bytes(eph).public_key().public_bytes(_s.Encoding.Raw, _s.PublicFormat.Raw))}
+    header = b64(json.dumps(dict({"alg": "ECDH-ES", "enc": "A256GCM", "epk": epk}, **(extra_header or {})),
+                            separators=(",", ":")).encode())
+    key = concat_kdf(x25519_shared(eph, recipient_public_bytes), "A256GCM", 256)
+    sealed = AESGCM(key).encrypt(iv, plaintext, header.encode("ascii"))
+    return ".".join([header, "", b64(iv), b64(sealed[:-16]), b64(sealed[-16:])])
+
+
+def decrypted_view(message, plaintext_object):
+    """Core §5.3 decryption step 3: a copy of the received envelope with `payload` the decrypted object and
+    security.encrypted taken as false. For validation only: never signed, hashed or recorded."""
+    view = copy.deepcopy(message)
+    view["payload"] = plaintext_object
+    view["security"]["encrypted"] = False
+    return view
+
+
+def receive_encrypted(message, signing_keys, encryption_keys, decrypt=jwe_decrypt):
+    """Core §5.3 decryption procedure, in its order. signing_keys: kid -> signature catalog entry;
+    encryption_keys: kid -> encryption catalog entry of the recipient. Returns
+    {"outcome": "accept" | "unauthorized" | "invalid_request", "step", "cause", ...}."""
+    import hashlib
+    import validate_vectors as vv
+    from regen_v2 import signing_input_v2
+    sec = message.get("security") or {}
+    out = lambda outcome, step, cause=None, **kw: dict({"outcome": outcome, "step": step, "cause": cause}, **kw)
+    # step 1: the signature, over the received envelope (the JWE string is what was signed)
+    try:
+        entry = signing_keys[sec["kid"]]
+        vv._verify_signature(sec["alg"], bytes.fromhex(entry["public_key_hex"]), vv._base64url_decode(sec["sig"]),
+                             signing_input_v2(message))
+    except Exception:
+        return out("unauthorized", 1, "signature")
+    # step 2: decryption with the recipient's encryption key
+    keys = [e for k, e in encryption_keys.items() if k.split("#")[0] == message.get("to")]
+    if len(keys) != 1:
+        return out("unauthorized", 2, "no encryption key")
+    try:
+        plaintext = decrypt(message.get("payload"), sec.get("enc_alg"), sec.get("enc_method"),
+                            bytes.fromhex(keys[0]["private_key_hex"]))
+    except DecryptionFailed as exc:
+        return out("unauthorized", 2, exc.cause)
+    # step 3: strict parsing (§5.2 steps 2-4), then the decrypted view against the message schema
+    try:
+        obj = strict_json(plaintext)
+    except Exception:
+        return out("invalid_request", 3, "parse")
+    if not isinstance(obj, dict):
+        return out("invalid_request", 3, "parse")
+    view = decrypted_view(message, obj)
+    found = schema_error_objects(view, "arsia-message.schema.json")
+    if found:
+        return out("invalid_request", 3, "payload", errors=[e.message for e in found],
+                   rules=[(e.validator, "/".join(map(str, e.absolute_path))) for e in found])
+    return out("accept", 3, payload_hash=hashlib.sha256(message["payload"].encode("utf-8")).hexdigest(),
+               plaintext_hash=jcs_sha256(obj), view=view)
+
+
+def receive_encrypted_idempotent(store, message, now, signing_keys, encryption_keys):
+    """Core §10.2 item 1 for an encrypted payload: the §5.3 decryption procedure is one of the verifications that
+    precede the reservation, and the scope takes the type of the decrypted payload. A message the procedure
+    rejects reserves nothing and reaches no stored association."""
+    got = receive_encrypted(message, signing_keys, encryption_keys)
+    if got["outcome"] != "accept":
+        return {"outcome": got["outcome"], "key": None, "response": None, "step": got["step"], "cause": got["cause"]}
+    return store.receive(message, now, payload_type=got["view"]["payload"]["type"])
+
+
+def r26(vectors):
+    """A-136: the Core §5.3 decryption procedure on real JWEs, and the decoder against published test values."""
+    import base64
+    import hashlib
+    import validate_vectors as vv
+    from regen_v2 import _sign, signing_input_v2
+    by_id = {v["id"]: v for v in vectors}
+    kp = strict_load("test-vectors/keypairs.json")
+    signing = {e["kid"]: e for e in kp["keypairs"].values()}
+    encryption = kp["encryption_keypairs"]
+    # the decoder's two building blocks against values published in the RFCs (not ARSIA fixtures)
+    z = x25519_shared(bytes.fromhex("77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a"),
+                      bytes.fromhex("de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f"))
+    check("R26 X25519 key agreement reproduces the shared secret Z of RFC 8037 Appendix A.6",
+          z.hex() == "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742")
+    zc = bytes([158, 86, 217, 29, 129, 113, 53, 211, 114, 131, 66, 131, 191, 132, 38, 156, 251, 49, 110, 163, 218, 128,
+                106, 72, 246, 218, 167, 121, 140, 254, 144, 196])
+    check("R26 Concat KDF reproduces the derived key of RFC 7518 Appendix C with the appendix's own parameters "
+          "(A128GCM, 128 bits, apu Alice, apv Bob); the ARSIA fixtures use A256GCM, 256 bits, no apu/apv",
+          base64.urlsafe_b64encode(concat_kdf(zc, "A128GCM", 128, b"Alice", b"Bob")).rstrip(b"=") == b"VqqN6vgjbSBcIijNcacQGg")
+    recv = lambda m, **kw: receive_encrypted(m, signing, encryption, **kw)
+    scenario = sorted(v["id"] for v in vectors if v.get("test_metadata", {}).get("scenario") == "encrypted-payload")
+    check("R26 encrypted-payload vectors present (ITV-742; INV-249, INV-250, INV-251, INV-253, INV-254)",
+          scenario == ["INV-249", "INV-250", "INV-251", "INV-253", "INV-254", "ITV-742"], f"{scenario}")
+    good = by_id["ITV-742"]["message"]
+    r = recv(good)
+    check("R26 ITV-742: signature, decryption, strict parsing and the decrypted view accept the encrypted error; the "
+          "plaintext is the declared one and carries the error structure",
+          r["outcome"] == "accept" and r["view"]["payload"] == by_id["ITV-742"]["test_metadata"]["plaintext"]
+          and "error" in r["view"]["payload"] and r["view"]["security"]["encrypted"] is False,
+          f"{r['outcome']} {r.get('errors')}",
+          executed=["ITV-742"])
+    check("R26 ITV-742: payload_hash is SHA-256 of the UTF-8 JWE string (Core §5.3.1); the received envelope is "
+          "unchanged by the view",
+          r.get("payload_hash") == hashlib.sha256(good["payload"].encode("utf-8")).hexdigest() == payload_hash(good)
+          and isinstance(good["payload"], str) and good["security"]["encrypted"] is True, executed=["ITV-742"])
+    expect = {"INV-249": ("unauthorized", 2, "authentication"), "INV-253": ("unauthorized", 2, "header"),
+              "INV-250": ("invalid_request", 3, "payload"), "INV-251": ("invalid_request", 3, "payload"),
+              "INV-254": ("invalid_request", 3, "parse")}
+    for vid, (code, step, cause) in expect.items():
+        m, got = by_id[vid]["message"], recv(by_id[vid]["message"])
+        sec = m["security"]
+        sig_ok = True
+        try:
+            vv._verify_signature(sec["alg"], bytes.fromhex(signing[sec["kid"]]["public_key_hex"]),
+                                 vv._base64url_decode(sec["sig"]), signing_input_v2(m))
+        except Exception:
+            sig_ok = False
+        check(f"R26 {vid}: {code} at step {step} ({cause}), with a signature that verifies — the failure is not the "
+              "signature's", sig_ok and (got["outcome"], got["step"], got["cause"]) == (code, step, cause)
+              and by_id[vid]["expected_error"] == code, f"{got}", executed=[vid])
+    check("R26 INV-250 fails only for the missing error member; INV-251 only by the enum of payload/type (the "
+          "State namespace rule on the decrypted view)",
+          recv(by_id["INV-250"]["message"]).get("rules") == [("required", "payload")]
+          and recv(by_id["INV-250"]["message"]).get("errors") == ["'error' is a required property"]
+          and recv(by_id["INV-251"]["message"]).get("rules") == [("enum", "payload/type")],
+          executed=["INV-250", "INV-251"])
+    # positive control of INV-251: only the plaintext type corrected, encryption and signature rebuilt
+    fixed = copy.deepcopy(by_id["INV-251"]["message"])
+    plain251 = dict(by_id["INV-251"]["test_metadata"]["plaintext"], type="arsiaprotocol.state/get")
+    rcpt = next(e for k, e in encryption.items() if k.split("#")[0] == fixed["to"])
+    fixed["payload"] = jwe_encrypt_control("INV-251 corrected", json.dumps(plain251, separators=(",", ":")).encode(),
+                                           bytes.fromhex(rcpt["public_key_hex"]))
+    fixed["security"]["sig"] = base64.urlsafe_b64encode(_sign(fixed["security"]["alg"], signing[fixed["security"]["kid"]]
+                                                              ["private_key_hex"], signing_input_v2(fixed))).rstrip(b"=").decode()
+    r_fix = recv(fixed)
+    check("R26 control of INV-251: with only the plaintext type corrected to arsiaprotocol.state/get, and the JWE and "
+          "the signature rebuilt, the request is accepted",
+          r_fix["outcome"] == "accept" and r_fix.get("view", {}).get("payload") == plain251, f"{r_fix.get('errors')}",
+          executed=["INV-251"])
+    # order: an invalid outer signature stops the procedure before any decryption
+    calls = []
+    spy = lambda *a: (calls.append(1), jwe_decrypt(*a))[1]
+    forged = copy.deepcopy(good)
+    forged["security"]["sig"] = ("B" if good["security"]["sig"][0] != "B" else "C") + good["security"]["sig"][1:]
+    r_bad = recv(forged, decrypt=spy)
+    r_ok = recv(good, decrypt=spy)
+    check("R26 an invalid outer signature is unauthorized at step 1 and the decryption is not attempted",
+          (r_bad["outcome"], r_bad["step"], r_bad["cause"]) == ("unauthorized", 1, "signature") and r_ok["outcome"] == "accept"
+          and len(calls) == 1, executed=["ITV-742"])
+    # the tag alone: header, IV and ciphertext intact, the envelope signed again
+    parts = good["payload"].split(".")
+    tag = bytearray(_unb64u(parts[4])); tag[0] ^= 0x01
+    parts[4] = base64.urlsafe_b64encode(bytes(tag)).rstrip(b"=").decode()
+    retag = copy.deepcopy(good)
+    retag["payload"] = ".".join(parts)
+    entry = signing[retag["security"]["kid"]]
+    retag["security"]["sig"] = base64.urlsafe_b64encode(
+        _sign(retag["security"]["alg"], entry["private_key_hex"], signing_input_v2(retag))).rstrip(b"=").decode()
+    r_tag = recv(retag)
+    check("R26 only the JWE tag altered (header, IV and ciphertext intact) and the envelope signed again: "
+          "unauthorized by the authenticated decryption",
+          retag["payload"].split(".")[:4] == good["payload"].split(".")[:4]
+          and (r_tag["outcome"], r_tag["step"], r_tag["cause"]) == ("unauthorized", 2, "authentication"),
+          f"{r_tag}", executed=["ITV-742"])
+    # the JWE format (RFC 7516 §5.2): each case is ITV-742's JWE with one change, the envelope signed again
+    def resigned(m):
+        e = signing[m["security"]["kid"]]
+        m["security"]["sig"] = base64.urlsafe_b64encode(
+            _sign(m["security"]["alg"], e["private_key_hex"], signing_input_v2(m))).rstrip(b"=").decode()
+        return m
+
+    def with_payload(jwe, base=good):
+        m = copy.deepcopy(base)
+        m["payload"] = jwe
+        return resigned(m)
+    p = good["payload"].split(".")
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    loose_tag = p[4][:-1] + alphabet[alphabet.index(p[4][-1]) | 1]    # the same 16 octets, an unused bit set
+    malformed = {
+        "a non-empty JWE Encrypted Key segment (AA)": [p[0], "AA", p[2], p[3], p[4]],
+        "a JWE Encrypted Key segment that a lenient decoder reads as empty (!!)": [p[0], "!!", p[2], p[3], p[4]],
+        "a JWE Encrypted Key segment of padding (=)": [p[0], "=", p[2], p[3], p[4]],
+        "padding on the IV segment": [p[0], "", p[2] + "=", p[3], p[4]],
+        "a line break inside the ciphertext segment": [p[0], "", p[2], p[3][:4] + "\n" + p[3][4:], p[4]],
+        "a tag segment with an unused bit set (the same octets)": [p[0], "", p[2], p[3], loose_tag],
+        "padding on the protected header segment": [p[0] + "=", "", p[2], p[3], p[4]],
+        "six segments": p + ["AA"],
+        "four segments": p[:4],
+    }
+    check("R26 format controls differ from ITV-742's JWE and the unused-bit tag decodes leniently to the same octets",
+          all(".".join(x) != good["payload"] for x in malformed.values()) and loose_tag != p[4]
+          and _unb64u(loose_tag) == _unb64u(p[4]), executed=["ITV-742"])
+    for name, segs in malformed.items():
+        got = recv(with_payload(".".join(segs)))
+        check(f"R26 JWE format: {name} is unauthorized at step 2 (format), with a signature that verifies",
+              (got["outcome"], got["step"], got["cause"]) == ("unauthorized", 2, "format"), f"{got}", executed=["ITV-742"])
+    plain742 = json.dumps(by_id["ITV-742"]["test_metadata"]["plaintext"], separators=(",", ":")).encode()
+    pub = bytes.fromhex(next(e for k, e in encryption.items() if k.split("#")[0] == good["to"])["public_key_hex"])
+    r_plain = recv(with_payload(jwe_encrypt_control("crit twin", plain742, pub)))
+    r_crit = recv(with_payload(jwe_encrypt_control("crit twin", plain742, pub,
+                                                   extra_header={"crit": ["arsia-x"], "arsia-x": 1})))
+    check("R26 JWE header: a critical parameter this recipient does not understand is unauthorized at step 2 "
+          "(critical); the same JWE without crit is accepted",
+          (r_crit["outcome"], r_crit["step"], r_crit["cause"]) == ("unauthorized", 2, "critical")
+          and r_plain["outcome"] == "accept", f"{r_crit} {r_plain['outcome']}", executed=["ITV-742"])
+    # idempotency of an encrypted request (Core §10.2 item 1): decryption first, the scope by the decrypted type
+    base = by_id["INV-251"]["message"]
+    now = iso(base["ts"])
+    key_id = "state-get-2026-11-0251"
+    get_plain = dict(by_id["INV-251"]["test_metadata"]["plaintext"], type="arsiaprotocol.state/get")
+
+    def enc_request(label, plaintext):
+        m = copy.deepcopy(base)
+        m["idempotency"] = {"key": key_id, "expires_at": "2026-11-20T10:00:03.000Z"}
+        m["payload"] = jwe_encrypt_control(label, json.dumps(plaintext, separators=(",", ":")).encode(), pub)
+        return resigned(m)
+    joint = lambda store, m: receive_encrypted_idempotent(store, m, now, signing, encryption)
+    first, again = enc_request("idempotent A", get_plain), enc_request("idempotent B", get_plain)
+    st = IdempotencyStore()
+    r1 = joint(st, first)
+    scope = (base["from"], base["to"], "arsiaprotocol.state/get", key_id)
+    in_progress = joint(st, first)["outcome"]
+    resp = {"intent": "response", "correlation_id": first["id"]}
+    if r1["key"] in st.entries:
+        st.complete(r1["key"], resp)
+    r2, r3 = joint(st, first), joint(st, again)
+    check("R26 idempotency of an encrypted request: the first delivery reserves the key after decryption, scoped by "
+          "the type of the decrypted payload; a repetition in progress gets conflict",
+          r1["outcome"] == "execute" and r1["key"] == scope and in_progress == "conflict" and len(st.executions) == 1,
+          f"{r1['outcome']} {r1['key']} {in_progress}", executed=["INV-251"])
+    check("R26 idempotency of an encrypted request: the repetition, and another JWE of the same plaintext, use the "
+          "same association and get the stored response without execution",
+          r2["outcome"] == r3["outcome"] == "stored" and r2["response"] is resp and r3["response"] is resp
+          and r2["key"] == r3["key"] == scope and first["payload"] != again["payload"] and len(st.executions) == 1,
+          f"{r2['outcome']} {r3['outcome']}", executed=["INV-251"])
+    other = enc_request("idempotent C", {"type": "com.acme.billing/get-invoice", "args": {"invoice": "INV-1"}})
+    r_other = joint(st, other)
+    check("R26 idempotency of an encrypted request: the same key under another decrypted type is another scope",
+          r_other["outcome"] == "execute" and r_other["key"] == scope[:2] + ("com.acme.billing/get-invoice", key_id)
+          and len(st.executions) == 2, f"{r_other}", executed=["INV-251"])
+    # rejected by the decryption procedure: nothing reserved, on an empty store and beside an existing association
+    seg = first["payload"].split(".")
+    flipped = bytearray(_unb64u(seg[4])); flipped[0] ^= 0x01
+    seg[4] = base64.urlsafe_b64encode(bytes(flipped)).rstrip(b"=").decode()
+    tampered = with_payload(".".join(seg), base=first)
+    undefined = enc_request("idempotent D", by_id["INV-251"]["test_metadata"]["plaintext"])
+    forged_idem = copy.deepcopy(first)
+    forged_idem["security"]["sig"] = ("B" if first["security"]["sig"][0] != "B" else "C") + first["security"]["sig"][1:]
+    empty, before = IdempotencyStore(), dict(st.entries)
+    outs = [(joint(s, m)["outcome"], joint(s, m)["key"]) for s in (empty, st) for m in (tampered, undefined, forged_idem)]
+    check("R26 idempotency of an encrypted request: a message rejected at the signature, at the decryption or at the "
+          "decrypted view reserves nothing and reaches no stored association",
+          outs == [("unauthorized", None), ("invalid_request", None), ("unauthorized", None)] * 2 and not empty.entries
+          and not empty.executions and st.entries == before and len(st.executions) == 2, f"{outs}",
+          executed=["INV-251"])
+    refused = False
+    try:
+        IdempotencyStore().receive(first, now)
+    except ValueError:
+        refused = True
+    check("R26 idempotency of an encrypted request: the received envelope alone gives no scope (its payload is the "
+          "JWE string)", refused and isinstance(first["payload"], str), executed=["INV-251"])
+    plain = by_id["ITV-155"]["message"]
+    check("R26 control: the unencrypted error ITV-155 validates with its object payload",
+          schema_errors(plain, "arsia-message.schema.json") == [] and "error" in plain["payload"], executed=["ITV-155"])
+
+
 def main() -> int:
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
-    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r21(vectors); r22(vectors); r23(vectors)
-    r24(vectors)
+    r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r20_presentation(); r21(vectors); r22(vectors); r23(vectors)
+    r24(vectors); r25(vectors); r26(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

@@ -13,8 +13,8 @@
 | CORE-§2.2-06 | 2.2 | MAY | deployment | informational | Each agent MAY use a dedicated authorization server | — | — | — |
 | CORE-§2.2-07 | 2.2 | MUST | sdk | behavioural_positive | Each agent MUST expose exactly one inbox endpoint for receiving messages | arsia-discovery-response | — | schema-ref:arsia-discovery-response; untested(structural-only) |
 | CORE-§2.2-08 | 2.2 | MUST | sdk | behavioural_positive | Response/error/pending_approval/approval_decision messages MUST include correlation_id matching the original request id | arsia-message | CTV-08 | schema-ref:arsia-message; struct:CTV-08; crypto:CTV-08 |
-| CORE-§2.2-09 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST store idempotency keys for the duration in idempotency.expires_at | — | — | untested(no-reference-model) |
-| CORE-§2.2-10 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST return the original response for any duplicate idempotency key within the retention window | — | — | check:`R6 replay with fresh header still dedupes`; untested(no-reference-model) |
+| CORE-§2.2-09 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST keep the association of an idempotency key as §10.2 specifies: for a retention window never shorter than idempotency.expires_at, except for the safe release of §10.2 item 2 | — | ITV-741 | exec:R25:ITV-741; check:`R25 retention ends at expires_at + tolerance, not at idempotency.expires_at` |
+| CORE-§2.2-10 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST answer a duplicate key received while the association is kept as §10.3 specifies, without executing the request again | — | ITV-741 | exec:R25:ITV-741; check:`R25 a repetition at second 2, after idempotency.expires_at, returns the stored response without execution`; check:`R6 replay with fresh header still dedupes` |
 | CORE-§2.2-11 | 2.2 | MUST | deployment | structural | Data residency zone MUST be an ISO 3166-1 alpha-2 code or supranational ID where processing occurs | arsia-compliance-field | ITV-23 | schema-ref:arsia-compliance-field; struct:ITV-23 |
 | CORE-§2.2-12 | 2.2 | MUST | deployment | procedural | Messages with data_residency MUST route through a compliance broker within the declared zone | — | — | out-of-repo(infrastructure) |
 | CORE-§3.1-01 | 3.1 | MUST | sdk | structural | Agent ID org-segment MUST contain only ASCII letters, digits, or hyphens | arsia-message | — | schema-ref:arsia-message |
@@ -74,7 +74,7 @@
 | CORE-§4.3.2-03 | 4.3.2 | MUST | sdk | behavioural_positive | idempotency.key MUST be unique per (from, to, payload.type) tuple | — | — | untested(no-reference-model) |
 | CORE-§4.3.2-04 | 4.3.2 | MAY | sdk | structural | idempotency.key MAY contain any printable ASCII (0x20–0x7E) | arsia-message | — | — |
 | CORE-§4.3.2-05 | 4.3.2 | REQUIRED | sdk | structural | idempotency.expires_at field (string) is REQUIRED within the idempotency object | arsia-message | — | schema-ref:arsia-message |
-| CORE-§4.3.2-06 | 4.3.2 | MAY | sdk | behavioural_positive | Server MAY discard idempotency record after idempotency.expires_at timestamp | — | — | — |
+| CORE-§4.3.2-06 | 4.3.2 | MUST_NOT | sdk | behavioural_negative | Except for the safe release permitted by §10.2 item 2, the server MUST NOT discard the idempotency record before idempotency.expires_at; §10.2 may require keeping it longer | — | ITV-741 | exec:R25:ITV-741; check:`R25 response stored and window ended: not discardable at the window's last instant, discardable after it; the key is then new again and the new message executes once` |
 | CORE-§4.3.2-07 | 4.3.2 | MUST | sdk | structural | idempotency.expires_at MUST be strictly greater than the message ts | — | ITV-414 | struct:ITV-414; crypto:ITV-414 |
 | CORE-§4.3.3-01 | 4.3.3 | OPTIONAL | sdk | structural | All fields within the context object (trace_id, span_id, flags, locale, priority) are OPTIONAL | arsia-message | ITV-66 | — |
 | CORE-§4.3.3-02 | 4.3.3 | MUST | sdk | structural | context.trace_id MUST be a 32-char lowercase hex string (W3C 128-bit trace ID) and MUST NOT be the all-zero value | arsia-message | ITV-24, INV-43 | schema-ref:arsia-message; struct:ITV-24, INV-43 |
@@ -204,8 +204,9 @@
 | CORE-§5.3-07 | 5.3 | MUST | sdk | behavioural_positive | Recipient encryption key MUST be obtained from their JWKS endpoint (use: enc) | — | — | untested(no-reference-model) |
 | CORE-§5.3-08 | 5.3 | MUST | sdk | procedural | Decryption: receiver MUST verify signature before decrypting payload | — | — | untested(no-reference-model) |
 | CORE-§5.3-09 | 5.3 | MUST | sdk | procedural | Receiver MUST decrypt payload JWE using their private key and specified algorithms | — | — | untested(no-reference-model) |
-| CORE-§5.3-10 | 5.3 | MUST | sdk | behavioural_positive | Decrypted payload MUST be parsed as a JSON object conforming to §4.4 | — | — | untested(no-reference-model) |
-| CORE-§5.3-11 | 5.3 | MUST | sdk | behavioural_negative | Failed decryption MUST reject with error unauthorized | — | ITV-429 | struct:ITV-429; untested(structural-only) |
+| CORE-§5.3-10 | 5.3 | MUST | sdk | behavioural_positive | The recipient MUST parse the decrypted plaintext under §5.2 steps 2–4 and MUST validate the decrypted view (the received envelope with payload the decrypted object and security.encrypted taken as false) against every requirement of an unencrypted message | arsia-message | ITV-742, INV-250, INV-251, INV-254 | schema-ref:arsia-message; struct:ITV-742; crypto:ITV-742; exec:R26:ITV-742, INV-250, INV-251, INV-254 |
+| CORE-§5.3-11 | 5.3 | MUST | sdk | behavioural_negative | Failed decryption (malformed JWE, protected header not matching security.enc_alg and security.enc_method, key agreement or authenticated decryption failure) MUST reject with error unauthorized | — | ITV-429, INV-249, INV-253 | struct:ITV-429; exec:R26:INV-249, INV-253; check:`R26 only the JWE tag altered (header, IV and ciphertext intact) and the envelope signed again: unauthorized by the authenticated decryption`; check:`R26 JWE format: a JWE Encrypted Key segment that a lenient decoder reads as empty (!!) is unauthorized at step 2 (format), with a signature that verifies`; check:`R26 JWE format: a tag segment with an unused bit set (the same octets) is unauthorized at step 2 (format), with a signature that verifies`; check:`R26 JWE header: a critical parameter this recipient does not understand is unauthorized at step 2 (critical); the same JWE without crit is accepted` |
+| CORE-§5.3-14 | 5.3 | MUST | sdk | behavioural_negative | When decryption succeeds and the plaintext fails the parsing or the decrypted view, the recipient MUST reject the message with error code invalid_request | arsia-message | INV-250, INV-251, INV-254 | exec:R26:INV-250, INV-251, INV-254; check:`R26 INV-250 fails only for the missing error member; INV-251 only by the enum of payload/type (the State namespace rule on the decrypted view)`; check:`R26 control of INV-251: with only the plaintext type corrected to arsiaprotocol.state/get, and the JWE and the signature rebuilt, the request is accepted` |
 | CORE-§5.3-12 | 5.3 | MAY | sdk | interoperability | ECDH-ES+A256KW with A256GCM MAY be used for multi-recipient encryption | — | ITV-64 | — |
 | CORE-§5.3-13 | 5.3 | MAY | sdk | interoperability | RSA-OAEP-256 with A256GCM MAY be used for legacy encryption interoperability | — | ITV-63 | — |
 | CORE-§5.3.1-01 | 5.3.1 | MUST | sdk | structural | payload_hash MUST be SHA-256(UTF-8(payload)) where payload is the JWE Compact Serialization string when security.encrypted is true | arsia-audit-record | ITV-525 | schema-ref:arsia-audit-record; struct:ITV-525 |
@@ -245,6 +246,7 @@
 | CORE-§6.3-02 | 6.3 | SHOULD | sdk | interoperability | Implementations SHOULD use DPoP when the compliance profile requires high-risk controls | arsia-dpop-proof | — | — |
 | CORE-§6.3-03 | 6.3 | MUST | sdk | behavioural_negative | Receiving agent MUST verify DPoP proofs as specified in Identity §3.3 (RFC 9449 §4.3 checks and the ARSIA profile) and reject failures as specified there: unauthorized, or the nonce challenge under its exception | arsia-dpop-proof | ITV-451, INV-104, INV-105, INV-106, INV-107 | schema-ref:arsia-dpop-proof; struct:ITV-451, INV-104, INV-105, INV-106, INV-107; untested(structural-only) |
 | CORE-§6.3-04 | 6.3 | MAY | sdk | interoperability | A receiving agent MAY require a server-provided DPoP nonce (Identity §3.3) | arsia-dpop-proof | ITV-580 | — |
+| CORE-§6.3-05 | 6.3 | MUST_NOT | sdk | behavioural_negative | A receiving agent MUST NOT accept a DPoP-bound token presented under the Bearer scheme (Identity §3.3) | — | — | check:`R20 (k) A-133: a DPoP-bound token presented under Bearer is unauthorized, with or without a proof` |
 | CORE-§6.4-01 | 6.4 | MUST | sdk | procedural | Receiving agent MUST enforce capability-based authorization for every request message | — | — | check:`R3 exact`; check:`R3 partial capability list`; untested(no-reference-model) |
 | CORE-§6.4-02 | 6.4 | MUST | sdk | behavioural_positive | Token exp claim MUST be in the future (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-434 | struct:ITV-434; untested(structural-only) |
 | CORE-§6.4-03 | 6.4 | MUST | sdk | behavioural_positive | Token iat claim MUST be in the past (with the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds)) | — | ITV-435, ITV-447, ITV-448 | struct:ITV-435, ITV-447, ITV-448; untested(structural-only) |
@@ -363,15 +365,20 @@
 | CORE-§10.1-02 | 10.1 | MAY | sdk | structural | Idempotency key MAY contain any printable ASCII character (0x20–0x7E), 1–128 chars | arsia-message | — | — |
 | CORE-§10.1-03 | 10.1 | SHOULD | sdk_enabled | behavioural_positive | Idempotency keys SHOULD be domain-meaningful identifiers (invoice number, UUID, etc.) | — | — | — |
 | CORE-§10.2-01 | 10.2 | MUST | sdk | procedural | Idempotency support is REQUIRED for Core conformance; agents MUST implement key storage | — | — | untested(no-reference-model) |
-| CORE-§10.2-02 | 10.2 | MUST | sdk | behavioural_positive | Server MUST store the idempotency key-to-response mapping scoped by (from, to, payload.type) | — | — | untested(no-reference-model) |
-| CORE-§10.2-03 | 10.2 | MUST | sdk | behavioural_positive | Stored idempotency mapping MUST be retained until idempotency.expires_at | — | — | untested(no-reference-model) |
-| CORE-§10.2-04 | 10.2 | MUST | sdk | behavioural_positive | Header-only idempotency key MUST be retained for a minimum of 24 hours | — | — | check:`R6 header-only courtesy`; untested(no-reference-model) |
+| CORE-§10.2-02 | 10.2 | MUST | sdk | behavioural_positive | After the verifications that precede processing and before any effect, the server MUST atomically reserve the envelope's idempotency key scoped by (from, to, payload.type) — for an encrypted payload, the type of the decrypted payload, taken after the §5.3 decryption procedure has succeeded; at most one of two messages with the same scoped key obtains the reservation, and a message that fails those verifications reserves nothing | — | — | check:`R25 of 32 concurrent messages with the same scoped key exactly one obtains the reservation`; check:`R25 a message that fails verification reserves nothing and releases no existing reservation`; check:`R26 idempotency of an encrypted request: the first delivery reserves the key after decryption, scoped by the type of the decrypted payload; a repetition in progress gets conflict`; check:`R26 idempotency of an encrypted request: the repetition, and another JWE of the same plaintext, use the same association and get the stored response without execution`; check:`R26 idempotency of an encrypted request: a message rejected at the signature, at the decryption or at the decrypted view reserves nothing and reaches no stored association` |
+| CORE-§10.2-03 | 10.2 | MUST | sdk | behavioural_positive | Except for the safe release of item 2, the reservation and its stored response MUST be retained at least until the latest of idempotency.expires_at, the end of the message's acceptance window (expires_at plus the applicable clock skew tolerance, that instant included; or the server's own ts limit) and the determined outcome of the operation | — | ITV-741 | exec:R25:ITV-741; check:`R25 at the exact instant expires_at + tolerance the message is still deduplicated; one millisecond later the same envelope is rejected as expired`; check:`R25 a profile clock_skew_seconds (MIFID-II, 60 s) moves the instant`; check:`R25 without expires_at and with a finite ts limit: kept until that limit, that instant included` |
+| CORE-§10.2-04 | 10.2 | MUST | sdk | behavioural_positive | When the server uses a key provided only via the HTTP header, it MUST retain that association for a minimum of 24 hours | — | — | check:`R25 a key provided only via the HTTP header: using it is the server's choice; when used, kept 24 hours`; check:`R6 header-only courtesy` |
 | CORE-§10.2-05 | 10.2 | MUST | deployment | behavioural_positive | Idempotency storage MUST survive server restarts within the retention window in production | — | — | out-of-repo(infrastructure) |
-| CORE-§10.2-06 | 10.2 | MAY | sdk | behavioural_positive | Server MAY delete stored idempotency mappings after the retention window expires | — | — | — |
-| CORE-§10.3-01 | 10.3 | MUST | sdk | behavioural_positive | Duplicate idempotency key MUST return the stored response without re-executing | — | — | check:`R6 replay with fresh header still dedupes`; untested(no-reference-model) |
+| CORE-§10.2-06 | 10.2 | MAY | sdk | behavioural_positive | Except for the safe release of item 2, the server MAY discard the association only after the retention window has ended, the operation has terminated with a determined outcome and its terminal response has been stored | — | — | — |
+| CORE-§10.2-07 | 10.2 | MUST | sdk | behavioural_positive | The server MUST store with the reservation the complete envelope of the terminal response, whether it reports success or an error; a successful response is stored even when the operation modified nothing | — | — | check:`R25 an operation that ends in an error after an effect: the duplicate gets the stored error, no second effect`; check:`R25 a successful response of an operation that modified nothing (a read) stays stored and is returned` |
+| CORE-§10.2-08 | 10.2 | MAY | sdk | behavioural_positive | The server MAY release the reservation for retry only when the attempt has ended, the server has established that no effect occurred, no execution remains pending that could still produce one, and the attempt produced no response or an error response | — | — | — |
+| CORE-§10.2-09 | 10.2 | MUST_NOT | sdk | behavioural_negative | Once an effect has occurred the reservation MUST NOT be released for retry; an error code alone does not establish that no effect occurred | — | — | check:`R25 a retryable error with an uncertain outcome (after an external call) does not release: conflict`; check:`R25 no release while an execution is pending, while the attempt has not ended, or for a success response`; check:`R25 effect confirmed by recovery, response not yet available: conflict, never released for retry, still reserved after the window; once the response is rebuilt the duplicate gets it` |
+| CORE-§10.2-10 | 10.2 | MUST | sdk | behavioural_positive | A server that sets no ts limit for a message without expires_at MUST retain the association for as long as it would accept the message | — | — | check:`R25 without expires_at and without a ts limit there is no discard instant: still deduplicated long after idempotency.expires_at (the MAY of §8.3 is not turned into ts + tolerance)` |
+| CORE-§10.3-01 | 10.3 | MUST | sdk | behavioural_positive | An admissible message whose scoped key matches a stored response MUST receive the previously stored response without re-execution | — | ITV-741 | exec:R25:ITV-741; check:`R25 a repetition at second 2, after idempotency.expires_at, returns the stored response without execution`; check:`R6 replay with fresh header still dedupes` |
 | CORE-§10.3-02 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response HTTP status code MUST be identical to the original response | — | — | untested(no-reference-model) |
 | CORE-§10.3-03 | 10.3 | MUST | sdk | behavioural_positive | Duplicate response body MUST be the exact ARSIA envelope from original processing | — | — | untested(no-reference-model) |
-| CORE-§10.3-04 | 10.3 | SHOULD | sdk | behavioural_positive | In-progress duplicate SHOULD return HTTP 409 (Conflict) with Retry-After header | — | — | — |
+| CORE-§10.3-04 | 10.3 | MUST | sdk | behavioural_negative | An admissible message whose scoped key matches a reservation without a stored response (in progress, undetermined, or effect occurred and response not yet available) MUST NOT be executed and MUST be rejected with error code conflict | — | — | check:`R25 a duplicate while the operation is in progress gets conflict and is not executed`; check:`R25 undetermined outcome after both instants: the expired original envelope gets invalid_request and the reservation is kept; a new admissible message with the same scoped key gets conflict; nothing executes; an undetermined reservation is never released`; check:`R25 effect confirmed by recovery, response not yet available: conflict, never released for retry, still reserved after the window; once the response is rebuilt the duplicate gets it` |
+| CORE-§10.3-05 | 10.3 | SHOULD | sdk | behavioural_positive | Over HTTP the conflict response SHOULD carry a Retry-After header suggesting when to retry | — | — | — |
 | CORE-§10.4-01 | 10.4 | MUST | sdk | behavioural_positive | When both are present in an HTTP request, the signed envelope idempotency.key is authoritative for duplicate detection; a differing Idempotency-Key header MUST be ignored for deduplication and MUST NOT override the envelope value | — | — | check:`R6 envelope wins` |
 | CORE-§10.4-02 | 10.4 | SHOULD | sdk | behavioural_positive | Server SHOULD log discrepancies between header and envelope idempotency key values | — | — | — |
 | CORE-§11.1-01 | 11.1 | MUST | sdk | structural | Error response envelope intent field MUST be "error" | arsia-message | — | schema-ref:arsia-message |
@@ -427,10 +434,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 412 |
-| Schema ≠ — | 188 |
-| Vector ≠ — | 164 |
-| Both ≠ — | 94 |
+| Total requirements | 419 |
+| Schema ≠ — | 190 |
+| Vector ≠ — | 171 |
+| Both ≠ — | 96 |
 | Both = — (gaps) | 154 |
 
 ### Per-section breakdown
@@ -438,15 +445,15 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 1 | 0 | 0 | 0 | 1 |
-| 2 | 12 | 6 | 2 | 2 | 6 |
+| 2 | 12 | 6 | 4 | 2 | 4 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 140 | 84 | 83 | 51 | 24 |
-| 5 | 43 | 9 | 29 | 6 | 11 |
-| 6 | 39 | 24 | 17 | 10 | 8 |
+| 4 | 140 | 84 | 84 | 51 | 23 |
+| 5 | 44 | 11 | 31 | 8 | 10 |
+| 6 | 40 | 24 | 17 | 10 | 9 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
 | 9 | 21 | 4 | 1 | 1 | 17 |
-| 10 | 15 | 2 | 0 | 0 | 13 |
+| 10 | 20 | 2 | 2 | 0 | 16 |
 | 11 | 32 | 16 | 8 | 7 | 15 |
 | 12 | 5 | 1 | 0 | 0 | 4 |
 | 13 | 3 | 1 | 0 | 0 | 2 |

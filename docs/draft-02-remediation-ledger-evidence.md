@@ -2588,3 +2588,164 @@ walker by the line that precedes the loop, which only that walker has.
 (unchanged); crypto blocks 168 (unchanged); consistency checks 157 → 163; harness checks
 956 → 957; RTM 2069 → 2072 rows (MUST + MUST_NOT 1265 → 1267; with REQUIRED 1466 →
 1469); findings register 130 → 134 rows (open 1 → 3, closed 129 → 131).
+
+## 36. Security contracts cycle closure evidence
+
+Baseline of the exploration `55ba397`; effective parent `fdbcc71` (the registration of the
+audit findings). First of three cycles for A-132..A-143, decided by the owner on 2026-11-20
+and planned with four owner reviews (security contracts cycle addendum). No key material was
+printed.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-132 | Core §2.2, §4.3.2, §10.2, §10.3, §10.4, §13.2.2 | ITV-741 | R25 (reference store); cycle check | (s1)–(s18), (s45), (s46), (s55)–(s60), (s62), (s63) |
+| A-133 | Identity §3.3, §7.7, §9.2; Core §6.3 | — (synthetic requests) | R20 (k) `token_presentation`; cycle check | (s19)–(s24) |
+| A-136 | Core §5.3; `arsia-message.schema.json` error conditional; `keypairs.json` `encryption_keypairs` | ITV-742; INV-249, INV-250, INV-251, INV-252, INV-253, INV-254; controls ITV-155, ITV-741 | validator; R26; matrix guard; encryption key guard and self-test; single-cause control | (s25)–(s39), (s50)–(s54) |
+| A-139 | Core §5.3.1; audit-record schema description | — | cycle check and self-test | (s40)–(s42) |
+| A-135 | SECURITY.md | — | cycle check and self-test | (s43), (s44), (s61) |
+| SPDX scope (declared deviation) | `repository_text_problems` | — | scope self-test | (s47)–(s49) |
+
+**A-132.** The association is kept at least until the latest of `idempotency.expires_at`,
+the end of the message's acceptance window and the determined outcome of the operation. R25
+runs a reference store in the §10.3 order on ITV-741 (acceptable for 30 s, idempotency
+instant at 1 s): a repetition at second 2 returns the stored response; the exact instant
+`expires_at` + tolerance is still deduplicated and one millisecond later the envelope is
+rejected as expired; a profile tolerance moves the instant; a message without `expires_at`
+is kept until the server's `ts` limit, or without a finite instant when it sets none. A
+message arriving between the lookup and the write of another cannot obtain the reservation
+(a deterministic control) and of 32 concurrent messages one executes. A reservation without
+a stored response answers `conflict`; an undetermined one is never released; an expired
+envelope gets `invalid_request` and releases nothing; an error after an effect is stored; a
+confirmed effect without a response stays reserved after the window; a read's success stays
+stored; the safe release needs every condition, and an error code alone is not one; discard
+is possible only after the window with the response stored; the header-only key is used only
+by choice.
+
+For an encrypted payload the received envelope holds a JWE string and gives no `payload.type`.
+Core §10.2 item 1 counts the §5.3 decryption procedure among the verifications that precede
+the reservation and takes the scope's type from the decrypted payload; Core §5.3 step 3 points
+back to it. The sentence defines a term of the existing reservation requirement and adds no
+RTM row; CORE-§10.2-02 carries it and its evidence. R26 runs the two procedures together on
+synthetic encrypted requests built from INV-251's envelope (plaintext type corrected, an
+idempotency key added, signed again): the first delivery reserves the key under the decrypted
+type and a repetition in progress gets `conflict`; the repetition and another JWE of the same
+plaintext reach the same association and get the stored response; the same key under another
+decrypted type is another scope; a message rejected at the signature, at the decryption or at
+the decrypted view reserves nothing, on an empty store and beside an existing association; the
+store refuses to scope an encrypted envelope without the decrypted type.
+
+The release condition is worded as Core §10.2 item 2 states it — the server has established
+that no effect occurred, with the other three conditions — in the migration guide, the
+changelog and CORE-§10.2-08, which read as permitting a release on an unknown outcome;
+SECURITY.md names the safe release as the exception to its retention promise. The cycle check
+holds the four texts.
+
+**A-133.** `token_presentation` precedes `dpop_verify`: an unknown token and a malformed
+`cnf` are `unauthorized` under either scheme; a bound token under `Bearer` or without a
+`DPoP` header is `unauthorized`; a token without `cnf.jkt` under `DPoP` is `unauthorized`; a
+bound token with a proof goes to the proof verification; an authenticated token without `cnf`
+under `Bearer` takes the bearer path. The step receives authenticated token facts as trusted
+context and verifies the presentation scheme only. The cycle check accepts the SHOULD of
+adopting DPoP and reports a SHOULD on verifying a proof.
+
+**A-136.** The error conditional is `intent` `error` and the message not encrypted; the
+matrix guard runs `encrypted` absent, `false` and `true` against an object and a string
+payload, and a request to show that the rule is of errors only. R26 runs the decryption
+procedure in order — signature over the received envelope, protected header against
+`security.enc_alg` and `enc_method`, authenticated decryption, strict parsing, the decrypted
+view against the message schema, `payload_hash` over the JWE string:
+- ITV-742 is accepted and decrypts to its declared plaintext;
+- INV-249 (ciphertext altered) and INV-253 (header mismatch) are `unauthorized` at step 2,
+  INV-250 (no `error`), INV-251 (undefined State type) and INV-254 (duplicate member name)
+  `invalid_request` at step 3, each with a signature that verifies and a single cause;
+- with only INV-251's plaintext type corrected and the JWE and signature rebuilt, the request
+  is accepted;
+- an invalid outer signature stops at step 1 and the decryption is not attempted;
+- with only the JWE tag altered and the envelope signed again, decryption fails authentication;
+- the JWE format is read strictly (RFC 7516 §5.2): five segments, each base64url without
+  padding, foreign characters or an unused bit set, and the JWE Encrypted Key segment empty as
+  written, not as decoded. Nine variants of ITV-742's JWE, each signed again, are
+  `unauthorized` at step 2 for the format — among them a second segment that a lenient decoder
+  reads as empty, a line break inside the ciphertext and a tag with an unused bit set, which
+  decodes to the same octets;
+- a protected header with a `crit` parameter is `unauthorized` at step 2 (the reference
+  understands no extension, RFC 7516 §4.1.13); the same JWE without it is accepted.
+
+The decoder reproduces the shared secret of RFC 8037 Appendix A.6 and the derived key of
+RFC 7518 Appendix C with the appendix's own parameters (A128GCM, 128 bits, apu and apv); the
+fixtures use A256GCM, 256 bits and no apu or apv — two cases of one function. An independent
+JOSE implementation decrypts the corpus JWEs (notes, §8). The X25519 key is published in
+`encryption_keypairs`, declared by `use`, `kty` and `crv`; the 54 signature entries, their
+digests and every signature path are unchanged, and `_key_type` classifies signature material
+only.
+
+**A-139, A-135.** Core §5.3.1 no longer relies on signed audit records nor presents matching
+hashes as proof of transmission or receipt. SECURITY.md sentences changed, each with its
+source: signing input (Core §5.1); twelve adversaries, with 2.7–2.12 added (Core §13.1 items
+7–12); idempotency retention (Core §10.2); proof required by the token's binding (Identity
+§3.3; Core §6.3); residency without proof of physical location (Routing §5; Core §13.1 items
+7 and 11); the chain required at Compliance and Full and what it does not detect, and audit
+hashes not exempt by themselves (Core §12; State §7.2); messages signed, records chained
+(Actions §3.5; State §7.2); Level 2 with the audit chain and Level 3 with the in-repository
+tooling (Core §12.2, §12.3); RTM row count; `compliance.retention` and storage limitation
+(Core §13.3).
+
+**Declared deviations.** INV-251 is an encrypted request with an undefined State type instead
+of an encrypted `pending_approval`, which the oversight guards would have required to carry a
+reference request; those guards are unchanged and the hygiene guard declares the plaintext at
+`test_metadata/plaintext/type` for that vector only. The SPDX guard checks tracked files and
+new files that are not ignored, and every file when there is no Git metadata; two local
+ignored planning documents had turned it red. Core §10.3's retained items on the HTTP status
+and the stored envelope are sub-items of case 3.
+
+**Mutations (candidate copy identical to the final tree; 63 of 63 detected).** A
+mutation counts only when the expected check fails; a traceback is an error, not a detection.
+- (s1)–(s5) the retention reduced to `idempotency.expires_at`, without the tolerance, with
+  the exact instant excluded (rejection and discard), and `ts` + tolerance in place of no
+  limit → R25.
+- (s6)–(s18) reservation not atomic; in-progress duplicate executed; undetermined
+  reservation released; re-execution, early release and discard by deadline with the effect
+  confirmed and no response; an error after an effect not stored; release on an error code;
+  a read's success released; an expired envelope answered from the store; a rejected message
+  releasing; a failed verification reserving; the header-only key mandatory → R25.
+- (s19)–(s22) a bound token under Bearer, an unbound one under DPoP, an unknown token and a
+  malformed `cnf` accepted → R20; (s23), (s24) Identity §7.7 back to a SHOULD on verifying and
+  the binding rule removed → the cycle check.
+- (s25)–(s27) the error conditional reverted, without `intent`, and removed → ITV-742,
+  INV-252, the cycle check and the matrix guard.
+- (s28)–(s36) the view keeping `encrypted` true or not validated; plaintext parsed loosely;
+  header not compared; tag not verified; both error codes exchanged; signature not verified
+  first; Concat KDF with another AlgorithmID → R26.
+- (s37), (s38) the X25519 key among the signature keys and recognised by length → the catalog
+  guards; (s39) INV-251's declaration removed → the hygiene guard.
+- (s40)–(s46) Core §5.3.1, the schema description, SECURITY.md, Core §10.4 and §10.3 back →
+  the cycle check.
+- (s47)–(s49) the SPDX scope checking ignored files, only tracked files, or nothing without
+  Git metadata → its self-test.
+- (s50)–(s54) JWE segments decoded leniently; an unused bit accepted; the JWE Encrypted Key
+  segment checked after a lenient decoding, or not checked; `crit` ignored → R26.
+- (s55)–(s58) the scope of an encrypted message a constant or the JWE string; the key reserved
+  before the decryption procedure ends; the store scoping an encrypted envelope without the
+  decrypted type → R26.
+- (s59)–(s63) the migration guide and CORE-§10.2-08 back to the ambiguous release condition;
+  SECURITY.md without the safe release; Core §10.2 and §5.3 without the scope of an encrypted
+  message → the cycle check.
+
+**Regression.** The temporary directory holding the campaign scripts was lost during the
+cycle. The ten earlier campaigns were rebuilt from the session record by replaying, in order,
+the operations that created and changed each script, in a durable directory outside the
+repository; every mutation identifier of every rebuilt script is cited in its evidence
+section (§26–§35), by itself or within a cited range. All ten ran on the same candidate with
+a clean base and every mutation detected. One mutation was redirected: (p) of the coverage
+campaign (§26), an `untested` disposition without a code, pointed at CORE-§2.2-09, which this
+cycle gave R25 evidence; it now points at CORE-§4.3.2-03, with the same mutation and the same
+failing check. The maintenance campaign's count text is unchanged
+at "150 records, 19 controls": the cycle adds no audit record.
+
+**Counts.** Vectors 1022 → 1030 (ITV-741, ITV-742, INV-249..254: 514 schema-valid, 284
+expected-invalid, 213 runtime-only, 19 raw); crypto blocks 168 → 170 (158 signatures
+verified, 9 negatives, 3 absent); five more signatures outside crypto blocks (INV-249,
+INV-250, INV-251, INV-253, INV-254); signature keypairs 54 (unchanged), encryption keypairs
+0 → 1; consistency checks 163 → 169; harness checks 957 → 1015; RTM 2072 → 2083 rows
+(MUST + MUST_NOT 1267 → 1278; with REQUIRED 1469 → 1480); findings register 146 rows (open
+15 → 10, closed 131 → 136).

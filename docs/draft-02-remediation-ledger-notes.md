@@ -834,6 +834,27 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   registered as findings: Core Appendix B.3 expands AAIF as "Agent Interoperability
   Forum" and says adoption "gives AAIF protocols access to this market"; Actions §4.4
   leaves risk 0–4 with unrestricted network access; the SDK still declares wire 1.0.
+- **Security contracts cycle — fixtures and limits:**
+  - JWE recipe: every corpus JWE is ECDH-ES direct key agreement over X25519 with A256GCM, the
+    ephemeral private key the SHA-256 of `arsia-test-vectors jwe ephemeral <ID>` and the IV the
+    first 12 bytes of the SHA-256 of `arsia-test-vectors jwe iv <ID>`; INV-249 is ITV-742's JWE
+    with the first ciphertext byte XOR 0x01, signed again. The recipe reproduces the stored
+    bytes of ITV-742, INV-249, INV-250, INV-251, INV-253 and INV-254. The harness only decrypts
+    the corpus JWEs; `jwe_encrypt_control` builds the JWE of one synthetic control.
+  - Independent check: `jwcrypto` 1.6.1 (not a repository dependency) decrypts ITV-742, INV-250
+    and INV-251 to their declared plaintext, decrypts INV-253 and INV-254, and rejects INV-249.
+    It assembles JOSE independently and uses the same `cryptography` primitives as the harness.
+  - INV-251 covers the State namespace conditional after decryption; no vector covers the
+    `pending_approval` conditionals after decryption (an encrypted pending would need the
+    reference request the oversight guards recompute from).
+  - The R20 presentation step receives the token's authenticated claims as trusted context: it
+    verifies the choice and rejection of the presentation scheme, not the token's signature,
+    issuer, audience or validity.
+  - A-132, declared consequence: a message without `expires_at` at a server that sets no `ts`
+    limit has no finite instant at which its idempotency association may be discarded.
+  - The campaign scripts are kept outside the repository; after the loss of the temporary
+    directory the ten earlier campaigns were rebuilt from the session record and each
+    mutation identifier matched against its evidence section before the regression ran.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

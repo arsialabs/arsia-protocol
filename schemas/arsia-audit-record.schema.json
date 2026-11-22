@@ -3,7 +3,7 @@
   "$id": "https://arsiaprotocol.org/schemas/v2.0/arsia-audit-record.schema.json",
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
   "title": "ARSIA Audit Record",
-  "description": "Immutable, append-only audit record produced for every compliance-relevant event processed by an ARSIA agent. Defined in ARSIA-State.md §7.1. Audit records link a protocol event to the originating message, the participating agents, the compliance profile, and the human oversight status, enabling regulators and auditors to reconstruct the full lifecycle of any regulated interaction. The record stores a SHA-256 hash of the canonicalized payload (not the raw payload), so audit records do not contain personal data and are exempt from GDPR Art. 17 erasure.",
+  "description": "Immutable, append-only audit record produced for every compliance-relevant event processed by an ARSIA agent. Defined in ARSIA-State.md §7.1. Audit records link a protocol event to the originating message, the participating agents, the compliance profile, and the human oversight status, enabling regulators and auditors to reconstruct the full lifecycle of any regulated interaction. The record stores a SHA-256 hash of the payload, not the payload: of its RFC 8785 form, or of the UTF-8 bytes of the JWE string when the payload is encrypted (ARSIA-Core.md §5.3.1). A hash is not automatically anonymous and a record also carries agent identifiers: whether a record is personal data, and how an erasure request applies to it, is assessed as ARSIA-State.md §7.2 describes.",
   "type": "object",
   "required": [
     "record_id",

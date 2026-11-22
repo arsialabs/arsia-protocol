@@ -110,6 +110,10 @@
 | IDENT-§3.3-23 | 3.3 | MUST_NOT | sdk | behavioural_negative | Once a nonce was provided for a DPoP key, a proof made with that key without nonce MUST NOT be accepted | — | — | check:`R20 (g) 2 a proof without nonce after one was provided gets the challenge, not a generic unauthorized` |
 | IDENT-§3.3-24 | 3.3 | MUST | sdk | behavioural_positive | A sender retransmitting a request MUST present a new DPoP proof with a new jti and a current iat | — | — | check:`R20 (h) a retransmission with a new proof is accepted; the re-sent proof is rejected` |
 | IDENT-§3.3-25 | 3.3 | MAY | sdk | informational | A retransmitting sender MAY resend the envelope unchanged, keeping its id and idempotency.key | — | — | — |
+| IDENT-§3.3-26 | 3.3 | MUST | sdk | behavioural_negative | A receiving agent MUST treat an access token that carries cnf.jkt as DPoP-bound, MUST verify a DPoP proof for it, and MUST reject with unauthorized a request presenting it under the Bearer scheme or without a DPoP header (RFC 9449 §7.2) (presentation scheme only: token facts are trusted context; signature, issuer, audience and validity of the token are not verified by this check) | — | — | check:`R20 (k) A-133: a DPoP-bound token presented under Bearer is unauthorized, with or without a proof`; check:`R20 (k) A-133: a DPoP-bound token under DPoP without a DPoP header is unauthorized`; check:`R20 (k) A-133: a DPoP-bound token under DPoP with a proof goes to the proof verification, which accepts it` |
+| IDENT-§3.3-27 | 3.3 | MUST | sdk | behavioural_negative | A cnf claim that is present but carries no well-formed jkt MUST be rejected with unauthorized and is never treated as the absence of a binding (presentation scheme only: token facts are trusted context; signature, issuer, audience and validity of the token are not verified by this check) | — | — | check:`R20 (k) A-133: a cnf present and malformed is unauthorized, never the absence of a binding` |
+| IDENT-§3.3-28 | 3.3 | MUST | sdk | behavioural_negative | ARSIA profile: a token presented under the DPoP scheme that carries no cnf.jkt MUST be rejected with unauthorized (presentation scheme only: token facts are trusted context; signature, issuer, audience and validity of the token are not verified by this check) | — | — | check:`R20 (k) A-133: a token without cnf.jkt presented under DPoP is unauthorized (ARSIA profile)`; check:`R20 (k) A-133: an unknown token is unauthorized under either scheme, never a bearer token` |
+| IDENT-§3.3-29 | 3.3 | MAY | sdk | interoperability | A receiving agent MAY refuse bearer tokens (§9.2); only an authenticated token without cnf is a bearer token | — | — | — |
 | IDENT-§4.1-01 | 4.1 | MUST | deployment | behavioural_positive | Both sender and receiver owner_id MUST be retrievable via /.well-known/arsia/identity when audit_required is true | — | — | out-of-repo(infrastructure) |
 | IDENT-§4.1-02 | 4.1 | MUST | sdk | behavioural_positive | Both parties' owner_id MUST be included in the corresponding audit record | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
 | IDENT-§4.1-03 | 4.1 | SHOULD | sdk | behavioural_positive | Implementations SHOULD cache identity records for up to 1 hour, same policy as JWKS | — | — | — |
@@ -242,7 +246,7 @@
 | IDENT-§7.6-11 | 7.6 | MUST | sdk | structural | An approved decision MUST carry authenticated_context: the context prepared in Phase 1 Step 7 and verified by CHECK-05, unchanged, with context_sha256 computed by the Step 7 formula | arsia-onboarding-decision | ITV-03, ITV-130, ITV-589, INV-61 | schema-ref:arsia-onboarding-decision; struct:ITV-03, ITV-130, ITV-589, INV-61; crypto:ITV-03 |
 | IDENT-§7.6-12 | 7.6 | MUST | sdk | procedural | Gateway MUST record the association of the issued token (jti), the decision id and the context_id | — | ITV-610, ITV-615, ITV-616 | struct:ITV-610, ITV-615, ITV-616; exec:R10:ITV-610, ITV-615, ITV-616 |
 | IDENT-§7.6-13 | 7.6 | MUST | sdk | structural | An approved decision MUST carry policy_version and policy_sha256 identifying the CapabilityPolicy applied in Phase 3 | arsia-onboarding-decision | ITV-130, ITV-589, INV-78 | schema-ref:arsia-onboarding-decision; struct:ITV-130, ITV-589, INV-78 |
-| IDENT-§7.7-01 | 7.7 | MUST | sdk | behavioural_positive | External agent MUST present the onboarding token as a Bearer token in the Authorization header | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
+| IDENT-§7.7-01 | 7.7 | MUST | sdk | behavioural_positive | External agent MUST present the onboarding token in the Authorization header: under the DPoP scheme with a proof when the token is DPoP-bound, otherwise as a Bearer token | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
 | IDENT-§7.7-02 | 7.7 | MUST | sdk_enabled | procedural | Infrastructure router MUST verify the token on every request via the gateway's verify-token endpoint | — | — | untested(integration) |
 | IDENT-§7.7-03 | 7.7 | MUST | deployment | structural | Token verification request body MUST contain the token to be verified | arsia-jwt-claims | ITV-483, ITV-484 | schema-ref:arsia-jwt-claims; struct:ITV-483, ITV-484 |
 | IDENT-§7.7-04 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error unauthorized when the token is invalid, expired, or revoked | — | ITV-485 | struct:ITV-485; untested(structural-only) |
@@ -250,8 +254,8 @@
 | IDENT-§7.7-06 | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden when message requests out-of-scope capabilities | — | ITV-486 | struct:ITV-486; untested(structural-only) |
 | IDENT-§7.7-06a | 7.7 | MUST | sdk | behavioural_positive | Router MUST verify that the invoked action's risk_level does not exceed the capability's max_risk_level constraint | arsia-capability-policy | — | schema-ref:arsia-capability-policy; untested(structural-only) |
 | IDENT-§7.7-06b | 7.7 | MUST | sdk | behavioural_negative | Router MUST reject with error forbidden and details.risk_level_exceeded when action risk_level exceeds max_risk_level | — | — | untested(no-reference-model) |
-| IDENT-§7.7-09 | 7.7 | SHOULD | sdk_enabled | interoperability | External agents SHOULD use DPoP when presenting tokens to the infrastructure router | arsia-dpop-proof | — | — |
-| IDENT-§7.7-10 | 7.7 | SHOULD | sdk_enabled | behavioural_positive | Router SHOULD verify DPoP proofs when presented by external agents | — | — | — |
+| IDENT-§7.7-09 | 7.7 | SHOULD | sdk_enabled | interoperability | External agents SHOULD use DPoP-bound tokens when presenting tokens to the infrastructure router | arsia-dpop-proof | — | — |
+| IDENT-§7.7-10 | 7.7 | MUST | sdk_enabled | behavioural_positive | The router verifies proofs as §3.3 requires: for a DPoP-bound token the verification is mandatory | — | — | check:`R20 (k) A-133: a DPoP-bound token under DPoP with a proof goes to the proof verification, which accepts it`; untested(integration) |
 | IDENT-§7.7-11 | 7.7 | MAY | sdk | informational | External agent MAY re-initiate onboarding to obtain a new token before expiry | — | — | — |
 | IDENT-§7.7-12 | 7.7 | MAY | sdk_enabled | informational | Implementations MAY provide a lightweight token renewal skipping Phases 1–4 | — | — | — |
 | IDENT-§7.7-13 | 7.7 | MUST | sdk | structural | For a valid token, the verification response MUST return the bound authenticated_context and the id of its onboarding decision | — | ITV-610 | struct:ITV-610; exec:R10:ITV-610 |
@@ -289,8 +293,8 @@
 | IDENT-§9.1-08 | 9.1 | MUST | sdk | behavioural_positive | A token whose scope includes an oversight_required capability MUST carry arsia_oversight listing every such capability with requirement required_before_execution and the policy identification | arsia-jwt-claims | ITV-639 | schema-ref:arsia-jwt-claims; struct:ITV-639; untested(structural-only) |
 | IDENT-§9.1-09 | 9.1 | MUST | sdk | behavioural_positive | A token issued in exchange for another MUST carry the same requirement and policy for every remaining listed capability | arsia-jwt-claims | ITV-668 | schema-ref:arsia-jwt-claims; struct:ITV-668; exec:R15:ITV-668 |
 | IDENT-§9.2-01 | 9.2 | RECOMMENDED | sdk_enabled | interoperability | DPoP per RFC 9449 is RECOMMENDED for all external agent token presentations | arsia-dpop-proof | — | — |
-| IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token when DPoP is in use | arsia-dpop-proof | — | schema-ref:arsia-dpop-proof; untested(structural-only) |
-| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request | — | — | check:`R20 (a) a valid DPoP proof is accepted`; untested(integration) |
+| IDENT-§9.2-02 | 9.2 | MUST | sdk | behavioural_positive | External agent MUST present a DPoP proof JWT alongside the access token, under the DPoP scheme, when DPoP is in use | arsia-dpop-proof | — | schema-ref:arsia-dpop-proof; untested(structural-only) |
+| IDENT-§9.2-03 | 9.2 | MUST | sdk | behavioural_positive | Infrastructure router MUST verify the DPoP proof per §3.3 before accepting the request, and MUST reject a DPoP-bound token presented as a Bearer token | — | — | check:`R20 (a) a valid DPoP proof is accepted`; check:`R20 (k) A-133: a DPoP-bound token presented under Bearer is unauthorized, with or without a proof`; untested(integration) |
 | IDENT-§9.2-04 | 9.2 | MUST | sdk | behavioural_positive | DPoP-bound token MUST contain a cnf claim binding it to the agent's Ed25519 key | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims; untested(structural-only) |
 | IDENT-§9.2-05 | 9.2 | SHOULD | sdk_enabled | behavioural_positive | High-security organizations SHOULD mandate DPoP for all external agents | — | — | — |
 | IDENT-§9.3-01 | 9.3 | MUST | sdk | procedural | All onboarding events MUST be recorded as ArsiaAuditRecord entries | arsia-audit-record | — | schema-ref:arsia-audit-record; untested(structural-only) |
@@ -312,11 +316,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 299 |
+| Total requirements | 303 |
 | Schema ≠ — | 132 |
 | Vector ≠ — | 110 |
 | Both ≠ — | 58 |
-| Both = — (gaps) | 115 |
+| Both = — (gaps) | 119 |
 
 ### Per-section breakdown
 
@@ -324,7 +328,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 19 | 13 | 9 | 15 |
 | 2 | 29 | 9 | 10 | 6 | 16 |
-| 3 | 39 | 10 | 12 | 6 | 23 |
+| 3 | 43 | 10 | 12 | 6 | 27 |
 | 4 | 9 | 4 | 2 | 2 | 5 |
 | 5 | 2 | 0 | 1 | 0 | 1 |
 | 6 | 51 | 8 | 21 | 5 | 27 |

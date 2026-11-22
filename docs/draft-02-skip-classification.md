@@ -33,7 +33,7 @@ actually executes for the vector (evidence at the vector cycle, VC):
 the harness. **Automation candidate** is `yes` where automation is still to be
 written and `—` where the vector is executed or has an equivalent check.
 
-**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 12, crypto-behaviour: 15, executor-oversight: 63, numeric: 2, other: 14, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 208.
+**Category totals:** amount-scale: 2, capability: 5, compliance-resolution: 38, cross-object: 12, crypto-behaviour: 20, executor-oversight: 63, numeric: 2, other: 14, retention-floor: 6, temporal: 16, token: 17, transport: 11, x509: 7 — total 213.
 
 | ID | Anchor | Reason (abridged) | Category | Requirement class | Automation candidate | Coverage |
 |---|---|---|---|---|---|---|
@@ -245,6 +245,11 @@ written and `—` where the vector is executed or has an equivalent check.
 | INV-209 | State §8.3 rule 1; Core §4.3.10.5 | Runtime constraint — the zone declared in payload.args against the residency restriction composed for the mess | compliance-resolution | behavioural-runtime | — | executed: R10 |
 | INV-211 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
 | INV-212 | Routing §7.4.1 | Runtime constraint — recipient verification of the relay attestation (Routing §7.4.1) | cross-object | behavioural-runtime | — | executed: R22 |
+| INV-249 | Core §5.3 | Runtime constraint — JWE authenticated decryption is not verifiable by JSON Schema | crypto-behaviour | behavioural-runtime | — | executed: R26 |
+| INV-250 | Core §5.3 | Runtime constraint — the requirements on an encrypted payload are validated on the decrypted view | crypto-behaviour | behavioural-runtime | — | executed: R26 |
+| INV-251 | Core §5.3 | Runtime constraint — the requirements on an encrypted payload are validated on the decrypted view | crypto-behaviour | behavioural-runtime | — | executed: R26 |
+| INV-253 | Core §5.3 | Runtime constraint — the JWE protected header is compared with security.enc_alg at decryption | crypto-behaviour | behavioural-runtime | — | executed: R26 |
+| INV-254 | Core §5.3 | Runtime constraint — the decrypted plaintext is parsed strictly before validation | crypto-behaviour | behavioural-runtime | — | executed: R26 |
 
 ## Residual risk statement
 

@@ -465,9 +465,11 @@ knowledge.
 characters in length, that ensures duplicate requests produce the same result without
 re-execution. Idempotency keys are scoped to the tuple of (sender agent-id, recipient
 agent-id, payload type): the same key value sent by different senders or for different
-payload types is treated as a distinct request. Servers MUST store idempotency keys
-for the duration specified by the `idempotency.expires_at` field and MUST return the
-original response for any duplicate key received within that window (§10).
+payload types is treated as a distinct request. Servers MUST keep the association of
+an idempotency key as §10.2 specifies — for a retention window that is never shorter
+than the duration given by the `idempotency.expires_at` field, except for the safe
+release permitted by §10.2 item 2 — and MUST answer a duplicate key received while the
+association is kept as §10.3 specifies, without executing the request again.
 
 **Data Residency Zone.** A data residency zone is a geographic region — typically an
 ISO 3166-1 alpha-2 country code or a supranational identifier such as "EU" — where
@@ -889,11 +891,12 @@ When present, they MUST conform to the formats and constraints defined below.
     (code points 0x20 through 0x7E). The full semantics of idempotency are defined in
     §10.
 
-  - **`expires_at`** (string, REQUIRED within this object): The absolute timestamp
-    after which the server MAY discard the stored idempotency record. Format is
-    identical to the `ts` field (§4.1.3): RFC 3339 with millisecond precision and UTC
-    timezone designator. The `expires_at` value MUST be strictly greater than the
-    message's `ts` value.
+  - **`expires_at`** (string, REQUIRED within this object): The earliest instant at
+    which the stored idempotency record may be discarded. Except for the safe release
+    permitted by §10.2 item 2, the server MUST NOT discard the record before it, and
+    §10.2 may require keeping it longer. Format is identical to the `ts` field
+    (§4.1.3): RFC 3339 with millisecond precision and UTC timezone designator. The
+    `expires_at` value MUST be strictly greater than the message's `ts` value.
 
 #### 4.3.3 `context` — Distributed Context
 
@@ -2100,7 +2103,8 @@ following rules bound the exposure window:
 
 ARSIA supports optional payload encryption for messages that carry sensitive content
 requiring confidentiality beyond what TLS provides (e.g., end-to-end encryption
-through compliance brokers).
+through compliance brokers). Any message may carry an encrypted payload, error
+messages included.
 
 When payload encryption is enabled, the `security.encrypted` field MUST be set to
 `true`, and the `security.enc_alg` and `security.enc_method` fields MUST be present.
@@ -2135,9 +2139,24 @@ Recipients receiving a message where `security.encrypted` is `true`:
    encrypted payload string).
 2. MUST then decrypt the `payload` JWE string using their private encryption key and
    the algorithm specified in `security.enc_alg` and `security.enc_method`.
-3. MUST parse the decrypted plaintext as a JSON object conforming to §4.4.
-4. If decryption fails, the recipient MUST reject the message with error code
-   `unauthorized` (§11.2).
+3. MUST parse the decrypted plaintext under the rules of §5.2 steps 2–4 and MUST
+   validate the **decrypted view** of the message: a copy of the received envelope in
+   which `payload` is the decrypted object and `security.encrypted` is taken as
+   `false`. Every requirement that applies to an unencrypted message applies to that
+   view, among them the payload structure of §4.4, the requirements of the message's
+   `intent` and `payload.type`, and the error structure of §11.1 when `intent` is
+   `"error"`. Encryption exempts no requirement on the payload. The view exists only
+   for this validation: the received envelope is unchanged; the signature is verified
+   over the received envelope alone (step 1), never over the view; `payload_hash` and
+   `plaintext_hash` are computed as §5.3.1 specifies; and audit records document the
+   received envelope. Once the validation has succeeded the recipient processes the
+   decrypted payload, and its `type` is the `payload.type` that scopes an idempotency
+   key (§10.2 item 1).
+4. If decryption fails — the `payload` is not a well-formed JWE, its protected header
+   does not match `security.enc_alg` and `security.enc_method`, or key agreement or
+   authenticated decryption fails — the recipient MUST reject the message with error
+   code `unauthorized` (§11.2). If decryption succeeds and the plaintext fails step 3,
+   the recipient MUST reject the message with error code `invalid_request`.
 
 #### Encryption Algorithms
 
@@ -2175,14 +2194,20 @@ contains the hash of the plaintext.
 **Dispute resolution.** In the event of a dispute over the content of an encrypted
 message:
 
-1. Both parties export their signed audit records.
-2. `payload_hash` values MUST match — they prove the same ciphertext was
-   transmitted and received.
-3. `plaintext_hash` values, if both present and matching, prove consensus on the
-   plaintext content.
-4. If `plaintext_hash` values diverge, the Ed25519 signature on each audit record
-   establishes which party's record is authentic, without requiring a trusted third
-   party.
+1. Both parties export their audit records for the message, with the chain evidence
+   their conformance level provides (ARSIA-State.md §7.2).
+2. Matching `payload_hash` values show that the records identify the same ciphertext,
+   subject to the hash's collision resistance. They do not, by themselves, prove
+   transmission or receipt.
+3. `plaintext_hash` values, if both present and matching, show that both parties
+   recorded the same plaintext.
+4. If `plaintext_hash` values diverge, the records alone do not establish which is
+   authentic: audit records are not individually signed, and a chain shows only what
+   ARSIA-State.md §7.2 states. The sender's signature authenticates the bytes the
+   sender signed, the JWE string included (§5.3), and authenticated decryption lets a
+   party holding the decryption key verify the plaintext that corresponds to it.
+   Neither operation authenticates the recipient's record or proves that the recipient
+   received the message.
 
 ---
 
@@ -2362,6 +2387,9 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIs...
    specified there: with error code `unauthorized`, or, under its nonce-challenge
    exception, with the nonce challenge. A receiving agent MAY require a
    server-provided nonce (ARSIA-Identity.md §3.3).
+
+A receiving agent MUST NOT accept a DPoP-bound token presented under the `Bearer`
+scheme (ARSIA-Identity.md §3.3).
 
 Implementations SHOULD use DPoP for proof-of-possession security, especially when
 the compliance profile requires high-risk controls.
@@ -3418,41 +3446,89 @@ Idempotency keys may be provided in two locations:
 Receiving agents that support idempotency — which is REQUIRED for Core conformance
 (§12.1) — MUST implement the following storage behaviour:
 
-1. When a message with an idempotency key is received and processed successfully, the
-   server MUST store the association between the idempotency key (scoped to the
-   `from`, `to`, `payload.type` tuple) and the complete response envelope.
+1. **Reservation.** After the verifications that precede processing (§5.2, §6, and the
+   decryption procedure of §5.3 for an encrypted payload) and before any effect of
+   processing a message whose envelope carries `idempotency.key` (§4.3.2), the server
+   MUST atomically reserve the key, scoped to the (`from`, `to`, `payload.type`) tuple.
+   For a message with an encrypted payload, the `payload.type` of the scope is the
+   `type` of the decrypted payload, which the recipient takes only after the decryption
+   procedure of §5.3 has succeeded, the validation of the decrypted view included. Of
+   two messages with the same scoped key, at most one obtains the reservation,
+   whichever instances of the server receive them; the other is a duplicate (§10.3). A
+   message that fails those verifications reserves nothing. A key provided only via
+   the HTTP header is reserved only when the server chooses to use it (§10.4).
 
-2. The stored association MUST be retained for the duration specified by
-   `idempotency.expires_at` (§4.3.2). If the idempotency key is provided only via
-   the HTTP header (without a corresponding envelope field), the server MUST retain
-   the association for a minimum of 24 hours.
+2. **Stored response and safe release.** The server MUST store with the reservation
+   the complete envelope of the terminal response the operation produces, whether it
+   reports success or an error. A successful response is stored even when the
+   operation modified nothing, as for a read. The server MAY instead release the
+   reservation, so that a retry is processed as a new request, only when all of the
+   following hold: the attempt has ended; the server has established that no effect of
+   the operation occurred; no execution remains pending that could still produce one;
+   and the attempt produced no response or an error response. An error code does not
+   by itself establish that no effect occurred: after a timeout or a
+   `service_unavailable` that follows a call to an external system the outcome may be
+   undetermined, and the reservation remains. Once an effect has occurred, the
+   reservation MUST NOT be released for retry; the association may only be discarded
+   under item 5. A reservation whose operation had an effect and has no stored
+   response yet — for example after a recovery that confirmed the effect — remains
+   reserved until the response is stored.
 
-3. The storage mechanism is implementation-defined. Options include in-memory caches,
-   database tables, or distributed key-value stores. The storage MUST survive server
-   restarts within the retention window for production deployments.
+3. **Retention window.** Except for the safe release permitted by item 2, the server
+   MUST retain the reservation and its stored response at least until the latest of:
+   - `idempotency.expires_at` (§4.3.2);
+   - the end of the message's acceptance window, that instant included. For a message
+     that carries `expires_at` (§4.2.2) it is `expires_at` plus the clock skew
+     tolerance applicable to the message (§8.3). For a message without `expires_at` it
+     is the last instant at which the server would accept the message under its own
+     validation of `ts` (§8.3); a server that sets no such limit has no instant under
+     this item at which the association may be discarded, and MUST retain it for as
+     long as it would accept the message;
+   - the instant at which the operation the reservation covers ends with a determined
+     outcome.
 
-4. After the retention window expires, the server MAY delete the stored association.
-   A subsequent request with the same key after expiry is treated as a new request.
+   When the server uses a key provided only via the HTTP header (§10.4), it MUST
+   retain that association for a minimum of 24 hours.
+
+4. **Storage.** The storage mechanism is implementation-defined. Options include
+   in-memory caches, database tables, or distributed key-value stores. The storage
+   MUST survive server restarts within the retention window for production
+   deployments. A reservation does not by itself make an external effect happen
+   exactly once: after an interruption between the reservation and the stored
+   response, the outcome stays undetermined (item 2) until the implementation resolves
+   it.
+
+5. **Discard.** Except for the safe release permitted by item 2, the server MAY
+   discard the association only after the retention window has ended, the operation
+   has terminated with a determined outcome, and its terminal response has been
+   stored. A subsequent request with the same key is then treated as a new request.
 
 ### 10.3 Duplicate Detection Behaviour
 
-When a server receives a message with an idempotency key that matches an existing
-stored association (same key, same `from`, same `to`, same `payload.type`):
+A message that carries an idempotency key is evaluated in this order (a key matches
+a reservation with the same key, the same `from`, the same `to` and the same
+`payload.type`):
 
-1. The server MUST return the previously stored response without re-executing the
-   request.
+1. The message passes the verifications that apply to any message, expiration
+   (§4.2.2) included. A message rejected there is not executed; its rejection does not
+   return a stored response and does not release an existing reservation.
 
-2. The HTTP status code of the duplicate response MUST be identical to the original
-   response (HTTP transport only — over WebSocket, the stored response envelope is
-   returned as a JSON text frame; see §8.2).
+2. If the message is admissible and its scoped key matches a reservation that has no
+   stored response — the operation is in progress, its outcome is undetermined, or its
+   effect occurred and the response is not yet available (§10.2) — the server MUST NOT
+   execute the request and MUST reject it with error code `conflict` (§11.2). Over
+   HTTP the status is 409 and the response SHOULD carry a `Retry-After` header
+   suggesting when to retry; over WebSocket the error envelope is returned as a JSON
+   text frame (§8.2).
 
-3. The response body MUST be the exact ARSIA envelope that was stored when the
-   original request was processed.
-
-4. If the original request is still being processed (i.e., the server has received the
-   key but has not yet produced a response), the server SHOULD return HTTP 409
-   (Conflict) with error code `conflict` and a `Retry-After` header suggesting when
-   to retry.
+3. If the message is admissible and its scoped key matches a stored response, the
+   server MUST return the previously stored response without re-executing the
+   request. In that case:
+   - the HTTP status code of the duplicate response MUST be identical to the original
+     response (HTTP transport only — over WebSocket, the stored response envelope is
+     returned as a JSON text frame; see §8.2);
+   - the response body MUST be the exact ARSIA envelope that was stored when the
+     original request was processed.
 
 ### 10.4 Header vs. Envelope Precedence (HTTP Transport)
 
@@ -3475,8 +3551,7 @@ signed one. When both are present in the same request:
    MAY be used for transport-level deduplication as a best-effort courtesy; it
    provides no replay-defence guarantees.
 
-4. The `idempotency.expires_at` field from the envelope is used as the retention
-   duration.
+4. The retention, safe-release and discard rules are those of §10.2.
 
 > **Note:** This section applies only to HTTP transport (§8.1). Over WebSocket
 > transport (§8.2), the `Idempotency-Key` header is not available and the envelope
@@ -3992,7 +4067,10 @@ ARSIA provides multiple defences against replay attacks:
   because the signed envelope's `idempotency.key` is authoritative for deduplication
   (§10.4): the unsigned `Idempotency-Key` transport header can never override it, so
   an attacker replaying a captured signed envelope cannot bypass deduplication by
-  attaching a fresh header.
+  attaching a fresh header. The association is kept for as long as the message
+  remains acceptable, except where §10.2 item 2 permits a safe release because no
+  effect occurred, so the passing of `idempotency.expires_at` does not reopen the
+  window.
 
 - **Token expiration.** Access tokens have limited lifetimes (§6.1). A replayed
   message with an expired token will be rejected at the authorization stage.

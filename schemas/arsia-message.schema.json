@@ -1177,7 +1177,8 @@
         },
         "encrypted": {
           "type": "boolean",
-          "default": false
+          "default": false,
+          "description": "Whether `payload` is a JWE Compact Serialization string (Core §5.3). When true, the requirements on the payload are validated on the decrypted view: the envelope with `payload` replaced by the decrypted object and `encrypted` taken as false."
         },
         "enc_alg": {
           "type": "string",
@@ -2048,7 +2049,25 @@
         },
         "required": [
           "intent"
-        ]
+        ],
+        "not": {
+          "properties": {
+            "security": {
+              "type": "object",
+              "properties": {
+                "encrypted": {
+                  "const": true
+                }
+              },
+              "required": [
+                "encrypted"
+              ]
+            }
+          },
+          "required": [
+            "security"
+          ]
+        }
       },
       "then": {
         "properties": {

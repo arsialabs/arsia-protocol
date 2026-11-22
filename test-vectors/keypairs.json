@@ -1,6 +1,6 @@
 {
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
-  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; the main reconciliation imports one more under the same rule, agent:acme.state-extension#key1 for ITV-266 (35 imported in all); an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Two keys no catalog had are generated: agent:contoso.crm#key1 (Ed25519, derived from the kid as the coverage SC1 keys) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425: ITV-425 carries a mathematically valid signature that a conformant verifier rejects for insufficient key size. The provenance member records the three sets and their digests.",
+  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; the main reconciliation imports one more under the same rule, agent:acme.state-extension#key1 for ITV-266 (35 imported in all); an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Two keys no catalog had are generated: agent:contoso.crm#key1 (Ed25519, derived from the kid as the coverage SC1 keys) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425: ITV-425 carries a mathematically valid signature that a conformant verifier rejects for insufficient key size. The provenance member records the three sets and their digests. One encryption keypair is published apart from the signature keypairs, in encryption_keypairs: agent:acme.echo-client#enc1 (X25519, use enc; private key = SHA-256 of the UTF-8 string 'arsia-test-vectors encryption keypair ' followed by the kid), the recipient key of the encrypted-payload vectors (ARSIA-Core.md §5.3). It is declared by use, kty and crv, is never used for signing, and no signature path reads it.",
   "keypairs": {
     "agent:acme.echo-client": {
       "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
@@ -273,6 +273,16 @@
       "kid": "agent:acme.state-extension#key1"
     }
   },
+  "encryption_keypairs": {
+    "agent:acme.echo-client#enc1": {
+      "kid": "agent:acme.echo-client#enc1",
+      "use": "enc",
+      "kty": "OKP",
+      "crv": "X25519",
+      "private_key_hex": "fbf01cee1545c7df14c816e7cb0e3f73b3c8e82dd3059110c772b0ff3a6a1e1a",
+      "public_key_hex": "b168cd6d1072f514bc75b34da28aff7d8558f1587a76d273632fc6c4d8bd030c"
+    }
+  },
   "provenance": {
     "draft-02": {
       "kids": [
@@ -345,6 +355,12 @@
       "below_minimum": [
         "agent:acme.legacy-system#rsa1024"
       ]
+    },
+    "encryption": {
+      "kids": [
+        "agent:acme.echo-client#enc1"
+      ],
+      "sha256": "sha-256:f1adb81fd75ff292cdf11d813be0557f0b538c1c8e885f65290d4254f3c736b2"
     }
   }
 }
