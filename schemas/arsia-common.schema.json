@@ -12,8 +12,14 @@
     },
     "rfc3339-ms-utc": {
       "type": "string",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
-      "description": "RFC 3339 timestamp with mandatory millisecond precision and UTC designator."
+      "pattern": "^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\\.[0-9]{3}Z$",
+      "format": "date-time",
+      "description": "ARSIA timestamp (ARSIA-Core.md §4.1.3): an RFC 3339 date-time in UTC with the Z designator and exactly three fractional digits. The pattern carries the ARSIA profile: years 0001-9999, months 01-12, days 01-31, hours 00-23, minutes and seconds 00-59 (no leap second). The day MUST exist in that month of that year; a pattern cannot express that, so the format states it and a validator that asserts formats checks it."
+    },
+    "oauth-scope": {
+      "type": "string",
+      "pattern": "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+( [\\x21\\x23-\\x5B\\x5D-\\x7E]+)*$",
+      "description": "OAuth 2.0 scope value (RFC 6749 §3.3; ARSIA-Core.md §6.1): one or more scope tokens of visible ASCII characters other than the double quote and the backslash, separated by exactly one space (U+0020), with no leading or trailing space."
     },
     "uuid-v4": {
       "type": "string",

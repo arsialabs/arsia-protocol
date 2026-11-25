@@ -759,6 +759,52 @@
       "expected_error": null
     },
     {
+      "id": "CTV-17",
+      "description": "Core §5.2 pipeline steps 2-4 (raw bytes): objects and arrays nested to depth 32, the lowest nesting limit a recipient may apply; every member name carries brackets, an escaped quote and a backslash, which are inside a string and count for nothing. Accepted by every recipient: well-formed I-JSON text only — not a valid, authenticated or authorized message.",
+      "category": "core",
+      "raw_hex": "5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a317d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d",
+      "expected_parse": "accept",
+      "expected_error": null
+    },
+    {
+      "id": "CTV-18",
+      "description": "Core §5.2 pipeline steps 2-4 (raw bytes): the document of CTV-17 one level deeper, depth 33. Rejected (step 2) by a recipient whose nesting limit is 32; a recipient with a higher limit accepts it.",
+      "category": "core",
+      "raw_hex": "7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a5b7b226b5c225b7b5c5c223a317d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d5d7d",
+      "expected_parse": "reject",
+      "expected_error": "invalid_request",
+      "posture": {
+        "spec": "ARSIA-Core.md",
+        "section": "§5.2",
+        "basis": "MAY",
+        "text": "A recipient MAY limit the nesting depth of the documents",
+        "assumes": "the recipient limits the nesting depth at 32 levels, the lowest limit Core §5.2 step 2 permits"
+      }
+    },
+    {
+      "id": "CTV-19",
+      "description": "Core §5.2 pipeline steps 2-4 (raw bytes): depth 2, with a string value holding forty opening brackets, braces, an escaped quote and a backslash: characters inside a string are not nesting. Accepted: well-formed I-JSON text only — not a valid, authenticated or authorized message.",
+      "category": "core",
+      "raw_hex": "7b2261223a5b225b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b5c225c5c222c315d7d",
+      "expected_parse": "accept",
+      "expected_error": null
+    },
+    {
+      "id": "CTV-20",
+      "description": "Core §5.2 pipeline steps 2-4 (raw bytes): 1100 nested arrays. Rejected (step 2) by a recipient whose nesting limit is 32, by the depth check and not by a failure of its parser.",
+      "category": "core",
+      "raw_hex": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d",
+      "expected_parse": "reject",
+      "expected_error": "invalid_request",
+      "posture": {
+        "spec": "ARSIA-Core.md",
+        "section": "§5.2",
+        "basis": "MAY",
+        "text": "A recipient MAY limit the nesting depth of the documents",
+        "assumes": "the recipient limits the nesting depth at 32 levels, the lowest limit Core §5.2 step 2 permits"
+      }
+    },
+    {
       "id": "STV-01",
       "description": "State SET request — GDPR-STANDARD profile with idempotency. payload.args follows the set-args schema (key, value, scope, pii_classification). Per ARSIA-State.md §3.1.2.",
       "valid": true,
@@ -47293,6 +47339,412 @@
         "scenario": "encrypted-payload",
         "plaintext_defect": "duplicate member name `type`"
       }
+    },
+    {
+      "id": "ITV-743",
+      "description": "Valid timestamp on a leap day of a year divisible by 400: effective_at 2000-02-29T00:00:00.000Z is a real calendar instant (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "valid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2000-02-29T00:00:00.000Z"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-744",
+      "description": "Valid scope claim: two scope tokens separated by exactly one space, one of them a wildcard (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "valid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.read billing.*",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "INV-255",
+      "description": "INVALID — `v` is \"2.0\" followed by a line feed: a malformed version stays in the exact procedure and is rejected; it never selects the compatibility procedure of a newer minor (Core §2.3, §4.1.1).",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0\n",
+        "id": "0e255000-0000-4000-8000-000000000255",
+        "ts": "2026-04-27T10:07:00.000Z",
+        "from": "agent:arsialabs.demo.gateway",
+        "to": "agent:arsialabs.demo.client",
+        "intent": "error",
+        "correlation_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "not_implemented",
+            "description": "Requested protocol version is not supported by this agent",
+            "details": {
+              "supported_versions": {
+                "min": "1.0",
+                "max": "1.2"
+              },
+              "unsupported_type": "com.example.experimental/quantum-transfer"
+            }
+          }
+        },
+        "root_request_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0"
+      },
+      "expected_error": "v must be exactly 2.0 — Core §4.1.1 (a value followed by a line break does not match, Core §2.3)"
+    },
+    {
+      "id": "INV-256",
+      "description": "INVALID — `v` is \"2.1\" followed by the Arabic-Indic digit one (U+0661): digits are ASCII, so the value is not a version and stays in the exact procedure (Core §2.3, §4.1.1).",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.1١",
+        "id": "0e256000-0000-4000-8000-000000000256",
+        "ts": "2026-04-27T10:07:00.000Z",
+        "from": "agent:arsialabs.demo.gateway",
+        "to": "agent:arsialabs.demo.client",
+        "intent": "error",
+        "correlation_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "not_implemented",
+            "description": "Requested protocol version is not supported by this agent",
+            "details": {
+              "supported_versions": {
+                "min": "1.0",
+                "max": "1.2"
+              },
+              "unsupported_type": "com.example.experimental/quantum-transfer"
+            }
+          }
+        },
+        "root_request_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0"
+      },
+      "expected_error": "v must be exactly 2.0 — Core §4.1.1 (digits are ASCII, Core §2.3)"
+    },
+    {
+      "id": "INV-257",
+      "description": "INVALID — `id` is a UUID followed by a line feed: a pattern anchored at both ends describes the whole value (Core §2.3, §4.1.2).",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "0e257000-0000-4000-8000-000000000257\n",
+        "ts": "2026-04-27T10:07:00.000Z",
+        "from": "agent:arsialabs.demo.gateway",
+        "to": "agent:arsialabs.demo.client",
+        "intent": "error",
+        "correlation_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "not_implemented",
+            "description": "Requested protocol version is not supported by this agent",
+            "details": {
+              "supported_versions": {
+                "min": "1.0",
+                "max": "1.2"
+              },
+              "unsupported_type": "com.example.experimental/quantum-transfer"
+            }
+          }
+        },
+        "root_request_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0"
+      },
+      "expected_error": "id does not match the UUID pattern — Core §4.1.2 (a value followed by a line break does not match, Core §2.3)"
+    },
+    {
+      "id": "INV-258",
+      "description": "INVALID — `from` is an agent identifier followed by a line feed (Core §2.3, §3).",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "0e258000-0000-4000-8000-000000000258",
+        "ts": "2026-04-27T10:07:00.000Z",
+        "from": "agent:arsialabs.demo.gateway\n",
+        "to": "agent:arsialabs.demo.client",
+        "intent": "error",
+        "correlation_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0",
+        "payload": {
+          "type": "arsiaprotocol.error",
+          "error": {
+            "code": "not_implemented",
+            "description": "Requested protocol version is not supported by this agent",
+            "details": {
+              "supported_versions": {
+                "min": "1.0",
+                "max": "1.2"
+              },
+              "unsupported_type": "com.example.experimental/quantum-transfer"
+            }
+          }
+        },
+        "root_request_id": "ee511e51-aee2-4219-bd89-5ac2646b8bb0"
+      },
+      "expected_error": "from does not match the agent identifier pattern — Core §3 (a value followed by a line break does not match, Core §2.3)"
+    },
+    {
+      "id": "INV-259",
+      "description": "INVALID — timestamp with month 13 (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2026-13-01T00:00:00.000Z"
+      },
+      "expected_error": "effective_at: month out of range — Core §4.1.3 (pattern and format)"
+    },
+    {
+      "id": "INV-260",
+      "description": "INVALID — timestamp with hour 24 (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2026-11-20T24:00:00.000Z"
+      },
+      "expected_error": "effective_at: hour out of range — Core §4.1.3 (pattern and format)"
+    },
+    {
+      "id": "INV-261",
+      "description": "INVALID — timestamp with the second 60 at an announced leap second: RFC 3339 §5.7 admits it, the ARSIA profile does not (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2016-12-31T23:59:60.000Z"
+      },
+      "expected_error": "effective_at: seconds range from 00 to 59 — Core §4.1.3 ARSIA profile (pattern)"
+    },
+    {
+      "id": "INV-262",
+      "description": "INVALID — timestamp on 30 February: the lexical form is correct and the day does not exist (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2026-02-30T00:00:00.000Z"
+      },
+      "expected_error": "effective_at: the day does not exist in that month — Core §4.1.3 (format)"
+    },
+    {
+      "id": "INV-263",
+      "description": "INVALID — timestamp on 29 February 2100, which is not a leap year (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "2100-02-29T00:00:00.000Z"
+      },
+      "expected_error": "effective_at: the day does not exist in that year — Core §4.1.3 (format)"
+    },
+    {
+      "id": "INV-264",
+      "description": "INVALID — timestamp in the year 0000: RFC 3339 §1 covers it, the ARSIA profile starts at 0001 (Core §4.1.3).",
+      "category": "core",
+      "schema_ref": "arsia-key-revocation.schema.json",
+      "expected": "invalid",
+      "data": {
+        "revoked_kid": "agent:acme.echo-client#key1",
+        "effective_at": "0000-01-01T00:00:00.000Z"
+      },
+      "expected_error": "effective_at: years range from 0001 to 9999 — Core §4.1.3 ARSIA profile (pattern)"
+    },
+    {
+      "id": "INV-265",
+      "description": "INVALID — message whose `ts` is 30 February, signed again with the catalog key: the signature verifies and the only defect is the day that does not exist (Core §4.1.3).",
+      "category": "core",
+      "valid": false,
+      "message": {
+        "v": "2.0",
+        "id": "0e265000-0000-4000-8000-000000000265",
+        "ts": "2026-02-30T00:00:00.000Z",
+        "from": "agent:acme.billing",
+        "to": "agent:acme.notes",
+        "intent": "request",
+        "expires_at": "2026-03-01T00:00:30.000Z",
+        "capabilities": [
+          "notes.read"
+        ],
+        "payload": {
+          "type": "com.acme.notes/list",
+          "args": {
+            "folder": "inbox"
+          }
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:acme.billing#key1",
+          "sig": "JWuDKJ6b5D1wsJjD0HBDvSqojmjlG4AfQOYoLNx3phBYdRwWCxb5oEE5BFW27h-KnlNSI_wQF6LV_m-x9JUNAQ"
+        }
+      },
+      "expected_error": "ts: the day does not exist in that month — Core §4.1.3 (format)"
+    },
+    {
+      "id": "INV-266",
+      "description": "INVALID — scope with two spaces between tokens (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.read  billing.approve",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-267",
+      "description": "INVALID — scope with a tab between tokens: other white space is not a separator (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.read\tbilling.approve",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-268",
+      "description": "INVALID — scope with a leading space (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": " notes.read",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-269",
+      "description": "INVALID — scope with a trailing space (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.read ",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-270",
+      "description": "INVALID — scope with U+001F between tokens (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.read\u001fbilling.approve",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-271",
+      "description": "INVALID — scope token with a backslash (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json",
+      "expected": "invalid",
+      "data": {
+        "iss": "https://auth.arsiaprotocol.org",
+        "sub": "agent:acme.echo-client",
+        "aud": "agent:arsialabs.demo.compliance-checker",
+        "exp": 1711288800,
+        "iat": 1711285200,
+        "jti": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "scope": "notes.re\\ad",
+        "cnf": {
+          "jkt": "0ZcOCREQYsM8DKR3Gs7GmpBVjF7BTAU0LQ1aQJT_Tbo"
+        }
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-272",
+      "description": "INVALID — token request whose scope has a tab between tokens (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json#/$defs/token-request",
+      "expected": "invalid",
+      "data": {
+        "grant_type": "client_credentials",
+        "client_id": "agent:acme.echo-client",
+        "audience": "agent:acme.billing",
+        "scope": "notes.read\tbilling.approve"
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-273",
+      "description": "INVALID — token response whose scope has a tab between tokens (Core §6.1; RFC 6749 §3.3).",
+      "category": "core",
+      "schema_ref": "arsia-jwt-claims.schema.json#/$defs/token-response",
+      "expected": "invalid",
+      "data": {
+        "access_token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImF0K2p3dCJ9.eyJpc3MiOiJhZ2VudDphcnNpYWxhYnMuZGVtby5nYXRld2F5In0.placeholder",
+        "token_type": "DPoP",
+        "expires_in": 3600,
+        "scope": "notes.read\tbilling.approve"
+      },
+      "expected_error": "scope does not follow the scope grammar — Core §6.1"
     }
   ]
 }

@@ -96,7 +96,7 @@
     },
     "post_execution_review_period": {
       "type": "string",
-      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
       "description": "Announced review period for required_post_execution — ISO 8601 calendar duration (Core §4.3.6.4), counted from the execution instant with calendar arithmetic (Core §4.3.6.4.1). Absent → the action cannot be executed under required_post_execution (Actions §2.1, §3.9.1)."
     },
     "audit_required": {
@@ -123,7 +123,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+        "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
       },
       "uniqueItems": true,
       "minItems": 1,
@@ -134,7 +134,7 @@
     },
     "retention": {
       "type": "string",
-      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
       "description": "Retention override — ISO 8601 calendar duration (Core §4.3.6.4). Absent → profile retention_minimum applies; explicitly below the minimum (calendar comparison per §4.3.6.4.1) → the operation MUST be rejected per Core §4.3.8 Rule 4 (never clamped). Upward overrides permitted."
     }
   },

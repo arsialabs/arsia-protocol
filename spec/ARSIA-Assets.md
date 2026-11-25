@@ -323,7 +323,7 @@ payment provider to route through; the actual provider interaction occurs outsid
 ARSIA protocol.
 
 Implementations SHOULD validate that `payload.args` does not contain patterns matching
-financial account identifiers (e.g., IBAN format `^[A-Z]{2}\d{2}[A-Z0-9]{4,}$`, card
+financial account identifiers (e.g., IBAN format `^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,}$`, card
 number patterns) and SHOULD reject such messages with error code `invalid_request`.
 
 ---

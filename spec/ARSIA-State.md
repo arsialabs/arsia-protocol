@@ -541,7 +541,7 @@ The StateEntry object contains the following fields:
 - **REQUIRED.**
 - **Format:** RFC 3339 date-time with millisecond precision and UTC timezone
   designator.
-- **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+- **Pattern:** `^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`
 - **Constraints:** The timestamp at which this entry — this generation of its key
   (§2.1.14) — was created. Set by the implementation at creation time and immutable
   for the lifetime of the entry. A SET that recreates a logically deleted key creates
@@ -556,7 +556,7 @@ The StateEntry object contains the following fields:
 - **REQUIRED.**
 - **Format:** RFC 3339 date-time with millisecond precision and UTC timezone
   designator.
-- **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+- **Pattern:** `^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`
 - **Constraints:** The timestamp of the most recent modification to this entry. For
   newly created entries, `updated_at` equals `created_at`. Updated by the
   implementation on every SET operation that modifies the entry.
@@ -567,7 +567,7 @@ The StateEntry object contains the following fields:
 - **OPTIONAL.**
 - **Format:** RFC 3339 date-time with millisecond precision and UTC timezone
   designator.
-- **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+- **Pattern:** `^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`
 - **Constraints:** The explicit expiry timestamp for this entry. After this timestamp,
   the entry MAY be garbage-collected by the implementation, subject to the following
   rules:
@@ -594,7 +594,7 @@ The StateEntry object contains the following fields:
 - **Type:** string
 - **OPTIONAL.**
 - **Format:** ISO 8601 calendar duration, restricted to the subset defined in
-  ARSIA-Core.md §4.3.6.4 (pattern `^P(?=\d)(\d+Y)?(\d+M)?(\d+D)?$`).
+  ARSIA-Core.md §4.3.6.4 (pattern `^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$`).
 - **Constraints:** An explicit retention period for this specific entry, overriding
   the compliance profile's retention minimum. The effective retention is resolved as
   follows, using calendar arithmetic anchored at the entry's `created_at`

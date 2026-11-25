@@ -51,6 +51,9 @@ JSON Schema Draft 2020-12 validation schemas for all ARSIA Protocol data structu
 - Every property has a `description` referencing the spec section
 - Conditional required fields use `if/then` inside `allOf`
 - Agent ID, UUID, timestamp, and country code patterns are shared across all schemas
+- Patterns are ECMA-262 regular expressions (ARSIA-Core.md §2.3): `$` matches only the end of the value and digits are written `[0-9]`. A validator built on a library with other defaults — Python's `re`, where `$` also matches before a final line feed — must apply these semantics; `scripts/validate_vectors.py` does so in `arsia_validator`, also for schemas reached through `$ref`
+- `rfc3339-ms-utc` (arsia-common) carries the ARSIA timestamp profile in its pattern and `format: date-time` for the calendar: a day that does not exist (`2026-02-30`) is rejected only by a validator that asserts formats
+- `oauth-scope` (arsia-common) is the RFC 6749 §3.3 scope grammar, shared by the token claims, the token request and the token response
 
 ## Validation
 

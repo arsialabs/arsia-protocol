@@ -223,7 +223,7 @@
         },
         "retention": {
           "type": "string",
-          "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+          "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
           "description": "Retention override — ISO 8601 calendar duration (Core §4.3.6.4). Absent → profile retention_minimum applies; explicitly below the minimum (calendar comparison per §4.3.6.4.1) → the operation MUST be rejected per Core §4.3.8 Rule 4 (never clamped). Upward overrides permitted."
         }
       },

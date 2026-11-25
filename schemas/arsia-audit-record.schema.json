@@ -605,7 +605,7 @@
         "string",
         "null"
       ],
-      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
       "description": "Declared retention duration from the message, or null."
     },
     "effective_retention": {
@@ -613,12 +613,11 @@
         "string",
         "null"
       ],
-      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
       "description": "Retention actually applied after resolution (State §7.1)."
     },
     "retention_anchor": {
-      "type": "string",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc",
       "description": "Instant retention is measured from — the record's own creation instant (Core §4.3.6.4.1)."
     },
     "retention_source": {
@@ -1776,7 +1775,7 @@
         },
         "minimum": {
           "type": "string",
-          "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$"
+          "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$"
         },
         "source": {
           "$ref": "#/$defs/resolution-source"
@@ -2227,7 +2226,7 @@
               "properties": {
                 "duration": {
                   "type": "string",
-                  "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$"
+                  "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$"
                 },
                 "anchor": {
                   "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
@@ -2275,7 +2274,7 @@
                 "properties": {
                   "duration": {
                     "type": "string",
-                    "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$"
+                    "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$"
                   },
                   "anchor": {
                     "$ref": "arsia-common.schema.json#/$defs/rfc3339-ms-utc"
@@ -2396,7 +2395,7 @@
                 },
                 "revision": {
                   "type": "string",
-                  "pattern": "^\\d{4}-\\d{2}$"
+                  "pattern": "^[0-9]{4}-[0-9]{2}$"
                 },
                 "sha256": {
                   "$ref": "arsia-common.schema.json#/$defs/sha256-hex"
@@ -2456,7 +2455,7 @@
                   },
                   "revision": {
                     "type": "string",
-                    "pattern": "^\\d{4}-\\d{2}$"
+                    "pattern": "^[0-9]{4}-[0-9]{2}$"
                   },
                   "sha256": {
                     "$ref": "arsia-common.schema.json#/$defs/sha256-hex"

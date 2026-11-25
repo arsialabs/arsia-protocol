@@ -2749,3 +2749,136 @@ INV-250, INV-251, INV-253, INV-254); signature keypairs 54 (unchanged), encrypti
 0 → 1; consistency checks 163 → 169; harness checks 957 → 1015; RTM 2072 → 2083 rows
 (MUST + MUST_NOT 1267 → 1278; with REQUIRED 1469 → 1480); findings register 146 rows (open
 15 → 10, closed 131 → 136).
+
+## 37. Validation and parsing cycle closure evidence
+
+Effective parent `bbba0b1`. Second of three cycles for A-132..A-143; decisions of the owner
+on 2026-11-25, in the planning questions and three plan reviews (validation and parsing cycle
+addendum). No key material was printed.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-134, patterns | Core §2.3; every schema and prose pattern; `arsia_validator`; whole-value grammars of the tools | INV-255, INV-256, INV-257, INV-258 | validator; R27; cycle check; reference-path guard and self-test; single-cause guard | (v1)–(v9), (v40), (v48), (v51), (v52) |
+| A-134, timestamps | Core §4.1.3; `arsia-common.schema.json` `rfc3339-ms-utc` | ITV-743; INV-259..INV-265 | validator; R27; cycle check; single-cause guard | (v10)–(v21), (v41), (v42), (v49) |
+| A-134, scope | Core §6.1, §6.4 step 4; `oauth-scope` and the three contracts of `arsia-jwt-claims.schema.json` | ITV-744; INV-266..INV-273 | validator; R27; cycle check | (v22)–(v26), (v45)–(v47), (v53) |
+| A-137 | Core §5.2 step 2; `strict_json`; the receiving entries | CTV-17, CTV-18, CTV-19, CTV-20 | validator (raw); R28; cycle check | (v27)–(v39), (v43), (v44), (v50) |
+
+**Patterns.** Core §2.3 declares the ECMA-262 dialect; `\d` became `[0-9]` in the 13 distinct
+schema patterns that used it (34 uses), in the two of the vector meta-schema and in the
+specification patterns of Core, State, Actions and Assets. The tools match `pattern` through a
+translation of that dialect (`$` the end of the value, `.` without the ECMA line terminators),
+used as a search, and refuse the constructs whose meaning differs between dialects. The escapes
+the translation accepts are a closed list — a backslash before an ECMA-262 syntax character or
+`/`, before `-` inside a class, and the two-digit hexadecimal escape; an escape only Python
+reads (`\A`, `\Z`), an empty class (`[]`, `[^]`), a possessive quantifier and a pattern Python
+cannot compile are refused as unsupported, and a schema carrying one rejects the value with a
+controlled diagnostic instead of an error of the regular expression library. Every
+validator of the scripts is built by `arsia_validator`, and every registry holds copies of the
+schemas without `$schema`: the same message is rejected by the same field and validator on the
+schema itself, through a `$ref` to its root and from another document — an `id` with a final
+line break (pattern), a `ts` on a day that does not exist (format), an undefined State type
+(the prefix search of the State conditional) — while the unchanged messages stay valid. The
+guard's self-test shows that a registry keeping `$schema` loses the two indirect paths. A
+malformed version (`"2.0\n"`, `"2.1"` followed by U+0661, a leading space, leading zeros) stays
+in the exact procedure and is rejected with an unknown member; `"2.7"` still selects the
+compatibility procedure. Whole-value grammars of the tools use a full match with ASCII digits:
+`_VERSION_RE`, `_ERROR_CODE_RE`, the compatibility pattern, `DUR_RE`, `CONCRETE`, `WILDCARD`,
+`AMOUNT_RE`, `CURRENCY_CODE_RE`, `UNIT_RE`, `NQCHAR_NONCE`, `ATTESTATION_HEADER_ALPHABET`,
+`VECTOR_ID`, `B64URL_NOPAD`, `RESERVED_PAYLOAD_TYPE`; position parsers and readers of repository
+text are unchanged.
+
+**Timestamps.** The `$def` pattern limits the month, day, hour, minute and second and excludes
+the year 0000; `format: date-time` states the calendar rule and the tools assert it with the
+general RFC 3339 meaning (any fraction, an offset, a day that exists; the second 60 only at a
+leap second the IERS announced, after the offset is applied). The copy of the pattern on
+`retention_anchor` became a `$ref`. Controls with stated expectations:
+
+| Value | General format | ARSIA `$def` |
+|---|---|---|
+| `2000-02-29T00:00:00.000Z` | valid | valid |
+| `2026-02-30T00:00:00.000Z`, `2100-02-29T00:00:00.000Z` | invalid | invalid (format only) |
+| month 13, hour 24 | invalid | invalid (pattern and format) |
+| `0000-01-01T00:00:00.000Z` | valid | invalid |
+| an offset, a fraction of four digits | valid | invalid |
+| `1990-12-31T23:59:60Z`, `1990-12-31T15:59:60-08:00` | valid | invalid |
+| `1990-12-31T12:00:60Z`, `1991-12-31T23:59:60Z` | invalid | invalid |
+
+Every value the `$def` accepts is read by the harness time arithmetic (years 0001 and 9999
+included).
+
+**Scope.** One `$def` carries the grammar for the claims, the token request and the token
+response. `granted_scope` validates the whole value and only then splits at single spaces. At
+the receiver, an `approval_decision` built for a pending approval and schema-valid is delivered
+with a token valid in every other respect, each case on a pending flow of its own: with a
+single space the decision is admitted, recorded as `approval_decision`, and the flow leaves the
+pending state; with a tab it is `unauthorized` before the comparison of capabilities (the
+comparison is not called), recorded as `decision_rejected`, and the flow stays pending; a
+well-formed scope without the capability reaches the comparison, is `forbidden`, and the flow
+stays pending.
+
+**Nesting and the parser.** `strict_json` counts the depth iteratively before parsing — each
+open object or array one level, the root container level 1, nothing inside a string — and
+rejects the excess at step 2. With the limit at 32 a mixed document of depth 32 passes, the same
+document one level deeper is rejected, and it passes under a limit of 64; 100000 nested arrays
+are rejected by the depth check with no interpreter exception; a limit below 32 is refused as a
+configuration. Integers of any length are converted in chunks no longer than the lowest digit
+limit the interpreter can be configured with (`sys.int_info.str_digits_check_threshold`, 640)
+and the interpreter-wide digit limit is never touched (a spy records no call). CTV-16 runs in
+a process of its own with that limit set to 640: the document is accepted, the 5000-digit
+member is the integer its digits denote, and the limit is the same before and after. The excess at each receiving entry:
+
+| Entry | Depth 33 | Depth 32 |
+|---|---|---|
+| Envelope (raw vectors) | rejected at step 2 (`invalid_request`) | accepted |
+| Relay attestation header (R22) | step 2 of the header decoding (`unauthorized`) | parsed, fails at the attestation schema |
+| JWE protected header | `unauthorized`, step 2, cause format | accepted |
+| JWE plaintext, authenticated | `invalid_request`, step 3, cause parse | accepted |
+| Access token | rejected before its claims are validated | accepted |
+| DPoP proof | check 2 (`unauthorized`) | passes check 2 |
+
+**Single cause.** Each negative of the cycle fails in one field with exactly its declared set of
+(validator, instance path); month 13 and hour 24 fail the pattern and the format of that field,
+the two calendar-only values fail the format alone. For the 1030 earlier vectors, the procedure
+and the validator, instance path and sub-errors of every error are the same before and after the
+cycle (the message text is not compared: it changes where `\d` became `[0-9]`).
+
+**Mutations (candidate copy identical to the final tree; 53 of 53 detected).** A
+mutation counts only when the expected check fails; a traceback is an error, not a detection.
+- (v1)–(v9) the registry keeping `$schema`; the matcher back to Python's search; `$` not
+  translated; every pattern a full match; `\d` back in a schema; the version selected by a
+  prefix match; the compatibility pattern with `\d`; a duration grammar matched by prefix; a
+  validator built outside the factory → the reference-path guard, the validator, R27, the cycle
+  check.
+- (v10)–(v21) the timestamp pattern without ranges, with the year 0000, with the second 60; the
+  format removed; the calendar accepting 30 February, 2100 as a leap year, 2000 as a common year;
+  the general format refusing an offset, taking the second 60 in any minute or at any end of
+  month (the 1991 control), or ignoring the offset; INV-262 with a second defect → the validator,
+  R27, the cycle check, the single-cause guard.
+- (v22)–(v26) the scope grammar loosened; a contract with its own pattern; the split before the
+  validation; a malformed scope reaching the comparison; a well-formed scope without the
+  capability answered `unauthorized` → the validator, the cycle check, R27.
+- (v27)–(v39) the depth check removed; the root not counted; brackets of strings counted; an
+  escaped quote ending the string; the limit at 33; the interpreter's error escaping; the digit
+  limit changed; the excess at step 3; the token, the proof and the JWE header parsed without
+  the limit; a deep plaintext reported as a defect of the view, or as `unauthorized` → the raw
+  vectors, R28, the cycle check.
+- (v40)–(v49) each new normative sentence weakened; a prose pattern back to `\d`; a prose
+  timestamp pattern differing from the `$def` → the cycle check.
+- (v50)–(v53), owner review of 2026-11-25: integer chunks above the lowest configurable digit
+  limit; the escapes back to an exclusion list; a compilation error of the library escaping
+  the translation; a decision rejected for its token still taking the flow out of the pending
+  state → R28, R27.
+
+**Regression.** The eleven earlier campaigns ran on the same candidate, each with a clean base
+and every mutation detected. Three of their mutations aimed at text or behaviour this cycle
+changed and were redirected: security (s44) now restores the previous row count from the
+current one; state (s31) removes the end anchor together with `maxLength`, since `maxLength`
+alone no longer decides a final line break under the declared dialect (the keyword stays in
+the schema, by decision of the owner); coverage (r) expects the 5000-digit integer check only,
+since a document 100000 levels deep is now rejected by the depth check before any exception.
+
+**Counts.** Vectors 1030 → 1055 (ITV-743, ITV-744, INV-255..273, CTV-17..20: 516 schema-valid,
+303 expected-invalid, 213 runtime-only, 23 raw); crypto blocks 170 (unchanged); one more
+signature outside a crypto block (INV-265); keypairs unchanged; consistency checks 169 → 174;
+harness checks 1015 → 1046; RTM 2083 → 2090 rows (MUST + MUST_NOT 1278 → 1284; with REQUIRED
+1480 → 1486); findings register 146 rows (open 10 → 8, closed 136 → 138).

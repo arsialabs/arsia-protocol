@@ -37,8 +37,7 @@
       ]
     },
     "scope": {
-      "type": "string",
-      "pattern": "^\\S+(\\s+\\S+)*$",
+      "$ref": "arsia-common.schema.json#/$defs/oauth-scope",
       "description": "Space-separated list of capability identifiers. MUST cover all capabilities listed in the 'capabilities' field of any message presented with this token. ARSIA-Core.md §6.1."
     },
     "cnf": {
@@ -128,8 +127,7 @@
           "description": "The requesting agent's identifier (URL-encoded agent-id). ARSIA-Core.md §6.2."
         },
         "scope": {
-          "type": "string",
-          "pattern": "^\\S+(\\s+\\S+)*$",
+          "$ref": "arsia-common.schema.json#/$defs/oauth-scope",
           "description": "Space-separated list of requested capabilities. ARSIA-Core.md §6.2."
         },
         "audience": {
@@ -169,8 +167,7 @@
           "description": "Token lifetime in seconds. ARSIA-Core.md §6.2."
         },
         "scope": {
-          "type": "string",
-          "pattern": "^\\S+(\\s+\\S+)*$",
+          "$ref": "arsia-common.schema.json#/$defs/oauth-scope",
           "description": "The granted scope (may differ from requested scope). ARSIA-Core.md §6.2."
         }
       },

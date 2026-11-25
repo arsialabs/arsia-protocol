@@ -69,6 +69,13 @@ Schema cannot express, executed as tests — including against the runtime
       (ECDH-ES over X25519, A256GCM), strict parsing and the
       decrypted view; decoder against RFC 8037 A.6 and
       RFC 7518 Appendix C
+  R27 Patterns, timestamps and scope: ECMA-262 pattern    (Core §2.3, §4.1.1, §4.1.3, §6.1,
+      semantics kept through $ref, calendar instants and    §6.4; A-134)
+      the IERS leap seconds, version selection, the scope
+      grammar validated before the split
+  R28 Nesting depth and parser limits: the depth count,    (Core §5.2 step 2; A-137)
+      the limit at every receiving entry, integers of any
+      length without touching the interpreter's digit limit
 
 Exit code 0 = all green.
 """
@@ -76,10 +83,13 @@ import calendar
 import copy
 import datetime as dt
 import json
+import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, "scripts")
+import validate_vectors as vv  # noqa: E402
 from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
 
 FAIL = []
@@ -97,11 +107,13 @@ def check(name, cond, detail="", executed=()):
 
 
 # ---------------------------------------------------------------- R1 calendar
-DUR_RE = re.compile(r"^P(?=\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?$")
+# Whole-value grammars are written without anchors and used with fullmatch, with ASCII digits (Core §2.3):
+# Python's `$` would admit a final line feed and `\d` any Unicode digit.
+DUR_RE = re.compile(r"P(?=[0-9])(?:([0-9]+)Y)?(?:([0-9]+)M)?(?:([0-9]+)D)?")
 
 
 def parse_duration(s):
-    m = DUR_RE.match(s)
+    m = DUR_RE.fullmatch(s)
     if not m:
         raise ValueError(f"invalid ARSIA duration: {s!r}")
     y, mo, d = (int(g) if g else 0 for g in m.groups())
@@ -171,19 +183,19 @@ REGISTRY = {
     "arsiaprotocol.assets.audit.read", "arsiaprotocol.compliance.breach.notify",
     "arsiaprotocol.echo", "arsiaprotocol.health", "arsiaprotocol.onboarding.evaluate",
 }
-CONCRETE = re.compile(r"^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$")
-WILDCARD = re.compile(r"^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*\.\*$")
+CONCRETE = re.compile(r"[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+")
+WILDCARD = re.compile(r"[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*\.\*")
 
 
 def scope_satisfies(scope_entry, requested):
     """Actions §1.2: exact; trailing wildcard; reserved namespace exact-only."""
-    if not CONCRETE.match(requested):
+    if not CONCRETE.fullmatch(requested):
         raise ValueError("requested capability must be concrete")
     if scope_entry == requested:
         return True
     if requested.startswith("arsiaprotocol."):
         return False  # condition 3: reserved => exact only
-    if WILDCARD.match(scope_entry):
+    if WILDCARD.fullmatch(scope_entry):
         prefix = scope_entry[:-2]
         if (prefix + ".").startswith("arsiaprotocol."):
             return False  # wildcard within the reserved namespace satisfies nothing
@@ -231,9 +243,9 @@ def r3():
 # entry with no numeric minor-unit exponent.
 SPEC_CATALOG = {"EUR": 2, "JPY": 0, "KWD": 3}
 TEST_CATALOG = {**SPEC_CATALOG, "SEK": 2, "USD": 2, "GBP": 2, "CHF": 2, "BHD": 3, "XXX": None}
-AMOUNT_RE = re.compile(r"^(0|[1-9][0-9]*)(\.([0-9]+))?$")  # Assets §3.1.1 ABNF
-CURRENCY_CODE_RE = re.compile(r"^[A-Z]{3}$")
-UNIT_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,30}[a-z0-9]$")
+AMOUNT_RE = re.compile(r"(0|[1-9][0-9]*)(\.([0-9]+))?")  # Assets §3.1.1 ABNF
+CURRENCY_CODE_RE = re.compile(r"[A-Z]{3}")
+UNIT_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,30}[a-z0-9]")
 MAX_FRACTION = {"token": 8, "entitlement": 2, "service_unit": 4}  # Assets §2.2-§2.4
 
 
@@ -241,14 +253,14 @@ def amount_valid(amount, asset_type, currency_or_unit, catalog):
     """Assets §2.1-§2.4 and §3.1.1 amount rules for a string amount."""
     if not isinstance(amount, str):
         return False  # string only; length is bounded by the digit limits (A-67)
-    m = AMOUNT_RE.match(amount)
+    m = AMOUNT_RE.fullmatch(amount)
     if not m or len(m.group(1)) > 16:
         return False  # grammar; integer part at most 16 digits
     if set(amount.replace(".", "")) == {"0"}:
         return False  # strictly greater than zero
     frac = m.group(3) or ""
     if asset_type == "currency":
-        if not CURRENCY_CODE_RE.match(currency_or_unit):
+        if not CURRENCY_CODE_RE.fullmatch(currency_or_unit):
             return False
         exponent = catalog.get(currency_or_unit)
         if exponent is None:
@@ -257,7 +269,7 @@ def amount_valid(amount, asset_type, currency_or_unit, catalog):
             return False
         return len(frac) == exponent  # fixed scale: exactly the minor-unit digits
     if asset_type in MAX_FRACTION:
-        if len(currency_or_unit) > 32 or not UNIT_RE.match(currency_or_unit):
+        if len(currency_or_unit) > 32 or not UNIT_RE.fullmatch(currency_or_unit):
             return False
         if currency_or_unit.upper() in catalog:
             return False  # MUST NOT match an ISO 4217 code, case-insensitively (A-68)
@@ -744,15 +756,14 @@ _REGISTRY = []
 def schema_error_objects(instance, schema_file, defs=None):
     """The validation errors of instance against schemas/<schema_file> (or its $defs/<defs>)."""
     import glob
-    from jsonschema import Draft202012Validator
     from referencing import Registry, Resource
     if not _REGISTRY:
         docs = [strict_load(f) for f in sorted(glob.glob("schemas/*.json"))]
-        _REGISTRY.append(Registry().with_resources([(d["$id"], Resource.from_contents(d)) for d in docs if "$id" in d]))
+        _REGISTRY.append(vv.schema_registry(docs))
     reg = _REGISTRY[0]
     sid = strict_load(f"schemas/{schema_file}")["$id"]
     schema = {"$ref": f"{sid}#/$defs/{defs}"} if defs else {"$ref": sid}
-    return list(Draft202012Validator(schema, registry=reg).iter_errors(instance))
+    return list(vv.arsia_validator(schema, reg).iter_errors(instance))
 
 
 def schema_errors(instance, schema_file, defs=None):
@@ -1237,7 +1248,6 @@ def verify_signed(msg, directory, now):
     if not cache.accept(kid, _epoch(now)):
         return False, None, None
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
     from regen_v2 import signing_input_v2
     try:  # Core §5.2 Step 5: the declared alg must be allowlisted and coherent with the key, then verify
         vv._verify_signature(sec.get("alg"), _unb64u(_jwk(agent)["x"]), vv._base64url_decode(sec.get("sig", "")),
@@ -1259,13 +1269,33 @@ def issue_token(claims, signer=None):
     return f"{h}.{p}." + _b64u(_issuer_key(signer or claims["iss"]).sign(f"{h}.{p}".encode()))
 
 
+def bounded_json_loads(raw):
+    """JSON of a JOSE object (an access token, a DPoP proof) under this reference's nesting limit: the depth is
+    checked before the parse, as for a message (Core §5.2 step 2). For these documents the limit is a limit of
+    the reference implementation, not a rule of the specification. Raises ValueError beyond it."""
+    text = raw.decode("utf-8")
+    if vv.nesting_depth(text, stop_above=vv.MIN_DEPTH_LIMIT) > vv.MIN_DEPTH_LIMIT:
+        raise ValueError(f"nesting deeper than {vv.MIN_DEPTH_LIMIT} levels")
+    return json.loads(text)
+
+
+def granted_scope(value):
+    """Core §6.4 step 4: the `scope` value is validated as a whole against the grammar of §6.1 (RFC 6749 §3.3)
+    and only then split at its single spaces. Returns the capability strings, or None for a value that does not
+    conform — it is never normalised by a white-space split."""
+    pattern = strict_load("schemas/arsia-common.schema.json")["$defs"]["oauth-scope"]["pattern"]
+    if not isinstance(value, str) or not vv.ecma_pattern(pattern).search(value):
+        return None
+    return value.split(" ")
+
+
 def verify_token(token, message, now, skew):
     """Core §6.4 steps 2-3 and §6.5 at `now`: a trusted issuer, an algorithm allowed for it and coherent with its
     Ed25519 key, the signature under the issuer's CONFIGURED key (never one the token names), exp/iat within the
     clock skew, sub = from, aud = to within the issuer's audience policy. Returns the claims, or None."""
     try:
         h, p, s = token.split(".")
-        header, claims = json.loads(_unb64u(h)), json.loads(_unb64u(p))
+        header, claims = bounded_json_loads(_unb64u(h)), bounded_json_loads(_unb64u(p))
     except Exception:
         return None
     cfg = TRUST.get(claims.get("iss"))
@@ -1298,7 +1328,10 @@ def verify_oversight_decision(decision, token, verified_at, directory, skew):
     claims = verify_token(token, decision, verified_at, skew)
     if claims is None:
         return "unauthorized", evidence
-    if not authorized(claims.get("scope", "").split(), [APPROVE]) or APPROVE not in decision.get("capabilities", []):
+    scope = granted_scope(claims.get("scope"))
+    if scope is None:                      # Core §6.4 step 4: rejected before the comparison of capabilities
+        return "unauthorized", evidence
+    if not authorized(scope, [APPROVE]) or APPROVE not in decision.get("capabilities", []):
         return "forbidden", evidence
     return None, evidence
 
@@ -2092,7 +2125,6 @@ def verify_signed_jwks(msg, caches, now):
     """Core §5.2 with published key material: the kid belongs to `from`, it is resolved through that sender's
     cache at `now` (refresh rules), and the signature verifies under the cached key, Draft-02 signing input."""
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
     from regen_v2 import signing_input_v2
     sec = msg.get("security") or {}
     kid = sec.get("kid", "")
@@ -3219,7 +3251,7 @@ def dpop_verify(req, now, store, bindings, nonce_policy=None, skew=DPOP_SKEW):
         return fail(1)
     try:                                                                         # check 2
         h64, p64, s64 = dpop[0].split(".")
-        header, payload = json.loads(_unb64u(h64)), json.loads(_unb64u(p64))
+        header, payload = bounded_json_loads(_unb64u(h64)), bounded_json_loads(_unb64u(p64))
         assert isinstance(header, dict) and isinstance(payload, dict)
     except Exception:
         return fail(2)
@@ -3321,7 +3353,7 @@ AUTH_TOKEN = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
 AUTH_PARAM = re.compile(rf'({AUTH_TOKEN})[ \t]*=[ \t]*("(?:[^"\\]|\\.)*"|{AUTH_TOKEN})')
 AUTH_TOKEN68 = re.compile(r"[A-Za-z0-9._~+/-]+=*")
 AUTH_SCHEME = re.compile(AUTH_TOKEN)
-NQCHAR_NONCE = re.compile(r"^[\x21\x23-\x5B\x5D-\x7E]+$")
+NQCHAR_NONCE = re.compile(r"[\x21\x23-\x5B\x5D-\x7E]+")
 
 
 def auth_challenges(value):
@@ -3386,7 +3418,7 @@ def recipient_nonce(resp):
                                             for s, p, _ in challenges):
         return None
     nonce = headers.get("dpop-nonce")
-    return nonce if isinstance(nonce, str) and NQCHAR_NONCE.match(nonce) else None
+    return nonce if isinstance(nonce, str) and NQCHAR_NONCE.fullmatch(nonce) else None
 
 
 class DpopBroker:
@@ -3728,7 +3760,6 @@ def verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, 
     rejected only for a different envelope_hash."""
     import hashlib
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
     from regen_v2 import envelope_hash, signing_input_v2
     fail = lambda step: ("unauthorized", step)
     # step 2: the key belongs to the broker and is published; the signature verifies (envelope signing profile)
@@ -3768,7 +3799,7 @@ def verify_attestation(att, envelope, presented_token, broker_entry, jwks, now, 
     return ("accept", None)
 
 
-ATTESTATION_HEADER_ALPHABET = re.compile(r"^[A-Za-z0-9_-]+$")
+ATTESTATION_HEADER_ALPHABET = re.compile(r"[A-Za-z0-9_-]+")
 
 
 def decode_attestation_header(value):
@@ -3776,10 +3807,9 @@ def decode_attestation_header(value):
     decoded octets, then the attestation schema. Returns (attestation, None) or (None, reason); never
     raises. A failure here is a step 2 failure (unauthorized), never invalid_request."""
     import base64
-    import validate_vectors as vv
     if not isinstance(value, str) or value == "":
         return None, "empty header value"
-    if not ATTESTATION_HEADER_ALPHABET.match(value):
+    if not ATTESTATION_HEADER_ALPHABET.fullmatch(value):
         return None, "character outside the base64url alphabet (padding included)"
     if len(value) % 4 == 1:
         return None, "length does not decode to whole octets"
@@ -3833,7 +3863,6 @@ def permissive_decode(header, kind):
     """R22 (f) controls: a decoder that tolerates exactly one defect. The attestation it returns must be
     accepted, which shows that defect is the only cause of the rejection."""
     import base64
-    import validate_vectors as vv
     if kind == "strip-padding":
         return vv.strict_json(base64.urlsafe_b64decode(header.rstrip("=") + "=" * (-len(header.rstrip("=")) % 4)))
     if kind == "standard-alphabet":
@@ -3850,7 +3879,6 @@ def permissive_decode(header, kind):
 
 def r22(vectors):
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
     from regen_v2 import signing_input_v2
     sc = [v for v in vectors if v.get("test_metadata", {}).get("scenario") == "attestation"]
     check("R22 attestation scenario vectors present (accept, unauthorized, service_unavailable, not_required)",
@@ -4591,7 +4619,6 @@ def receive_encrypted(message, signing_keys, encryption_keys, decrypt=jwe_decryp
     encryption_keys: kid -> encryption catalog entry of the recipient. Returns
     {"outcome": "accept" | "unauthorized" | "invalid_request", "step", "cause", ...}."""
     import hashlib
-    import validate_vectors as vv
     from regen_v2 import signing_input_v2
     sec = message.get("security") or {}
     out = lambda outcome, step, cause=None, **kw: dict({"outcome": outcome, "step": step, "cause": cause}, **kw)
@@ -4641,7 +4668,6 @@ def r26(vectors):
     """A-136: the Core §5.3 decryption procedure on real JWEs, and the decoder against published test values."""
     import base64
     import hashlib
-    import validate_vectors as vv
     from regen_v2 import _sign, signing_input_v2
     by_id = {v["id"]: v for v in vectors}
     kp = strict_load("test-vectors/keypairs.json")
@@ -4835,12 +4861,393 @@ def r26(vectors):
           schema_errors(plain, "arsia-message.schema.json") == [] and "error" in plain["payload"], executed=["ITV-155"])
 
 
+# ------------------------------------------- R27 patterns, timestamps, scope (Core §2.3, §4.1.3, §6.4; A-134)
+def nested(levels, leaf=1):
+    """A value whose nesting depth is `levels`: objects and arrays alternating, with a member name that carries
+    brackets, an escaped quote and a backslash (they are inside a string and count for nothing)."""
+    node = leaf
+    for i in range(levels):
+        node = [node] if i % 2 else {'k"[{\\': node}
+    return node
+
+
+def r27(vectors):
+    by_id = {v["id"]: v for v in vectors}
+    sig = lambda errs: sorted((e.validator, "/".join(map(str, e.absolute_path))) for e in errs)
+    # (value, the general date-time format, the ARSIA $def)
+    table = [
+        ("2000-02-29T00:00:00.000Z", True, True), ("2026-02-30T00:00:00.000Z", False, False),
+        ("2100-02-29T00:00:00.000Z", False, False), ("2026-13-01T00:00:00.000Z", False, False),
+        ("2026-11-20T24:00:00.000Z", False, False), ("2026-04-31T00:00:00.000Z", False, False),
+        ("0000-01-01T00:00:00.000Z", True, False), ("0001-01-01T00:00:00.000Z", True, True),
+        ("9999-12-31T23:59:59.999Z", True, True), ("2026-11-20T10:00:00+01:00", True, False),
+        ("2026-11-20T10:00:00Z", True, False), ("2026-11-20T10:00:00.1234Z", True, False),
+        ("2026-11-20T10:00:00.000z", True, False), ("2026-11-20 10:00:00.000Z", False, False),
+    ]
+    leap = [("1990-12-31T23:59:60Z", True), ("1990-12-31T15:59:60-08:00", True), ("1990-12-31T12:00:60Z", False),
+            ("1991-12-31T23:59:60Z", False)]
+    arsia = lambda v: not schema_errors(v, "arsia-common.schema.json", "rfc3339-ms-utc")
+    got = [(v, vv.rfc3339_date_time_valid(v)) for v, _, _ in table]
+    check("R27 date-time, the general format: the day exists in its month and year (2000-02-29 valid, 2100-02-29 "
+          "and 02-30 not), any fraction and an offset are admitted, month 13 and hour 24 are not",
+          got == [(v, g) for v, g, _ in table], f"{[x for x, y in zip(got, table) if x[1] != y[1]]}")
+    got = [(v, arsia(v)) for v, _, _ in table]
+    check("R27 timestamp, the ARSIA $def: Z, three fractional digits, years 0001-9999, real calendar days",
+          got == [(v, a) for v, _, a in table], f"{[x for x, y in zip(got, table) if x[1] != y[2]]}")
+    got = [(v, vv.rfc3339_date_time_valid(v), arsia(v.replace("Z", ".000Z")) if v.endswith("Z") else arsia(v)) for v, _ in leap]
+    check("R27 second 60: the general format admits it only at a leap second the IERS announced, after the offset "
+          "is applied (1990-12-31T23:59:60Z and T15:59:60-08:00 valid; noon and 1991-12-31 not); the ARSIA $def "
+          "never admits it", got == [(v, g, False) for v, g in leap] and len(vv.LEAP_SECOND_DAYS) == 27
+          and (1991, 12, 31) not in vv.LEAP_SECOND_DAYS, f"{got}")
+    only_calendar = [sig(schema_error_objects(v, "arsia-common.schema.json", "rfc3339-ms-utc"))
+                     for v in ("2026-02-30T00:00:00.000Z", "2100-02-29T00:00:00.000Z")]
+    lexical = sig(schema_error_objects("2026-13-01T00:00:00.000Z", "arsia-common.schema.json", "rfc3339-ms-utc"))
+    check("R27 a day that does not exist fails only the format; month 13 fails the pattern and the format",
+          only_calendar == [[("format", "")]] * 2 and lexical == [("format", ""), ("pattern", "")], f"{only_calendar} {lexical}")
+    ok_iso = True
+    for v, _, a in table:
+        if a:
+            try:
+                iso(v)
+            except ValueError:
+                ok_iso = False
+    check("R27 every value the ARSIA $def accepts is one the time arithmetic reads (years 0001 and 9999 included)",
+          ok_iso and iso("0001-01-01T00:00:00.000Z").year == 1 and iso("9999-12-31T23:59:59.999Z").year == 9999)
+    ts_vectors = {"ITV-743": (True, True), "INV-259": (False, False), "INV-260": (False, False),
+                  "INV-261": (True, False), "INV-262": (False, False), "INV-263": (False, False),
+                  "INV-264": (True, False)}
+    got = {i: (vv.rfc3339_date_time_valid(by_id[i]["data"]["effective_at"]), arsia(by_id[i]["data"]["effective_at"]))
+           for i in ts_vectors}
+    check("R27 the timestamp vectors under the general format and under the ARSIA $def", got == ts_vectors, f"{got}",
+          executed=sorted(ts_vectors))
+    # patterns: the ECMA-262 semantics of Core §2.3
+    m = lambda pat, val: vv.ecma_pattern(pat).search(val) is not None
+    refused = []
+    for pat in (r"^\d+$", r"^\w+$", r"a\sb", r"(?i)a", r"(?<=a)b", r"(a)\1"):
+        try:
+            vv.ecma_pattern(pat)
+        except vv.UnsupportedPattern:
+            refused.append(pat)
+    check("R27 patterns: the dollar anchor is the end of the value (no final line break), [0-9] is ASCII, the dot excludes the line "
+          "terminators, an unanchored pattern is a search; dialect-dependent constructs are refused",
+          m("^a$", "a") and not m("^a$", "a\n") and m("^[0-9]+$", "12") and not m("^[0-9]+$", "1\u0662")
+          and not m("^[0-9]+$", "12\n") and m("^a.b$", "a b") and not m("^a.b$", "a\rb") and not m("^a.b$", "a\u2028b")
+          and m("/session/", "x/session/y") and m("^arsiaprotocol\\.state/", "arsiaprotocol.state/get\n")
+          and len(refused) == 6, f"{refused}")
+    # the accepted escapes are a closed list, and a pattern the matcher cannot read is a controlled diagnostic
+    closed = {}
+    for pat in (r"\Acat", r"cat\Z", r"^a\-b$", r"\x2", "[^]", "[]a]", "a++", "a{2}+", "(a"):
+        try:
+            vv.ecma_pattern(pat)
+            closed[pat] = "compiled"
+        except vv.UnsupportedPattern:
+            closed[pat] = "refused"
+        except re.error:
+            closed[pat] = "re.error"
+    kept = all(m(p, v) for p, v in ((r"^a\.b\/c$", "a.b/c"), (r"^[a\-c]+$", "a-c"), (r"^[\x21\x23-\x5B]+$", "!#A"),
+                                    (r"^\^\$\\\*\+\?\(\)\[\]\{\}\|$", "^$\\*+?()[]{}|")))
+    synthetic = {}
+    for pat in (r"\Acat", "[^]"):
+        try:
+            errs = list(vv.arsia_validator({"type": "string", "pattern": pat}).iter_errors("cat"))
+            synthetic[pat] = [(e.validator, "cannot be evaluated under Core §2.3" in e.message) for e in errs]
+        except Exception as exc:   # the defect: an exception of the regular expression library escapes
+            synthetic[pat] = type(exc).__name__
+    check("R27 patterns, the closed list of escapes: an escape only Python reads (\\A, \\Z), a class escape outside a "
+          "class, a truncated hexadecimal escape, an empty class, a possessive quantifier and an uncompilable pattern "
+          "are refused as unsupported, never compiled and never an error of the library; the escapes of the list "
+          "keep their meaning; a schema with such a pattern rejects the value with a controlled diagnostic",
+          set(closed.values()) == {"refused"} and kept
+          and synthetic == {r"\Acat": [("pattern", True)], "[^]": [("pattern", True)]}, f"{closed} {kept} {synthetic}")
+    import glob
+    patterns = []
+
+    def collect(node):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "pattern" and isinstance(v, str):
+                    patterns.append(v)
+                collect(v)
+        elif isinstance(node, list):
+            for v in node:
+                collect(v)
+    for f in sorted(glob.glob("schemas/*.json")):
+        collect(strict_load(f))
+    bad = []
+    for pat in patterns:
+        try:
+            vv.ecma_pattern(pat)
+        except (vv.UnsupportedPattern, re.error) as exc:
+            bad.append(f"{pat}: {exc}")
+    check(f"R27 every pattern of the schemas ({len(set(patterns))} distinct) is inside the subset the matcher translates",
+          not bad and len(patterns) > 90, "; ".join(bad[:3]))
+    # the validator keeps these semantics through a $ref (a document with its own $schema would lose them)
+    docs = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    registry = vv.schema_registry(docs.values())
+    root = docs["arsia-message.schema.json"]
+    paths = {"direct": (root, lambda x: x, ""), "$ref to the root": ({"$ref": root["$id"]}, lambda x: x, ""),
+             "across documents": ({"type": "object", "properties": {"m": {"$ref": root["$id"]}}}, lambda x: {"m": x}, "m/")}
+    good = by_id["CTV-01"]["message"]
+    state = by_id["STV-01"]["message"]
+    cases = {"id with a final line break": (dict(good, id=good["id"] + "\n"), [("pattern", "id")]),
+             "ts on a day that does not exist": (dict(good, ts="2026-02-30T00:00:00.000Z"), [("format", "ts")]),
+             "an undefined State type (the prefix search)":
+                 (dict(state, payload=dict(state["payload"], type="arsiaprotocol.state/export")), [("enum", "payload/type")])}
+    for name, (bad_msg, want) in cases.items():
+        got = {n: sig(vv.arsia_validator(schema, registry).iter_errors(wrap(bad_msg)))
+               for n, (schema, wrap, _) in paths.items()}
+        check(f"R27 validator through references: {name} is rejected by the same field and validator on the schema "
+              "itself, through a $ref to its root and from another document",
+              all(got[n] == [(vd, pre + pth) for vd, pth in want] for n, (_, _, pre) in paths.items()), f"{got}",
+              executed=["CTV-01", "STV-01"])
+    clean = {n: sig(vv.arsia_validator(schema, registry).iter_errors(wrap(x)))
+             for n, (schema, wrap, _) in paths.items() for x in (good, state)}
+    check("R27 validator through references: the unchanged messages, a State get among them, are valid on the three "
+          "paths", all(v == [] for v in clean.values()) and state["payload"]["type"].startswith("arsiaprotocol.state/"),
+          f"{clean}", executed=["CTV-01", "STV-01"])
+    # version selection (Core §4.1.1)
+    malformed = ["2.0\n", "2.1\u0661", " 2.1", "2.01", "02.1"]
+    procs = [vv.version_procedure(dict(good, v=v)) for v in malformed]
+    reg = vv.build_registry()
+    exact = vv.resolve_schema(vv.MESSAGE_SCHEMA, reg)
+    rejected = [bool(vv.message_errors(dict(good, v=v, x_future=1), exact, reg)[1]) for v in malformed]
+    future = by_id["ITV-405"]["message"]
+    f_proc, f_errs = vv.message_errors(dict(future, v="2.7", x_future=1), exact, reg)
+    check("R27 version: a malformed version never selects the compatibility procedure and is rejected; a well-formed "
+          "future minor still selects it and accepts an unknown member; another major is rejected",
+          procs == ["exact"] * 5 and all(rejected) and (f_proc, f_errs) == ("major-2-compat", [])
+          and vv.version_procedure(dict(good, v="3.0")) == "version-rejected", f"{procs} {rejected} {f_proc}",
+          executed=["CTV-01", "ITV-405"])
+    def raises(f, *a):
+        try:
+            f(*a)
+            return False
+        except ValueError:
+            return True
+    whole = {
+        "duration": (not raises(parse_duration, "P6M"), raises(parse_duration, "P6M\n"), raises(parse_duration, "P\u0666M")),
+        "requested capability": (not raises(scope_satisfies, "notes.read", "notes.read"),
+                                 raises(scope_satisfies, "notes.read", "notes.read\n"), True),
+        "wildcard scope entry": (scope_satisfies("notes.*", "notes.read"), not scope_satisfies("notes.*\n", "notes.read"), True),
+        "amount": (amount_valid("10.00", "currency", "EUR", TEST_CATALOG), not amount_valid("10.00\n", "currency", "EUR", TEST_CATALOG),
+                   not amount_valid("1\u0660.00", "currency", "EUR", TEST_CATALOG)),
+        "currency code": (True, not amount_valid("10.00", "currency", "EUR\n", TEST_CATALOG), True),
+        "unit": (amount_valid("1", "token", "gpu-hours", TEST_CATALOG), not amount_valid("1", "token", "gpu-hours\n", TEST_CATALOG), True),
+        "attestation header alphabet": (True, decode_attestation_header("abcd\n")[1] == "character outside the base64url alphabet (padding included)", True),
+        "version": (vv.version_procedure({"v": "2.1"}) == "major-2-compat", vv.version_procedure({"v": "2.1\n"}) == "exact", True),
+        "error code": (vv.check_error_path("invalid_request", [])[0], vv._ERROR_CODE_RE.fullmatch("invalid_request\n") is None, True),
+    }
+    check("R27 whole-value grammars of the tools: the value is accepted, the same value with a final line break is not, "
+          "and digits are ASCII (duration, capability, wildcard, amount, currency, unit, header alphabet, version, error code)",
+          all(all(t) for t in whole.values()), f"{ {k: t for k, t in whole.items() if not all(t)} }")
+    v_vec = {i: vv.version_procedure(by_id[i]["message"]) for i in ("INV-255", "INV-256")}
+    check("R27 the malformed-version vectors stay in the exact procedure", set(v_vec.values()) == {"exact"}, f"{v_vec}",
+          executed=["INV-255", "INV-256"])
+    # scope (Core §6.1, §6.4 step 4)
+    scope_table = {"notes.read": ["notes.read"], "notes.read billing.*": ["notes.read", "billing.*"],
+                   "notes.read  billing.approve": None, "notes.read\tbilling.approve": None, " notes.read": None,
+                   "notes.read ": None, "notes.read\x1fbilling.approve": None, "notes.re\\ad": None,
+                   'notes."read"': None, "notes.read\n": None, "": None, "notes.read\u00a0billing": None}
+    got = {k: granted_scope(k) for k in scope_table}
+    check("R27 scope: the value is validated as a whole before it is split; one space separates tokens and no other "
+          "white space is normalised (a split on white space would have granted the tab-separated value)",
+          got == scope_table and "notes.read\tbilling.approve".split() == ["notes.read", "billing.approve"], f"{got}")
+    scope_vectors = {"ITV-744": True, **{f"INV-{n}": False for n in range(266, 274)}}
+    got = {i: granted_scope(by_id[i]["data"]["scope"]) is not None for i in scope_vectors}
+    check("R27 the scope vectors: conforming or not under the grammar of Core §6.1", got == scope_vectors, f"{got}",
+          executed=sorted(scope_vectors))
+    # the receiver: an approval_decision for a pending approval, its token valid in every other respect; each case
+    # runs on its own pending flow, so no outcome depends on another
+    at, decided = "2026-11-20T10:00:00.000Z", "2026-11-20T10:05:00.000Z"
+    compared = []
+    real = globals()["authorized"]
+    globals()["authorized"] = lambda scope, requested: (compared.append(list(scope)), real(scope, requested))[1]
+    try:
+        outcomes = {}
+        for n, (name, scope) in enumerate((("single space", f"notes.read {APPROVE}"), ("tab", f"notes.read\t{APPROVE}"),
+                                           ("without the capability", "notes.read"))):
+            run = Run(make_request(f"7a000000-0000-4000-8000-0000000027a{n}", {"type": "com.acme.test/run", "args": {}},
+                                   at=at), make_descriptor("com.acme.test/run", True), at)
+            pending = run.path == "pending" and run.pending is not None
+            dec = approval_decision_msg(run, decided) if pending else None
+            fixture = pending and dec["intent"] == "approval_decision" and dec["correlation_id"] == run.pending["id"] \
+                and not schema_errors(dec, "arsia-message.schema.json")
+            before = len(compared)
+            code = run.approval(dec, decided, None, reviewer_token(decided, scope=scope)) if pending else "no pending flow"
+            last = run.records[-1]
+            outcomes[name] = (bool(fixture), code, len(compared) - before, run.path, sorted(run.approvers),
+                              last["event_type"], last.get("rejection_code"))
+    finally:
+        globals()["authorized"] = real
+    check("R27 scope at the receiver: an approval_decision for a pending approval, each case on its own flow — with "
+          "a single space the approval is admitted and the flow leaves the pending state; with a tab the decision is "
+          "unauthorized before the comparison of capabilities and the flow stays pending; a well-formed scope "
+          "without the capability reaches the comparison, is forbidden, and the flow stays pending",
+          outcomes == {"single space": (True, None, 1, "executing", [REVIEWER_ID], "approval_decision", None),
+                       "tab": (True, "unauthorized", 0, "pending", [], "decision_rejected", "unauthorized"),
+                       "without the capability": (True, "forbidden", 1, "pending", [], "decision_rejected", "forbidden")},
+          f"{outcomes}")
+
+
+# ------------------------------------------- R28 nesting depth and parser limits (Core §5.2 step 2; A-137)
+def r28(vectors):
+    import base64
+    from regen_v2 import _sign, signing_input_v2
+    by_id = {v["id"]: v for v in vectors}
+    text = lambda levels: json.dumps(nested(levels), separators=(",", ":"))
+    depths = {'1': 0, '"[[{"': 0, '{}': 1, '[]': 1, '[1,[2,[3]],{"a":[]}]': 3, '{"a":"]]]}\\"[[","b":[{"c":"\\\\"}]}': 3,
+              text(32): 32, text(33): 33}
+    got = {k: vv.nesting_depth(k) for k in depths}
+    check("R28 depth: each open object or array is one level, the root container is level 1, scalars add none; "
+          "brackets, escaped quotes and backslashes inside strings count for nothing", got == depths, f"{got}")
+
+    def parse(raw, **kw):
+        try:
+            strict_json(raw, **kw)
+            return "accept"
+        except vv.JsonRejected as exc:
+            return (exc.step, exc.reason)
+        except RecursionError:
+            return ("interpreter", "RecursionError")
+    d32, d33 = text(32).encode(), text(33).encode()
+    at32, at33, at64 = parse(d32), parse(d33), parse(d33, max_depth=64)
+    check("R28 limit 32: a document of depth 32 passes, the same document one level deeper is rejected at step 2, and "
+          "that document passes under a limit of 64",
+          at32 == "accept" and at33 == (2, "nesting deeper than 32 levels") and at64 == "accept", f"{at32} {at33} {at64}")
+    low = None
+    try:
+        strict_json(b"[]", max_depth=31)
+    except ValueError as exc:
+        low = not isinstance(exc, vv.JsonRejected)
+    check("R28 a limit below 32 levels is refused as a configuration, not applied", low is True)
+    huge = b"[" * 100000 + b"]" * 100000
+    over = parse(b"[" * 5000 + b"]" * 5000, max_depth=10000)
+    check("R28 100000 nested arrays are rejected at step 2 by the depth check, with no interpreter exception; a "
+          "configured limit beyond what the interpreter supports is still a step 2 rejection",
+          parse(huge) == (2, "nesting deeper than 32 levels") and over[0] == 2, f"{parse(huge)} {over}")
+    calls = []
+    real_set = sys.set_int_max_str_digits
+    sys.set_int_max_str_digits = lambda n: (calls.append(n), real_set(n))[1]
+    try:
+        big = strict_json(b'{"n":-' + b"7" * 5000 + b',"m":12}')
+    finally:
+        sys.set_int_max_str_digits = real_set
+    check("R28 a 5000-digit integer stays an integer and the interpreter-wide digit limit is never touched",
+          big["n"] == -((10 ** 5000 - 1) // 9 * 7) and big["m"] == 12 and calls == [])
+    # the lowest digit limit Python accepts, set for the whole interpreter: CTV-16 in a subprocess of its own
+    low_limit = sys.int_info.str_digits_check_threshold
+    probe = (
+        "import json, re, sys\n"
+        "sys.path.insert(0, 'scripts')\n"
+        "import validate_vectors as vv\n"
+        "before = sys.get_int_max_str_digits()\n"
+        "raw = bytes.fromhex(sys.stdin.read())\n"
+        "try:\n"
+        "    doc = vv.strict_json(raw)\n"
+        "except vv.JsonRejected as exc:\n"
+        "    print(json.dumps({'rejected': [exc.step, exc.reason[:80]], 'before': before})); sys.exit(0)\n"
+        "digits = max(re.findall(rb'[0-9]+', raw), key=len)\n"
+        "want = 0\n"
+        "for d in digits:\n"
+        "    want = want * 10 + (d - 48)\n"
+        "got = doc['payload']['args']['count']\n"
+        "print(json.dumps({'integer': type(got) is int, 'equal': got == want, 'digits': len(digits),\n"
+        "                  'before': before, 'after': sys.get_int_max_str_digits()}))\n")
+    proc = subprocess.run([sys.executable, "-c", probe], input=by_id["CTV-16"]["raw_hex"], capture_output=True, text=True,
+                          env=dict(os.environ, PYTHONINTMAXSTRDIGITS=str(low_limit)))
+    try:
+        seen = json.loads(proc.stdout)
+    except ValueError:
+        seen = {"stdout": proc.stdout[-200:], "stderr": proc.stderr[-300:]}
+    check("R28 CTV-16 under the lowest digit limit the interpreter can be configured with (640, set for the whole "
+          "process): the document is accepted, the 5000-digit member is the integer its digits denote, and the "
+          "limit is the same before and after",
+          seen == {"integer": True, "equal": True, "digits": 5000, "before": low_limit, "after": low_limit}
+          and low_limit == 640, f"{seen}", executed=["CTV-16"])
+    raw = {i: bytes.fromhex(by_id[i]["raw_hex"]) for i in ("CTV-17", "CTV-18", "CTV-19", "CTV-20")}
+    got = {i: (vv.nesting_depth(b.decode()), parse(b) if parse(b) == "accept" else parse(b)[0], parse(b, max_depth=64) == "accept")
+           for i, b in raw.items()}
+    check("R28 the depth vectors: 32 accepted; 33 rejected at step 2 under a limit of 32 and accepted under 64; "
+          "brackets inside a string do not count; 1100 levels rejected under either limit",
+          got == {"CTV-17": (32, "accept", True), "CTV-18": (33, 2, True), "CTV-19": (2, "accept", True),
+                  "CTV-20": (1100, 2, False)}, f"{got}", executed=sorted(raw))
+    # the excess at each entry: the code is the one that procedure gives a document it cannot read
+    b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+    att32, why32 = decode_attestation_header(b64(d32))
+    att33, why33 = decode_attestation_header(b64(d33))
+    check("R28 relay attestation header: depth 33 is a step 2 failure of the header decoding (unauthorized in "
+          "Routing §7.4.1), depth 32 is parsed and fails later, at the attestation schema",
+          att33 is None and why33 == "Core §5.2 step 2: nesting deeper than 32 levels"
+          and att32 is None and why32 == "attestation schema", f"{why32} | {why33}")
+    reached = []
+    real_errors = globals()["schema_errors"]
+    globals()["schema_errors"] = lambda *a, **k: (reached.append(1), real_errors(*a, **k))[1]
+    at = "2026-11-20T10:00:00.000Z"
+    t = int(_epoch(at))
+    base_claims = {"iss": "https://as.acme.example", "sub": REVIEWER_ID, "aud": EXECUTOR_ID, "iat": t, "exp": t + 600,
+                   "scope": APPROVE, "jti": det_id("r28/token")}
+    msg = {"from": REVIEWER_ID, "to": EXECUTOR_ID}
+    try:
+        tok = {}
+        for levels in (0, 31, 32):                       # the claims object is level 1
+            claims = dict(base_claims, **({"x": nested(levels)} if levels else {}))
+            before = len(reached)
+            result = verify_token(issue_token(claims), msg, at, DEFAULT_SKEW)
+            tok[levels + 1] = (result is not None, len(reached) - before)
+    finally:
+        globals()["schema_errors"] = real_errors
+    check("R28 access token: a token of depth 33 is rejected (unauthorized) before its claims are validated, with no "
+          "exception; at depth 32 the claims are read, validated and the token is accepted, like the plain token",
+          tok == {1: (True, 1), 32: (True, 1), 33: (False, 0)}, f"{tok}")
+    token = DPOP_TOKEN
+    bindings = {token: jkt(_jwk(DPOP_SENDER))}
+    dp = {}
+    for n, levels in enumerate((0, 31, 32)):
+        over = {"payload": {"x": nested(levels)}} if levels else {}
+        proof = make_proof(DPOP_SENDER, DPOP_INBOX, DPOP_T0, dpop_jti(9000 + n), token, None, **over)
+        r = dpop_verify(dpop_request(proof), DPOP_T0, JtiStore(), bindings)
+        dp[levels + 1] = (r["status"], r.get("code"), r.get("check"))
+    check("R28 DPoP proof: a proof whose payload has depth 33 fails check 2 (unauthorized) with no exception; at "
+          "depth 32 the proof is read and passes check 2; the plain proof is accepted",
+          dp[33] == (401, "unauthorized", 2) and dp[32][2] != 2 and dp[1][0] == 200, f"{dp}")
+    # JWE: the protected header and the plaintext, each with the outer signature valid
+    kp = strict_load("test-vectors/keypairs.json")
+    signing = {e["kid"]: e for e in kp["keypairs"].values()}
+    encryption = kp["encryption_keypairs"]
+    base = by_id["INV-251"]["message"]
+    pub = bytes.fromhex(next(e for k, e in encryption.items() if k.split("#")[0] == base["to"])["public_key_hex"])
+
+    def encrypted(label, plaintext, extra_header=None):
+        m = copy.deepcopy(base)
+        m["payload"] = jwe_encrypt_control(label, json.dumps(plaintext, separators=(",", ":")).encode(), pub,
+                                           extra_header=extra_header)
+        e = signing[m["security"]["kid"]]
+        m["security"]["sig"] = base64.urlsafe_b64encode(
+            _sign(m["security"]["alg"], e["private_key_hex"], signing_input_v2(m))).rstrip(b"=").decode()
+        return m
+    plain = lambda levels: {"type": "com.acme.billing/get-invoice", "args": {"invoice": "INV-1", "x": nested(levels)}}
+    header_depth = lambda m: vv.nesting_depth(_unb64u(m["payload"].split(".")[0]).decode())
+    h32, h33 = encrypted("r28 header 32", plain(1), {"x": nested(31)}), encrypted("r28 header 33", plain(1), {"x": nested(32)})
+    p32, p33 = encrypted("r28 plaintext 32", plain(30)), encrypted("r28 plaintext 33", plain(31))
+    res = {n: receive_encrypted(m, signing, encryption) for n, m in (("h32", h32), ("h33", h33), ("p32", p32), ("p33", p33))}
+    shape = {n: (r["outcome"], r["step"], r["cause"]) for n, r in res.items()}
+    pdepth = [vv.nesting_depth(json.dumps(plain(n))) for n in (30, 31)]
+    check("R28 JWE protected header: depth 33 is unauthorized at step 2 (format), with the outer signature valid; "
+          "depth 32 is accepted",
+          (header_depth(h32), header_depth(h33)) == (32, 33) and shape["h33"] == ("unauthorized", 2, "format")
+          and shape["h32"][0] == "accept", f"{shape}", executed=["INV-251"])
+    check("R28 JWE plaintext: depth 33 in an authenticated JWE is invalid_request at step 3 by the parsing (parse), "
+          "not by the decrypted view; depth 32 is accepted",
+          pdepth == [32, 33] and shape["p33"] == ("invalid_request", 3, "parse") and shape["p32"][0] == "accept",
+          f"{pdepth} {shape}", executed=["INV-251"])
+
+
 def main() -> int:
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
     r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r20_presentation(); r21(vectors); r22(vectors); r23(vectors)
-    r24(vectors); r25(vectors); r26(vectors)
+    r24(vectors); r25(vectors); r26(vectors); r27(vectors); r28(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

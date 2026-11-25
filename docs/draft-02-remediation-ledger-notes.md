@@ -855,6 +855,32 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   - The campaign scripts are kept outside the repository; after the loss of the temporary
     directory the ten earlier campaigns were rebuilt from the session record and each
     mutation identifier matched against its evidence section before the regression ran.
+- **Validation and parsing cycle — sources and limits:**
+  - Leap seconds: the table `LEAP_SECOND_DAYS` of `scripts/validate_vectors.py` (27 days, 1972-06-30
+    to 2016-12-31) is transcribed from the IERS list
+    `https://hpiers.obspm.fr/iers/bul/bulc/Leap_Second.dat`, read on 2026-11-25 (updated through
+    Bulletin C 72 of July 2026, file valid until 28 June 2027): 28 rows, the first the initial
+    TAI-UTC value and each later one the day after an inserted second. The table is closed; a
+    later announcement means updating it. It matters only to the general `date-time` format, since
+    the ARSIA timestamp admits no second 60.
+  - The library's own `date-time` check rejects both leap-second examples of RFC 3339 §5.8; the
+    controls state each expectation instead of comparing with it.
+  - The validator of the tools: the library hands a document that declares its own `$schema` to
+    its standard validator class, so a `$ref` into a published schema lost the pattern semantics
+    and the format assertion; the registry holds copies without `$schema`. Files are unchanged.
+  - A pattern outside the subset the matcher translates validates nothing (a validation error),
+    so a regression shows as failures, not as a crash of the tools.
+  - `patternProperties` is not used by any schema and is not covered by the matcher; the guard
+    reports its introduction.
+  - The nesting limit of 32 is applied by the reference to an access token and to a DPoP proof
+    as an implementation limit; Core §5.2 step 2 is about the message and the documents the
+    specifications already submit to steps 2-4 (the relay attestation header, a decrypted
+    plaintext).
+  - The format counts of `test-vectors/README.md` (message-only, schema-ref) were stale before
+    the cycle (343 and 590 against 359 and 648); they now state the corpus (364 and 664).
+  - Vector error signatures (procedure; validator, instance path and sub-errors, never the
+    message text) were captured for the 1030 vectors before the cycle and compared after it: no
+    difference.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

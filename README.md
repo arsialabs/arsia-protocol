@@ -109,7 +109,7 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 34 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 1030 test vectors (514 schema-valid, 284 expected-invalid, 213 runtime-only, 19 raw parse) |
+| [`test-vectors/`](test-vectors/) | 1055 test vectors (516 schema-valid, 303 expected-invalid, 213 runtime-only, 23 raw parse) |
 | [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,046 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 

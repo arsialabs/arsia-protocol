@@ -16,7 +16,7 @@
     },
     "version": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
     },
     "generated": {
       "type": "string",
@@ -124,7 +124,7 @@
                 "string",
                 "null"
               ],
-              "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+              "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
               "description": "Profile retention minimum as an ISO 8601 calendar duration (ARSIA-Core.md §4.3.6.4), or null when the profile defines no floor."
             },
             "retention_basis": {

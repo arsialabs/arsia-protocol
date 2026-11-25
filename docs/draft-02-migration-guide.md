@@ -127,6 +127,14 @@ catalog edition via the new discovery field `iso4217_edition`.
 
 ## 6. Authorization & identity
 
+- **Scope grammar (Core §6.1, §6.4 step 4).** `scope` follows RFC 6749 §3.3 in the
+  token claims, the token request and the token response: tokens of visible ASCII
+  characters other than `"` and `\`, separated by exactly one space, with no leading
+  or trailing space. A tab, a line break or two spaces between capabilities, accepted
+  before, now make the value invalid. Validate the whole value before splitting it —
+  a split on white space would turn an invalid value into granted capabilities — and
+  reject a token whose `scope` does not conform with `unauthorized`.
+
 - Token validation now validates `iss` against an explicit issuer trust
   configuration (Core §6.5) and resolves keys only from the configured origin.
 - Agent-id → origin resolution is an explicit registry mechanism (Core §6.6);
@@ -295,6 +303,22 @@ catalog edition via the new discovery field `iso4217_edition`.
   duplicate member names, compared after escape processing, are rejected. A
   failure is `invalid_request`. The steps add no limit on JSON numbers
   ([RFC 7493] is now a normative reference).
+- **Nesting depth (Core §5.2 step 2).** A recipient may limit how deeply a document
+  nests and rejects the excess with `invalid_request`, in step 2. The limit is never
+  lower than 32 levels: each open object or array is one level, the root container
+  is level 1 and scalar values add none. Detect the excess before parsing, not
+  through a failure of the parser.
+- **Patterns (Core §2.3).** Patterns are ECMA-262 regular expressions: `$` matches
+  only the end of the value and digits are ASCII (`[0-9]`). With a library whose
+  `$` also matches before a final line break (Python's `re`), a value such as
+  `"2.0\n"` passed; apply the stated semantics — a full match of an anchored
+  pattern — and keep unanchored patterns as searches. A malformed `v` never selects
+  the compatibility procedure of a newer minor.
+- **Timestamps (Core §4.1.3).** The pattern now limits the month, day, hour, minute
+  and second, and the day must exist in its month and year
+  (`2026-02-30T00:00:00.000Z` is invalid). ARSIA timestamps admit neither the year
+  `0000` nor the second `60` of a leap second. The schema states the calendar rule
+  as `format: date-time`: assert that format, or check the calendar yourself.
 - **Attestation header (Routing §7.4.1).** A residency-constrained message that
   arrives without the `ARSIA-Relay-Attestation` header is rejected with
   `service_unavailable` (step 1). A present header, even an empty one, goes through

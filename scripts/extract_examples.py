@@ -38,6 +38,7 @@ import re
 import sys
 
 sys.path.insert(0, "scripts")
+import validate_vectors as vv  # noqa: E402
 from validate_vectors import JsonRejected, strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
 
 PLACEHOLDER = re.compile(r"<[A-Za-z]")
@@ -65,7 +66,7 @@ def is_fragment(body: str) -> bool:
 def load_registry():
     from referencing import Registry, Resource
     schemas = {f.split("/")[-1]: strict_load(f) for f in glob.glob("schemas/*.schema.json")}
-    registry = Registry().with_resources([(j["$id"], Resource.from_contents(j)) for j in schemas.values()])
+    registry = vv.schema_registry(schemas.values())
     return schemas, registry
 
 
@@ -80,9 +81,10 @@ def validator_for(target, schemas, registry):
             if part not in node:
                 raise ValueError(f"unknown target {target}")
             node = node[part]
-    # formats (uri, date-time, uuid, ...) are asserted, not just annotated: validation is complete
-    return Draft202012Validator({"$ref": schemas[name]["$id"] + (f"#{fragment}" if fragment else "")},
-                                registry=registry, format_checker=Draft202012Validator.FORMAT_CHECKER)
+    # formats (uri, uuid, ...) are asserted, not just annotated, with the library's checks; date-time is the
+    # tools' own check (validate_vectors.rfc3339_date_time_valid), the same one the vectors are validated with
+    return vv.arsia_validator({"$ref": schemas[name]["$id"] + (f"#{fragment}" if fragment else "")}, registry,
+                              format_checker=vv.arsia_format_checker(Draft202012Validator.FORMAT_CHECKER))
 
 
 def parse_annotation(text):

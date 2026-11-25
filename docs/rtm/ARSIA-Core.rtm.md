@@ -15,6 +15,7 @@
 | CORE-§2.2-08 | 2.2 | MUST | sdk | behavioural_positive | Response/error/pending_approval/approval_decision messages MUST include correlation_id matching the original request id | arsia-message | CTV-08 | schema-ref:arsia-message; struct:CTV-08; crypto:CTV-08 |
 | CORE-§2.2-09 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST keep the association of an idempotency key as §10.2 specifies: for a retention window never shorter than idempotency.expires_at, except for the safe release of §10.2 item 2 | — | ITV-741 | exec:R25:ITV-741; check:`R25 retention ends at expires_at + tolerance, not at idempotency.expires_at` |
 | CORE-§2.2-10 | 2.2 | MUST | sdk | behavioural_positive | Servers MUST answer a duplicate key received while the association is kept as §10.3 specifies, without executing the request again | — | ITV-741 | exec:R25:ITV-741; check:`R25 a repetition at second 2, after idempotency.expires_at, returns the stored response without execution`; check:`R6 replay with fresh header still dedupes` |
+| CORE-§2.3-01 | 2.3 | MUST | sdk | behavioural_positive | An implementation whose regular expression library differs MUST apply the pattern semantics of §2.3 (ECMA-262: ^ and $ match only the start and the end of the value, digits are ASCII, an unanchored pattern is a search), not the defaults of the library | arsia-message | INV-257, INV-258 | schema-ref:arsia-message; struct:INV-257, INV-258; check:`R27 patterns: the dollar anchor is the end of the value (no final line break), [0-9] is ASCII, the dot excludes the line terminators, an unanchored pattern is a search; dialect-dependent constructs are refused`; check:`R27 validator through references: id with a final line break is rejected by the same field and validator on the schema itself, through a $ref to its root and from another document`; check:`R27 validator through references: an undefined State type (the prefix search) is rejected by the same field and validator on the schema itself, through a $ref to its root and from another document` |
 | CORE-§2.2-11 | 2.2 | MUST | deployment | structural | Data residency zone MUST be an ISO 3166-1 alpha-2 code or supranational ID where processing occurs | arsia-compliance-field | ITV-23 | schema-ref:arsia-compliance-field; struct:ITV-23 |
 | CORE-§2.2-12 | 2.2 | MUST | deployment | procedural | Messages with data_residency MUST route through a compliance broker within the declared zone | — | — | out-of-repo(infrastructure) |
 | CORE-§3.1-01 | 3.1 | MUST | sdk | structural | Agent ID org-segment MUST contain only ASCII letters, digits, or hyphens | arsia-message | — | schema-ref:arsia-message |
@@ -41,6 +42,7 @@
 | CORE-§4.1.3-01 | 4.1.3 | MUST | sdk | structural | Timestamp ts MUST be RFC 3339 UTC with exactly millisecond precision (Z suffix) | arsia-message | INV-03 | schema-ref:arsia-message; struct:INV-03; crypto:INV-03 |
 | CORE-§4.1.3-02 | 4.1.3 | MUST_NOT | sdk | behavioural_negative | Timestamp ts MUST NOT use local timezone offsets | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | CORE-§4.1.3-03 | 4.1.3 | MAY | sdk | behavioural_negative | Recipients MAY reject messages whose ts differs from their time by more than the Core §8.3 tolerance (±300 s default, or the profile's clock_skew_seconds) | — | ITV-408, INV-171 | — |
+| CORE-§4.1.3-04 | 4.1.3 | MUST | sdk | structural | The timestamp MUST denote a real instant of the proleptic Gregorian calendar: the day MUST exist in that month of that year; ARSIA profile: years 0001 to 9999 and seconds 00 to 59 (no year 0000, no leap second), in every field defined with this format | arsia-common | ITV-743, INV-259, INV-260, INV-261, INV-262, INV-263, INV-264, INV-265 | schema-ref:arsia-common; struct:ITV-743, INV-259, INV-260, INV-261, INV-262, INV-263, INV-264, INV-265; exec:R27:ITV-743, INV-259, INV-260, INV-261, INV-262, INV-263, INV-264; check:`R27 timestamp, the ARSIA $def: Z, three fractional digits, years 0001-9999, real calendar days`; check:`R27 a day that does not exist fails only the format; month 13 fails the pattern and the format`; check:`R27 validator through references: ts on a day that does not exist is rejected by the same field and validator on the schema itself, through a $ref to its root and from another document` |
 | CORE-§4.1.4-01 | 4.1.4 | MUST | sdk | structural | The from field MUST be a valid agent identifier per §3.1 grammar | arsia-message | — | schema-ref:arsia-message |
 | CORE-§4.1.4-02 | 4.1.4 | MUST | sdk | behavioural_positive | The from field MUST match the access token sub claim | — | ITV-409 | struct:ITV-409; crypto:ITV-409 |
 | CORE-§4.1.4-03 | 4.1.4 | MUST | sdk | behavioural_negative | Mismatched from vs. token sub MUST cause rejection with error unauthorized | — | ITV-409 | struct:ITV-409; crypto:ITV-409 |
@@ -195,6 +197,9 @@
 | CORE-§5.2-18 | 5.2 | MUST | sdk | behavioural_negative | A document whose member names or strings, literal or escaped, at any depth, contain a surrogate outside a valid pair or a noncharacter MUST be rejected with invalid_request (pipeline step 3, [RFC 7493] §2.1); a valid escaped or literal pair is accepted | — | INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 | raw:INV-164, INV-165, INV-166, INV-167, INV-168, CTV-12, CTV-13 |
 | CORE-§5.2-19 | 5.2 | MUST | sdk | behavioural_negative | A document with duplicate member names at any depth, compared after escape processing, MUST be rejected with invalid_request (pipeline step 4, [RFC 7493] §2.3) | — | INV-158, INV-159, INV-160, CTV-14 | raw:INV-158, INV-159, INV-160, CTV-14 |
 | CORE-§5.2-20 | 5.2 | MUST | sdk | procedural | Pipeline steps 2-4 run in order and establish only well-formed I-JSON text, not a valid, authenticated or authorized message; they add no limit on JSON numbers beyond RFC 8785 and field constraints | — | CTV-11, CTV-15, CTV-16 | raw:CTV-11, CTV-15, CTV-16 |
+| CORE-§5.2-21 | 5.2 | MAY | sdk | behavioural_negative | A recipient MAY limit the nesting depth of the documents it parses (pipeline step 2) | — | CTV-18, CTV-20 | — |
+| CORE-§5.2-22 | 5.2 | MUST | sdk | behavioural_negative | A recipient MUST reject a document that exceeds its nesting limit with error code invalid_request, in pipeline step 2 | — | CTV-18, CTV-20 | raw:CTV-18, CTV-20; exec:R28:CTV-18, CTV-20; check:`R28 limit 32: a document of depth 32 passes, the same document one level deeper is rejected at step 2, and that document passes under a limit of 64`; check:`R28 100000 nested arrays are rejected at step 2 by the depth check, with no interpreter exception; a configured limit beyond what the interpreter supports is still a step 2 rejection` |
+| CORE-§5.2-23 | 5.2 | MUST_NOT | sdk | behavioural_positive | The nesting limit MUST NOT be lower than 32 levels; each open object or array counts one level, the root container is level 1 and scalar values add none | — | CTV-17, CTV-19 | raw:CTV-17, CTV-19; exec:R28:CTV-17, CTV-19; check:`R28 depth: each open object or array is one level, the root container is level 1, scalars add none; brackets, escaped quotes and backslashes inside strings count for nothing`; check:`R28 a limit below 32 levels is refused as a configuration, not applied` |
 | CORE-§5.3-01 | 5.3 | MUST | sdk | structural | Payload encryption requires security.encrypted MUST be set to true | arsia-message | — | schema-ref:arsia-message |
 | CORE-§5.3-02 | 5.3 | MUST | sdk | structural | security.enc_alg and security.enc_method MUST be present when payload is encrypted | arsia-message | — | schema-ref:arsia-message |
 | CORE-§5.3-03 | 5.3 | MUST | sdk | structural | Encrypted payload MUST be a JWE Compact Serialization string per RFC 7516 | arsia-message | ITV-428 | schema-ref:arsia-message; struct:ITV-428 |
@@ -219,7 +224,7 @@
 | CORE-§6.1-04 | 6.1 | REQUIRED | sdk | structural | JWT exp claim MUST be a NumericDate expiration time per RFC 7519 §2 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
 | CORE-§6.1-05 | 6.1 | REQUIRED | sdk | structural | JWT iat claim MUST be a NumericDate issued-at time per RFC 7519 §2 | arsia-jwt-claims | — | schema-ref:arsia-jwt-claims |
 | CORE-§6.1-06 | 6.1 | REQUIRED | sdk | structural | JWT jti claim MUST be a UUID v4 unique token identifier | arsia-jwt-claims | ITV-31 | schema-ref:arsia-jwt-claims; struct:ITV-31 |
-| CORE-§6.1-07 | 6.1 | REQUIRED | sdk | structural | JWT scope claim MUST be a space-separated list of capability strings | arsia-jwt-claims | ITV-32 | schema-ref:arsia-jwt-claims; struct:ITV-32 |
+| CORE-§6.1-07 | 6.1 | REQUIRED | sdk | structural | JWT scope claim MUST be a space-separated list of capability strings, in the grammar of RFC 6749 §3.3: scope tokens of visible ASCII characters other than the double quote and the backslash, separated by exactly one space, with no leading or trailing space; the same grammar in a token request and a token response | arsia-jwt-claims | ITV-32, ITV-744, INV-266, INV-267, INV-268, INV-269, INV-270, INV-271, INV-272, INV-273 | schema-ref:arsia-jwt-claims; struct:ITV-32, ITV-744, INV-266, INV-267, INV-268, INV-269, INV-270, INV-271, INV-272, INV-273; exec:R27:ITV-744, INV-266, INV-267, INV-268, INV-269, INV-270, INV-271, INV-272, INV-273 |
 | CORE-§6.1-08 | 6.1 | OPTIONAL | sdk | structural | JWT cnf claim MAY contain a proof-of-possession confirmation per RFC 9449 | arsia-jwt-claims | ITV-31 | — |
 | CORE-§6.1-09 | 6.1 | MUST | sdk | behavioural_positive | Access token sub claim MUST match the from field of messages presented with that token | — | ITV-431 | struct:ITV-431; untested(structural-only) |
 | CORE-§6.1-10 | 6.1 | MUST | sdk | behavioural_positive | Access token aud claim MUST match the to field of messages presented with that token | — | ITV-432 | struct:ITV-432; untested(structural-only) |
@@ -253,6 +258,8 @@
 | CORE-§6.4-04 | 6.4 | MUST | sdk | behavioural_positive | Token sub claim MUST equal the message from field during enforcement | — | ITV-436 | struct:ITV-436; untested(structural-only) |
 | CORE-§6.4-05 | 6.4 | MUST | sdk | behavioural_positive | Token aud claim MUST equal the message to field (receiving agent's identifier) | — | ITV-437 | struct:ITV-437; untested(structural-only) |
 | CORE-§6.4-06 | 6.4 | MUST | sdk | structural | Capability-denied error MUST include required_capabilities and provided_capabilities in details | arsia-message | — | schema-ref:arsia-message |
+| CORE-§6.4-07 | 6.4 | MUST | sdk | behavioural_negative | The token's scope MUST conform to the grammar of §6.1 as a whole; a token whose scope does not conform MUST be rejected with error code unauthorized before the value is split | arsia-jwt-claims | INV-266, INV-267, INV-268, INV-269, INV-270, INV-271 | schema-ref:arsia-jwt-claims; struct:INV-266, INV-267, INV-268, INV-269, INV-270, INV-271; exec:R27:INV-266, INV-267, INV-268, INV-269, INV-270, INV-271; check:`R27 scope at the receiver: an approval_decision for a pending approval, each case on its own flow — with a single space the approval is admitted and the flow leaves the pending state; with a tab the decision is unauthorized before the comparison of capabilities and the flow stays pending; a well-formed scope without the capability reaches the comparison, is forbidden, and the flow stays pending` |
+| CORE-§6.4-08 | 6.4 | MUST_NOT | sdk | behavioural_negative | White space other than the single space MUST NOT be normalised into separators of the scope | arsia-jwt-claims | INV-267, INV-270 | schema-ref:arsia-jwt-claims; struct:INV-267, INV-270; exec:R27:INV-267, INV-270; check:`R27 scope: the value is validated as a whole before it is split; one space separates tokens and no other white space is normalised (a split on white space would have granted the tab-separated value)` |
 | CORE-§7.1-01 | 7.1 | MUST | sdk | behavioural_positive | Every ARSIA agent MUST expose a discovery endpoint at GET /.well-known/arsia | arsia-discovery-response | ITV-45, ITV-46 | schema-ref:arsia-discovery-response; struct:ITV-45, ITV-46; untested(structural-only) |
 | CORE-§7.1-02 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery endpoint SHOULD set Cache-Control, ETag, Content-Type, and CORS headers | — | — | — |
 | CORE-§7.1-03 | 7.1 | SHOULD | sdk | behavioural_positive | Discovery Cache-Control SHOULD use a max-age appropriate for metadata change rate | — | — | — |
@@ -434,10 +441,10 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 419 |
-| Schema ≠ — | 190 |
-| Vector ≠ — | 171 |
-| Both ≠ — | 96 |
+| Total requirements | 426 |
+| Schema ≠ — | 194 |
+| Vector ≠ — | 178 |
+| Both ≠ — | 100 |
 | Both = — (gaps) | 154 |
 
 ### Per-section breakdown
@@ -445,11 +452,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | § | Total | Schema ≠ — | Vector ≠ — | Both ≠ — | Both = — |
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 1 | 0 | 0 | 0 | 1 |
-| 2 | 12 | 6 | 4 | 2 | 4 |
+| 2 | 13 | 7 | 5 | 3 | 4 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 140 | 84 | 84 | 51 | 23 |
-| 5 | 44 | 11 | 31 | 8 | 10 |
-| 6 | 40 | 24 | 17 | 10 | 9 |
+| 4 | 141 | 85 | 85 | 52 | 23 |
+| 5 | 47 | 11 | 34 | 8 | 10 |
+| 6 | 42 | 26 | 19 | 12 | 9 |
 | 7 | 46 | 25 | 10 | 7 | 18 |
 | 8 | 41 | 9 | 9 | 7 | 30 |
 | 9 | 21 | 4 | 1 | 1 | 17 |

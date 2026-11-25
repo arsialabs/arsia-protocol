@@ -15,6 +15,7 @@ import re
 import sys
 
 sys.path.insert(0, "scripts")
+import validate_vectors as vv  # noqa: E402
 from validate_vectors import strict_json, strict_load  # noqa: E402  (A-61: artifacts load strictly)
 
 FAIL = []
@@ -378,14 +379,13 @@ def diagnostic_parity(core, audit_schema, rules, rules_schema):
 
 def decision_example_problems(identity_text, onboarding_schema, registry, rh):
     """Identity §7.6 decision example validates against its schema; its context_sha256 recomputes."""
-    from jsonschema import Draft202012Validator
     blocks = [b for b in re.findall(r"```json\n(.*?)\n```", identity_text, re.S)
               if '"arsiaprotocol.onboarding/decision"' in b and '"authenticated_context"' in b]
     if len(blocks) != 1:
         return [f"expected one Identity §7.6 decision example with authenticated_context, found {len(blocks)}"]
     ex = json.loads(blocks[0])
     out = [f"schema: {e.message[:90]}" for e in
-           list(Draft202012Validator(onboarding_schema, registry=registry).iter_errors(ex))[:3]]
+           list(vv.arsia_validator(onboarding_schema, registry).iter_errors(ex))[:3]]
     ctx = ex["args"]["authenticated_context"]
     if rh.context_digest(ctx) != ctx.get("context_sha256"):
         out.append("context_sha256 does not recompute (Identity §7.2 Step 7 formula)")
@@ -460,9 +460,8 @@ def _envelope(v):
 def migrated_oversight_problems(vectors, schemas, reg, rh):
     """Migrated pending_approval / approval_decision vectors recompute from test_metadata.reference_request;
     a valid pending's reference request is accepted with prior approval in its effective set."""
-    from jsonschema import Draft202012Validator
     by_id = {v["id"]: v for v in vectors}
-    desc_v = Draft202012Validator(schemas["arsia-action-descriptor.schema.json"], registry=reg)
+    desc_v = vv.arsia_validator(schemas["arsia-action-descriptor.schema.json"], reg)
     out = []
     for v in vectors:
         m = _envelope(v)
@@ -511,8 +510,7 @@ def migrated_oversight_problems(vectors, schemas, reg, rh):
 def onboarding_policy_problems(vectors, schemas, reg, rh):
     """Identity §7.6/§8.1/§8.3: policy_sha256 recomputes from the reference policy, whose evaluation
     over the effective capabilities reproduces freely_allowed and oversight_required."""
-    from jsonschema import Draft202012Validator
-    pol_v = Draft202012Validator(schemas["arsia-capability-policy.schema.json"], registry=reg)
+    pol_v = vv.arsia_validator(schemas["arsia-capability-policy.schema.json"], reg)
     out = []
     for v in vectors:
         d = v.get("data") if v.get("schema_ref") == "arsia-onboarding-decision.schema.json" else None
@@ -687,7 +685,6 @@ def tamper_negative_problems(v, construction):
     import copy
     import rfc8785
     from regen_v2 import signing_input_v2
-    import validate_vectors as vv
     out, env, c = [], vv.crypto_envelope(v), v["crypto"]
     keys = _catalog_keys()
     kid = env["security"]["kid"]
@@ -733,7 +730,6 @@ def kid_key_problems(vectors):
     """K2: a crypto block whose kid is published uses the catalog key for it; signature negatives and relay
     attestations name a published kid."""
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
     keys, out = _catalog_keys(), []
     for v in vectors:
         c = v.get("crypto")
@@ -754,7 +750,6 @@ def alg_mismatch_problems(v):
     the signature verifies under the key's own algorithm, and the declared alg is rejected for incompatibility."""
     sys.path.insert(0, "scripts")
     from regen_v2 import signing_input_v2
-    import validate_vectors as vv
     out, m, c = [], v["message"], v["crypto"]
     declared = m["security"]["alg"]
     pub = bytes.fromhex(c["public_key_hex"])
@@ -921,8 +916,6 @@ def coverage_claim_problems(skip_doc, vectors, passing=None):
     "0 failures" holds against the validator."""
     import subprocess
     sys.path.insert(0, "scripts")
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     harness = open("scripts/runtime_harness.py", encoding="utf-8").read()
     if passing is None:
         run = subprocess.run([sys.executable, "scripts/runtime_harness.py"], capture_output=True, text=True).stdout
@@ -967,7 +960,7 @@ def coverage_claim_problems(skip_doc, vectors, passing=None):
                 fmt, ref, payload = vv.classify_vector(v)
                 schema = vv.resolve_schema(ref, reg)
                 errs = vv.message_errors(payload, schema, reg)[1] if ref == vv.MESSAGE_SCHEMA else \
-                    list(Draft202012Validator(schema, registry=reg).iter_errors(payload))
+                    list(vv.arsia_validator(schema, reg).iter_errors(payload))
                 if errs:
                     out.append(f"'0 failures' stated but {v['id']} is structurally invalid")
     return out
@@ -1024,7 +1017,6 @@ def _resigner_contract_cases(tmp):
     import subprocess
     sys.path.insert(0, "scripts")
     import regen_v2
-    import validate_vectors as vv
     src = "test-vectors/arsia-test-vectors.json"
     original = open(src, encoding="utf-8").read()
     out = []
@@ -1183,8 +1175,7 @@ def unresolved_refs(schemas):
     from referencing import Registry, Resource
     from referencing.jsonschema import DRAFT202012
     from urllib.parse import urljoin
-    reg = Registry().with_resources(
-        [(j["$id"], Resource.from_contents(j, default_specification=DRAFT202012)) for j in schemas.values()])
+    reg = vv.schema_registry(schemas.values())
     out = []
 
     def walk(node, base, name):
@@ -1228,8 +1219,7 @@ def example_annotation_problems():
            "$id": "https://arsiaprotocol.org/schemas/v2.0/syn-ambiguous.schema.json",
            "oneOf": [{"type": "object"}, {"required": ["a"]}]}  # {"a": 1} is valid under BOTH branches
     schemas = dict(schemas, **{"syn-composite.schema.json": syn, "syn-ambiguous.schema.json": amb})
-    registry = registry.with_resources([(syn["$id"], Resource.from_contents(syn)),
-                                        (amb["$id"], Resource.from_contents(amb))])
+    registry = registry.with_resources([(syn["$id"], vv.schema_resource(syn)), (amb["$id"], vv.schema_resource(amb))])
     D = "arsia-message.schema.json#/$defs/error-details-forbidden"
     err = '{"intent": "error", "correlation_id": "7a000000-0000-4000-8000-000000000001", "root_request_id": "7a000000-0000-4000-8000-000000000001", "payload": {"type": "com.acme.test/run", "error": {"description": "d"}}}'
     cases = {  # name -> (annotation line or None, body, must_fail)
@@ -1280,7 +1270,6 @@ def strict_parsing_problems(vectors):
     (4) the meta-schema keeps the raw format exclusive both ways; (5) the scripts load artifacts only through
     strict_load (no json.load on a file)."""
     import subprocess, tempfile
-    from jsonschema import Draft202012Validator
     from validate_vectors import JsonRejected
     out = []
     with tempfile.NamedTemporaryFile("wb", suffix=".json", delete=False) as f:
@@ -1328,7 +1317,7 @@ def strict_parsing_problems(vectors):
         if got != want:
             out.append(f"{v['id']}: {got} != stated {want}")
     meta = strict_load("schemas/arsia-test-vectors.meta.json")
-    mv = Draft202012Validator(meta["$defs"]["test-vector"])
+    mv = vv.arsia_validator(meta["$defs"]["test-vector"])
     base = {"id": "SYN-1", "description": "synthetic", "expected_error": None}
     if mv.is_valid(dict(base, message={}, valid=True, raw_hex="7b7d", expected_parse="accept")):
         out.append("meta-schema accepts a vector mixing message-only and raw")
@@ -1392,7 +1381,7 @@ def check_name_matches(name, passed):
 
 RTM_HEADER = ["ID", "§", "Modal", "Layer", "Kind", "Requirement", "Schema", "Vector", "Evidence"]
 RTM_ROW_LINE = re.compile(r"^\| [A-Z]+-§")
-VECTOR_ID = re.compile(r"^(?:ITV|INV|CTV|STV|ATV|ACTV|RTV)-\d+$")
+VECTOR_ID = re.compile(r"(?:ITV|INV|CTV|STV|ATV|ACTV|RTV)-[0-9]+")   # the whole value: used with fullmatch
 MANDATORY_MODALS = {"MUST", "MUST_NOT", "REQUIRED"}
 EVIDENCE_CODES = {
     "out-of-repo": {"transport", "infrastructure", "operator", "external-party", "implementation-internal"},
@@ -1495,7 +1484,7 @@ def rtm_evidence_problems(rows, results, crypto, harness, consistency, executed=
     for r in rows:
         rid, vec, ev = r["id"], r["vector"], r["evidence"]
         cited = [x.strip() for x in vec.split(",")] if vec != "—" else []
-        bad = [x for x in cited if not VECTOR_ID.match(x)]
+        bad = [x for x in cited if not VECTOR_ID.fullmatch(x)]
         if bad:
             out.append(f"{rid}: Vector column holds {bad}")
         if r["modal"] not in MANDATORY_MODALS:
@@ -1512,7 +1501,7 @@ def rtm_evidence_problems(rows, results, crypto, harness, consistency, executed=
             m = re.match(r"^(struct|raw|crypto|exec:R\d+):(.+)$", t)
             if m:
                 represented |= {x.strip() for x in m.group(2).split(",")}
-        missing = [x for x in cited if VECTOR_ID.match(x) and x not in represented]
+        missing = [x for x in cited if VECTOR_ID.fullmatch(x) and x not in represented]
         if missing:
             out.append(f"{rid}: cited vectors without an execution token: {missing}")
     return out
@@ -1647,7 +1636,7 @@ def corpus_header_problems(doc):
 # ---------------------------------------------------------------- Draft-01.1 port (A-97, A-98, A-99)
 SIGNED_DATA_SCHEMAS = ("arsia-message.schema.json", "arsia-relay-attestation.schema.json")
 SIG_LENGTH = {"EdDSA": 64, "ES256": 64}
-B64URL_NOPAD = re.compile(r"^[A-Za-z0-9_-]*$")
+B64URL_NOPAD = re.compile(r"[A-Za-z0-9_-]*")   # the whole value: used with fullmatch
 
 
 def strict_b64url(s):
@@ -1656,7 +1645,7 @@ def strict_b64url(s):
     bits zero. None otherwise; never raises. The validator's lenient decoder skips characters outside the
     alphabet, so a guard that promises "no other defect" decodes with this one."""
     import base64
-    if not isinstance(s, str) or not B64URL_NOPAD.match(s) or len(s) % 4 == 1:
+    if not isinstance(s, str) or not B64URL_NOPAD.fullmatch(s) or len(s) % 4 == 1:
         return None
     try:
         raw = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
@@ -1675,7 +1664,6 @@ def signed_object(v):
 
 def _key_facts(pub_hex):
     """(key type, RSA bits or None) of a catalog public key; never raises."""
-    import validate_vectors as vv
     try:
         kt = vv._key_type(bytes.fromhex(pub_hex))
     except Exception:  # noqa: BLE001 - an unrecognised key is reported as such
@@ -1719,7 +1707,6 @@ def signature_problems(vectors, catalog):
     declared negative fails exactly for its cause and condition while every other condition holds. Envelopes:
     kid binding to `from` is not part of the default rule (INV-01 has no from); attestations: the signer is the
     broker (kid of broker_id, Routing §7.4.1 step 2). catalog: kid -> entry."""
-    import validate_vectors as vv
     from regen_v2 import signing_input_v2
     out = []
     for v in vectors:
@@ -1844,9 +1831,8 @@ def signature_format_selftest(vectors):
     object (message, or data of a signed-object schema) whose security.sig is a string. The declared corpus
     negatives are the controls; each case below must be rejected by the meta-schema alone."""
     import copy as _copy
-    from jsonschema import Draft202012Validator
     meta = strict_load("schemas/arsia-test-vectors.meta.json")
-    mv = Draft202012Validator(meta["$defs"]["test-vector"])
+    mv = vv.arsia_validator(meta["$defs"]["test-vector"])
     by_id = {v["id"]: v for v in vectors}
     out = []
     declared = [v for v in vectors if "signature_expectation" in v]
@@ -1918,8 +1904,6 @@ def port_fixture_problems(vectors, registry):
     (missing security), ITV-550 (security.alg enum) and, from the main reconciliation (A-100), ITV-201 (legal_basis),
     ITV-266 (reserved state type), ITV-423 (args with result) and ITV-482 (missing security) each fail with exactly
     their announced error."""
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     out = []
     ts_schema = vv.resolve_schema("arsia-asset-transfer-request.schema.json", registry)
     for v in vectors:
@@ -1931,7 +1915,7 @@ def port_fixture_problems(vectors, registry):
         p = m.get("payload") if isinstance(m.get("payload"), dict) else {}
         positive = (v.get("valid") is True or v.get("expected") == "valid") and not v.get("expected_error")
         if p.get("type") == "arsiaprotocol.assets/transfer-request" and m.get("intent") == "request" and positive:
-            errs = list(Draft202012Validator(ts_schema, registry=registry).iter_errors(p.get("args", {})))
+            errs = list(vv.arsia_validator(ts_schema, registry).iter_errors(p.get("args", {})))
             if errs:
                 out.append(f"{v['id']}: transfer-request args do not conform ({errs[0].message[:60]})")
     v426 = next((v for v in vectors if v["id"] == "ITV-426"), None)
@@ -1957,8 +1941,6 @@ def single_cause_problems(vectors, registry, only=None, table=None):
     would accept a second defect next to the announced one, so each fails with exactly its errors. `table`
     defaults to SINGLE_CAUSE; a cycle passes its own."""
     import copy as _copy
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     out = []
     by_id = {v["id"]: v for v in vectors}
     for vid, fmt, ref, want in (SINGLE_CAUSE if table is None else table):
@@ -1975,7 +1957,7 @@ def single_cause_problems(vectors, registry, only=None, table=None):
         elif ref.startswith("arsia-message.schema.json"):
             errs = vv.message_errors(v["data"], schema, registry)[1]
         else:
-            errs = list(Draft202012Validator(schema, registry=registry).iter_errors(v["data"]))
+            errs = list(vv.arsia_validator(schema, registry).iter_errors(v["data"]))
         got = [(e.validator, tuple(e.absolute_path), e.message) for e in errs]
         shown = [(g[0], "/".join(map(str, g[1])), g[2][:50]) for g in got]
         if isinstance(want, str):  # one error, compared by validator and path (its message repeats the instance
@@ -2427,8 +2409,6 @@ def snapshot_hash_problems(vectors, registry):
     whose expected_error is the legacy-prefix expectation: its digest still matches its content, and it fails
     only the pattern of result/hash. Returns (problems, results checked)."""
     import runtime_harness as rh
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     out, n = [], 0
     for v, res in snapshot_results(vectors):
         n += 1
@@ -2445,7 +2425,7 @@ def snapshot_hash_problems(vectors, registry):
         elif legacy:
             schema = vv.resolve_schema(v.get("schema_ref", ""), registry)
             errs = [(e.validator, "/".join(map(str, e.absolute_path))) for e in
-                    Draft202012Validator(schema, registry=registry).iter_errors(v.get("data"))]
+                    vv.arsia_validator(schema, registry).iter_errors(v.get("data"))]
             if v.get("expected") != "invalid" or errs != [("pattern", "result/hash")]:
                 out.append(f"{v['id']}: legacy-prefix negative fails with {errs}, not only pattern at result/hash")
     if n == 0:
@@ -2520,8 +2500,6 @@ def set_fixture_problems(vectors, registry):
     """State cycle (A-120): the SET fixtures of State §8.3 rules 1 and 2 are conformant SET requests — their
     payload.args validate against set-args, the key's scope segment is the declared scope (§3.1.2 rule 2) and the
     key's agent prefix is the sender (rule 1) — so that each one tests only the rule it states."""
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     schema = vv.resolve_schema("arsia-state-operations.schema.json#/$defs/set-args", registry)
     by_id = {v["id"]: v for v in vectors}
     out = []
@@ -2536,7 +2514,7 @@ def set_fixture_problems(vectors, registry):
         if payload.get("type") != "arsiaprotocol.state/set":
             out.append(f"{vid}: not a SET request")
             continue
-        errs = [e.message for e in Draft202012Validator(schema, registry=registry).iter_errors(args)]
+        errs = [e.message for e in vv.arsia_validator(schema, registry).iter_errors(args)]
         if errs:
             out.append(f"{vid}: args fail set-args: {errs[0]}")
         parts = str(args.get("key", "")).split("/")
@@ -2855,13 +2833,11 @@ def escrow_link_self_test():
 def escrow_single_cause_problems(vectors, registry):
     """ITV-92, INV-47 and the escrow negatives fail with exactly their declared errors (single_cause_problems), and
     INV-47's oneOf carries exactly the two presence errors, none on payload_type."""
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     out = single_cause_problems(vectors, registry, table=ESCROW_SINGLE_CAUSE)
     v47 = next((v for v in vectors if v["id"] == "INV-47"), None)
     if v47 is None:
         return out + ["INV-47 missing"]
-    errs = list(Draft202012Validator(vv.resolve_schema(AUDIT_REF, registry), registry=registry).iter_errors(v47["data"]))
+    errs = list(vv.arsia_validator(vv.resolve_schema(AUDIT_REF, registry), registry).iter_errors(v47["data"]))
     ctx = sorted((c.validator, c.message) for e in errs for c in e.context)
     want = [("required", "'actual_timeout' is a required property"),
             ("required", "'cancellation_reason' is a required property")]
@@ -2962,7 +2938,7 @@ def schema_alignment_echo_problems():
 
 # ---------------------------------------------------------------- corpus hygiene cycle (A-127, A-128)
 PAYLOAD_TYPE_KEYS = ("type", "payload_type", "release_trigger", "action_id", "unsupported_type")
-RESERVED_PAYLOAD_TYPE = re.compile(r"^arsiaprotocol(\.[A-Za-z][A-Za-z0-9]*)+(/[A-Za-z][A-Za-z0-9_-]*)*$")
+RESERVED_PAYLOAD_TYPE = re.compile(r"arsiaprotocol(\.[A-Za-z][A-Za-z0-9]*)+(/[A-Za-z][A-Za-z0-9_-]*)*")   # fullmatch
 _AP = "arsiaprotocol."
 # A-127: the arsiaprotocol.* payload types the corpus uses, each with the section that defines it (a corpus-hygiene
 # registry, not a normative reservation of the namespace). The guard checks that the section names the type.
@@ -3011,7 +2987,7 @@ def payload_type_values(vectors):
         elif isinstance(node, list):
             for i, x in enumerate(node):
                 yield from walk(x, f"{path}/{i}", key)
-        elif isinstance(node, str) and key in PAYLOAD_TYPE_KEYS and RESERVED_PAYLOAD_TYPE.match(node):
+        elif isinstance(node, str) and key in PAYLOAD_TYPE_KEYS and RESERVED_PAYLOAD_TYPE.fullmatch(node):
             yield path, node
     for v in vectors:
         for root in ("message", "data", "test_metadata"):
@@ -3512,7 +3488,6 @@ def encrypted_error_matrix_problems(vectors, registry, schema=None):
     payload — variants in memory of the unencrypted error ITV-155 and the encrypted error ITV-742 — and not applied
     to a message that is not an error (the request ITV-741)."""
     import copy as _copy
-    import validate_vectors as vv
     by_id = {v["id"]: v for v in vectors}
     schema = schema or vv.resolve_schema("arsia-message.schema.json", registry)
     plain, enc = by_id["ITV-155"]["message"], by_id["ITV-742"]["message"]
@@ -3679,15 +3654,13 @@ def breach_notification_problems(vectors, registry):
     """Cycle F (F9): schema-ref vectors of arsia-breach-notification: valid ones cover both notification_target
     values with no error; each invalid one declares '<field>: <keyword> — State §5.7' and fails with exactly that
     one error (validator, and the field's path, or the root for required/additionalProperties)."""
-    import validate_vectors as vv
-    from jsonschema import Draft202012Validator
     out = []
     schema = vv.resolve_schema(BREACH_REF, registry)
     targets = set()
     vs = [v for v in vectors if v.get("schema_ref") == BREACH_REF]
     for v in vs:
         errs = [(e.validator, "/".join(map(str, e.absolute_path)), e.message) for e in
-                Draft202012Validator(schema, registry=registry).iter_errors(v.get("data"))]
+                vv.arsia_validator(schema, registry).iter_errors(v.get("data"))]
         if v.get("expected") == "valid":
             targets.add((v.get("data") or {}).get("notification_target"))
             if errs:
@@ -3715,6 +3688,263 @@ def breach_notification_problems(vectors, registry):
     if not row or missing or cited - {v["id"] for v in vs}:
         out.append(f"STATE-§5.7-02 Evidence struct: is not exactly the breach-notification vectors (missing {missing[:3]}, "
                    f"others {sorted(cited - {v['id'] for v in vs})[:3]})")
+    return out
+
+
+# ---- Validation and parsing cycle (A-134, A-137) ----
+VALIDATION_ECHOES = (
+    ("spec/ARSIA-Core.md", "§2.3", "Digits are written `[0-9]` and match ASCII digits only"),
+    ("spec/ARSIA-Core.md", "§2.3", "a value followed by a line break or by any other character does not match it"),
+    ("spec/ARSIA-Core.md", "§2.3", "MUST apply the semantics stated here, not the defaults of the library"),
+    ("spec/ARSIA-Core.md", "§4.1.3", "the day MUST exist in that month of that year"),
+    ("spec/ARSIA-Core.md", "§4.1.3", "years range from `0001` to `9999` and seconds from `00` to `59`"),
+    ("spec/ARSIA-Core.md", "§5.2", "MUST reject a document that exceeds its limit with error code `invalid_request`"),
+    ("spec/ARSIA-Core.md", "§5.2", "the root container is level 1, and scalar values add no level"),
+    ("spec/ARSIA-Core.md", "§6.1", "separated by exactly one space (U+0020), with no leading or trailing space"),
+    ("spec/ARSIA-Core.md", "§6.4", "MUST be rejected with error code `unauthorized` (§11.2) before the value is split"),
+    ("spec/ARSIA-Core.md", "§6.4", "Other white space MUST NOT be normalised into separators"),
+)
+DIALECT_ESCAPE = re.compile(r"\\[dDwWsSbB]")            # class escapes whose meaning depends on the dialect
+PROSE_PATTERN = re.compile(r"`(\^[^`\n]*)`")             # a backticked pattern of the specifications
+TIMESTAMP_PROSE = (("spec/ARSIA-Core.md", 2), ("spec/ARSIA-State.md", 3))
+# written in two parts so that this file does not contain the calls it looks for
+VALIDATOR_CALL = "Draft202012" + "Validator("
+REGISTRY_CALLS = ("Resource.from_" + "contents(", "Regis" + "try()")
+SCOPE_CONTRACTS = (("properties", "scope"), ("$defs", "token-request", "properties", "scope"),
+                   ("$defs", "token-response", "properties", "scope"))
+# (vector, format, schema, the exact set of (validator, instance path) it fails with)
+VALIDATION_SINGLE_CAUSE = (
+    ("INV-255", "message", "arsia-message.schema.json", [("const", "v")]),
+    ("INV-256", "message", "arsia-message.schema.json", [("const", "v")]),
+    ("INV-257", "message", "arsia-message.schema.json", [("pattern", "id")]),
+    ("INV-258", "message", "arsia-message.schema.json", [("pattern", "from")]),
+    ("INV-259", "data", "arsia-key-revocation.schema.json", [("format", "effective_at"), ("pattern", "effective_at")]),
+    ("INV-260", "data", "arsia-key-revocation.schema.json", [("format", "effective_at"), ("pattern", "effective_at")]),
+    ("INV-261", "data", "arsia-key-revocation.schema.json", [("pattern", "effective_at")]),
+    ("INV-262", "data", "arsia-key-revocation.schema.json", [("format", "effective_at")]),
+    ("INV-263", "data", "arsia-key-revocation.schema.json", [("format", "effective_at")]),
+    ("INV-264", "data", "arsia-key-revocation.schema.json", [("pattern", "effective_at")]),
+    ("INV-265", "message", "arsia-message.schema.json", [("format", "ts")]),
+    ("INV-266", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-267", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-268", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-269", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-270", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-271", "data", "arsia-jwt-claims.schema.json", [("pattern", "scope")]),
+    ("INV-272", "data", "arsia-jwt-claims.schema.json#/$defs/token-request", [("pattern", "scope")]),
+    ("INV-273", "data", "arsia-jwt-claims.schema.json#/$defs/token-response", [("pattern", "scope")]),
+)
+
+
+def _schema_patterns(schemas):
+    """Every (file, JSON pointer, pattern) of the `pattern` keyword, and the pointers of any patternProperties."""
+    found, pp = [], []
+
+    def walk(node, name, ptr):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "pattern" and isinstance(v, str):
+                    found.append((name, ptr, v))
+                if k == "patternProperties":
+                    pp.append(f"{name}#{ptr}")
+                walk(v, name, f"{ptr}/{k}")
+        elif isinstance(node, list):
+            for i, v in enumerate(node):
+                walk(v, name, f"{ptr}/{i}")
+    for name, doc in sorted(schemas.items()):
+        walk(doc, name, "")
+    return found, pp
+
+
+def validation_cycle_problems(texts=None, schemas=None, sources=None):
+    """A-134, A-137 anti-regression: the rules are stated in their sections; no pattern of the schemas or of the
+    specifications depends on the dialect and every schema pattern is inside the subset the matcher translates;
+    the timestamp pattern lives only in its $def and the prose repeats it exactly; the three scope contracts share
+    one $def; the depth floor of the prose is the parser's constant; the tools build validators and registries
+    only through validate_vectors."""
+    import glob
+    out = []
+    norm = lambda t: re.sub(r"\s+", " ", t)
+    if texts is None:
+        texts = {f: open(f, encoding="utf-8").read() for f in sorted(glob.glob("spec/*.md"))}
+    if schemas is None:
+        schemas = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    if sources is None:
+        sources = {f: open(f, encoding="utf-8").read() for f in sorted(glob.glob("scripts/*.py"))}
+    for f, sec, needle in VALIDATION_ECHOES:
+        body = spec_section(texts[f], sec)
+        if body is None or needle not in norm(body):
+            out.append(f"{f} {sec}: {needle[:60]!r} is missing")
+    floor = re.search(r"The limit MUST NOT be lower than ([0-9]+) levels", norm(spec_section(texts["spec/ARSIA-Core.md"], "§5.2") or ""))
+    if not floor or int(floor.group(1)) != vv.MIN_DEPTH_LIMIT:
+        out.append(f"Core §5.2 depth floor {floor.group(1) if floor else None} != parser constant {vv.MIN_DEPTH_LIMIT}")
+    found, pp = _schema_patterns(schemas)
+    if pp:
+        out.append(f"patternProperties in {pp[:2]}: the matcher of Core §2.3 covers the pattern keyword only")
+    for name, ptr, pat in found:
+        if DIALECT_ESCAPE.search(pat):
+            out.append(f"{name}#{ptr}: pattern {pat!r} uses a dialect-dependent class escape")
+            continue
+        try:
+            vv.ecma_pattern(pat)
+        except (vv.UnsupportedPattern, re.error) as exc:
+            out.append(f"{name}#{ptr}: pattern outside the matcher's subset ({exc})")
+    for f, t in sorted(texts.items()):
+        for m in PROSE_PATTERN.finditer(t):
+            if DIALECT_ESCAPE.search(m.group(1)):
+                out.append(f"{f}: prose pattern {m.group(1)!r} uses a dialect-dependent class escape")
+    common = schemas["arsia-common.schema.json"]["$defs"]
+    ts = common.get("rfc3339-ms-utc", {})
+    ts_pat = ts.get("pattern", "")
+    if ts.get("format") != "date-time" or "(?!0000)" not in ts_pat or "[0-5][0-9]\\.[0-9]{3}Z$" not in ts_pat:
+        out.append("rfc3339-ms-utc: the $def lacks the date-time format or the ARSIA profile in its pattern")
+    for name, ptr, pat in found:
+        timestamp_like = "T" in pat and pat.endswith("Z$") and "-" in pat
+        if timestamp_like and (name, ptr) != ("arsia-common.schema.json", "/$defs/rfc3339-ms-utc"):
+            out.append(f"{name}#{ptr}: a copy of the timestamp pattern outside the $def")
+    for f, n in TIMESTAMP_PROSE:
+        got = texts[f].count(f"`{ts_pat}`")
+        if got != n:
+            out.append(f"{f}: the timestamp pattern of the $def appears {got} times, expected {n}")
+    scope_pat = common.get("oauth-scope", {}).get("pattern")
+    if scope_pat != "^[\\x21\\x23-\\x5B\\x5D-\\x7E]+( [\\x21\\x23-\\x5B\\x5D-\\x7E]+)*$":
+        out.append("oauth-scope: the $def is missing or is not the RFC 6749 §3.3 grammar")
+    for path in SCOPE_CONTRACTS:
+        node = schemas["arsia-jwt-claims.schema.json"]
+        for part in path:
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        if node.get("$ref") != "arsia-common.schema.json#/$defs/oauth-scope" or "pattern" in node:
+            out.append(f"arsia-jwt-claims.schema.json#/{'/'.join(path)}: does not reference the oauth-scope $def")
+    for f, src in sorted(sources.items()):
+        if VALIDATOR_CALL in src:
+            out.append(f"{f}: builds a validator outside validate_vectors.arsia_validator")
+        if not f.endswith("validate_vectors.py") and any(call in src for call in REGISTRY_CALLS):
+            out.append(f"{f}: builds a registry outside validate_vectors (a document with $schema loses the validator)")
+    return out
+
+
+def validation_cycle_self_test():
+    """Synthetic: the real artifacts pass; each kind of regression is reported."""
+    import copy as _copy
+    import glob
+    texts = {f: open(f, encoding="utf-8").read() for f in sorted(glob.glob("spec/*.md"))}
+    schemas = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    sources = {"scripts/x.py": "v = vv.arsia_validator(schema, registry)\n", "scripts/validate_vectors.py": REGISTRY_CALLS[1] + "\n"}
+    if validation_cycle_problems(texts, schemas, sources):
+        return ["the real artifacts are reported (the cases are built from them)"]
+    out = []
+
+    def text_case(f, old, new):
+        t = dict(texts)
+        pat = re.compile(r"\s+".join(re.escape(w) for w in old.split()))
+        if len(pat.findall(t[f])) != 1:
+            out.append(f"self-test fixture: {old[:40]!r} not found once in {f}")
+            return texts, schemas, sources
+        t[f] = pat.sub(lambda _m: new, t[f])
+        return t, schemas, sources
+
+    def schema_case(edit):
+        sc = _copy.deepcopy(schemas)
+        edit(sc)
+        return texts, sc, sources
+    common = "arsia-common.schema.json"
+    claims = "arsia-jwt-claims.schema.json"
+    ts_pat = schemas[common]["$defs"]["rfc3339-ms-utc"]["pattern"]
+    cases = {
+        "§2.3 without the MUST": (text_case("spec/ARSIA-Core.md", "MUST apply the semantics stated here", "may apply the semantics stated here"), "§2.3:"),
+        "§5.2 floor changed": (text_case("spec/ARSIA-Core.md", "The limit MUST NOT be lower than 32 levels", "The limit MUST NOT be lower than 16 levels"), "depth floor 16"),
+        "§6.4 split before validation": (text_case("spec/ARSIA-Core.md", "before the value is split", "after the value is split"), "§6.4:"),
+        "\\d back in a schema": (schema_case(lambda sc: sc[common]["$defs"]["uuid-v4"].update(pattern="^\\d+$")), "dialect-dependent class escape"),
+        "a look-behind in a schema": (schema_case(lambda sc: sc[common]["$defs"]["uuid-v4"].update(pattern="^(?<=a)b$")), "outside the matcher's subset"),
+        "an escape only Python reads in a schema": (schema_case(lambda sc: sc[common]["$defs"]["uuid-v4"].update(pattern="\\Acat")), "outside the matcher's subset"),
+        "an empty negated class in a schema": (schema_case(lambda sc: sc[common]["$defs"]["uuid-v4"].update(pattern="^a[^]$")), "outside the matcher's subset"),
+        "patternProperties": (schema_case(lambda sc: sc[common].update(patternProperties={"^x": {}})), "patternProperties"),
+        "\\d back in the prose": ((dict(texts, **{"spec/ARSIA-Actions.md": texts["spec/ARSIA-Actions.md"] + "\n`^\\d+$`\n"}), schemas, sources), "prose pattern"),
+        "timestamp format removed": (schema_case(lambda sc: sc[common]["$defs"]["rfc3339-ms-utc"].pop("format")), "lacks the date-time format"),
+        "timestamp pattern without the year rule": (schema_case(lambda sc: sc[common]["$defs"]["rfc3339-ms-utc"].update(pattern=ts_pat.replace("(?!0000)", ""))), "lacks the date-time format or the ARSIA profile"),
+        "timestamp pattern copied": (schema_case(lambda sc: sc[claims]["properties"].update(nbf_text={"type": "string", "pattern": ts_pat})), "a copy of the timestamp pattern"),
+        "prose timestamp differs": ((dict(texts, **{"spec/ARSIA-State.md": texts["spec/ARSIA-State.md"].replace(f"`{ts_pat}`", "`^x$`", 1)}), schemas, sources), "appears 2 times, expected 3"),
+        "scope copy in a contract": (schema_case(lambda sc: sc[claims]["$defs"]["token-request"]["properties"].update(scope={"type": "string", "pattern": "^\\S+$"})), "does not reference the oauth-scope $def"),
+        "scope grammar loosened": (schema_case(lambda sc: sc[common]["$defs"]["oauth-scope"].update(pattern="^[!-~]+( +[!-~]+)*$")), "is not the RFC 6749 §3.3 grammar"),
+        "validator outside the factory": ((texts, schemas, dict(sources, **{"scripts/y.py": VALIDATOR_CALL + "schema)\n"})), "builds a validator outside"),
+        "registry outside validate_vectors": ((texts, schemas, dict(sources, **{"scripts/y.py": REGISTRY_CALLS[1] + ".with_resources([])\n"})), "builds a registry outside"),
+    }
+    for name, (args, needle) in cases.items():
+        if not any(needle in p for p in validation_cycle_problems(*args)):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+def validator_reference_problems(vectors, registry=None, make=None, docs=None):
+    """A-134: the validator of the tools keeps the Core §2.3 pattern semantics and the date-time assertion when a
+    schema is reached through a $ref — the same rejection, by the same field and validator, on the schema itself,
+    through a $ref to its root and from another document — and a prefix pattern is still a search (the State
+    namespace conditional fires for arsiaprotocol.state/get and rejects an undefined State type)."""
+    import glob
+    docs = docs or {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    registry = registry or vv.schema_registry(docs.values())
+    make = make or vv.arsia_validator
+    root = docs["arsia-message.schema.json"]
+    by_id = {v["id"]: v for v in vectors}
+    good, state = by_id["CTV-01"]["message"], by_id["STV-01"]["message"]
+    paths = (("the schema itself", root, lambda x: x, ""), ("a $ref to its root", {"$ref": root["$id"]}, lambda x: x, ""),
+             ("another document", {"type": "object", "properties": {"m": {"$ref": root["$id"]}}}, lambda x: {"m": x}, "m/"))
+    cases = (("id with a final line break", dict(good, id=good["id"] + "\n"), [("pattern", "id")]),
+             ("ts on a day that does not exist", dict(good, ts="2026-02-30T00:00:00.000Z"), [("format", "ts")]),
+             ("an undefined State type", dict(state, payload=dict(state["payload"], type="arsiaprotocol.state/export")),
+              [("enum", "payload/type")]),
+             ("CTV-01 unchanged", good, []), ("STV-01 unchanged (a State get)", state, []))
+    out = []
+    if not str(state["payload"].get("type", "")).startswith("arsiaprotocol.state/"):
+        out.append("STV-01 is no longer a State operation")
+    for label, schema, wrap, prefix in paths:
+        for name, message, want in cases:
+            got = sorted((e.validator, "/".join(map(str, e.absolute_path))) for e in make(schema, registry).iter_errors(wrap(message)))
+            if got != [(vd, prefix + pth) for vd, pth in want]:
+                out.append(f"{name}, through {label}: {got}")
+    return out
+
+
+def validator_reference_self_test(vectors):
+    """Synthetic: with the registry holding the documents as published (their $schema kept), the library hands a
+    referenced document to its standard validator and the two indirect paths lose the rejection; with the Python
+    pattern search in place of the Core §2.3 matcher the direct path loses it too."""
+    import glob
+    from jsonschema import Draft202012Validator as _Std
+    from referencing import Registry as _Reg, Resource as _Res
+    docs = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    as_published = getattr(_Res, "from_" + "contents")
+    kept = _Reg().with_resources([(d["$id"], as_published(d)) for d in docs.values() if "$id" in d])
+    with_schema = validator_reference_problems(vectors, registry=kept, make=lambda s, r: vv._ArsiaValidator(
+        s, registry=r, format_checker=vv.ARSIA_FORMATS))
+    plain = validator_reference_problems(vectors, make=lambda s, r: _Std(
+        {k: v for k, v in s.items() if k != "$schema"}, registry=r))
+    out = []
+    if not any("a $ref to its root" in p for p in with_schema) or not any("another document" in p for p in with_schema):
+        out.append("a registry that keeps $schema is not reported on the indirect paths")
+    if any("the schema itself" in p and "final line break" in p for p in with_schema):
+        out.append("fixture: the direct path was expected to keep the validator")
+    if not any("the schema itself" in p and "final line break" in p for p in plain):
+        out.append("the standard validator (Python pattern search) is not reported")
+    return out
+
+
+def validation_single_cause_problems(vectors, registry):
+    """The cycle's negatives fail in one field, with exactly the declared set of (validator, instance path)."""
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for vid, fmt, ref, want in VALIDATION_SINGLE_CAUSE:
+        v = by_id.get(vid)
+        key = "message" if fmt == "message" else "data"
+        if not v or not isinstance(v.get(key), dict) or (fmt == "data" and v.get("schema_ref") != ref):
+            out.append(f"{vid} is not a {fmt} vector of {ref}")
+            continue
+        schema = vv.resolve_schema(ref, registry)
+        errs = vv.message_errors(v[key], schema, registry)[1] if fmt == "message" else \
+            list(vv.arsia_validator(schema, registry).iter_errors(v[key]))
+        got = sorted((e.validator, "/".join(map(str, e.absolute_path))) for e in errs)
+        if got != sorted(want) or len({pth for _, pth in got}) != 1:
+            out.append(f"{vid} fails with {got}, declared {sorted(want)}")
     return out
 
 
@@ -3747,10 +3977,8 @@ def main() -> int:
     try:
         from referencing import Registry, Resource
 
-        reg = Registry().with_resources(
-            [(j["$id"], Resource.from_contents(j)) for j in schemas.values()]
-        )
-        v = Draft202012Validator(schemas["arsia-message.schema.json"], registry=reg)
+        reg = vv.schema_registry(schemas.values())
+        v = vv.arsia_validator(schemas["arsia-message.schema.json"], reg)
         doc = strict_load("test-vectors/arsia-test-vectors.json")
         sample = next(x for x in doc["vectors"] if x["id"] == "CTV-01")["message"]
         check("strict $ref resolution (CTV-01)", not list(v.iter_errors(sample)))
@@ -3769,7 +3997,7 @@ def main() -> int:
     # profiles catalog validates against its own schema (N-02)
     catalog = strict_load("profiles/arsia-compliance-profiles.json")
     errs = list(
-        Draft202012Validator(schemas["arsia-compliance-profiles.schema.json"]).iter_errors(catalog)
+        vv.arsia_validator(schemas["arsia-compliance-profiles.schema.json"]).iter_errors(catalog)
     )
     check("profiles catalog valid", not errs, "; ".join(e.message[:60] for e in errs[:3]))
     probs = retention_parity_problems(open("spec/ARSIA-State.md", encoding="utf-8").read(), catalog)
@@ -4141,12 +4369,12 @@ def main() -> int:
     sys.path.insert(0, "scripts")
     import runtime_harness as rh
     from referencing import Registry, Resource
-    reg = Registry().with_resources([(j["$id"], Resource.from_contents(j)) for j in schemas.values()])
+    reg = vv.schema_registry(schemas.values())
     rules = strict_load("profiles/arsia-obligation-rules.json")
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     identity_text = open("spec/ARSIA-Identity.md", encoding="utf-8").read()
     routing_text = open("spec/ARSIA-Routing.md", encoding="utf-8").read()
-    errs = list(Draft202012Validator(schemas["arsia-obligation-rules.schema.json"]).iter_errors(rules))
+    errs = list(vv.arsia_validator(schemas["arsia-obligation-rules.schema.json"]).iter_errors(rules))
     check("obligation rules artifact valid against its schema", not errs, "; ".join(e.message[:60] for e in errs[:3]))
     probs = resolution_vector_mismatches(vectors, rh)
     check("runtime resolution vectors: expected results == reference resolver (Core §4.3.10)", not probs,
@@ -4233,7 +4461,6 @@ def main() -> int:
     check("(gateway, policy_version) -> one policy digest (Identity §8.1)", not probs, "; ".join(probs[:4]))
 
     # Draft-01.1 port (A-97, A-98, A-99)
-    import validate_vectors as vv
     kp_doc = strict_load("test-vectors/keypairs.json")
     catalog = {e["kid"]: e for e in kp_doc["keypairs"].values()}
     corpus_vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
@@ -4347,8 +4574,25 @@ def main() -> int:
     probs = single_cause_problems(corpus_vectors, registry, table=SECURITY_CONTRACTS_SINGLE_CAUSE)
     check("INV-252 fails for its declared cause only", not probs, "; ".join(probs[:4]))
 
+    # Validation and parsing cycle (A-134, A-137)
+    probs = validation_cycle_problems()
+    check("Validation and parsing cycle anti-regression: the pattern dialect, calendar timestamps, the scope grammar "
+          "and the nesting limit are stated; no pattern depends on the dialect; one timestamp $def, one scope $def; "
+          "validators and registries only through validate_vectors (A-134, A-137)", not probs, "; ".join(probs[:4]))
+    probs = validation_cycle_self_test()
+    check("validation and parsing cycle self-test: each regression reported", not probs, "; ".join(probs[:4]))
+    probs = validator_reference_problems(corpus_vectors)
+    check("validator through references: the same rejection by the same field on the schema itself, through a $ref "
+          "to its root and from another document; the State prefix search preserved (CTV-01, STV-01; A-134)",
+          not probs, "; ".join(probs[:4]))
+    probs = validator_reference_self_test(corpus_vectors)
+    check("validator through references self-test: a registry that keeps $schema and the standard pattern search "
+          "are reported", not probs, "; ".join(probs[:4]))
+    probs = validation_single_cause_problems(corpus_vectors, registry)
+    check("INV-255..INV-273 fail in one field with exactly their declared validators (A-134)",
+          not probs, "; ".join(probs[:4]))
+
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
-    import validate_vectors as vv
     corpus = strict_load("test-vectors/arsia-test-vectors.json")
     probs = corpus_header_problems(corpus)
     check("test-vector corpus header: Draft-02 corpus 2.0.0 (wire 2.0), generated set, $schema kept (SC4)",

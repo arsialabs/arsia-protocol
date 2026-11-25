@@ -66,6 +66,7 @@ See LICENSE-SPEC.md for full terms.
 2. [Conventions and Terminology](#2-conventions-and-terminology)
    1. [RFC 2119 Keywords](#21-rfc-2119-keywords)
    2. [Definitions](#22-definitions)
+   3. [Regular Expression Patterns](#23-regular-expression-patterns)
 3. [Agent Identifier Format](#3-agent-identifier-format)
    1. [ABNF Grammar](#31-abnf-grammar)
    2. [Examples](#32-examples)
@@ -479,6 +480,19 @@ through a compliance broker whose physical infrastructure resides entirely withi
 declared zone (§9.2). The data residency constraint applies to all processing of the
 message, including temporary storage, logging, and audit trail generation.
 
+### 2.3 Regular Expression Patterns
+
+Patterns given in the ARSIA specifications and in the `pattern` keyword of the JSON
+Schemas are regular expressions of the ECMA-262 dialect [ECMA-262], as JSON Schema uses
+them. `^` and `$` match only the start and the end of the value: a pattern anchored at
+both ends describes the whole value, and a value followed by a line break or by any
+other character does not match it. Digits are written `[0-9]` and match ASCII digits
+only. A pattern without an anchor is a search: it matches a value that contains it, and
+the specifications use that form only where a prefix or an infix selects a rule. An
+implementation whose regular expression library behaves otherwise — for example one in
+which `$` also matches before a final line break — MUST apply the semantics stated here,
+not the defaults of the library.
+
 ---
 
 ## 3. Agent Identifier Format
@@ -628,7 +642,7 @@ is missing any of these fields is invalid and MUST be rejected with error code
 
 - **Type:** string
 - **Format:** Major and minor version, dot-separated.
-- **Pattern:** `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`
+- **Pattern:** `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`
 - **Current value:** `"2.0"`
 - **Constraints:** The `v` field declares the protocol version used to construct this
   message. The version string consists of a major version number and a minor version
@@ -689,12 +703,19 @@ is missing any of these fields is invalid and MUST be rejected with error code
 - **Type:** string
 - **Format:** RFC 3339 [RFC 3339] date-time with mandatory millisecond precision and
   UTC timezone designator.
-- **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+- **Pattern:** `^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`
 - **Example:** `"2026-03-24T14:30:00.000Z"`
 - **Constraints:** The `ts` field records the moment the sender constructed this
   message. The timestamp MUST be expressed in UTC (indicated by the `Z` suffix) with
   exactly three fractional digits (millisecond precision). Implementations MUST NOT
-  use local timezone offsets. Recipients MAY reject messages whose `ts` value differs
+  use local timezone offsets. The value MUST denote a real instant of the proleptic
+  Gregorian calendar: the day MUST exist in that month of that year.
+  `2026-02-30T00:00:00.000Z` is invalid; `2000-02-29T00:00:00.000Z` is valid and
+  `2100-02-29T00:00:00.000Z` is not. *ARSIA profile:* [RFC 3339] §1 covers the years
+  `0000` to `9999` and §5.7 admits the second `60` at the insertion of a leap second;
+  ARSIA timestamps admit neither the year `0000` nor the second `60` — years range
+  from `0001` to `9999` and seconds from `00` to `59`. These rules apply to every
+  ARSIA field defined with this format. Recipients MAY reject messages whose `ts` value differs
   from the recipient's current time by more than the clock skew tolerance defined in
   §8.3 (±300 seconds by default, or the applicable compliance profile's
   `clock_skew_seconds`).
@@ -805,7 +826,7 @@ and the field is absent, the message is invalid and MUST be rejected with error 
 - **Type:** string
 - **Format:** RFC 3339 [RFC 3339] date-time with mandatory millisecond precision and
   UTC timezone designator.
-- **Pattern:** `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$`
+- **Pattern:** `^(?!0000)[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\.[0-9]{3}Z$`
 - **Condition:** REQUIRED when `intent` is `"request"` or `"pending_approval"`.
 - **Constraints:** The `expires_at` field declares the absolute timestamp after which
   this message MUST NOT be processed. The timestamp format is identical to the `ts`
@@ -872,7 +893,7 @@ When present, they MUST conform to the formats and constraints defined below.
 
 - **Type:** string
 - **Format:** Major and minor version, dot-separated.
-- **Pattern:** `^\d+\.\d+$`
+- **Pattern:** `^[0-9]+\.[0-9]+$`
 - **Constraints:** The `min_v` field declares the minimum protocol version that the
   sender is willing to accept in a response. If the recipient's maximum supported
   version is less than `min_v`, the recipient MUST reject the message with error code
@@ -1042,7 +1063,7 @@ The `compliance` object contains the following sub-fields:
 - **Format:** ISO 8601 duration, restricted to the subset
   `P[nY][nM][nD]` — one or more of years, months, and days components, in that
   order, with non-negative integer values and no time (`T`) components. Pattern:
-  `^P(?=\d)(\d+Y)?(\d+M)?(\d+D)?$`. Examples: `"P180D"`, `"P6M"`, `"P1827D"`,
+  `^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$`. Examples: `"P180D"`, `"P6M"`, `"P1827D"`,
   `"P5Y"`.
 - **OPTIONAL.** Default: the profile's retention minimum (ARSIA-State.md §6).
 - **Description:** The minimum period for which the audit record for this message
@@ -1729,7 +1750,7 @@ contain additional fields depending on the message intent.
 - **Type:** string
 - **OPTIONAL.**
 - **Format:** Major and minor version, dot-separated.
-- **Pattern:** `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`
+- **Pattern:** `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`
 - **Constraints:** The `version` field indicates the version of the payload schema
   identified by `type`. **When absent, the version is exactly `"1.0"`** — the base
   version of every payload type. (Draft-01's "latest version known to the receiving
@@ -1974,7 +1995,12 @@ unauthenticated senders, avoids rejecting forward-compatible messages prematurel
 and ensures profile resolution never runs over unauthenticated input. The order is:
 
 1. Enforce transport size limits (§8.1, `payload_too_large`).
-2. Parse the JSON document.
+2. Parse the JSON document. A recipient MAY limit the nesting depth of the documents
+   it parses ([RFC 8259] §9) and MUST reject a document that exceeds its limit with
+   error code `invalid_request`, in this step. The limit MUST NOT be lower than 32
+   levels. Each open object or array counts one level: the root container is level 1,
+   and scalar values add no level. *ARSIA profile:* [RFC 8259] permits depth limits;
+   the floor of 32 is an interoperability decision of this specification.
 3. Enforce I-JSON conformance ([RFC 7493] §2.1): the document is UTF-8, and no
    member name or string value — written literally or as an escape, at any depth —
    contains a surrogate code point outside a valid surrogate pair, or a
@@ -2257,6 +2283,11 @@ The `scope` claim MUST contain, as a space-separated string, capability identifi
 that cover all capabilities listed in the `capabilities` field of any message presented
 with this token.
 
+The `scope` value follows [RFC 6749] §3.3: one or more scope tokens separated by
+exactly one space (U+0020), with no leading or trailing space. A scope token is one or
+more visible ASCII characters other than `"` and `\` (%x21 / %x23-5B / %x5D-7E). The
+same grammar applies to the `scope` of a token request and of a token response (§6.2).
+
 Token lifetime SHOULD be short — a maximum of 3600 seconds (1 hour) is RECOMMENDED.
 For high-risk compliance profiles, a maximum of 300 seconds (5 minutes) is
 RECOMMENDED.
@@ -2416,8 +2447,11 @@ message. The enforcement procedure is as follows:
      identifier), and MUST be within the audience policy configured for the issuer
      (§6.5).
 
-4. **Extract the granted scope** from the token's `scope` claim. Parse the
-   space-separated string into a set of capability strings.
+4. **Extract the granted scope** from the token's `scope` claim. The value MUST
+   conform to the grammar of §6.1 as a whole; a token whose `scope` does not conform
+   MUST be rejected with error code `unauthorized` (§11.2) before the value is split.
+   Other white space MUST NOT be normalised into separators. Split the conforming
+   value at its single spaces into a set of capability strings.
 
 5. **Compare against required capabilities.** For each capability listed in the
    message's `capabilities` array (§4.2.3), verify that the granted scope set
@@ -4319,6 +4353,9 @@ RFC 8615, DOI 10.17487/RFC8615, May 2019.
 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens", RFC 8705,
 DOI 10.17487/RFC8705, February 2020.
 
+**[RFC 8259]** Bray, T., Ed., "The JavaScript Object Notation (JSON) Data Interchange
+Format", STD 90, RFC 8259, DOI 10.17487/RFC8259, December 2017.
+
 **[RFC 8785]** Rundgren, A., Jordan, B., and S. Erdtman, "JSON Canonicalization
 Scheme (JCS)", RFC 8785, DOI 10.17487/RFC8785, June 2020.
 
@@ -4328,6 +4365,9 @@ DOI 10.17487/RFC9449, September 2023.
 
 **[RFC 9562]** Davis, K., Peabody, B., and P. Leach, "Universally Unique Identifiers
 (UUIDs)", RFC 9562, DOI 10.17487/RFC9562, May 2024.
+
+**[ECMA-262]** Ecma International, "ECMAScript Language Specification", Standard
+ECMA-262. https://ecma-international.org/publications-and-standards/standards/ecma-262/
 
 **[W3C-TraceContext]** W3C, "Trace Context", W3C Recommendation, February 2020.
 https://www.w3.org/TR/trace-context/

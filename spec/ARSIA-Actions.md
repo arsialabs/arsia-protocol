@@ -885,7 +885,7 @@ semantics.
 
 - **Type:** array of strings
 - **OPTIONAL.** Default: `["1.0"]`.
-- **Format:** Each entry matches `^(0|[1-9]\d*)\.(0|[1-9]\d*)$`; entries MUST be
+- **Format:** Each entry matches `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`; entries MUST be
   unique.
 - **Constraints:** The payload schema versions this agent accepts for this action.
   This is the **proactive discovery surface** for action versioning (§2.4): during

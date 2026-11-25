@@ -15,7 +15,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, ValidationError
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError, validators
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -95,27 +95,69 @@ def _build(node):
     return node
 
 
-def strict_json(raw: bytes):
-    """Core §5.2 steps 2-4 over the exact received bytes; returns the document or raises JsonRejected."""
+# Core §5.2 step 2: a recipient MAY limit the nesting depth; the limit MUST NOT be lower than 32 levels.
+MIN_DEPTH_LIMIT = 32
+# A JSON string (escapes included) as one token, or one structural bracket: brackets inside strings never count.
+_NESTING_TOKEN = re.compile(r'"(?:[^"\\]|\\.)*"|[\[\]{}]', re.S)
+# int() never applies the interpreter's int-from-string digit limit to a string this short, whatever limit is
+# configured (PYTHONINTMAXSTRDIGITS, -X int_max_str_digits): the lowest limit Python accepts is this threshold.
+_INT_CHUNK = sys.int_info.str_digits_check_threshold
+
+
+def nesting_depth(text: str, stop_above: int | None = None) -> int:
+    """The nesting depth of a JSON text as Core §5.2 step 2 counts it: each open object or array is one level,
+    the root container is level 1 and scalar values add none. Iterative, so it does not depend on the
+    interpreter's recursion; with stop_above it returns as soon as the depth exceeds that value."""
+    depth = deepest = 0
+    for m in _NESTING_TOKEN.finditer(text):
+        tok = m.group()
+        if tok in ("[", "{"):
+            depth += 1
+            if depth > deepest:
+                deepest = depth
+                if stop_above is not None and deepest > stop_above:
+                    return deepest
+        elif tok in ("]", "}"):
+            depth -= 1
+    return deepest
+
+
+def _parse_int(token: str) -> int:
+    """A JSON integer of any length, converted in chunks no longer than the lowest digit limit the interpreter
+    can be configured with: steps 2-4 add no limit on numbers, and the interpreter-wide int-from-string digit
+    limit is neither met nor changed, whatever its configured value."""
+    negative = token.startswith("-")
+    digits = token[1:] if negative else token
+    value = 0
+    for i in range(0, len(digits), _INT_CHUNK):
+        chunk = digits[i:i + _INT_CHUNK]
+        value = value * 10 ** len(chunk) + int(chunk)
+    return -value if negative else value
+
+
+def strict_json(raw: bytes, max_depth: int = MIN_DEPTH_LIMIT):
+    """Core §5.2 steps 2-4 over the exact received bytes; returns the document or raises JsonRejected.
+    max_depth is this recipient's nesting limit (step 2), never lower than MIN_DEPTH_LIMIT; the excess is
+    detected before the document is parsed."""
+    if max_depth < MIN_DEPTH_LIMIT:
+        raise ValueError(f"a nesting limit below {MIN_DEPTH_LIMIT} levels is not conformant (Core §5.2 step 2)")
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         raise JsonRejected(2, f"not UTF-8: {exc.reason} at byte {exc.start}") from None
-    # Steps 2-4 add no limit on JSON numbers: Python's int-from-string digit limit (4300 by default) is
-    # lifted for the parse, so a long integer stays an integer and is left to RFC 8785 and field constraints.
-    digits = sys.get_int_max_str_digits()
-    sys.set_int_max_str_digits(0)
+    if nesting_depth(text, stop_above=max_depth) > max_depth:
+        raise JsonRejected(2, f"nesting deeper than {max_depth} levels")
     try:
-        tree = json.loads(text, object_pairs_hook=_Pairs, parse_constant=_reject_constant)
+        tree = json.loads(text, object_pairs_hook=_Pairs, parse_constant=_reject_constant, parse_int=_parse_int)
+        _check_ijson(tree)
+        _check_unique(tree)
+        return _build(tree)
     except JsonRejected:
         raise
+    except RecursionError:   # a configured limit above what this interpreter's recursion supports
+        raise JsonRejected(2, "nesting deeper than this parser supports") from None
     except ValueError as exc:
         raise JsonRejected(2, f"not JSON: {exc}") from None
-    finally:
-        sys.set_int_max_str_digits(digits)
-    _check_ijson(tree)
-    _check_unique(tree)
-    return _build(tree)
 
 
 def strict_load(path):
@@ -125,7 +167,177 @@ def strict_load(path):
     except JsonRejected as exc:
         sys.exit(f"ERROR: {path}: rejected at Core §5.2 {exc}")
 
-_ERROR_CODE_RE = re.compile(r"^[a-z]+(_[a-z]+)*$")
+
+# --------------------------------------------------------------------------- patterns and formats (A-134)
+# Core §2.3: patterns are ECMA-262 regular expressions as JSON Schema uses them. `$` matches only the end of the
+# value and digits are ASCII; Python's `re` differs on both (`$` also matches before a final line feed, `\d`
+# matches any Unicode digit), so the schemas are matched through this translation, never through `re` directly.
+class UnsupportedPattern(ValueError):
+    """A pattern outside the subset this translation covers (the guard keeps every schema pattern inside it)."""
+
+
+_ECMA_DOT = "[^\n\r\u2028\u2029]"     # ECMA-262 `.`: any character except the four line terminators
+_PATTERN_CACHE: dict[str, re.Pattern] = {}
+_SYNTAX_ESCAPES = frozenset("^$\\.*+?()[]{}|/")   # ECMA-262 SyntaxCharacter and `/`: the identity escapes
+_HEX_ESCAPE = re.compile(r"[0-9A-Fa-f]{2}")
+
+
+def ecma_pattern(pattern: str) -> re.Pattern:
+    """Compiles an ECMA-262 pattern of the subset the ARSIA schemas use into an equivalent Python pattern:
+    `$` becomes the end of the value, `.` excludes the ECMA line terminators. The escapes accepted are a closed
+    list: a backslash before an ECMA-262 syntax character or `/`, before `-` inside a character class, and the
+    two-digit hexadecimal escape. Every other escape is refused — the class escapes whose meaning differs between
+    dialects (d, w, s, b and their negations), back-references, and the escapes only Python reads (A, Z and the
+    like) — as are named groups, look-behind, inline flags, possessive quantifiers and the empty classes `[]`
+    and `[^]`, which the two dialects read differently. A translated pattern Python cannot compile is refused
+    the same way, as UnsupportedPattern, never as an error of the `re` module. The result is used with
+    .search(), so an unanchored pattern stays a search."""
+    if pattern in _PATTERN_CACHE:
+        return _PATTERN_CACHE[pattern]
+    out, i, n, in_class, quantified = [], 0, len(pattern), False, False
+    while i < n:
+        ch = pattern[i]
+        if ch == "\\":
+            if i + 1 >= n:
+                raise UnsupportedPattern(f"{pattern!r}: trailing backslash")
+            nxt = pattern[i + 1]
+            quantified = False
+            if nxt == "x" and _HEX_ESCAPE.fullmatch(pattern[i + 2:i + 4]):
+                out.append(pattern[i:i + 4])
+                i += 4
+                continue
+            if nxt not in _SYNTAX_ESCAPES and not (in_class and nxt == "-"):
+                raise UnsupportedPattern(f"{pattern!r}: \\{nxt} is outside the supported subset")
+            out.append(ch + nxt)
+            i += 2
+            continue
+        if not in_class and ch == "+" and quantified:
+            raise UnsupportedPattern(f"{pattern!r}: a possessive quantifier is outside the supported subset")
+        quantified = not in_class and ch in "*+?}"
+        if in_class:
+            in_class = ch != "]"
+            out.append(ch)
+        elif ch == "[":
+            if pattern[i + 1:i + 2] == "]" or pattern[i + 1:i + 3] == "^]":
+                raise UnsupportedPattern(f"{pattern!r}: an empty character class is outside the supported subset")
+            in_class = True
+            out.append(ch)
+        elif ch == "$":
+            out.append("\\Z")
+        elif ch == ".":
+            out.append(_ECMA_DOT)
+        elif ch == "(" and pattern[i + 1:i + 2] == "?":
+            if pattern[i + 2:i + 3] not in (":", "=", "!"):
+                raise UnsupportedPattern(f"{pattern!r}: group {pattern[i:i + 3]!r} is outside the supported subset")
+            out.append(pattern[i:i + 3])
+            i += 3
+            continue
+        else:
+            out.append(ch)
+        i += 1
+    try:
+        compiled = _PATTERN_CACHE[pattern] = re.compile("".join(out))
+    except re.error as exc:
+        raise UnsupportedPattern(f"{pattern!r}: not compilable by this matcher ({exc})") from None
+    return compiled
+
+
+def _pattern_keyword(validator, patrn, instance, schema):
+    if not validator.is_type(instance, "string"):
+        return
+    try:
+        matched = ecma_pattern(patrn).search(instance)
+    except UnsupportedPattern as exc:   # fail closed: a pattern the matcher cannot read validates nothing
+        yield ValidationError(f"pattern cannot be evaluated under Core §2.3: {exc}")
+        return
+    if not matched:
+        yield ValidationError(f"{instance!r} does not match {patrn!r}")
+
+
+# Leap seconds announced by the IERS: the UTC days whose last minute has a second 60. Transcribed from the IERS
+# list https://hpiers.obspm.fr/iers/bul/bulc/Leap_Second.dat (updated through Bulletin C 72, July 2026; read on
+# 2026-11-25): each row of that list after the first gives the day on which a new TAI-UTC value takes effect, and
+# the leap second is the last second of the day before. A closed table: a later announcement means updating it.
+LEAP_SECOND_DAYS = frozenset({
+    (1972, 6, 30), (1972, 12, 31), (1973, 12, 31), (1974, 12, 31), (1975, 12, 31), (1976, 12, 31), (1977, 12, 31),
+    (1978, 12, 31), (1979, 12, 31), (1981, 6, 30), (1982, 6, 30), (1983, 6, 30), (1985, 6, 30), (1987, 12, 31),
+    (1989, 12, 31), (1990, 12, 31), (1992, 6, 30), (1993, 6, 30), (1994, 6, 30), (1995, 12, 31), (1997, 6, 30),
+    (1998, 12, 31), (2005, 12, 31), (2008, 12, 31), (2012, 6, 30), (2015, 6, 30), (2016, 12, 31),
+})
+_DATE_TIME = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.[0-9]+)?"
+                        r"(?:([Zz])|([+-])([0-9]{2}):([0-9]{2}))")
+
+
+def days_in_month(year: int, month: int) -> int:
+    """Proleptic Gregorian calendar, year 0000 included (RFC 3339 §1)."""
+    if month == 2:
+        return 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28
+    return 30 if month in (4, 6, 9, 11) else 31
+
+
+def rfc3339_date_time_valid(value: object) -> bool:
+    """The general meaning of `format: date-time` ([RFC 3339] §5.6): any fraction, `Z` or a numeric offset, and a
+    day that exists in that month of that year. The second 60 is valid only where, after the offset is applied,
+    the UTC instant is a leap second the IERS announced (§5.7). The ARSIA profile — `Z`, three fractional digits,
+    seconds 00-59, years 0001-9999 — is the pattern of `rfc3339-ms-utc`, not this check."""
+    if not isinstance(value, str):
+        return True                      # a format applies to strings only
+    m = _DATE_TIME.fullmatch(value)
+    if m is None:
+        return False
+    year, month, day, hour, minute, second = (int(m.group(g)) for g in range(1, 7))
+    if not (1 <= month <= 12 and 1 <= day <= days_in_month(year, month) and hour <= 23 and minute <= 59 and second <= 60):
+        return False
+    off_h, off_m = (int(m.group(9)), int(m.group(10))) if m.group(8) else (0, 0)
+    if off_h > 23 or off_m > 59:
+        return False
+    if second < 60:
+        return True
+    # the UTC minute of this instant: local = UTC + offset
+    minutes = hour * 60 + minute - (off_h * 60 + off_m) * (1 if m.group(8) != "-" else -1)
+    if minutes < 0:                      # the previous UTC day
+        minutes += 1440
+        day -= 1
+        if day == 0:
+            month -= 1
+            if month == 0:
+                year, month = year - 1, 12
+            day = days_in_month(year, month)
+    elif minutes >= 1440:                # the next UTC day
+        minutes -= 1440
+        day += 1
+        if day > days_in_month(year, month):
+            day, month = 1, month + 1
+            if month == 13:
+                year, month = year + 1, 1
+    return minutes == 23 * 60 + 59 and (year, month, day) in LEAP_SECOND_DAYS
+
+
+def arsia_format_checker(base: FormatChecker | None = None) -> FormatChecker:
+    """A format checker that asserts `date-time` by rfc3339_date_time_valid. With `base` (the library's checker,
+    used for the specification examples), every other format keeps the base's check."""
+    checker = FormatChecker(formats=())
+    if base is not None:
+        checker.checkers = dict(base.checkers)
+    checker.checkers["date-time"] = (rfc3339_date_time_valid, ())
+    return checker
+
+
+ARSIA_FORMATS = arsia_format_checker()
+_ArsiaValidator = validators.extend(Draft202012Validator, {"pattern": _pattern_keyword})
+
+
+def arsia_validator(schema, registry: Registry | None = None, format_checker: FormatChecker | None = None):
+    """The one validator of the tools: Draft 2020-12 with `pattern` matched under Core §2.3 and `date-time`
+    asserted. The library hands a document that declares its own `$schema` to the standard validator class, so a
+    `$ref` into such a document would lose both; the registry of build_registry() therefore holds copies without
+    `$schema`, and a `$schema` on the schema given here is dropped the same way. Files are not changed."""
+    if isinstance(schema, dict) and "$schema" in schema:
+        schema = {k: v for k, v in schema.items() if k != "$schema"}
+    kwargs = {"registry": registry} if registry is not None else {}
+    return _ArsiaValidator(schema, format_checker=format_checker or ARSIA_FORMATS, **kwargs)
+
+_ERROR_CODE_RE = re.compile(r"[a-z]+(_[a-z]+)*")   # the whole value: used with fullmatch
 _IDENT_RE = re.compile(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*")
 _STOP_WORDS = frozenset({
     "a", "an", "and", "are", "at", "be", "both", "but", "by", "can", "do",
@@ -136,7 +348,7 @@ _STOP_WORDS = frozenset({
 
 
 def check_error_path(expected_error: str, errors: list) -> tuple[bool, str]:
-    if _ERROR_CODE_RE.match(expected_error.lower()):
+    if _ERROR_CODE_RE.fullmatch(expected_error.lower()):
         return True, "error-code (skip)"
 
     clause = expected_error.split(" — ")[0] if " — " in expected_error else expected_error
@@ -179,14 +391,25 @@ def check_error_path(expected_error: str, errors: list) -> tuple[bool, str]:
     return False, f"keywords not found: {', '.join(sorted(keywords))}"
 
 
+def schema_resource(schema: dict) -> Resource:
+    """A registry resource holding a copy of the document without `$schema` (see arsia_validator)."""
+    return Resource.from_contents({k: v for k, v in schema.items() if k != "$schema"}, default_specification=DRAFT202012)
+
+
+def schema_registry(schemas) -> Registry:
+    """A registry of the given schema documents under their `$id` only (no file-name fallback)."""
+    return Registry().with_resources([(j["$id"], schema_resource(j)) for j in schemas if "$id" in j])
+
+
 def build_registry() -> Registry:
     schemas_by_name: dict[str, dict] = {}
     resources: list[tuple[str, Resource]] = []
 
     for schema_path in sorted(SCHEMAS_DIR.glob("*.json")):
-        schema = strict_load(schema_path)
+        # in-memory copies without `$schema`: see arsia_validator
+        schema = {k: v for k, v in strict_load(schema_path).items() if k != "$schema"}
         schemas_by_name[schema_path.name] = schema
-        resource = Resource.from_contents(schema, default_specification=DRAFT202012)
+        resource = schema_resource(schema)
         schema_id = schema.get("$id", "")
         if schema_id:
             resources.append((schema_id, resource))
@@ -195,7 +418,7 @@ def build_registry() -> Registry:
     def retrieve(uri: str) -> Resource:
         fname = uri.rsplit("/", 1)[-1]
         if fname in schemas_by_name:
-            return Resource.from_contents(schemas_by_name[fname], default_specification=DRAFT202012)
+            return schema_resource(schemas_by_name[fname])
         raise KeyError(uri)
 
     return Registry(retrieve=retrieve).with_resources(resources)
@@ -223,7 +446,7 @@ def resolve_schema(schema_ref: str, registry: Registry) -> dict:
 
 
 MESSAGE_SCHEMA = "arsia-message.schema.json"
-_VERSION_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)$")  # Core §4.1.1 pattern
+_VERSION_RE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")  # Core §4.1.1 pattern, the whole value (fullmatch)
 
 
 def version_procedure(message: object) -> str:
@@ -234,7 +457,7 @@ def version_procedure(message: object) -> str:
     top-level and payload fields (rules 2-3);
     "version-rejected" — another major: rejected with not_implemented (rule 6)."""
     v = message.get("v") if isinstance(message, dict) else None
-    m = _VERSION_RE.match(v) if isinstance(v, str) else None
+    m = _VERSION_RE.fullmatch(v) if isinstance(v, str) else None
     if m is None or v == "2.0":
         return "exact"
     return "major-2-compat" if m.group(1) == "2" else "version-rejected"
@@ -248,7 +471,7 @@ def major2_compat_schema(exact: dict) -> dict:
     Required fields, conditionals, formats and the closed `error` object are unchanged."""
     schema = copy.deepcopy(exact)
     schema["$id"] = exact["$id"].replace("arsia-message.schema.json", "arsia-message.major-2-compat.schema.json")
-    schema["properties"]["v"] = {"type": "string", "pattern": "^2\\.(0|[1-9]\\d*)$"}
+    schema["properties"]["v"] = {"type": "string", "pattern": "^2\\.(0|[1-9][0-9]*)$"}
     schema["additionalProperties"] = True
     generic, error_branch = schema["properties"]["payload"]["oneOf"][:2]
     assert "error" in error_branch["required"] and "error" not in generic["properties"]
@@ -269,7 +492,7 @@ def message_errors(payload: object, schema: dict, registry: Registry) -> tuple[s
         return procedure, [err]
     if procedure == "major-2-compat":
         schema = major2_compat_schema(schema)
-    return procedure, list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
+    return procedure, list(arsia_validator(schema, registry).iter_errors(payload))
 
 
 def determine_expected(vector: dict) -> bool:
@@ -299,7 +522,7 @@ def classify_vector(vector: dict) -> tuple[str, str, dict]:
 
 def check_meta_schema(data: dict) -> bool:
     meta = strict_load(META_SCHEMA_FILE)
-    validator = Draft202012Validator(meta)
+    validator = arsia_validator(meta)
     errors = list(validator.iter_errors(data))
     if errors:
         print("Meta-schema: FAIL", file=sys.stderr)
@@ -554,7 +777,7 @@ def vector_results(data: dict, check_errors: bool = False, id_filter: str | None
             if schema_ref == MESSAGE_SCHEMA:
                 procedure, errors = message_errors(payload, schema, registry)
             else:
-                procedure, errors = "exact", list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
+                procedure, errors = "exact", list(arsia_validator(schema, registry).iter_errors(payload))
             results.append({
                 "id": vid,
                 "schema": schema_ref.split("#")[0],
@@ -578,7 +801,7 @@ def vector_results(data: dict, check_errors: bool = False, id_filter: str | None
         if schema_ref == MESSAGE_SCHEMA:
             procedure, errors = message_errors(payload, schema, registry)
         else:
-            procedure, errors = "exact", list(Draft202012Validator(schema, registry=registry).iter_errors(payload))
+            procedure, errors = "exact", list(arsia_validator(schema, registry).iter_errors(payload))
         actual_valid = len(errors) == 0
 
         base_ref = schema_ref.split("#")[0] if "#" in schema_ref else schema_ref

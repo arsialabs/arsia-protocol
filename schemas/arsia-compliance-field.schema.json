@@ -85,7 +85,7 @@
     },
     "retention": {
       "type": "string",
-      "pattern": "^P(?=\\d)(\\d+Y)?(\\d+M)?(\\d+D)?$",
+      "pattern": "^P(?=[0-9])([0-9]+Y)?([0-9]+M)?([0-9]+D)?$",
       "description": "Minimum retention for this message's audit record, as an ISO 8601 calendar duration (Core §4.3.6.4). Replaces Draft-01 retention_days (rejected by this schema). Floor comparison against the profile retention_minimum is calendar arithmetic enforced at runtime (Core §4.3.8 Rule 4)."
     },
     "clock_skew_seconds": {

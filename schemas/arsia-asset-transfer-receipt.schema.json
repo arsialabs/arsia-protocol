@@ -9,7 +9,7 @@
     "reversal-payment-reference": {
       "type": "string",
       "description": "RECOMMENDED format for reversal receipt payment_reference: {original}-REV-{seq}. Per ARSIA-Assets.md §3.3.2.",
-      "pattern": "^.+-REV-\\d+$"
+      "pattern": "^.+-REV-[0-9]+$"
     }
   },
   "required": [
