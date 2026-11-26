@@ -1861,8 +1861,14 @@ the trust assessment performed by the auditor's own internal policy engine.
 public key at its JWKS endpoint (§2.1) and serves an IdentityRecord that includes the
 supervisory authority's legal entity identifier as `owner_id`. The gateway fetches these
 endpoints to verify the auditor's cryptographic identity and institutional affiliation.
-An institutional attestation — such as a Level 2 CA-signed certificate (§6.2) issued to
-the supervisory authority — strengthens the trust signal during policy evaluation.
+In this example the gateway has been explicitly configured with a minimum trust level
+policy of Level 2 (§6.4.2) and with the supervisory authority it admits as auditor. It
+computes the auditor's trust level from the certificate chain — the level is computed by
+the verifier, never declared by the agent (§6.5.2) — and denies onboarding below
+Level 2. It then verifies, as a separate check, that the certified identity — the legal
+entity the validated certificate binds to the agent (§6.2) — is that authority's: a
+Level 2 certificate shows that a CA the gateway trusts vouched for its holder, not that
+the holder is the supervisory authority.
 
 **Phase 3 — Capability request.** The auditor agent initiates onboarding by sending a
 message with `intent: "request"` and declaring `capabilities:
@@ -1871,8 +1877,7 @@ grammar defined in ARSIA-Actions.md §1.1: a dot-separated hierarchical identifi
 the reserved `arsiaprotocol.` namespace.
 
 **Phase 4 — Policy evaluation.** The target organization's gateway evaluates the request
-against its CapabilityPolicy (§8). A policy that grants audit access to agents with
-institutional attestation looks like:
+against its CapabilityPolicy (§8). Its rule for audit access looks like:
 
 <!-- example: arsia-capability-policy.schema.json -->
 ```json
@@ -1883,14 +1888,18 @@ institutional attestation looks like:
     {
       "capability": "arsiaprotocol.audit.read",
       "status": "allowed",
-      "conditions": "Supervisory authority agents with Level 2+ certificate"
+      "conditions": "Supervisory authority auditors only; the gateway verifies Level 2 or higher and the authority's identity before this policy is evaluated"
     }
   ]
 }
 ```
 
-The policy evaluation procedure (§8.3) matches `arsiaprotocol.audit.read` against the
-rule, finds `status: "allowed"`, and places it in the `freely_allowed` list. The short
+Only an agent that passed both checks reaches the policy evaluation. The procedure
+(§8.3) matches `arsiaprotocol.audit.read` against the rule, finds `status: "allowed"`,
+and places it in the `freely_allowed` list. The procedure does not read `conditions`:
+the string describes the gateway's configuration for the reader and for the audit
+record and is not machine-enforced (§8.2). What restricts the grant is the two checks
+above. The short
 `token_lifetime_seconds` (300 seconds) reflects the sensitive nature of audit data
 (ARSIA-Actions.md §1.4, recommended maximum for `arsiaprotocol.audit.read` tokens).
 

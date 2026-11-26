@@ -906,7 +906,8 @@ def policy_identity_problems(vectors):
 
 
 COVERAGE_RULE = {"resolution": "R10", "router": "R10", "execution": "R15", "timing": "R16",
-                 "token_binding": "R21", "attestation": "R22", "revocation": "R13", "encrypted-payload": "R26"}
+                 "token_binding": "R21", "attestation": "R22", "revocation": "R13", "encrypted-payload": "R26",
+                 "escrow_dispute_record": "R30", "query_order": "R29"}
 
 
 def coverage_claim_problems(skip_doc, vectors, passing=None):
@@ -1859,15 +1860,15 @@ def signature_format_selftest(vectors):
 
 
 def catalog_problems(doc):
-    """A-99: the keypair catalog keeps its Draft-02 entries, holds the imported entries exactly, and marks the one
-    key deliberately below the RSA minimum."""
+    """A-99: the keypair catalog keeps its Draft-02 entries, holds the imported entries exactly, records the digest
+    of the generated entries too (flow contracts cycle), and marks the one key deliberately below the RSA minimum."""
     import hashlib
     import rfc8785
     out = []
     prov = doc.get("provenance") or {}
     entries = {e["kid"]: e for e in doc["keypairs"].values()}
     dig = lambda kids: "sha-256:" + hashlib.sha256(rfc8785.dumps({k: entries[k] for k in sorted(kids)})).hexdigest()
-    for part in ("draft-02", "imported"):
+    for part in ("draft-02", "imported", "generated"):
         kids = (prov.get(part) or {}).get("kids") or []
         if not kids or any(k not in entries for k in kids) or dig(kids) != prov[part].get("sha256"):
             out.append(f"{part} entries differ from their recorded digest")
@@ -3875,6 +3876,189 @@ def validation_cycle_self_test():
     return out
 
 
+# ------------------------------------------------------------- flow contracts cycle (A-138, A-140..A-143)
+FLOW_ECHOES = (
+    ("spec/ARSIA-State.md", "§10.2", "MUST treat every segment as data"),
+    ("spec/ARSIA-State.md", "§10.2", "MUST keep each operation confined to the storage space authorised for that operation"),
+    ("spec/ARSIA-State.md", "§10.2", "MUST preserve the identity of keys: different keys map to different stored objects"),
+    ("spec/ARSIA-State.md", "§3.1.4", "by `key` in ascending lexicographic order of its ASCII bytes"),
+    ("spec/ARSIA-State.md", "§3.1.4", "MUST compute `total` and `entries` over one and the same set"),
+    ("spec/ARSIA-State.md", "§3.1.4", "MUST order that set first and apply `offset` and `limit` afterwards"),
+    ("spec/ARSIA-State.md", "§3.1.4", "Each request is evaluated on its own"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "nor the message most recently exchanged"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "rule 1 decides the case in which there is none"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "its receiver need not have sent the message it names"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "MUST NOT apply its transition again"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "MUST NOT record a second terminal result"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "MUST NOT count a second decision of an approver whose decision was admitted"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "does not consume its approver"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "is not a delivery"),
+    ("spec/ARSIA-Core.md", "§4.2.1", "is not answered with an error for being repeated"),
+    ("spec/ARSIA-Assets.md", "§4.2", "MUST NOT start the return of §4.2.2 while such a message awaits verification"),
+    ("spec/ARSIA-Assets.md", "§4.2", "A message that concerns another escrow never delays the timeout of this one"),
+    ("spec/ARSIA-Assets.md", "§4.2", "also after the original `timeout_at`"),
+    ("spec/ARSIA-Assets.md", "§4.2.1", "The release message was received before `timeout_at`"),
+    ("spec/ARSIA-Assets.md", "§4.2.1", "MUST reserve that release as the escrow's financial operation"),
+    ("spec/ARSIA-Assets.md", "§4.2.1", "the holder MUST reconcile the same operation"),
+    ("spec/ARSIA-Assets.md", "§4.2.1", "A retry, cancellation or timeout MUST NOT cause a second financial effect"),
+    ("spec/ARSIA-Assets.md", "§4.2.1", "MUST issue the completed receipt only after the provider confirms the release"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "no financial operation has been reserved for this escrow"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "MUST evaluate these conditions again at the instant it starts the return"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "not an AssetTransferReversal (§3.3)"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "MUST take effect at most once"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "MUST NOT instruct a second one"),
+    ("spec/ARSIA-Assets.md", "§4.2.2", "MUST NOT be issued before the return is confirmed"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "MUST notify the escrow holder with a signed `request`"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "The holder looks up no escrow before those steps have completed"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "holder holds — otherwise `not_found`"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "that escrow — otherwise `forbidden`"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "rejected with the code of the first step or check it fails"),
+    ("spec/ARSIA-Assets.md", "§4.2.3", "with effect from the instant the holder received it"),
+    ("spec/ARSIA-Assets.md", "§4.3.4", "The `id` of the dispute notification (§4.2.3)"),
+    ("spec/ARSIA-Identity.md", "§7.8", "It then verifies, as a separate check"),
+    ("spec/ARSIA-Identity.md", "§7.8", "The procedure does not read `conditions`"),
+)
+FLOW_ABSENT = (   # the sentences the cycle removed, split so that this file does not contain them
+    ("prevents directory " + "traversal", ("spec/ARSIA-State.md",)),
+    ("deterministic " + "pagination", ("spec/ARSIA-State.md", "schemas/arsia-state-operations.schema.json", "test-vectors/arsia-test-vectors.json")),
+    ("automatic Asset" + "TransferReversal", ("spec/ARSIA-Assets.md",)),
+    ("immediately preceding " + "message", ("spec/ARSIA-Core.md", "schemas/arsia-message.schema.json")),
+    ("Supervisory authority agents with Level 2+ " + "certificate", ("spec/ARSIA-Identity.md",)),
+)
+FLOW_DESCRIPTIONS = (
+    ("arsia-state-operations.schema.json", ("$defs", "state-key"), "not a path"),
+    ("arsia-state-operations.schema.json", ("$defs", "query-result"), "ASCII bytes"),
+    ("arsia-escrow-conditions.schema.json", ("properties", "arbitration_agent"), "when the holder has verified that notification"),
+    ("arsia-audit-record.schema.json", ("properties", "arbitration_agent"), "equals from_agent"),
+)
+
+
+def flow_cycle_problems(texts=None, schemas=None, vectors=None):
+    """A-138, A-140..A-143: the sentences of the cycle are in their sections and the ones it removed are gone; the
+    schema descriptions follow; every escrow_disputed record of the corpus, at any depth (escrow_records), has the
+    arbitration agent as its from_agent and a party of its creation record as disputed_by, and every QUERY result
+    is in the total order of State §3.1.4 — a declared negative is run through the same comparison and must
+    produce its declared diagnostic before it is set apart."""
+    import glob
+    import runtime_harness as rh
+    files = sorted({f for _n, fs in FLOW_ABSENT for f in fs} | {f for f, _s, _n in FLOW_ECHOES})
+    if texts is None:
+        texts = {f: open(f, encoding="utf-8").read() for f in files}
+    if schemas is None:
+        schemas = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    if vectors is None:
+        vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
+    norm = lambda t: re.sub(r"\s+", " ", t)
+    out = []
+    for f, sec, needle in FLOW_ECHOES:
+        body = spec_section(texts[f], sec)
+        if body is None or needle not in norm(body):
+            out.append(f"{f} {sec}: {needle[:60]!r} is missing")
+    for needle, fs in FLOW_ABSENT:
+        out += [f"{f}: the removed sentence {needle[:40]!r} is back" for f in fs if needle in norm(texts[f])]
+    for name, path, needle in FLOW_DESCRIPTIONS:
+        node = schemas[name]
+        for k in path:
+            node = node[k]
+        if needle not in node.get("description", ""):
+            out.append(f"{name} {'/'.join(path)}: description without {needle!r}")
+    records = list(escrow_records(vectors))
+    creations, disputed = {}, {}
+    for _v, _path, r in records:
+        if r.get("sub_type") == "escrow_created" and "payer_agent" in r:
+            creations.setdefault(r.get("record_id"), r)
+    for v, path, r in records:
+        if r.get("sub_type") == "escrow_disputed":
+            disputed.setdefault(v["id"], []).append((path, r))
+    for v in vectors:
+        data = v.get("data")
+        meta = v.get("test_metadata") or {}
+        is_query = isinstance(data, dict) and isinstance(data.get("entries"), list) and "total" in data \
+            and str(v.get("schema_ref", "")).endswith("query-result")
+        for scenario, results in (
+                ("escrow_dispute_record", [(path, rh.escrow_dispute_record_problems(r, creations.get(r.get("original_audit_id"))))
+                                           for path, r in disputed.get(v["id"], [])]),
+                ("query_order", [("data", rh.query_order_problems(data))] if is_query else [])):
+            declared = meta.get("scenario") == scenario
+            if not results:
+                if declared:
+                    out.append(f"{v['id']}: declares {scenario} and carries no such data")
+                continue
+            found = [p if path == "data" else f"{path}: {p}" for path, ps in results for p in ps]
+            if declared:
+                want = (meta.get("expect") or {}).get("diagnostic")
+                if not want or not any(want in p for p in found):
+                    out.append(f"{v['id']}: declared negative without its diagnostic {want!r} (found {found})")
+            elif found:
+                out.append(f"{v['id']}: {found[0]}")
+    return out
+
+
+def flow_cycle_self_test():
+    """Synthetic: the real artifacts pass; each regression is reported, a negative set apart without its
+    diagnostic included."""
+    import copy as _copy
+    import glob
+    files = sorted({f for _n, fs in FLOW_ABSENT for f in fs} | {f for f, _s, _n in FLOW_ECHOES})
+    texts = {f: open(f, encoding="utf-8").read() for f in files}
+    schemas = {f.split("/")[-1]: strict_load(f) for f in sorted(glob.glob("schemas/*.json"))}
+    vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
+    if flow_cycle_problems(texts, schemas, vectors):
+        return ["the real artifacts are reported (the cases are built from them)"]
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+
+    def text_case(f, old, new):
+        pat = re.compile(r"\s+".join(re.escape(w) for w in old.split()))
+        if len(pat.findall(texts[f])) != 1:
+            out.append(f"self-test fixture: {old[:40]!r} not found once in {f}")
+            return texts, schemas, vectors
+        return dict(texts, **{f: pat.sub(lambda _m: new, texts[f])}), schemas, vectors
+
+    def vec_case(vid, edit):
+        vs = _copy.deepcopy(vectors)
+        edit(next(v for v in vs if v["id"] == vid))
+        return texts, schemas, vs
+
+    def schema_case(edit):
+        sc = _copy.deepcopy(schemas)
+        edit(sc)
+        return texts, sc, vectors
+    good_record, good_query = by_id["ITV-91"]["data"], by_id["ITV-747"]["data"]
+    cases = {
+        "confinement removed": (text_case("spec/ARSIA-State.md", "MUST keep each operation confined to the storage space authorised for that operation", "SHOULD keep each operation confined to its storage space"), "§10.2:"),
+        "the traversal claim back": ((dict(texts, **{"spec/ARSIA-State.md": texts["spec/ARSIA-State.md"] + "\nThis " + FLOW_ABSENT[0][0] + " attacks.\n"}), schemas, vectors), "is back"),
+        "QUERY tie-break removed": (text_case("spec/ARSIA-State.md", "by `key` in ascending lexicographic order of its ASCII bytes", "by `key`"), "§3.1.4:"),
+        "second terminal result allowed": (text_case("spec/ARSIA-Core.md", "MUST NOT record a second terminal result", "MAY record a second terminal result"), "§4.2.1:"),
+        "immediately preceding back": ((dict(texts, **{"spec/ARSIA-Core.md": texts["spec/ARSIA-Core.md"] + "\nthe " + FLOW_ABSENT[3][0] + "\n"}), schemas, vectors), "is back"),
+        "return may start with a message pending": (text_case("spec/ARSIA-Assets.md", "MUST NOT start the return of §4.2.2 while such a message awaits verification", "MAY start the return of §4.2.2 at once"), "§4.2:"),
+        "conditions not evaluated again": (text_case("spec/ARSIA-Assets.md", "MUST evaluate these conditions again at the instant it starts the return", "evaluates these conditions when the timer runs"), "§4.2.2:"),
+        "release not reserved": (text_case("spec/ARSIA-Assets.md", "MUST reserve that release as the escrow's financial operation", "MAY reserve that release"), "§4.2.1:"),
+        "only a reserved return blocks the return": (text_case("spec/ARSIA-Assets.md", "no financial operation has been reserved for this escrow", "no return has been reserved for this escrow"), "§4.2.2:"),
+        "reversal back": ((dict(texts, **{"spec/ARSIA-Assets.md": texts["spec/ARSIA-Assets.md"] + "\nAn " + FLOW_ABSENT[2][0] + " is initiated.\n"}), schemas, vectors), "is back"),
+        "notification optional": (text_case("spec/ARSIA-Assets.md", "MUST notify the escrow holder with a signed `request`", "MAY notify the escrow holder"), "§4.2.3:"),
+        "unknown reference without not_found": (text_case("spec/ARSIA-Assets.md", "holder holds — otherwise `not_found`", "holder holds — otherwise `invalid_request`"), "§4.2.3:"),
+        "auditor example without the separate check": (text_case("spec/ARSIA-Identity.md", "It then verifies, as a separate check", "It may also verify"), "§7.8:"),
+        "query-result description": (schema_case(lambda sc: sc["arsia-state-operations.schema.json"]["$defs"]["query-result"].update(description="Ordered by created_at.")), "description without"),
+        "dispute record from the holder": (vec_case("ITV-91", lambda v: v["data"].update(from_agent=good_record["to_agent"])), "ITV-91: from_agent is not the arbitration_agent"),
+        "dispute record by an agent that is no party": (vec_case("ITV-91", lambda v: v["data"].update(disputed_by=good_record["from_agent"])), "ITV-91: disputed_by is neither the payer nor the payee"),
+        "dispute record nested in a response": ((texts, schemas, vectors + [{"id": "SELF-NESTED", "data": {"records": [dict(good_record, from_agent=good_record["to_agent"])]}}]), "SELF-NESTED: data/records/0: from_agent is not the arbitration_agent"),
+        "declared record negative without the defect": (vec_case("INV-274", lambda v: v.update(data=_copy.deepcopy(good_record))), "INV-274: declared negative without its diagnostic"),
+        "QUERY result misordered": (vec_case("ITV-747", lambda v: v["data"]["entries"].reverse()), "ITV-747:"),
+        "declared QUERY negative in order": (vec_case("INV-275", lambda v: v.update(data=_copy.deepcopy(good_query))), "INV-275: declared negative without its diagnostic"),
+        "a negative declared on other data": (vec_case("ITV-745", lambda v: v.update(test_metadata={"scenario": "query_order", "expect": {"diagnostic": "x"}})), "carries no such data"),
+    }
+    for name, (args, needle) in cases.items():
+        if not any(needle in p for p in flow_cycle_problems(*args)):
+            out.append(f"{name}: not reported ({needle!r})")
+    kp = strict_load("test-vectors/keypairs.json")
+    moved = _copy.deepcopy(kp)
+    moved["provenance"]["generated"]["sha256"] = "sha-256:" + "0" * 64
+    if not any("generated entries differ" in p for p in catalog_problems(moved)) or catalog_problems(kp):
+        out.append("catalog: a generated digest that does not match is not reported, or the real catalog is")
+    return out
+
+
 def validator_reference_problems(vectors, registry=None, make=None, docs=None):
     """A-134: the validator of the tools keeps the Core §2.3 pattern semantics and the date-time assertion when a
     schema is reached through a $ref — the same rejection, by the same field and validator, on the schema itself,
@@ -4591,6 +4775,17 @@ def main() -> int:
     probs = validation_single_cause_problems(corpus_vectors, registry)
     check("INV-255..INV-273 fail in one field with exactly their declared validators (A-134)",
           not probs, "; ".join(probs[:4]))
+
+    # Flow contracts cycle (A-138, A-140..A-143)
+    probs = flow_cycle_problems()
+    check("Flow contracts cycle anti-regression: key confinement, reply transitions, the escrow timeout and dispute "
+          "notification, the QUERY order and the auditor example are stated and the removed sentences are absent; "
+          "escrow_disputed records come from the arbitration agent and QUERY results are in the total order, the "
+          "declared negatives through the same comparison (ITV-91, ITV-747, INV-274, INV-275; A-138, A-140..A-143)",
+          not probs, "; ".join(probs[:4]))
+    probs = flow_cycle_self_test()
+    check("flow contracts cycle self-test: each regression reported, a negative set apart without its diagnostic "
+          "included", not probs, "; ".join(probs[:4]))
 
     # SC4 (A-53, A-64): evidence is checked against what was executed and passed
     corpus = strict_load("test-vectors/arsia-test-vectors.json")

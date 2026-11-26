@@ -5559,32 +5559,24 @@
     },
     {
       "id": "ITV-91",
-      "description": "Valid audit record — escrow_disputed (Assets §4.3.4): payment_reference, disputed_by, dispute_reason, arbitration_agent and original_audit_id (the creation record ITV-88, same payment_reference). The record documents the escrow-dispute message (payload_type arsiaprotocol.assets/escrow-dispute).",
+      "description": "Valid audit record — escrow_disputed (Assets §4.3.4): the record the escrow holder emits when it has verified the dispute notification ITV-746. It documents that notification — message_id, from_agent (the arbitration agent), to_agent (the holder), payload_type arsiaprotocol.assets/escrow-dispute and payload_hash are the notification's — and carries payment_reference, disputed_by (the payer, as the notification carries it), dispute_reason, arbitration_agent and original_audit_id (the creation record ITV-88, same payment_reference), with verified_kid and jwks_fetched_at of the verification (Core §5.2).",
       "schema_ref": "arsia-audit-record.schema.json",
       "expected": "valid",
       "data": {
-        "record_id": "b000008b-0001-4001-8001-00000000008b",
-        "message_id": "b000008b-0002-4001-8001-00000000008b",
+        "record_id": "45f1f0fe-579d-42ea-bc06-d2f699d53add",
+        "message_id": "b00002ea-0002-4001-8001-0000000002ea",
         "event_type": "asset_transfer",
-        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "from_agent": "agent:arsialabs.demo.arbitrator",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
         "payload_type": "arsiaprotocol.assets/escrow-dispute",
-        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
-        "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2031-04-28T14:00:00.000Z",
+        "payload_hash": "d71701346df5fed2716fbc68cffae85f160e3de7e4b1896cd5ed97f940c97b03",
+        "processed_at": "2026-04-28T09:00:00.400Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
-        "sub_type": "escrow_disputed",
-        "payment_reference": "PAY-2026-04-0088",
-        "disputed_by": "agent:arsialabs.demo.buyer-agent",
-        "dispute_reason": "Goods not delivered within escrow period",
-        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
-        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
-        "human_oversight_status": "not_required",
         "compliance_profile_declared": "MIFID-II",
         "compliance_profile_resolved": "MIFID-II",
-        "retention_source": "profile-minimum",
-        "declared_retention": null,
+        "sub_type": "escrow_disputed",
+        "human_oversight_status": "not_required",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -5675,8 +5667,8 @@
               ],
               "result": {
                 "duration": "P1827D",
-                "anchor": "2026-04-27T14:00:00.000Z",
-                "retained_until": "2031-04-28T14:00:00.000Z"
+                "anchor": "2026-04-28T09:00:00.400Z",
+                "retained_until": "2031-04-29T09:00:00.400Z"
               },
               "override": false,
               "conflict": null
@@ -5732,8 +5724,18 @@
             }
           }
         },
+        "payment_reference": "PAY-2026-04-0088",
+        "disputed_by": "agent:arsialabs.demo.buyer",
+        "dispute_reason": "Goods not delivered within escrow period",
+        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "verified_kid": "agent:arsialabs.demo.arbitrator#key1",
+        "jwks_fetched_at": "2026-04-28T08:30:00.000Z",
+        "declared_retention": null,
         "effective_retention": "P1827D",
-        "retention_anchor": "2026-04-27T14:00:00.000Z"
+        "retention_anchor": "2026-04-28T09:00:00.400Z",
+        "retention_source": "profile-minimum",
+        "retained_until": "2031-04-29T09:00:00.400Z"
       },
       "expected_error": null
     },
@@ -10618,7 +10620,7 @@
     },
     {
       "id": "ITV-226",
-      "description": "State §3.1.4: Valid QUERY with time-based filter — results MUST be ordered by created_at ascending (oldest first) for deterministic pagination. Per ARSIA-State.md §3.1.4.",
+      "description": "State §3.1.4: Valid QUERY with time-based filter — results MUST be ordered by created_at ascending (oldest first) and, at equal created_at, by key in ASCII byte order. Per ARSIA-State.md §3.1.4.",
       "schema_ref": "arsia-state-operations.schema.json",
       "expected": "valid",
       "data": {
@@ -46250,27 +46252,19 @@
       "expected": "invalid",
       "data": {
         "record_id": "c3a20242-0000-4000-8000-000000000242",
-        "message_id": "b000008b-0002-4001-8001-00000000008b",
+        "message_id": "b00002ea-0002-4001-8001-0000000002ea",
         "event_type": "asset_transfer",
-        "from_agent": "agent:arsialabs.demo.escrow-manager",
+        "from_agent": "agent:arsialabs.demo.arbitrator",
         "to_agent": "agent:arsialabs.demo.asset-registry",
         "intent": "request",
         "payload_type": "arsiaprotocol.assets/transfer-request",
-        "payload_hash": "c4a8e2d6f0b3e7a1d5c9f3b7e1a5d9c3f7b1e5a9d3c7f1b5e9a3d7c1f5b9e3a7",
-        "processed_at": "2026-04-27T14:00:00.000Z",
-        "retained_until": "2031-04-28T14:00:00.000Z",
+        "payload_hash": "d71701346df5fed2716fbc68cffae85f160e3de7e4b1896cd5ed97f940c97b03",
+        "processed_at": "2026-04-28T09:00:00.400Z",
         "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
-        "sub_type": "escrow_disputed",
-        "payment_reference": "PAY-2026-04-0088",
-        "disputed_by": "agent:arsialabs.demo.buyer-agent",
-        "dispute_reason": "Goods not delivered within escrow period",
-        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
-        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
-        "human_oversight_status": "not_required",
         "compliance_profile_declared": "MIFID-II",
         "compliance_profile_resolved": "MIFID-II",
-        "retention_source": "profile-minimum",
-        "declared_retention": null,
+        "sub_type": "escrow_disputed",
+        "human_oversight_status": "not_required",
         "obligation_resolution": {
           "outcome": "accepted",
           "profile": {
@@ -46361,8 +46355,8 @@
               ],
               "result": {
                 "duration": "P1827D",
-                "anchor": "2026-04-27T14:00:00.000Z",
-                "retained_until": "2031-04-28T14:00:00.000Z"
+                "anchor": "2026-04-28T09:00:00.400Z",
+                "retained_until": "2031-04-29T09:00:00.400Z"
               },
               "override": false,
               "conflict": null
@@ -46418,8 +46412,18 @@
             }
           }
         },
+        "payment_reference": "PAY-2026-04-0088",
+        "disputed_by": "agent:arsialabs.demo.buyer",
+        "dispute_reason": "Goods not delivered within escrow period",
+        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "verified_kid": "agent:arsialabs.demo.arbitrator#key1",
+        "jwks_fetched_at": "2026-04-28T08:30:00.000Z",
+        "declared_retention": null,
         "effective_retention": "P1827D",
-        "retention_anchor": "2026-04-27T14:00:00.000Z"
+        "retention_anchor": "2026-04-28T09:00:00.400Z",
+        "retention_source": "profile-minimum",
+        "retained_until": "2031-04-29T09:00:00.400Z"
       },
       "expected_error": "payload_type must be arsiaprotocol.assets/escrow-dispute on escrow_disputed — Assets §4.3.4"
     },
@@ -47373,6 +47377,119 @@
       "expected_error": null
     },
     {
+      "id": "ITV-745",
+      "description": "Valid GET arguments whose key has dot segments: `agent:acme.echo-client/agent/../../other/secret` conforms to the key pattern. A key is a logical identifier, not a path; `.` and `..` are ordinary segments and a backend that maps keys to storage treats them as data (State §2.1.1, §10.2).",
+      "category": "state",
+      "schema_ref": "arsia-state-operations.schema.json#/$defs/get-args",
+      "expected": "valid",
+      "data": {
+        "key": "agent:acme.echo-client/agent/../../other/secret"
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-746",
+      "description": "Valid escrow dispute notification (Assets §4.2.3): after accepting a dispute raised by the payer, the arbitration agent notifies the escrow holder — the agent that received and processed the request of ITV-88 — with a signed request of type arsiaprotocol.assets/escrow-dispute carrying the payment_reference, the dispute_reason and the disputed_by of that dispute. Signed with the arbitration agent's catalog key; sent before the escrow's timeout_at. The escrow becomes DISPUTED when the holder has verified it; the record the holder emits is ITV-91.",
+      "category": "assets",
+      "valid": true,
+      "message": {
+        "v": "2.0",
+        "id": "b00002ea-0002-4001-8001-0000000002ea",
+        "ts": "2026-04-28T09:00:00.000Z",
+        "from": "agent:arsialabs.demo.arbitrator",
+        "to": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "expires_at": "2026-04-28T09:00:30.000Z",
+        "capabilities": [
+          "escrow.dispute.notify"
+        ],
+        "compliance": {
+          "profile": "MIFID-II"
+        },
+        "security": {
+          "alg": "EdDSA",
+          "kid": "agent:arsialabs.demo.arbitrator#key1",
+          "sig": "0wsHNngly6eIBrRyy1Me8Qy4j9D9guObif4Q7lSJhPn8u-30HosJ-PXHpkgvSXiVRtUSvzFVSIum_6awFXEjAA"
+        },
+        "payload": {
+          "type": "arsiaprotocol.assets/escrow-dispute",
+          "args": {
+            "payment_reference": "PAY-2026-04-0088",
+            "dispute_reason": "Goods not delivered within escrow period",
+            "disputed_by": "agent:arsialabs.demo.buyer"
+          }
+        }
+      },
+      "expected_error": null
+    },
+    {
+      "id": "ITV-747",
+      "description": "Valid QUERY result in the total order of State §3.1.4: an older entry whose key sorts last (…/zulu) comes first; the three entries created in the same millisecond follow in ascending order of the ASCII bytes of key — Alpha, Zeta, beta: uppercase before lowercase, a case-sensitive comparison. total counts the same authorised, filtered set. The schema validates the structure; harness R29 and the consistency guard check the order.",
+      "category": "state",
+      "schema_ref": "arsia-state-operations.schema.json#/$defs/query-result",
+      "expected": "valid",
+      "data": {
+        "entries": [
+          {
+            "key": "agent:acme.billing/agent/q/zulu",
+            "value": {
+              "n": 0
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T09:00:00.000Z",
+            "updated_at": "2026-11-20T09:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/Alpha",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/Zeta",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/beta",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          }
+        ],
+        "total": 4,
+        "limit": 100,
+        "offset": 0
+      },
+      "expected_error": null
+    },
+    {
       "id": "INV-255",
       "description": "INVALID — `v` is \"2.0\" followed by a line feed: a malformed version stays in the exact procedure and is rejected; it never selects the compatibility procedure of a newer minor (Core §2.3, §4.1.1).",
       "category": "core",
@@ -47745,6 +47862,272 @@
         "scope": "notes.read\tbilling.approve"
       },
       "expected_error": "scope does not follow the scope grammar — Core §6.1"
+    },
+    {
+      "id": "INV-274",
+      "description": "INVALID — escrow_disputed record (ITV-91) whose from_agent is the escrow holder instead of the arbitration agent: the record documents the dispute notification, which the arbitration agent sends (Assets §4.2.3, §4.3.4). The schema cannot compare two fields of one record; the consistency guard and harness R30 run the comparison.",
+      "category": "assets",
+      "schema_ref": "arsia-audit-record.schema.json",
+      "expected": "valid",
+      "data": {
+        "record_id": "c3a20274-0000-4000-8000-000000000274",
+        "message_id": "b00002ea-0002-4001-8001-0000000002ea",
+        "event_type": "asset_transfer",
+        "from_agent": "agent:arsialabs.demo.asset-registry",
+        "to_agent": "agent:arsialabs.demo.asset-registry",
+        "intent": "request",
+        "payload_type": "arsiaprotocol.assets/escrow-dispute",
+        "payload_hash": "d71701346df5fed2716fbc68cffae85f160e3de7e4b1896cd5ed97f940c97b03",
+        "processed_at": "2026-04-28T09:00:00.400Z",
+        "operator_id": "urn:lei:529900HNOAA1KXQJUQ27",
+        "compliance_profile_declared": "MIFID-II",
+        "compliance_profile_resolved": "MIFID-II",
+        "sub_type": "escrow_disputed",
+        "human_oversight_status": "not_required",
+        "obligation_resolution": {
+          "outcome": "accepted",
+          "profile": {
+            "declared": "MIFID-II",
+            "applied": "MIFID-II",
+            "source": {
+              "name": "MIFID-II",
+              "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+            }
+          },
+          "facts": [],
+          "axes": {
+            "oversight": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "required_before_execution",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": [
+                "required_before_execution"
+              ],
+              "override": false,
+              "conflict": null
+            },
+            "audit": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "value",
+                  "source": {
+                    "class": "protocol-rule",
+                    "id": "pii-audit",
+                    "sha256": "9ce6513dde719b509414206b79e85b6fc735418df2326572c45241b211cdba37"
+                  },
+                  "fact": null,
+                  "value": true
+                }
+              ],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "explainability": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": true,
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": true,
+              "override": false,
+              "conflict": null
+            },
+            "retention": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "P1827D",
+                "source": "profile-default"
+              },
+              "requirements": [
+                {
+                  "kind": "floor",
+                  "source": {
+                    "class": "profile-floor",
+                    "id": "MIFID-II",
+                    "sha256": "69fb1f7c46270a22c9ad3f2792b57fae5f92e1612ff84d873f2a3d72c9031c7e"
+                  },
+                  "fact": null,
+                  "minimum": "P1827D"
+                }
+              ],
+              "result": {
+                "duration": "P1827D",
+                "anchor": "2026-04-28T09:00:00.400Z",
+                "retained_until": "2031-04-29T09:00:00.400Z"
+              },
+              "override": false,
+              "conflict": null
+            },
+            "residency": {
+              "status": "resolved",
+              "declared": {
+                "present": false
+              },
+              "fill": {
+                "value": "EU",
+                "source": "profile-default"
+              },
+              "requirements": [],
+              "result": {
+                "codes": [
+                  "AT",
+                  "BE",
+                  "BG",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DK",
+                  "EE",
+                  "ES",
+                  "FI",
+                  "FR",
+                  "GR",
+                  "HR",
+                  "HU",
+                  "IE",
+                  "IS",
+                  "IT",
+                  "LI",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "MT",
+                  "NL",
+                  "NO",
+                  "PL",
+                  "PT",
+                  "RO",
+                  "SE",
+                  "SI",
+                  "SK"
+                ],
+                "revision": "2026-03",
+                "sha256": "1601239a1075059a454e2bb5d3300f04952b41c0480471a5e3c1809debbb289a"
+              },
+              "override": false,
+              "conflict": null
+            }
+          }
+        },
+        "payment_reference": "PAY-2026-04-0088",
+        "disputed_by": "agent:arsialabs.demo.buyer",
+        "dispute_reason": "Goods not delivered within escrow period",
+        "arbitration_agent": "agent:arsialabs.demo.arbitrator",
+        "original_audit_id": "b0000088-0001-4001-8001-000000000088",
+        "verified_kid": "agent:arsialabs.demo.arbitrator#key1",
+        "jwks_fetched_at": "2026-04-28T08:30:00.000Z",
+        "declared_retention": null,
+        "effective_retention": "P1827D",
+        "retention_anchor": "2026-04-28T09:00:00.400Z",
+        "retention_source": "profile-minimum",
+        "retained_until": "2031-04-29T09:00:00.400Z"
+      },
+      "expected_error": "from_agent must be the arbitration_agent on escrow_disputed — Assets §4.3.4",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — equality of from_agent and arbitration_agent in an escrow_disputed record (Assets §4.3.4); expected diagnostic in test_metadata, executed by harness R30 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "escrow_dispute_record",
+        "expect": {
+          "diagnostic": "from_agent is not the arbitration_agent"
+        }
+      }
+    },
+    {
+      "id": "INV-275",
+      "description": "INVALID — the QUERY result of ITV-747 with the entries of one millisecond ordered as a case-insensitive comparison would (Alpha, beta, Zeta): among entries with equal created_at the order is that of the ASCII bytes of key (State §3.1.4). Structurally valid; harness R29 and the consistency guard report the order.",
+      "category": "state",
+      "schema_ref": "arsia-state-operations.schema.json#/$defs/query-result",
+      "expected": "valid",
+      "data": {
+        "entries": [
+          {
+            "key": "agent:acme.billing/agent/q/zulu",
+            "value": {
+              "n": 0
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T09:00:00.000Z",
+            "updated_at": "2026-11-20T09:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/Alpha",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/beta",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          },
+          {
+            "key": "agent:acme.billing/agent/q/Zeta",
+            "value": {
+              "n": 1
+            },
+            "owner_agent_id": "agent:acme.billing",
+            "scope": "agent",
+            "created_at": "2026-11-20T10:00:00.000Z",
+            "updated_at": "2026-11-20T10:00:00.000Z",
+            "pii_classification": "none",
+            "generation": 1,
+            "version": 1
+          }
+        ],
+        "total": 4,
+        "limit": 100,
+        "offset": 0
+      },
+      "expected_error": "entries with equal created_at must be in ASCII byte order of key — State §3.1.4",
+      "skip_schema": true,
+      "skip_reason": "Runtime constraint — order of QUERY results (State §3.1.4); expected diagnostic in test_metadata, executed by harness R29 and check_consistency.py",
+      "test_metadata": {
+        "scenario": "query_order",
+        "expect": {
+          "diagnostic": "is not the ASCII byte order of key"
+        }
+      }
     }
   ]
 }

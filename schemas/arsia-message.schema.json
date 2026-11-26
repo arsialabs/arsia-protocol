@@ -1052,7 +1052,7 @@
           "$ref": "arsia-common.schema.json#/$defs/uuid-v4"
         },
         {
-          "description": "Correlation identifier: the id of the immediately preceding message in the interaction (immediate causal parent), per Core §4.2.1"
+          "description": "Correlation identifier: the id of the message this message directly replies to (its immediate causal parent), per Core §4.2.1"
         }
       ]
     },

@@ -10,7 +10,7 @@
       "type": "string",
       "maxLength": 512,
       "pattern": "^[a-zA-Z0-9:._/\\-]+$",
-      "description": "Namespaced state key in format {agent-id}/{scope}/{local-key} per ARSIA-State.md §2.1.1."
+      "description": "Namespaced state key in format {agent-id}/{scope}/{local-key} per ARSIA-State.md §2.1.1. A logical identifier, not a path (ARSIA-State.md §10.2)."
     },
     "scope": {
       "type": "string",
@@ -419,7 +419,7 @@
     },
     "query-result": {
       "type": "object",
-      "description": "Result for the QUERY operation. Results MUST be ordered by created_at ascending (enforced at runtime). Per ARSIA-State.md §3.1.4.",
+      "description": "Result for the QUERY operation. Results MUST be ordered by created_at ascending and, among entries with equal created_at, by key in ascending order of its ASCII bytes; total and entries are computed over the same authorised, filtered set (enforced at runtime). Per ARSIA-State.md §3.1.4.",
       "required": [
         "entries",
         "total",

@@ -180,12 +180,14 @@
 | STATE-§3.1.4-08 | 3.1.4 | OPTIONAL | sdk_enabled | behavioural_positive | QUERY payload.args.offset is OPTIONAL (default 0) | arsia-state-operations | — | — |
 | STATE-§3.1.4-09 | 3.1.4 | MUST_NOT | sdk | behavioural_negative | QUERY MUST NOT return entries the requesting agent is not authorised to access | — | ITV-224 | struct:ITV-224; untested(structural-only) |
 | STATE-§3.1.4-10 | 3.1.4 | MUST | sdk | behavioural_positive | QUERY for another agent's entries without a grant MUST return empty results, not an error | — | ITV-225 | struct:ITV-225; untested(structural-only) |
-| STATE-§3.1.4-11 | 3.1.4 | MUST | sdk | behavioural_positive | Results MUST be ordered by created_at in ascending order (oldest first). | — | ITV-226 | struct:ITV-226; untested(structural-only) |
+| STATE-§3.1.4-11 | 3.1.4 | MUST | sdk | behavioural_positive | Results MUST be ordered by created_at in ascending order (oldest first) and, among entries with equal created_at, by key in ascending lexicographic order of its ASCII bytes (case-sensitive, independent of locale). | arsia-state-operations | ITV-226, ITV-747, INV-275 | schema-ref:arsia-state-operations; struct:ITV-226, ITV-747, INV-275; exec:R29:ITV-747, INV-275; check:`R29 QUERY: created_at first, then key in ASCII byte order — an older entry whose key sorts last comes first, the three entries of one millisecond follow as Alpha, Zeta, beta; consecutive pages over an unchanged state rebuild that sequence; total is that of the authorised, filtered set on every page — the scope filter leaves out the requester's own entry of another scope`; check:`R29 QUERY controls: ordering by key alone, a comparison that ignores case, a limit applied before the ordering and a total that counts the entry outside the authorisation each give another answer` |
 | STATE-§3.1.4-12 | 3.1.4 | MAY | sdk_enabled | behavioural_positive | Implementations MAY support additional ordering options in future versions | — | — | — |
 | STATE-§3.1.4-13 | 3.1.4 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD optimise QUERY for prefix-based key lookups | — | — | — |
 | STATE-§3.1.4-14 | 3.1.4 | SHOULD | sdk_enabled | behavioural_positive | The key_prefix filter SHOULD be indexed as the most frequently used QUERY filter | — | — | — |
 | STATE-§3.1.4-15 | 3.1.4 | MUST | sdk | behavioural_positive | Implementations MUST enforce the maximum limit of 1000 entries per query. | — | ITV-227 | struct:ITV-227; untested(structural-only) |
 | STATE-§3.1.4-16 | 3.1.4 | MUST | sdk | behavioural_positive | Requests with limit exceeding 1000 MUST be clamped to 1000 — not rejected. | — | ITV-227, ITV-228 | struct:ITV-227, ITV-228; untested(structural-only) |
+| STATE-§3.1.4-17 | 3.1.4 | MUST | sdk | behavioural_positive | For each request, total and entries MUST be computed over one and the same set: the entries the requesting agent is authorised to access that match the filters, as that set stands when the request is processed. | — | — | check:`R29 QUERY: created_at first, then key in ASCII byte order — an older entry whose key sorts last comes first, the three entries of one millisecond follow as Alpha, Zeta, beta; consecutive pages over an unchanged state rebuild that sequence; total is that of the authorised, filtered set on every page — the scope filter leaves out the requester's own entry of another scope`; check:`R29 QUERY controls: ordering by key alone, a comparison that ignores case, a limit applied before the ordering and a total that counts the entry outside the authorisation each give another answer`; check:`R29 QUERY filter pii_classification: applied before the count and the page — over an authorised population of entries classified none, the filter personal gives no entries and total 0, and the filter none gives them all` |
+| STATE-§3.1.4-18 | 3.1.4 | MUST | sdk | behavioural_positive | The implementation MUST order that set first and apply offset and limit afterwards. | — | — | check:`R29 QUERY: created_at first, then key in ASCII byte order — an older entry whose key sorts last comes first, the three entries of one millisecond follow as Alpha, Zeta, beta; consecutive pages over an unchanged state rebuild that sequence; total is that of the authorised, filtered set on every page — the scope filter leaves out the requester's own entry of another scope`; check:`R29 QUERY controls: ordering by key alone, a comparison that ignores case, a limit applied before the ordering and a total that counts the entry outside the authorisation each give another answer` |
 | STATE-§3.2.1-01 | 3.2.1 | REQUIRED | sdk | structural | SNAPSHOT payload.args.as_of field is REQUIRED (RFC 3339 timestamp) | arsia-state-operations | ITV-174 | schema-ref:arsia-state-operations; struct:ITV-174 |
 | STATE-§3.2.1-02 | 3.2.1 | OPTIONAL | sdk_enabled | behavioural_positive | SNAPSHOT payload.args.filter field is OPTIONAL (same filters as QUERY) | arsia-state-operations | — | — |
 | STATE-§3.2.1-03 | 3.2.1 | MUST | sdk | behavioural_positive | SNAPSHOT MUST return entries as they existed at the as_of timestamp, including deleted entries | — | STV-05, ITV-286, ITV-287 | struct:STV-05, ITV-286, ITV-287; crypto:STV-05 |
@@ -432,6 +434,9 @@
 | STATE-§10.2-05 | 10.2 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD enforce rate limits on state operations per agent discovery metadata | — | — | — |
 | STATE-§10.2-06 | 10.2 | SHOULD_NOT | sdk_enabled | behavioural_positive | Agents SHOULD NOT be able to discover the existence of entries they cannot access | — | — | — |
 | STATE-§10.2-07 | 10.2 | MUST | sdk | behavioural_positive | QUERY and GET MUST return empty results (not errors) when agent lacks access, except missing capabilities | — | ITV-273 | struct:ITV-273; untested(structural-only) |
+| STATE-§10.2-08 | 10.2 | MUST | sdk | behavioural_positive | An implementation whose backend maps keys to paths, object names or another hierarchical namespace MUST treat every segment of a key as data | arsia-state-operations | ITV-745 | schema-ref:arsia-state-operations; struct:ITV-745; exec:R29:ITV-745; check:`R29 keys: under the reference mapping every operation stays in the storage space authorised for it — the key of the finding and a key that climbs into another agent's space; the path-joining control leaves that space, and for the second key it does so while staying inside the global root` |
+| STATE-§10.2-09 | 10.2 | MUST | sdk | behavioural_positive | Such an implementation MUST keep each operation confined to the storage space authorised for that operation, whatever the key contains | — | ITV-745 | struct:ITV-745; exec:R29:ITV-745; check:`R29 keys: under the reference mapping every operation stays in the storage space authorised for it — the key of the finding and a key that climbs into another agent's space; the path-joining control leaves that space, and for the second key it does so while staying inside the global root` |
+| STATE-§10.2-10 | 10.2 | MUST | sdk | behavioural_positive | Such an implementation MUST preserve the identity of keys: different keys map to different stored objects | — | — | check:`R29 keys: different keys map to different stored objects — the reference mapping is injective over keys with dot segments, an empty last segment and letter case, also when case is ignored; the path-joining control maps a/b/../c and a/c to one object` |
 | STATE-§10.3-01 | 10.3 | SHOULD | sdk_enabled | behavioural_positive | Implementations SHOULD use constant-time key comparison when lookups may reveal other agents' entries | — | — | — |
 | STATE-§10.3-02 | 10.3 | SHOULD_NOT | sdk_enabled | behavioural_positive | Agents SHOULD NOT be able to infer the storage usage of other agents | — | — | — |
 | STATE-§10.3-03 | 10.3 | MUST | sdk | behavioural_positive | QUERY result counts MUST only reflect entries accessible to the requesting agent | — | ITV-274 | struct:ITV-274; untested(structural-only) |
@@ -462,11 +467,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 449 |
-| Schema ≠ — | 185 |
-| Vector ≠ — | 247 |
-| Both ≠ — | 132 |
-| Both = — (gaps) | 149 |
+| Total requirements | 454 |
+| Schema ≠ — | 187 |
+| Vector ≠ — | 249 |
+| Both ≠ — | 134 |
+| Both = — (gaps) | 152 |
 
 ### Per-section breakdown
 
@@ -474,14 +479,14 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 |---|-------|-----------|-----------|---------|---------|
 | 1 | 38 | 7 | 17 | 4 | 18 |
 | 2 | 83 | 33 | 48 | 23 | 25 |
-| 3 | 112 | 55 | 93 | 48 | 12 |
+| 3 | 114 | 56 | 93 | 49 | 14 |
 | 4 | 36 | 5 | 8 | 1 | 24 |
 | 5 | 34 | 9 | 14 | 8 | 19 |
 | 6 | 19 | 14 | 6 | 6 | 5 |
 | 7 | 69 | 46 | 33 | 29 | 19 |
 | 8 | 21 | 10 | 19 | 9 | 1 |
 | 9 | 3 | 2 | 2 | 2 | 1 |
-| 10 | 23 | 3 | 3 | 1 | 18 |
+| 10 | 26 | 4 | 5 | 2 | 19 |
 | 11 | 11 | 1 | 4 | 1 | 7 |
 
 ## Draft-02 Delta (normative changes traced)

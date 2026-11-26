@@ -109,11 +109,11 @@ The protocol is fully machine-verifiable:
 | [`spec/`](spec/) | 6 specification documents |
 | [`schemas/`](schemas/) | 34 JSON Schemas (Draft 2020-12) |
 | [`profiles/`](profiles/) | 7 compliance profiles |
-| [`test-vectors/`](test-vectors/) | 1055 test vectors (516 schema-valid, 303 expected-invalid, 213 runtime-only, 23 raw parse) |
+| [`test-vectors/`](test-vectors/) | 1060 test vectors (519 schema-valid, 303 expected-invalid, 215 runtime-only, 23 raw parse) |
 | [`docs/rtm/`](docs/rtm/) | 6 Requirements Traceability Matrices (2,046 rows) |
 | [`scripts/`](scripts/) | Validation tools |
 
-54 test signature keypairs and one test encryption keypair are published in [`keypairs.json`](test-vectors/keypairs.json), with real Ed25519, ES256, and RS256 signatures and real JWE payload encryption.
+55 test signature keypairs and one test encryption keypair are published in [`keypairs.json`](test-vectors/keypairs.json), with real Ed25519, ES256, and RS256 signatures and real JWE payload encryption.
 
 - [`docs/FAQ.md`](docs/FAQ.md) — Frequently Asked Questions: design rationale and decision explanations
 

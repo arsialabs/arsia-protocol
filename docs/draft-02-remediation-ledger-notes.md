@@ -881,6 +881,36 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   - Vector error signatures (procedure; validator, instance path and sub-errors, never the
     message text) were captured for the 1030 vectors before the cycle and compared after it: no
     difference.
+- **Flow contracts cycle — sources and limits:**
+  - The reference holder of R30 is a model of the holder's decisions (order of events, start of the
+    return, precedence of the checks, records); the receipts are recorded as states, not as
+    messages, and the provider is simulated. The dispute message at the arbitration agent is
+    checked by a function of the test, not by a model of that agent.
+  - The requester model of R29 covers the requester's side of Core §4.2.1; the decisions of
+    approvers and reviewers are exercised on the executor models of R15, which hold that state.
+  - The reservation of the release is normative (Assets §4.2.1, owner decision of 2026-11-25),
+    and §4.2.2 starts a return only when no financial operation is reserved for the escrow. The
+    cancellation of §4.2.4 is reserved by the reference holder in the same way; its section does
+    not state a reservation of its own.
+  - The registry of escrows of the reference holder attributes each read to the message being
+    decided or to the scheduler (timer work). "No read" for a rejected message means neither;
+    when the rejected message is the candidate a timeout check waited for, the scheduler reads
+    the escrow to start the return, and that read is the timer's.
+  - The reference mapping of R29 shows one way to treat key segments as data; the specification
+    requires the properties, not that encoding.
+  - ITV-91 keeps `human_oversight_status: "not_required"` under a MIFID-II resolution whose
+    oversight axis fills `required_before_execution`, as the other escrow fixtures do (22 records
+    of the corpus have that pair), and the reference holder of R30 emits that same constant in
+    the records it writes. The cycle did not change it; whether the escrow messages of a
+    holder are subject to prior approval is not stated by Assets §4 and is not a finding of this
+    cycle.
+  - The notification vector ITV-746 carries the capability `escrow.dispute.notify`, an
+    application capability: the notification, like the dispute message, requires none.
+  - INV-242 keeps its own `record_id`; in every other field it is ITV-91 with `payload_type`
+    changed.
+  - Vector error signatures were captured for the 1055 vectors before the cycle and compared
+    after it: the only differences are ITV-91 and INV-242, rebuilt, with the same result and
+    cause.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence

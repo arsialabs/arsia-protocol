@@ -70,7 +70,7 @@ check.
 | STATE-01 | State §9 | absent | — | — | The reference store (R17) is driven by scenario operation sequences; no scenario performs this SET/GET round trip and compares the returned StateEntry fields. |
 | STATE-02 | State §9 | absent | — | — | No scenario compares DELETE's response and a following GET. |
 | STATE-03 | State §9 | partial | A PURGE produces a `state_purge` record that validates against the audit-record schema and carries no stored value. | check:`R18 (i) completed state_purge record validates against arsia-audit-record (expired values, no override)` | PURGE's response object, the following GET returning null, and the record's `pii_classification` for a personal entry. |
-| STATE-04 | State §9 | absent | — | — | No reference model of QUERY. |
+| STATE-04 | State §9 | partial | A QUERY with `scope` = `"agent"` returns only the requester's entries of that scope — its own entry of scope `shared` and another agent's matching entry are left out — and `total` counts that same set. | check:`R29 QUERY: created_at first, then key in ASCII byte order — an older entry whose key sorts last comes first, the three entries of one millisecond follow as Alpha, Zeta, beta; consecutive pages over an unchanged state rebuild that sequence; total is that of the authorised, filtered set on every page — the scope filter leaves out the requester's own entry of another scope` | The population of the test (5 entries of scope `agent`, 3 of scope `shared`): the reference scenario has 4 and 1. The request and response messages are not exchanged. |
 | STATE-05 | State §9 | partial | Within retention the values are not physically removed: a PURGE without override is rejected and removes nothing. | check:`R18 (b) the rejected PURGE removes nothing and records nothing` | The DELETE/GET/SNAPSHOT sequence of the test. |
 | STATE-06 | State §9 | absent | — | — | No reference model of a storage backend's residency zone. |
 | STATE-07 | State §9 | absent | — | — | No reference model of GRANT or cross-agent access. |
@@ -88,8 +88,8 @@ check.
 | ASSETS-01 | Assets §7 | partial | The transfer amount grammar and per-currency scale of the request. | check:`R5 EUR 1500.00` | The transfer processing and the receipt's fields: no reference model of a transfer processor. |
 | ASSETS-02 | Assets §7 | absent | — | — | No executed scenario of a transfer request without an idempotency key. |
 | ASSETS-03 | Assets §7 | partial | The choice of the duplicate-detection key: a replay with a fresh `Idempotency-Key` header is still recognised as a duplicate through the signed envelope key. | check:`R6 replay with fresh header still dedupes` | Returning the stored receipt (same audit_id, status, payment_reference) and not calling the provider again: the reference logic selects the key only; it stores and returns no response. |
-| ASSETS-04 | Assets §7 | absent | — | — | No reference model of the escrow state machine. |
-| ASSETS-05 | Assets §7 | absent | — | — | No reference model of the escrow timeout. |
+| ASSETS-04 | Assets §7 | partial | Phases 2–3 on the reference holder: an escrow is created (`escrowed`), the release agent's trigger message carrying the `payment_reference`, received before `timeout_at`, is verified and applied; a `completed` receipt follows the `escrowed` one; the `escrow_released` record documents the release message and its `original_audit_id` is the creation record's. | check:`R30 release: received before timeout_at and verified afterwards it is applied (RELEASED, no return) — the escrowed receipt is followed by a completed one and the escrow_released record documents the release message and links to the creation record; received at timeout_at while the escrow is ESCROWED it is late and the timeout applies` | The receipt messages and their fields (`audit_id`, `settled_at`); the `escrow_created` audit record (the reference holder emits no creation record); the capability preconditions of Agent A and Agent D. |
+| ASSETS-05 | Assets §7 | partial | No release is sent; the timeout check runs within 60 seconds of `timeout_at` and starts the return; the funds are returned once, also when the provider's answer is lost and the timer repeats; the `failed` receipt with "Escrow timeout — funds returned to sender" is issued only after the provider's confirmation; the `escrow_returned` record documents the creating request. | check:`R30 timeout: the return is reserved once — with the provider's answer lost the escrow is not RETURNED and no receipt is issued; a release handled after the return started is rejected; the repeated timer confirms that same return; one financial effect, one failed receipt issued after the confirmation — also when it comes later than 60 seconds after timeout_at — and the escrow_returned record documents the request that created the escrow`; check:`R30 order of events: the timeout check runs within 60 seconds and instructs nothing while a notification received before timeout_at awaits verification; a valid one then gives DISPUTED with no financial instruction; an invalid one is rejected and the return starts; a notification received exactly at timeout_at is late — the timeout applies and it is rejected` | The receipt message and its fields; the test's escrow names no `arbitration_agent`, the reference scenario's does. |
 | ASSETS-06 | Assets §7 | partial | The risk assessment demands prior approval; no approval before `expires_at`: the Path 3 error and no receipt. | check:`R15 ASSETS-06: risk assessment source; expiry -> forbidden/expired, no receipt`; exec:R15:ITV-643, ITV-673 | The `pending_approval` args of this transfer (risk_level 9, context, canonical field set) are not compared. |
 | ASSETS-07 | Assets §7 | absent | — | — | No executed scenario of the MiFID II transfer audit record. |
 | ASSETS-08 | Assets §7 | absent | — | — | No reference model of infrastructure-failure classification or DORA incident generation. |
@@ -148,8 +148,8 @@ points to it.
 | Class | Tests |
 |---|---|
 | integral | 6 |
-| partial | 43 |
+| partial | 46 |
 | equivalent | 1 |
 | external | 11 |
-| absent | 28 |
+| absent | 25 |
 | **total** | **89** |

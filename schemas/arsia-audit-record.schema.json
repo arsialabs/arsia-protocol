@@ -308,7 +308,7 @@
           "$ref": "arsia-common.schema.json#/$defs/agent-id"
         }
       ],
-      "description": "Agent-id of the party that raised the escrow dispute. Present in escrow_disputed audit records. Per ARSIA-Assets.md §4.3.4."
+      "description": "Agent-id of the party that raised the escrow dispute, as the dispute notification carries it. Present in escrow_disputed audit records. Per ARSIA-Assets.md §4.3.4."
     },
     "dispute_reason": {
       "type": "string",
@@ -320,7 +320,7 @@
           "$ref": "arsia-common.schema.json#/$defs/agent-id"
         }
       ],
-      "description": "Agent-id of the arbitration agent assigned to resolve the escrow dispute. Present in escrow_disputed audit records. Per ARSIA-Assets.md §4.3.4."
+      "description": "Agent-id of the arbitration agent assigned to resolve the escrow dispute; it sent the dispute notification the record documents, so it equals from_agent (enforced at runtime). Present in escrow_disputed audit records. Per ARSIA-Assets.md §4.3.4."
     },
     "risk_level": {
       "type": "integer",

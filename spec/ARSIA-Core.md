@@ -447,9 +447,10 @@ ARSIA message envelopes and returns ARSIA response envelopes.
 to its immediate causal parent. When an agent sends a response, error,
 pending_approval, or approval_decision message, it MUST include a `correlation_id`
 field whose value equals the `id` field of the message to which it directly replies —
-the immediately preceding message in the interaction, NOT necessarily the request
-that initiated the interaction (§4.2.1). For example, an `approval_decision`
-correlates to the `pending_approval` it answers, not to the original request.
+its immediate causal parent, NOT necessarily the request that initiated the
+interaction nor the message most recently exchanged (§4.2.1). For example, an
+`approval_decision` correlates to the `pending_approval` it answers, not to the
+original request.
 Correlation identifiers enable hop-by-hop request-response matching; reconstruction
 of the full interaction uses the root request identifier defined below.
 
@@ -790,36 +791,69 @@ and the field is absent, the message is invalid and MUST be rejected with error 
 - **Condition:** REQUIRED when `intent` is `"response"`, `"error"`,
   `"pending_approval"`, or `"approval_decision"`.
 - **Constraints:** The `correlation_id` MUST equal the `id` field of the message to
-  which this message directly replies — its immediate causal parent, which is the
-  immediately preceding message in the interaction. It is NOT necessarily the `id`
-  of the request that initiated the interaction: an `approval_decision` correlates
-  to the `pending_approval` it answers (ARSIA-Actions.md §3.3), and a `response`
-  produced after an approval flow correlates to the original `request` because that
-  request is the message it replies to. This linkage enables hop-by-hop
-  request-response matching and distributed tracing; interaction-level
-  reconstruction uses `root_request_id` (§4.2.4).
+  which this message directly replies — its immediate causal parent. That is NOT
+  necessarily the request that initiated the interaction, nor the message most
+  recently exchanged: an `approval_decision` correlates to the `pending_approval` it
+  answers (ARSIA-Actions.md §3.3); a `response` produced after an approval flow
+  correlates to the original `request`; and after an `accepted` acknowledgement the
+  terminal result still correlates to that `request` (ARSIA-Actions.md §4.3). This
+  linkage enables hop-by-hop request-response matching and distributed tracing;
+  interaction-level reconstruction uses `root_request_id` (§4.2.4).
 
-  Handling rules for the receiving agent:
+  Handling rules for the receiving agent. Rules 1–3 apply to a message of intent
+  `response`, `error`, `pending_approval` or `approval_decision` delivered to the
+  agent. For such a message the agent looks up, among the messages it sent and still
+  tracks, the one its `correlation_id` names; rule 1 decides the case in which there
+  is none. An `event` that carries a `correlation_id` is outside these rules: its
+  correlation and its handling are those of the section that defines it (for the
+  post-execution review messages, ARSIA-Actions.md §3.9.3), and its receiver need not
+  have sent the message it names.
+
+  The `correlation_id` identifies the causal parent of a reply, not the reply. Several
+  replies can name one parent, and after the verifications that apply to it a reply
+  takes effect only as a transition that the state of its flow permits:
+
+  - *Prior approval.* A `pending_approval` and, later, the terminal `response` or
+    `error` both reply to the request. While the `pending_approval` admits decisions,
+    the decision of each distinct approver replies to it (ARSIA-Actions.md §3.4, §3.6).
+  - *Asynchronous execution.* The `accepted` acknowledgement and the terminal result
+    both name the request (ARSIA-Actions.md §4.3).
+
   1. **Unknown correlation:** a message whose `correlation_id` does not match any
      message the receiving agent has sent and still tracks MUST NOT be processed as
      a reply. The receiver MUST log the discrepancy; for `approval_decision` it MUST
      reject with error code `invalid_request` (ARSIA-Actions.md §3.4, verification step 4); for
      `response` and `error` it MAY discard the message silently.
-  2. **Duplicate correlation:** if a reply for the same `correlation_id` was already
-     accepted, subsequent replies with that `correlation_id` MUST NOT change the
-     recorded outcome. The receiver MUST log the duplicate and SHOULD respond (where
-     a response channel exists) with error code `invalid_request`.
-  3. **Late correlation:** a reply that arrives after the correlated message's
-     terminal state was reached (expired, completed, or failed) MUST NOT alter that
-     state. The receiver MUST log the late arrival and treat the reply per rule 2.
-     A post-execution review's `overdue` state is not terminal
-     (ARSIA-Actions.md §3.9.4): a review decision that arrives after the review
-     deadline is processed per that section. It never alters the execution, whose
-     terminal state is not reopened.
+  2. **Repeated reply:** a delivered reply whose `id` the receiver has already
+     accepted is a redelivery and MUST NOT apply its transition again. A reply with a
+     new `id` MUST NOT take effect when the state of the flow no longer permits its
+     transition: it MUST NOT record a second terminal result for a request whose
+     terminal result was accepted, and it MUST NOT count a second decision of an
+     approver whose decision was admitted. In either case the recorded outcome MUST
+     NOT change; the receiver MUST log the reply and SHOULD respond (where a response
+     channel exists) with error code `invalid_request`. A rejected decision was not
+     admitted and does not consume its approver (ARSIA-Actions.md §3.4): a later
+     decision of that approver is not a repetition.
+  3. **Late correlation:** a reply delivered after its flow reached a terminal state
+     (expired, completed, or failed) MUST NOT alter that state. The receiver MUST log
+     the late arrival and treat the reply per rule 2.
 
-  For an `approval_decision` and for a post-execution review decision, the log that
-  rules 1–3 require is the `decision_rejected` audit record (ARSIA-State.md §7.1;
-  ARSIA-Actions.md §3.4, §3.9.3).
+  Rules 2 and 3 concern messages delivered to the agent. A retrieval of the persisted
+  terminal result that the requester itself makes (ARSIA-Actions.md §4.3) is not a
+  delivery. Each retrieval remains subject to the retriever's current authorization
+  and to the verification of the signature and of the binding to the execution.
+  Repeating an authorised retrieval whose result was authenticated and bound to the
+  execution returns the same envelope, makes no transition, is not a duplicate and is
+  not answered with an error for being repeated.
+
+  For an `approval_decision`, the log that rules 1–3 require is the
+  `decision_rejected` audit record (ARSIA-State.md §7.1; ARSIA-Actions.md §3.4). A
+  post-execution review decision is an `event` handled by ARSIA-Actions.md §3.9.3: the
+  first verified decision resolves the review, also when the review is `overdue` —
+  which is not a terminal state (ARSIA-Actions.md §3.9.4) — and a later decision, of
+  the same or of another reviewer, does not reopen it and is logged as
+  `decision_rejected`, with the reply of rule 2. No review decision alters the
+  execution, whose terminal state is not reopened.
 
 #### 4.2.2 `expires_at` — Expiration Timestamp
 

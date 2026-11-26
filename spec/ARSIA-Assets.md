@@ -1352,8 +1352,9 @@ every field is REQUIRED.
   disputed by either party. The arbitration process itself is OUT OF SCOPE for ARSIA —
   it is an implementation concern that varies by jurisdiction, industry, and contractual
   arrangement. ARSIA defines only the signaling: either party can send a message to the
-  `arbitration_agent` to initiate a dispute, and the escrow transitions to the
-  `DISPUTED` state (§4.2). If `arbitration_agent` is absent and a dispute arises, the
+  `arbitration_agent` to initiate a dispute; the `arbitration_agent` notifies the
+  escrow holder, and the escrow transitions to the `DISPUTED` state when the holder has
+  verified that notification (§4.2.3). If `arbitration_agent` is absent and a dispute arises, the
   escrow MUST timeout normally at `timeout_at` — there is no dispute mechanism.
 
 #### 4.1.1 Complete EscrowConditions Example
@@ -1385,15 +1386,31 @@ received, the terminal state is uniquely determined.
                              +-----+-----+
                     +-------------+-+-------------+
                     |              |              |
-              release_agent    timeout_at   either party
-              sends trigger    reached      invokes
-              message                       arbitration
+              release_agent    timeout_at   arbitration
+              sends trigger    reached      agent notifies
+              message                       the holder
                     |              |              |
                     v              v              v
               +----------+   +----------+   +----------+
               | RELEASED |   | RETURNED |   | DISPUTED |
               +----------+   +----------+   +----------+
 ```
+
+**Order of events.** While an escrow is `ESCROWED`, the escrow holder orders the events
+of that escrow by its own clock: each message that is a candidate for a transition of
+that escrow — a release, a cancellation or a dispute notification naming it — by the
+instant at which the holder received it, and the timeout by `timeout_at`. Two such
+messages received at the same instant keep the order in which the holder received
+them. A candidate message received strictly before `timeout_at` precedes the timeout,
+however long its verification takes: the holder MUST NOT start the return of §4.2.2
+while such a message awaits verification. If the message is verified and takes effect,
+the timeout does not apply. A rejected message has no effect of its own: the timeout
+proceeds only under the conditions of §4.2.2, once every candidate message received
+before `timeout_at` has been decided. A candidate message received at or after
+`timeout_at` is late and does not prevent the timeout. A message that concerns another
+escrow never delays the timeout of this one. While the escrow is `DISPUTED` the timeout
+is suspended (§4.2.3) and this rule does not apply: the `arbitration_agent` resolves
+the dispute by a release or a cancellation also after the original `timeout_at` (§4.1).
 
 #### 4.2.1 ESCROWED → RELEASED
 
@@ -1411,11 +1428,17 @@ specific escrow.
 2. The message's `payload.type` matches the `release_trigger` in the EscrowConditions.
 3. The message's EdDSA signature is valid.
 4. The escrow has not already transitioned to a terminal state.
-5. The current time is before `timeout_at` (not applied while the escrow is
-   `DISPUTED`: the timeout is suspended, §4.2.3).
+5. The release message was received before `timeout_at` (order of events, §4.2; not
+   applied while the escrow is `DISPUTED`: the timeout is suspended, §4.2.3).
 
 If any validation fails, the release MUST be rejected and the escrow remains in its
 current state (`ESCROWED` or `DISPUTED`).
+
+**Reservation of the release.** Before instructing the provider to release the escrowed
+value, the holder MUST reserve that release as the escrow's financial operation. While
+its outcome is uncertain, the holder MUST reconcile the same operation. A retry,
+cancellation or timeout MUST NOT cause a second financial effect. The holder MUST issue
+the completed receipt only after the provider confirms the release.
 
 **Result.** Upon successful validation:
 
@@ -1435,29 +1458,48 @@ the EscrowConditions, and the escrow has not been released or disputed.
 detects when `timeout_at` has been reached. The specific implementation (polling, timer,
 scheduled task) is outside the scope of this specification. The timeout check MUST
 execute within 60 seconds of `timeout_at` — implementations SHOULD NOT allow timeouts
-to be delayed by more than 60 seconds.
+to be delayed by more than 60 seconds. The check does not by itself start the return:
+the return starts when the conditions below hold, and the receipt follows the
+provider's confirmation.
 
-**Result.** Upon timeout:
+**Start of the return.** The holder starts the return by one decision in which all of
+the following hold together: the escrow is `ESCROWED` at that instant; `timeout_at`
+has been reached; every candidate message received before `timeout_at` has been
+decided (§4.2); and no financial operation has been reserved for this escrow. In that
+same decision the holder reserves the return, once. The state found when the timer ran is not
+sufficient: the holder MUST evaluate these conditions again at the instant it starts
+the return.
 
-1. The escrowed value is returned to `from_agent`. The escrow holder instructs the
-   payment provider to reverse the debit from `from_agent`'s account.
-2. A new AssetTransferReceipt is generated with:
-   - `status`: `"failed"`
-   - `failure_reason`: `"Escrow timeout — funds returned to sender"`
-3. An automatic AssetTransferReversal is initiated internally (not requiring external
-   reversal capability) to reverse the original debit.
-4. An escrow timeout audit event is generated (§4.3).
+**Result.** Once the return is reserved:
+
+1. The escrow holder returns the escrowed value to `from_agent` through the payment
+   provider. The return is an operation of the holder with its provider, not an
+   AssetTransferReversal (§3.3): no reversal message is sent, no reversal capability
+   is required and the conditions of §3.3 do not apply.
+2. The return MUST take effect at most once. From the instant the holder starts it,
+   the escrow admits no other transition: a release, a cancellation or a dispute
+   notification handled afterwards MUST be rejected, and a repeated timer, or a retry
+   after the provider's answer was lost, MUST resume or confirm that same return and
+   MUST NOT instruct a second one.
+3. When the provider has confirmed the return, the escrow transitions to `RETURNED`
+   and a new AssetTransferReceipt is generated with `status: "failed"` and
+   `failure_reason: "Escrow timeout — funds returned to sender"`. The receipt MUST NOT
+   be issued before the return is confirmed.
+4. An escrow timeout audit event is generated (§4.3.3). It documents the
+   AssetTransferRequest that created the escrow.
 
 #### 4.2.3 ESCROWED → DISPUTED
 
 **Trigger.** Either the `from_agent` (payer) or the `to_agent` (payee) sends a dispute
-message to the `arbitration_agent` specified in the EscrowConditions.
+message to the `arbitration_agent` specified in the EscrowConditions, and the
+`arbitration_agent` notifies the escrow holder. Two messages are involved; each has its
+own verifications.
 
 **Precondition.** The `arbitration_agent` field MUST be present in the EscrowConditions.
 If `arbitration_agent` is absent, the `DISPUTED` state is unreachable — the escrow can
 only transition to `RELEASED` or `RETURNED`.
 
-**Dispute message format:**
+**Dispute message (party to arbitration agent):**
 
 | Field          | Value                                        |
 |----------------|----------------------------------------------|
@@ -1467,7 +1509,8 @@ only transition to `RELEASED` or `RETURNED`.
 
 The dispute message does not require a specific capability. Either party to the escrow
 (`from_agent` or `to_agent` from the original AssetTransferRequest) MAY send a dispute.
-The `arbitration_agent` MUST verify that the sender is a party to the escrow before
+The `arbitration_agent` MUST verify the signature of the message, that the sender is a
+party to the escrow, and that `disputed_by` equals the message's `from`, before
 processing the dispute. Dispute messages from agents that are not a party to the escrow
 MUST be rejected with error code `"forbidden"`.
 
@@ -1477,7 +1520,36 @@ The dispute message's `payload.args` MUST include:
 - `dispute_reason`: A human-readable description of the dispute (maxLength 512).
 - `disputed_by`: The agent-id of the disputing party.
 
-**Result.** Upon receiving a valid dispute:
+**Dispute notification (arbitration agent to escrow holder).** After it has accepted a
+dispute, the `arbitration_agent` MUST notify the escrow holder with a signed `request`
+of `payload.type` `"arsiaprotocol.assets/escrow-dispute"` addressed to the holder. Like
+the dispute message, the notification does not require a specific capability. Its
+`payload.args` carry, unchanged, the `payment_reference`, the `dispute_reason` and the
+`disputed_by` of the dispute it accepted; the holder cannot check that copy, which is
+the arbitration agent's responsibility. The holder processes the notification through
+the pipeline of ARSIA-Core.md §5.2, in its order: the signature (step 10), the
+validation of the complete message (step 11) and the access token presented with it
+(step 12; ARSIA-Core.md §9.1). A failure of the signature or of the token is
+`unauthorized`; a notification that is not valid — for example one whose
+`payment_reference` is absent or malformed — is `invalid_request`. The holder looks up
+no escrow before those steps have completed. Then, before the escrow changes state, it
+MUST verify, in this order:
+
+1. that `payment_reference` identifies an escrow this holder holds — otherwise
+   `not_found`;
+2. that the authenticated sender is the `arbitration_agent` of the EscrowConditions of
+   that escrow — otherwise `forbidden`;
+3. that `disputed_by` is the payer or the payee of that escrow, that the escrow is
+   `ESCROWED`, and that the holder received the notification before `timeout_at`
+   (§4.2) — otherwise `invalid_request`.
+
+A notification is rejected with the code of the first step or check it fails, and the
+escrow keeps its state.
+
+**Result.** The escrow becomes `DISPUTED` when the holder has verified the
+notification, with effect from the instant the holder received it; a dispute the
+arbitration agent accepted has no effect on the escrow until then. Upon a verified
+notification:
 
 1. The escrow is frozen — the `timeout_at` deadline is suspended. The value remains
    held at the provider.
@@ -1625,10 +1697,12 @@ Generated when the escrow transitions from `ESCROWED` to `DISPUTED`.
 |--------------------|-------------------------------------------------------------|
 | `event_type`       | `"asset_transfer"`                                          |
 | `sub_type`         | `"escrow_disputed"`                                         |
-| `message_id`       | The `id` of the escrow-dispute message (§4.2.3)             |
+| `message_id`       | The `id` of the dispute notification (§4.2.3)               |
 | `payload_type`     | `"arsiaprotocol.assets/escrow-dispute"`                     |
+| `from_agent`       | The `arbitration_agent`, sender of the notification         |
+| `to_agent`         | The escrow holder                                           |
 | `payment_reference`| The transfer's `payment_reference`                          |
-| `disputed_by`      | The agent-id of the disputing party                         |
+| `disputed_by`      | The party that raised the dispute, as the notification carries it |
 | `dispute_reason`   | The human-readable dispute reason                           |
 | `arbitration_agent`| The agent-id of the arbitration agent                       |
 | `original_audit_id`| The `record_id` of the escrow creation record (§4.3.1)      |
@@ -2641,7 +2715,9 @@ Phase 2: No release trigger message is sent. The test waits for the timeout to e
 **Expected Result:**
 
 1. Agent B initially responds with `payload.result.status` = `"escrowed"`.
-2. After the timeout elapses (within 60 seconds of `timeout_at`, per §4.2.2):
+2. The timeout check executes within 60 seconds of `timeout_at` (§4.2.2). No message
+   for the escrow is pending in this test, so Agent B starts the return; once the
+   provider has confirmed it:
    - Agent B generates a new AssetTransferReceipt with `status: "failed"`.
    - `payload.result.failure_reason` is `"Escrow timeout — funds returned to sender"`.
 3. An escrow timeout audit event is generated with `sub_type: "escrow_returned"`.

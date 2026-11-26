@@ -191,6 +191,42 @@ catalog edition via the new discovery field `iso4217_edition`.
   carries the payer and payee in the REQUIRED `payer_agent`/`payee_agent`. An
   `escrow_returned` record carries exactly one of `actual_timeout` and
   `cancellation_reason`.
+- **Escrow dispute notification (Assets §4.2.3, §4.3.4).** A dispute reaches the
+  escrow in two messages. The party sends the dispute to the `arbitration_agent`,
+  which checks the signature, that the sender is the payer or the payee and that
+  `disputed_by` is the sender. The `arbitration_agent` then notifies the escrow
+  holder with a signed request of the same type, carrying the same
+  `payment_reference`, `dispute_reason` and `disputed_by`. The escrow becomes
+  `DISPUTED` only when the holder has verified that notification. The holder runs
+  the Core §5.2 pipeline first (signature and token failures are `unauthorized`,
+  an invalid message is `invalid_request`) and looks up no escrow before it; then
+  an unknown `payment_reference` is `not_found`, a sender that is not that
+  escrow's arbitration agent is `forbidden`, and a `disputed_by` that is no party,
+  an escrow that is not `ESCROWED` or a notification received at or after
+  `timeout_at` is `invalid_request`. The `escrow_disputed` record documents the
+  notification: `from_agent` is the arbitration agent, `to_agent` the holder.
+- **Order of escrow events (Assets §4.2, §4.2.1).** While the escrow is
+  `ESCROWED`, what counts is the instant at which the holder received a release,
+  a cancellation or a dispute notification, on its own clock: received strictly
+  before `timeout_at` it precedes the timeout, however long its verification
+  takes; received at or after it, it is late. Do not start the return while such
+  a message is still being verified. While the escrow is `DISPUTED` the timeout
+  is suspended and the arbitration agent may resolve it after the original
+  `timeout_at`.
+- **Escrow timeout (Assets §4.2.2).** The return is an operation of the holder
+  with its payment provider, not an AssetTransferReversal: no reversal message,
+  no reversal capability. The 60 seconds bound the timeout check, not the return
+  or the receipt. Start the return by one decision that evaluates again that the
+  escrow is `ESCROWED`, that `timeout_at` was reached and that every message
+  received before it was decided, and reserve it once: a repeated timer or a
+  retry after a lost provider answer resumes that same return. Issue the `failed`
+  receipt only after the provider has confirmed the return.
+- **Escrow release (Assets §4.2.1).** Reserve the release as the escrow's
+  financial operation before instructing the provider, and reconcile that same
+  operation while its outcome is uncertain: a retry, a cancellation or the
+  timeout must not cause a second financial effect, and a return starts only when
+  no financial operation is reserved for the escrow. Issue the `completed` receipt
+  only after the provider has confirmed the release.
 
 ## 8. Compliance profiles
 
@@ -241,6 +277,18 @@ catalog edition via the new discovery field `iso4217_edition`.
   is `sha-256:` (earlier corpus values used `sha256:` and are now rejected by the
   schema). No order is defined for `entries`, so two implementations may produce
   different values for the same state.
+- **QUERY order and pagination (State §3.1.4).** Order results by `created_at`
+  and, at equal `created_at`, by `key` as ASCII bytes — a case-sensitive
+  comparison, not the collation of the database. Compute `total` and `entries`
+  over the same authorised, filtered set and apply `offset` and `limit` after the
+  ordering. Each request is evaluated on its own: pages are consistent with each
+  other only while the set does not change. For a reading at one instant use
+  SNAPSHOT with `as_of`.
+- **Keys are not paths (State §10.2).** The key grammar is unchanged and allows
+  dots and slashes; `agent:acme.echo-client/agent/../../other/secret` is a valid
+  key. A backend that maps keys to paths or object names treats every segment as
+  data, keeps each operation inside the storage space authorised for it and maps
+  different keys to different objects.
 
 ## 10. Broker relay audit and DPoP
 
@@ -295,6 +343,16 @@ catalog edition via the new discovery field `iso4217_edition`.
   another key of the sender, never the revoked one. An unauthenticated event is
   rejected and invalidates nothing. An authenticated event invalidates the cached
   key at once.
+- **Replies that share a parent (Core §4.2.1).** `correlation_id` names the
+  message a reply directly answers, not the message most recently exchanged: after
+  an `accepted` acknowledgement the terminal result still correlates to the
+  request. Do not treat a second reply with the same `correlation_id` as a
+  duplicate by that fact alone — a `pending_approval` and the terminal result, an
+  acknowledgement and the terminal result, and the decisions of distinct approvers
+  share a parent. Apply a reply only as a transition the flow still permits: a
+  redelivered `id`, a second terminal result and a second decision of an admitted
+  approver change nothing and are logged. Reading the persisted terminal result
+  again is not a delivery and is not an error.
 
 ## 12. Message parsing and the relay attestation header
 
@@ -335,8 +393,8 @@ catalog edition via the new discovery field `iso4217_edition`.
 ## 13. Test vectors and keys (for implementations that use the corpus)
 
 - The corpus header is `version` `2.0.0` (the Draft-01 corpora were 1.0.x).
-- `keypairs.json` has 54 signature entries with a `provenance` member: 17 Draft-02
-  entries, 35 imported unchanged from the Draft-01.1 catalog, and 2 generated. An
+- `keypairs.json` has 55 signature entries with a `provenance` member: 17 Draft-02
+  entries, 35 imported unchanged from the Draft-01.1 catalog, and 3 generated. An
   agent's additional key is indexed by its full `kid`. One X25519 encryption
   keypair is published apart from them, in `encryption_keypairs`, for the
   encrypted-payload vectors (ITV-742, INV-249..251, INV-253, INV-254), whose JWEs
@@ -352,6 +410,11 @@ catalog edition via the new discovery field `iso4217_edition`.
 - In runtime-only schema-ref vectors, `expected` is the structural result and the
   runtime outcome is `expected_error`.
 - INV-21 is a schema-ref vector against `#/$defs/set-args`.
+- ITV-91 and INV-242 (`escrow_disputed` records) are rebuilt from the dispute
+  notification ITV-746, which the arbitration agent signs with the catalog key
+  `agent:arsialabs.demo.arbitrator#key1`; their `from_agent`, `to_agent`,
+  `message_id`, `payload_hash`, `disputed_by` and retention fields change, and they
+  carry `verified_kid` and `jwks_fetched_at`.
 - INV-20, INV-22 and ITV-555 are no longer runtime-only: the message schema executes
   the Rule 8 basis and the `pii_special_categories` exclusion on a SET.
 - No vector uses an `arsiaprotocol.*` payload type that the specification does not

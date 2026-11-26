@@ -76,6 +76,13 @@ Schema cannot express, executed as tests — including against the runtime
   R28 Nesting depth and parser limits: the depth count,    (Core §5.2 step 2; A-137)
       the limit at every receiving entry, integers of any
       length without touching the interpreter's digit limit
+  R29 Key confinement, reply transitions and QUERY order: (State §10.2, §3.1.4; Core §4.2.1;
+      keys as data in the storage namespace, replies as     Actions §3.4, §3.6, §3.9.3, §4.3;
+      transitions of their flow at the requester and the    A-138, A-141, A-143)
+      executor, the total order and the single set of QUERY
+  R30 Escrow: the timeout as a single return, the dispute  (Assets §4.2, §4.2.1-§4.2.3, §4.3.4;
+      notification at the holder, the order of events by    Core §5.2, §6.4; A-142)
+      the instant of reception, the record of the dispute
 
 Exit code 0 = all green.
 """
@@ -5242,12 +5249,965 @@ def r28(vectors):
           f"{pdepth} {shape}", executed=["INV-251"])
 
 
+# ------------------------- R29 key confinement, reply transitions, QUERY order (A-138, A-141, A-143)
+def storage_object(space, key):
+    """State §10.2 reference mapping of a key to an object name inside `space`, the storage space authorised for
+    the operation: every segment is data. Each segment is written as `s-` followed by its characters, with
+    everything but lowercase letters and digits percent-encoded, so that `.`, `..`, an empty segment and letter
+    case have no meaning for the namespace and different keys give different names."""
+    enc = lambda seg: "s-" + "".join(c if (c.islower() and c.isascii()) or c.isdigit() else f"%{ord(c):02X}" for c in seg)
+    return space + "/" + "/".join(enc(seg) for seg in key.split("/"))
+
+
+def naive_storage_object(root, key):
+    """The defect the section names, as a control: the key joined to the root as a path and normalised, so that
+    an agent's space is the directory named by its agent-id."""
+    import posixpath
+    return posixpath.normpath(posixpath.join(root, key))
+
+
+def confined(space, obj):
+    import posixpath
+    obj = posixpath.normpath(obj)
+    return obj.startswith(space + "/")
+
+
+REPLY_INTENTS = ("response", "error", "pending_approval", "approval_decision")
+
+
+class Requester:
+    """Core §4.2.1 at the agent that sent requests: for a delivered message of a reply intent the parent named by
+    `correlation_id` is looked up among the requests it sent and still tracks (rule 1); a reply takes effect only
+    as a transition its flow permits (rules 2 and 3). `retrieve` is the requester's own reading of a persisted
+    terminal result (Actions §4.3): not a delivery, no transition."""
+    ALLOWED = {"awaiting": {"pending", "accepted", "terminal"}, "pending": {"accepted", "terminal"},
+               "accepted": {"terminal"}, "terminal": set()}
+
+    def __init__(self):
+        self.flows, self.log, self.events = {}, [], []
+
+    def sent(self, request):
+        self.flows[request["id"]] = {"state": "awaiting", "accepted_ids": set(), "outcome": None, "applied": []}
+
+    @staticmethod
+    def kind(msg):
+        if msg["intent"] == "pending_approval":
+            return "pending"
+        result = msg["payload"].get("result") if isinstance(msg["payload"], dict) else None
+        if msg["intent"] == "response" and isinstance(result, dict) and result.get("status") == "accepted":
+            return "accepted"
+        return "terminal"
+
+    def deliver(self, msg):
+        """Returns (applied, rule, code): the rule that stopped the message and the code it SHOULD be answered
+        with, or (True, None, None)."""
+        if msg["intent"] not in REPLY_INTENTS:
+            self.events.append(msg["id"])           # an event: outside rules 1-3, handled by its own section
+            return True, None, None
+        flow = self.flows.get(msg.get("correlation_id"))
+        if flow is None:
+            self.log.append(("unknown", msg["id"]))
+            return False, 1, None
+        if msg["id"] in flow["accepted_ids"]:
+            self.log.append(("redelivery", msg["id"]))
+            return False, 2, "invalid_request"
+        kind = self.kind(msg)
+        if flow["state"] == "terminal":
+            self.log.append(("late", msg["id"]))
+            return False, 3, "invalid_request"
+        if kind not in self.ALLOWED[flow["state"]]:
+            self.log.append(("repeated", msg["id"]))
+            return False, 2, "invalid_request"
+        flow["accepted_ids"].add(msg["id"])
+        flow["applied"].append(kind)
+        flow["state"] = kind
+        if kind == "terminal":
+            flow["outcome"] = msg["id"]
+        return True, None, None
+
+    def retrieve(self, request_id, persisted, authorised):
+        """Actions §4.3 item 3. Returns the envelope, or the reason the retrieval is refused."""
+        if not authorised:
+            return "unauthorized"
+        if not accept_retrieved(persisted, request_id):
+            return "unverified"
+        return persisted
+
+
+def state_query(stores, grants, requester, filters=None, offset=0, limit=100):
+    """State §3.1.4: one set — the live entries the requester is authorised to access that match the filters —
+    ordered by created_at, then by key as ASCII bytes; total and entries come from that same set, offset and
+    limit are applied after the ordering. `grants` is a set of (grantee, key)."""
+    f = filters or {}
+    rows = []
+    for store in stores:
+        for key in store.gens:
+            cur = store.live(key)
+            if cur is None:
+                continue
+            g, e = cur
+            entry = store.entry(key, g, e, e["versions"][-1])
+            if not (store.owner == requester or (requester, key) in grants or entry["scope"] == "global"):
+                continue
+            if ("scope" in f and entry["scope"] != f["scope"]) or \
+               ("owner_agent_id" in f and entry["owner_agent_id"] != f["owner_agent_id"]) or \
+               ("key_prefix" in f and not key.startswith(f["key_prefix"])) or \
+               ("pii_classification" in f and entry["pii_classification"] != f["pii_classification"]) or \
+               ("created_after" in f and not iso(entry["created_at"]) > iso(f["created_after"])) or \
+               ("created_before" in f and not iso(entry["created_at"]) < iso(f["created_before"])):
+                continue
+            rows.append(entry)
+    rows.sort(key=lambda r: (iso(r["created_at"]), r["key"].encode("ascii")))
+    limit = min(limit, 1000)
+    return {"entries": rows[offset:offset + limit], "total": len(rows), "limit": limit, "offset": offset}
+
+
+def query_order_problems(result):
+    """State §3.1.4 on a QUERY result as carried: entries in ascending created_at and, at equal created_at, in
+    ascending order of the ASCII bytes of key; no key twice. Returns the diagnostics."""
+    out, entries = [], result.get("entries") or []
+    keys = [e["key"] for e in entries]
+    if len(set(keys)) != len(keys):
+        out.append("a key appears twice")
+    for a, b in zip(entries, entries[1:]):
+        ka, kb = (iso(a["created_at"]), a["key"].encode("ascii")), (iso(b["created_at"]), b["key"].encode("ascii"))
+        if ka[0] > kb[0]:
+            out.append(f"created_at descends between {a['key']} and {b['key']}")
+        elif ka[0] == kb[0] and ka[1] > kb[1]:
+            out.append(f"equal created_at: {a['key']} before {b['key']} is not the ASCII byte order of key")
+    return out
+
+
+def r29(vectors):
+    by_id = {v["id"]: v for v in vectors}
+    # ---- keys and storage (State §10.2)
+    root = "/store"
+    space = lambda agent: root + "/" + storage_object("", agent)[1:]
+    finding = by_id["ITV-745"]["data"]["key"]
+    a_space, b_space = space("agent:a"), space("agent:b")
+    hop = "agent:a/agent/../../agent:b/agent/x"
+    climb = "agent:a/../../../x"                         # conforms to the pattern; as a path it climbs above the space
+    ref_ok = confined(space("agent:acme.echo-client"), storage_object(space("agent:acme.echo-client"), finding)) \
+        and confined(a_space, storage_object(a_space, hop)) and confined(a_space, storage_object(a_space, climb))
+    naive_hop, naive_find = naive_storage_object(root, hop), naive_storage_object(root, finding)
+    check("R29 keys: under the reference mapping every operation stays in the storage space authorised for it — "
+          "the key of the finding and a key that climbs into another agent's space; the path-joining control leaves "
+          "that space, and for the second key it does so while staying inside the global root",
+          ref_ok and not confined(root + "/agent:acme.echo-client", naive_find) and not confined(root + "/agent:a", naive_hop)
+          and naive_hop == root + "/agent:b/agent/x" and confined(root, naive_hop) and confined(root, naive_find)
+          and not schema_errors(by_id["ITV-745"]["data"], "arsia-state-operations.schema.json", "get-args"),
+          f"{naive_find} {naive_hop}", executed=["ITV-745"])
+    keys = ["agent:a/agent/b/../c", "agent:a/agent/c", "agent:a/agent/./c", "agent:a/agent/c/", "agent:a/agent/C",
+            "agent:a/agent/..", "agent:a/agent/.", "agent:a/agent/s-c", "agent:a/agent/%2E", finding, hop]
+    ref_names = {k: storage_object(a_space, k) for k in keys}
+    naive_names = {k: naive_storage_object(root, k) for k in keys}
+    check("R29 keys: different keys map to different stored objects — the reference mapping is injective over keys "
+          "with dot segments, an empty last segment and letter case, also when case is ignored; the path-joining "
+          "control maps a/b/../c and a/c to one object",
+          len(set(ref_names.values())) == len(keys) and len({n.lower() for n in ref_names.values()}) == len(keys)
+          and naive_names[keys[0]] == naive_names[keys[1]], f"{ref_names}")
+
+    # ---- reply transitions at the requester (Core §4.2.1)
+    def flow(n, oversight=False, asynchronous=False):
+        at = "2026-11-21T10:00:00.000Z"
+        run = Run(make_request(f"7a000000-0000-4000-8000-0000000029a{n}", {"type": "com.acme.test/run", "args": {}},
+                               at=at), make_descriptor("com.acme.test/run", oversight), at)
+        if oversight:
+            run.approval(approval_decision_msg(run, "2026-11-21T10:01:00.000Z"), "2026-11-21T10:01:00.000Z", None,
+                         reviewer_token("2026-11-21T10:01:00.000Z"))
+        run.execute("2026-11-21T10:02:00.000Z", asynchronous=asynchronous)
+        rq = Requester()
+        rq.sent(run.req)
+        return run, rq
+    run, rq = flow(0, oversight=True)
+    got = [rq.deliver(run.pending), rq.deliver(run.terminal)]
+    f = rq.flows[run.req["id"]]
+    check("R29 prior approval at the requester: the pending_approval and, later, the terminal response both reply "
+          "to the request and both are applied; one result is recorded",
+          got == [(True, None, None)] * 2 and f["applied"] == ["pending", "terminal"] and f["outcome"] == run.terminal["id"]
+          and run.pending["correlation_id"] == run.terminal["correlation_id"] == run.req["id"], f"{got} {f}")
+    again = rq.deliver(run.terminal)
+    other = json.loads(json.dumps(run.terminal)); other["id"] = det_id("r29/second-terminal"); sign(other, EXECUTOR_ID)
+    second = rq.deliver(other)
+    late_pending = rq.deliver(dict(run.pending, id=det_id("r29/late-pending")))
+    check("R29 repeated and late replies: a redelivery of an accepted id does not apply its transition again; a "
+          "terminal result with a new id does not replace the recorded one; a pending_approval after the terminal "
+          "result is late; each is logged and answered invalid_request, and the recorded outcome is unchanged",
+          again == (False, 2, "invalid_request") and second == (False, 3, "invalid_request")
+          and late_pending == (False, 3, "invalid_request") and f["outcome"] == run.terminal["id"]
+          and f["applied"] == ["pending", "terminal"] and [k for k, _ in rq.log] == ["redelivery", "late", "late"],
+          f"{again} {second} {late_pending} {rq.log}")
+    run2, rq2 = flow(1, asynchronous=True)
+    got = [rq2.deliver(run2.ack), rq2.deliver(run2.terminal)]
+    f2 = rq2.flows[run2.req["id"]]
+    ack_again = rq2.deliver(dict(run2.ack, id=det_id("r29/late-ack")))
+    check("R29 asynchronous execution at the requester: the accepted acknowledgement and the terminal result both "
+          "name the request — the terminal result correlates to the request, not to the acknowledgement — and both "
+          "are applied; an acknowledgement after the terminal result is late",
+          got == [(True, None, None)] * 2 and f2["applied"] == ["accepted", "terminal"]
+          and run2.terminal["correlation_id"] == run2.req["id"] != run2.ack["id"]
+          and ack_again == (False, 3, "invalid_request"), f"{got} {f2} {ack_again}")
+    before = (json.dumps(f2, sort_keys=True, default=sorted), list(rq2.log))
+    first, repeat = rq2.retrieve(run2.req["id"], run2.terminal, True), rq2.retrieve(run2.req["id"], run2.terminal, True)
+    forged = json.loads(json.dumps(run2.terminal)); forged["payload"]["result"]["status"] = "altered"
+    check("R29 retrieval of the persisted terminal result is not a delivery: an authorised retrieval and its "
+          "repetition return the same envelope, with signature and binding verified, make no transition and log no "
+          "duplicate; the same retrieval without authorization is refused, and an envelope whose signature does "
+          "not verify is not accepted",
+          first == repeat == run2.terminal and (json.dumps(f2, sort_keys=True, default=sorted), list(rq2.log)) == before
+          and rq2.retrieve(run2.req["id"], run2.terminal, False) == "unauthorized"
+          and rq2.retrieve(run2.req["id"], forged, True) == "unverified")
+    stray = dict(run2.terminal, id=det_id("r29/stray"), correlation_id=det_id("r29/never-sent"))
+    unknown = Requester().deliver(stray), rq2.deliver(stray)
+    check("R29 unknown correlation (rule 1): a message of a reply intent whose parent the agent did not send, or no "
+          "longer tracks, is not processed as a reply and is logged",
+          unknown == ((False, 1, None), (False, 1, None)) and rq2.log[-1] == ("unknown", stray["id"])
+          and f2["applied"] == ["accepted", "terminal"], f"{unknown}")
+
+    # ---- the executor holds the state of approvers and reviewers (Actions §3.4, §3.6, §3.9.3)
+    cfg = dict(FULL_REVIEW_CONFIG)
+    case = execution_case({"case": "approval", "descriptor_oversight": True, "compliance": {"profile": "GDPR-STANDARD"},
+                           "required_approvals": 2,
+                           "approvals": [{"at": "2026-10-31T10:10:00.000Z"},
+                                         {"at": "2026-10-31T10:11:00.000Z"},
+                                         {"at": "2026-10-31T10:12:00.000Z", "approver": "agent:acme.approver-two"}]})
+    check("R29 approvers: the decisions of two distinct approvers reply to one pending_approval and both are "
+          "admitted; a second decision of an approver already admitted is rejected with invalid_request and is not "
+          "counted", case["approval_errors"] == [None, "invalid_request", None] and case["admitted"] == 2
+          and case["path"] in ("executing", "completed"), f"{case.get('approval_errors')} {case.get('admitted')} {case.get('path')}")
+    meta = {i: by_id[i]["test_metadata"] for i in ("ITV-696", "ITV-656", "INV-138")}
+    got = {i: execution_case(m["input"]) for i, m in meta.items()}
+    check("R29 the corpus flows of repeated decisions: a rejected attempt does not consume its approver (ITV-696); a "
+          "second decision for a completed review leaves the recorded outcome (ITV-656); an approval after an "
+          "admitted denial leaves the denial (INV-138)",
+          got["ITV-696"]["approval_errors"] == meta["ITV-696"]["expect"]["approval_errors"]
+          and got["ITV-696"]["admitted"] == 2 and got["ITV-696"]["approval_errors"][0] is not None
+          and got["INV-138"]["approval_errors"] == [None, "invalid_request"] and got["INV-138"]["path"] == "failed"
+          and got["ITV-656"]["review"]["state"] == meta["ITV-656"]["expect"]["review"]["state"]
+          and "decision_rejected" in got["ITV-656"]["event_types"],
+          f"{ {i: (g.get('approval_errors'), g.get('admitted'), g.get('path')) for i, g in got.items()} }",
+          executed=sorted(meta))
+    at = "2026-11-22T10:00:00.000Z"
+    run3 = Run(make_request("7a000000-0000-4000-8000-0000000029b0", {"type": "com.acme.test/run", "args": {}},
+                            {"profile": "GDPR-STANDARD", "human_oversight": "required_within_24h"}, at=at),
+               make_descriptor("com.acme.test/run"), at)
+    terminal = run3.execute("2026-11-22T10:00:05.000Z")
+    snapshot = json.dumps(terminal, sort_keys=True)
+    review = run3.review
+    review.tick("2026-11-23T10:00:05.000Z")
+    overdue = review.state
+    t1, t2 = "2026-11-23T12:00:00.000Z", "2026-11-23T12:05:00.000Z"
+    first = review.receive(review_decision_msg(review, t1), t1, reviewer_token(t1))
+    two = "agent:acme.approver-two"
+    later = review.receive(review_decision_msg(review, t2, "objected", reviewer=two), t2, reviewer_token(t2, sub=two))
+    check("R29 reviewers: the first verified decision resolves an overdue review, as completed_late; a later "
+          "decision of another reviewer does not reopen it — decision_rejected, invalid_request — and the terminal "
+          "result of the execution is unchanged",
+          overdue == "overdue" and first == (None, "completed_late") and later == ("invalid_request", "completed_late")
+          and run3.records[-1]["event_type"] == "decision_rejected" and review.decision["from"] == REVIEWER_ID
+          and not run3.remediation and json.dumps(run3.terminal, sort_keys=True) == snapshot and run3.path == "completed",
+          f"{overdue} {first} {later}")
+    endpoint = Requester()                    # the review endpoint sent neither the request nor the terminal result
+    notice = review.notice
+    check("R29 an event is outside rules 1-3: the review notice names the terminal result as its parent and is "
+          "accepted by a review endpoint that never sent that message",
+          notice["intent"] == "event" and notice["correlation_id"] == terminal["id"] and signature_ok(notice)
+          and endpoint.deliver(notice) == (True, None, None) and endpoint.events == [notice["id"]] and endpoint.log == [])
+
+    # ---- QUERY order and pagination (State §3.1.4)
+    me, other_owner = "agent:acme.billing", "agent:acme.payments"
+    mine, theirs = StateStore(me), StateStore(other_owner)
+    p = f"{me}/agent/q/"
+    mine.set(p + "zulu", 1, "2026-11-20T09:00:00.000Z")
+    for name in ("beta", "Zeta", "Alpha"):                       # inserted out of key order, same millisecond
+        mine.set(p + name, 1, "2026-11-20T10:00:00.000Z")
+    theirs.set(f"{other_owner}/agent/q/Mid", 1, "2026-11-20T10:00:00.000Z")   # matches the filter, not authorised
+    mine.set(f"{me}/shared/q/Shared", 1, "2026-11-20T10:00:00.000Z")          # authorised, another scope
+    flt = {"scope": "agent", "created_after": "2026-11-01T00:00:00.000Z"}
+    q = lambda **kw: state_query([theirs, mine], set(), me, flt, **kw)
+    names = lambda res: [e["key"].rsplit("/", 1)[1] for e in res["entries"]]
+    whole = q()
+    pages = [q(offset=i, limit=1) for i in range(4)]
+    check("R29 QUERY: created_at first, then key in ASCII byte order — an older entry whose key sorts last comes "
+          "first, the three entries of one millisecond follow as Alpha, Zeta, beta; consecutive pages over an "
+          "unchanged state rebuild that sequence; total is that of the authorised, filtered set on every page — the "
+          "scope filter leaves out the requester's own entry of another scope",
+          names(whole) == ["zulu", "Alpha", "Zeta", "beta"] and whole["total"] == 4
+          and {e["scope"] for e in whole["entries"]} == {"agent"} and state_query([theirs, mine], set(), me)["total"] == 5
+          and [n for pg in pages for n in names(pg)] == ["zulu", "Alpha", "Zeta", "beta"]
+          and all(pg["total"] == 4 and len(pg["entries"]) == 1 for pg in pages) and not query_order_problems(whole),
+          f"{names(whole)} {whole['total']}")
+    ents = whole["entries"]
+    by_key_only = [e["key"].rsplit("/", 1)[1] for e in sorted(ents, key=lambda e: e["key"].encode("ascii"))]
+    folded = [e["key"].rsplit("/", 1)[1] for e in sorted(ents, key=lambda e: (iso(e["created_at"]), e["key"].lower()))]
+    stored = [mine.entry(k, g, e, e["versions"][-1]) for k in mine.gens for g, e in [mine.live(k)]]   # storage order
+    limit_first = [e["key"].rsplit("/", 1)[1] for e in sorted(stored[:2], key=lambda e: (iso(e["created_at"]), e["key"].encode("ascii")))]
+    unauth_total = state_query([theirs, mine], {(me, f"{other_owner}/agent/q/Mid")}, me, flt)["total"]
+    check("R29 QUERY controls: ordering by key alone, a comparison that ignores case, a limit applied before the "
+          "ordering and a total that counts the entry outside the authorisation each give another answer",
+          by_key_only == ["Alpha", "Zeta", "beta", "zulu"] and folded == ["zulu", "Alpha", "beta", "Zeta"]
+          and limit_first != names(q(limit=2)) and unauth_total == 5,
+          f"{by_key_only} {folded} {limit_first} {unauth_total}")
+    by_pii = {c: state_query([theirs, mine], set(), me, {"pii_classification": c}) for c in ("none", "personal")}
+    check("R29 QUERY filter pii_classification: applied before the count and the page — over an authorised "
+          "population of entries classified none, the filter personal gives no entries and total 0, and the filter "
+          "none gives them all",
+          {e["pii_classification"] for e in by_pii["none"]["entries"]} == {"none"} and by_pii["none"]["total"] == 5
+          and by_pii["personal"]["entries"] == [] and by_pii["personal"]["total"] == 0,
+          f"{by_pii['none']['total']} {by_pii['personal']['total']}")
+    first_page = q(limit=2)
+    mine.delete(p + "zulu", "2026-11-20T11:00:00.000Z")
+    second_page = q(offset=2, limit=2)
+    check("R29 QUERY across requests: each request is evaluated on its own — after an entry of the first page is "
+          "deleted, the same offset skips an entry (Zeta is in neither page) and total is the new one",
+          names(first_page) == ["zulu", "Alpha"] and names(second_page) == ["beta"] and second_page["total"] == 3,
+          f"{names(first_page)} {names(second_page)}")
+    got = {i: query_order_problems(by_id[i]["data"]) for i in ("ITV-747", "INV-275")}
+    check("R29 the QUERY result vectors: ITV-747 carries the total order; INV-275 orders the tie as a "
+          "case-insensitive comparison would, and the diagnostic names the ASCII byte order of key",
+          got["ITV-747"] == [] and len(got["INV-275"]) == 1 and "ASCII byte order of key" in got["INV-275"][0]
+          and [e["key"].rsplit("/", 1)[1] for e in by_id["ITV-747"]["data"]["entries"]] == ["zulu", "Alpha", "Zeta", "beta"]
+          and by_id["INV-275"]["test_metadata"]["expect"]["diagnostic"] in got["INV-275"][0],
+          f"{got}", executed=["ITV-747", "INV-275"])
+
+
+# ------------------------------------------- R30 escrow: timeout, dispute, order of events (Assets §4.2; A-142)
+ESC_HOLDER, ESC_ARB, ESC_ARB2 = "agent:acme.escrow-holder", "agent:acme.arbiter", "agent:acme.arbiter-two"
+ESC_PAYER, ESC_PAYEE, ESC_RELEASE, ESC_OUTSIDER = "agent:acme.payer", "agent:acme.payee", "agent:acme.release-agent", "agent:acme.outsider"
+AGENT_SEEDS.update({ESC_HOLDER: 19, ESC_ARB: 20, ESC_ARB2: 21, ESC_PAYER: 22, ESC_PAYEE: 23, ESC_RELEASE: 24, ESC_OUTSIDER: 25})
+ESC_CORPUS_HOLDER = "agent:arsialabs.demo.asset-registry"         # received and processed the request of ITV-88
+TRUST["https://as.acme.example"]["audiences"] |= {ESC_HOLDER, ESC_CORPUS_HOLDER}
+# The scenario of the corpus notification ITV-746: the instants are fixed so that the record ITV-91 is reproducible
+ESC_CORPUS_FX = {"arbitration_agent": "agent:arsialabs.demo.arbitrator", "received_at": "2026-04-28T09:00:00.250Z",
+                 "processed_at": "2026-04-28T09:00:00.400Z", "jwks_fetched_at": "2026-04-28T08:30:00.000Z"}
+DISPUTE_TYPE, CANCEL_TYPE, RELEASE_TRIGGER = "arsiaprotocol.assets/escrow-dispute", "arsiaprotocol.assets/escrow-cancel", "com.example.delivery/confirmed"
+RELEASE_CAP, CANCEL_CAP = "arsiaprotocol.assets.escrow.release", "arsiaprotocol.assets.escrow.cancel"
+
+
+class EscrowProvider:
+    """The payment provider: an instruction carries the identity of its operation, so repeating it resumes or
+    confirms that operation. `lose` is the number of coming answers that get lost after the effect took place."""
+
+    def __init__(self):
+        self.effects, self.instructions, self.lose = [], [], 0
+
+    def instruct(self, operation, kind, reference):
+        self.instructions.append((operation, kind))
+        if operation not in [op for op, _, _ in self.effects]:
+            self.effects.append((operation, kind, reference))
+        if self.lose:
+            self.lose -= 1
+            return None
+        return "confirmed"
+
+
+class EscrowBook(dict):
+    """The escrows a holder holds. Every read is counted, by whatever access it is made, and attributed: to the
+    message being decided (`reads`) or, while the holder does timer work, to the scheduler (`scheduler_reads`)."""
+
+    def __init__(self):
+        super().__init__()
+        self.reads, self.scheduler_reads, self.scheduler = 0, 0, False
+
+    def _read(self):
+        if self.scheduler:
+            self.scheduler_reads += 1
+        else:
+            self.reads += 1
+
+    def __getitem__(self, key):
+        self._read()
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        self._read()
+        return super().get(key, default)
+
+    def __contains__(self, key):
+        self._read()
+        return super().__contains__(key)
+
+    def __iter__(self):
+        self._read()
+        return super().__iter__()
+
+    def items(self):
+        self._read()
+        return super().items()
+
+    def values(self):
+        self._read()
+        return super().values()
+
+    def keys(self):
+        self._read()
+        return super().keys()
+
+
+def authorize_message(token, message, now, receiver):
+    """Core §5.2 step 12 at the receiving agent (§6.4): the token is authentic and bound to the message, its `aud`
+    is the receiver's own identifier, its scope conforms and satisfies every capability the message declares.
+    Returns None, or the error code."""
+    claims = verify_token(token, message, now, DEFAULT_SKEW) if token is not None else None
+    if claims is None or claims["aud"] != receiver:
+        return "unauthorized"
+    scope = granted_scope(claims.get("scope"))
+    if scope is None:
+        return "unauthorized"
+    if not authorized(scope, message.get("capabilities", [])):
+        return "forbidden"
+    return None
+
+
+class EscrowHolder:
+    """Assets §4.2 at the escrow holder. A message is received at one instant and decided at another; candidate
+    messages of an escrow are decided in the order received. A financial operation — the release, or the return
+    of a timeout or of a cancellation — is reserved once, before the provider is instructed, and while its result
+    is uncertain the holder reconciles that same operation. The return of a timeout starts by one decision that
+    evaluates every condition again (§4.2.2). `verify(msg, now)` returns (ok, kid, jwks_fetched_at);
+    `authorize(token, msg, now, receiver)` returns None or an error code (Core §5.2 steps 10 and 12)."""
+
+    def __init__(self, agent, provider, verify, authorize):
+        self.agent, self.provider, self.verify, self.authorize = agent, provider, verify, authorize
+        self.escrows, self.inbox, self.records, self.receipts = EscrowBook(), [], [], []
+        self.waiting, self.seq, self.outbox, self.capability_checks = {}, 0, [], []
+
+    def create(self, request, at, creation_record_id=None):
+        c = request["payload"]["args"]["escrow_conditions"]
+        args = request["payload"]["args"]
+        self.escrows[args["payment_reference"]] = {
+            "state": "ESCROWED", "request": request, "payer": args["from_agent"], "payee": args["to_agent"],
+            "release_agent": c["release_agent"], "release_trigger": c["release_trigger"],
+            "arbitration_agent": c.get("arbitration_agent"), "timeout_at": c["timeout_at"], "reserved": None,
+            "creation_record_id": creation_record_id or record_id_for(request["id"], "asset_transfer")}
+        self.receipts.append((args["payment_reference"], "escrowed", at))
+
+    @staticmethod
+    def named(msg):
+        """What a received message says of itself, before any verification: (payload.type, payment_reference)."""
+        payload = msg.get("payload")
+        args = payload.get("args") if isinstance(payload, dict) else None
+        return (payload.get("type") if isinstance(payload, dict) else None,
+                args.get("payment_reference") if isinstance(args, dict) else None)
+
+    def receive(self, msg, token, at):
+        self.seq += 1
+        item = {"msg": msg, "token": token, "received_at": at, "seq": self.seq, "decided": False, "code": "undecided"}
+        self.inbox.append(item)
+        return item
+
+    def pending(self, reference, esc):
+        """The candidate messages of this escrow — a release (its trigger type), a cancellation or a dispute
+        notification naming it — received strictly before its timeout_at and not yet decided."""
+        transitions = (esc["release_trigger"], CANCEL_TYPE, DISPUTE_TYPE)
+        return [i for i in self.inbox if not i["decided"] and self.named(i["msg"]) in [(t, reference) for t in transitions]
+                and iso(i["received_at"]) < iso(esc["timeout_at"])]
+
+    def decide(self, item, now):
+        """Decides one received message at `now`. Messages naming one reference are decided in the order received.
+        Closing the reception item reads no escrow. A timeout check that was waiting for this very message — a
+        candidate of its escrow — is then resumed as timer work; a message that no check was waiting for resumes
+        none."""
+        ref = self.named(item["msg"])[1]
+        earlier = [i for i in self.inbox if not i["decided"] and i is not item and self.named(i["msg"])[1] == ref
+                   and ref is not None and (iso(i["received_at"]), i["seq"]) < (iso(item["received_at"]), item["seq"])]
+        for i in sorted(earlier, key=lambda i: (iso(i["received_at"]), i["seq"])):
+            self.decide(i, now)
+        item["code"] = self._decide(item, now)
+        item["decided"] = True
+        ptype, ref = self.named(item["msg"])
+        wait = self.waiting.get(ref) if isinstance(ref, str) else None       # the holder's own note, not the registry
+        if wait and ptype in wait:              # every earlier message naming the escrow is decided by now
+            self._scheduled(self._start_return, ref, now)                    # §4.2.2: the timeout may now proceed
+        return item["code"]
+
+    def _scheduled(self, step, reference, now):
+        """Timer work: its reads of the registry are the scheduler's, not those of a message being decided."""
+        was, self.escrows.scheduler = self.escrows.scheduler, True
+        try:
+            step(reference, now)
+        finally:
+            self.escrows.scheduler = was
+
+    def declares(self, msg, capability):
+        self.capability_checks.append(capability)
+        return capability in msg["capabilities"]
+
+    def _decide(self, item, now):
+        msg, received = item["msg"], item["received_at"]
+        ok, kid, fetched = self.verify(msg, now)                                    # Core §5.2 step 10
+        if not ok:
+            return "unauthorized"
+        if schema_errors(msg, "arsia-message.schema.json"):                         # step 11
+            return "invalid_request"
+        code = self.authorize(item["token"], msg, now, self.agent)                  # step 12
+        if code:
+            return code
+        evidence = {"verified_kid": kid, "jwks_fetched_at": fetched}
+        ptype, ref = self.named(msg)
+        esc = self.escrows.get(ref)                                                 # the first read of the registry
+        if esc is None:
+            return "not_found"
+        late = iso(received) >= iso(esc["timeout_at"])
+        if ptype == DISPUTE_TYPE:
+            if msg["from"] != esc["arbitration_agent"]:
+                return "forbidden"
+            if msg["payload"]["args"]["disputed_by"] not in (esc["payer"], esc["payee"]) \
+                    or esc["state"] != "ESCROWED" or esc["reserved"] is not None or late:
+                return "invalid_request"
+            esc["state"] = "DISPUTED"
+            self.receipts.append((ref, "escrowed-disputed", now))
+            self.records.append(self.record(msg, now, "escrow_disputed", payment_reference=ref,
+                                            disputed_by=msg["payload"]["args"]["disputed_by"],
+                                            dispute_reason=msg["payload"]["args"]["dispute_reason"],
+                                            arbitration_agent=esc["arbitration_agent"],
+                                            original_audit_id=esc["creation_record_id"], **evidence))
+            return None
+        resolver = esc["arbitration_agent"] if esc["state"] == "DISPUTED" else None
+        if ptype == esc["release_trigger"]:
+            if msg["from"] not in (esc["release_agent"], resolver) or (esc["state"] == "DISPUTED" and msg["from"] != resolver) \
+                    or not self.declares(msg, RELEASE_CAP):
+                return "forbidden"
+            if esc["state"] not in ("ESCROWED", "DISPUTED") or esc["reserved"] is not None or (esc["state"] == "ESCROWED" and late):
+                return "rejected"
+            esc["reserved"] = {"operation": f"release/{ref}", "kind": "release", "message": msg, "evidence": evidence}
+            self._settle(ref, esc, now)
+            return None
+        if ptype == CANCEL_TYPE:
+            creator = esc["request"]["payload"]["args"]["from_agent"]
+            if msg["from"] != (resolver or creator) or not self.declares(msg, CANCEL_CAP):
+                return "forbidden"
+            if esc["state"] not in ("ESCROWED", "DISPUTED") or esc["reserved"] is not None or (esc["state"] == "ESCROWED" and late):
+                return "rejected"
+            esc["reserved"] = {"operation": f"return/{ref}", "kind": "return", "cause": "cancellation", "message": msg,
+                               "evidence": evidence}
+            self._settle(ref, esc, now)
+            return None
+        return "invalid_request"
+
+    def record(self, message, at, sub_type, **extra):
+        res = resolve_obligations("request", message.get("compliance"), anchor=at)
+        return audit_record(message, res, at, RECEIVER_OPERATOR, "asset_transfer", sub_type=sub_type,
+                            human_oversight_status="not_required", obligation_resolution=res, **extra)
+
+    def timer(self, reference, now):
+        """The timeout check (§4.2.2 Mechanism): it does not by itself start the return. With an operation
+        reserved — a release, or the return — it reconciles that same operation and starts no other."""
+        self._scheduled(self._check_timeout, reference, now)
+
+    def _check_timeout(self, reference, now):
+        esc = self.escrows[reference]
+        if esc["reserved"] is not None:
+            self._settle(reference, esc, now)
+        else:
+            self._start_return(reference, now)
+
+    def _start_return(self, reference, now):
+        """§4.2.2 Start of the return: one decision that finds every condition at this instant and reserves. The
+        check stays noted as waiting only while candidate messages received in time are still to be decided."""
+        esc = self.escrows[reference]
+        if esc["state"] == "ESCROWED" and esc["reserved"] is None and iso(now) >= iso(esc["timeout_at"]) \
+                and not self.pending(reference, esc):
+            esc["reserved"] = {"operation": f"return/{reference}", "kind": "return", "cause": "timeout",
+                               "message": esc["request"], "evidence": {}}
+            self._settle(reference, esc, now)
+        if esc["state"] == "ESCROWED" and esc["reserved"] is None and iso(now) >= iso(esc["timeout_at"]):
+            self.waiting[reference] = (esc["release_trigger"], CANCEL_TYPE, DISPUTE_TYPE)   # held back by candidates
+        else:
+            self.waiting.pop(reference, None)               # the work is done or no longer the timer's: no wait
+
+    def _settle(self, reference, esc, now):
+        """Instructs the provider with the reserved operation and applies its result once it is confirmed."""
+        op = esc["reserved"]
+        if esc["state"] in ("RELEASED", "RETURNED") or \
+                self.provider.instruct(op["operation"], op["kind"], reference) != "confirmed":
+            return                                          # no confirmation: no receipt, no terminal state
+        if op["kind"] == "release":
+            esc["state"] = "RELEASED"
+            self.receipts.append((reference, "completed", now))
+            self.records.append(self.record(op["message"], now, "escrow_released", payment_reference=reference,
+                                            released_by=op["message"]["from"],
+                                            release_trigger=op["message"]["payload"]["type"],
+                                            original_audit_id=esc["creation_record_id"], **op["evidence"]))
+            return
+        esc["state"] = "RETURNED"
+        timeout = op["cause"] == "timeout"
+        self.receipts.append((reference, "failed: Escrow timeout — funds returned to sender" if timeout
+                              else "failed: Escrow cancelled by sender", now))
+        extra = {"actual_timeout": now} if timeout else {"cancellation_reason": "Cancelled"}
+        self.records.append(self.record(op["message"], now, "escrow_returned", payment_reference=reference,
+                                        timeout_at=esc["timeout_at"], original_audit_id=esc["creation_record_id"],
+                                        **extra, **op["evidence"]))
+
+
+def escrow_dispute_record_problems(record, creation=None):
+    """Assets §4.3.4: the escrow_disputed record documents the dispute notification, whose sender is the
+    arbitration agent; disputed_by is the payer or the payee of the escrow — compared with the creation record
+    (`creation`) when it is available."""
+    if record.get("sub_type") != "escrow_disputed":
+        return []
+    out = []
+    if record.get("from_agent") != record.get("arbitration_agent"):
+        out.append("from_agent is not the arbitration_agent")
+    if creation is not None and record.get("disputed_by") not in (creation.get("payer_agent"), creation.get("payee_agent")):
+        out.append("disputed_by is neither the payer nor the payee of the escrow")
+    return out
+
+
+def r30(vectors):
+    from regen_v2 import signing_input_v2
+    by_id = {v["id"]: v for v in vectors}
+    T = "2026-12-01T12:00:00.000Z"                      # timeout_at of the synthetic escrows
+    before, at_t, after = "2026-12-01T11:59:59.999Z", T, "2026-12-01T12:00:00.001Z"
+    in_30s, in_45s, later = "2026-12-01T12:00:30.000Z", "2026-12-01T12:00:45.000Z", "2026-12-01T12:05:00.000Z"
+    harness_dir = KeyDirectory()
+    h_verify = lambda msg, now: verify_signed(msg, harness_dir, now)
+
+    def request(ref, arbitration=ESC_ARB, n=0):
+        args = {"from_agent": ESC_PAYER, "to_agent": ESC_PAYEE, "amount": "100.00", "currency_or_unit": "EUR",
+                "payment_reference": ref,
+                "escrow_conditions": {"release_condition": "Delivery confirmed", "release_trigger": RELEASE_TRIGGER,
+                                      "release_agent": ESC_RELEASE, "timeout_at": T}}
+        if arbitration:
+            args["escrow_conditions"]["arbitration_agent"] = arbitration
+        return sign({"v": "2.0", "id": det_id(f"r30/request/{ref}"), "ts": "2026-12-01T09:00:00.000Z", "from": ESC_PAYER,
+                     "to": ESC_HOLDER, "intent": "request", "expires_at": "2026-12-01T09:00:30.000Z",
+                     "capabilities": ["arsiaprotocol.assets.transfer.initiate"],
+                     "payload": {"type": "arsiaprotocol.assets/transfer-request", "args": args}}, ESC_PAYER)
+
+    def holder(*refs, arbitration=None):
+        prov = EscrowProvider()
+        h = EscrowHolder(ESC_HOLDER, prov, h_verify, authorize_message)
+        for ref in refs:
+            h.create(request(ref, (arbitration or {}).get(ref, ESC_ARB)), "2026-12-01T09:00:00.000Z")
+        return h, prov
+
+    def message(sender, ptype, args, at, to=ESC_HOLDER, caps=("escrow.dispute.notify",), seed="", break_sig=False):
+        m = sign({"v": "2.0", "id": det_id(f"r30/{sender}/{ptype}/{json.dumps(args, sort_keys=True)}/{at}/{seed}"),
+                  "ts": at, "from": sender, "to": to, "intent": "request", "expires_at": plus_seconds(at, 30),
+                  "capabilities": list(caps), "payload": {"type": ptype, "args": args}}, sender)
+        if break_sig:
+            m["ts"] = plus_seconds(at, 1)
+        return m
+    notify = lambda ref, at, sender=ESC_ARB, by=ESC_PAYER, **kw: message(
+        sender, DISPUTE_TYPE, {k: v for k, v in (("payment_reference", ref), ("dispute_reason", "Not delivered"),
+                                                 ("disputed_by", by)) if v is not None}, at, **kw)
+    release = lambda ref, at, sender=ESC_RELEASE: message(sender, RELEASE_TRIGGER, {"payment_reference": ref}, at,
+                                                          caps=("arsiaprotocol.assets.escrow.release",))
+    cancel = lambda ref, at, sender=ESC_PAYER: message(sender, CANCEL_TYPE, {"payment_reference": ref,
+                                                                              "cancellation_reason": "Cancelled"}, at,
+                                                       caps=("arsiaprotocol.assets.escrow.cancel",))
+    token = lambda msg, at, scope=None, **kw: reviewer_token(at, scope=scope or " ".join(msg["capabilities"]),
+                                                             sub=msg["from"], aud=msg["to"], **kw)
+    state = lambda h, ref="E1": h.escrows[ref]["state"]
+    returns = lambda prov: [e for e in prov.effects if e[1] == "return"]
+
+    # ---- timeout: one return, a receipt only after the confirmation, the record documents the creating request
+    h, prov = holder("E1")
+    prov.lose = 1
+    h.timer("E1", in_30s)
+    lost = (state(h), len(returns(prov)), [r for r in h.receipts if r[1].startswith("failed")], len(h.records))
+    late_release = h.receive(release("E1", in_45s), None, in_45s)
+    late_release["token"] = token(late_release["msg"], in_45s)       # authentic and authorised: rejected for the return
+    h.decide(late_release, in_45s)
+    h.timer("E1", later)                                 # the confirmation arrives well after timeout_at + 60 s
+    h.timer("E1", "2026-12-01T12:06:00.000Z")
+    rec = h.records[-1]
+    req = h.escrows["E1"]["request"]
+    check("R30 timeout: the return is reserved once — with the provider's answer lost the escrow is not RETURNED and "
+          "no receipt is issued; a release handled after the return started is rejected; the repeated timer "
+          "confirms that same return; one financial effect, one failed receipt issued after the confirmation — also "
+          "when it comes later than 60 seconds after timeout_at — and "
+          "the escrow_returned record documents the request that created the escrow",
+          lost == ("ESCROWED", 1, [], 0) and state(h) == "RETURNED" and len(prov.effects) == 1
+          and prov.instructions == [("return/E1", "return")] * 2
+          and [r[1:] for r in h.receipts if r[1].startswith("failed")] == [("failed: Escrow timeout — funds returned to sender", later)]
+          and late_release["code"] == "rejected" and rec["sub_type"] == "escrow_returned"
+          and (rec["message_id"], rec["payload_type"], rec["payload_hash"]) == (req["id"], "arsiaprotocol.assets/transfer-request", payload_hash(req))
+          and rec["actual_timeout"] == later and len(h.records) == 1, f"{lost} {state(h)} {prov.instructions} {h.receipts}")
+    check("R30 the return of a timeout is not an AssetTransferReversal: the holder emits no message and consults "
+          "no reversal capability", h.outbox == [] and h.capability_checks == [RELEASE_CAP])
+
+    # ---- a release whose confirmation is lost: the release is reserved, and the timer reconciles it
+    h, prov = holder("E1")
+    prov.lose = 2
+    rel = release("E1", before)
+    first = h.decide(h.receive(rel, token(rel, before), before), before)   # the provider credits; its answer is lost
+    unsure = (state(h), list(prov.effects), len(h.records), [r[1] for r in h.receipts])
+    undo = cancel("E1", before)                          # the payer cancels while the outcome is uncertain
+    cancelled = h.decide(h.receive(undo, token(undo, before), before), before)
+    h.timer("E1", in_30s)                                # timeout_at has passed and the answer is lost again
+    at_timer = (state(h), len(returns(prov)), len(h.records))
+    again = release("E1", in_45s)
+    second = h.decide(h.receive(again, token(again, in_45s), in_45s), in_45s)
+    h.timer("E1", later)                                 # the confirmation arrives
+    h.timer("E1", "2026-12-01T12:06:00.000Z")
+    check("R30 a release confirmed by the provider whose answer is lost: the release is reserved before the provider "
+          "is instructed, so the escrow admits no return — the timer that runs after timeout_at, before the "
+          "confirmation arrives, reconciles that same release; one credit to the payee, no return, one terminal "
+          "record, and another release and a cancellation meanwhile are rejected",
+          first is None and unsure == ("ESCROWED", [("release/E1", "release", "E1")], 0, ["escrowed"])
+          and cancelled == "rejected" and at_timer == ("ESCROWED", 0, 0) and second == "rejected" and state(h) == "RELEASED"
+          and prov.effects == [("release/E1", "release", "E1")] and prov.instructions == [("release/E1", "release")] * 3
+          and [r["sub_type"] for r in h.records] == ["escrow_released"] and h.records[0]["message_id"] == rel["id"]
+          and [r[1:] for r in h.receipts] == [("escrowed", "2026-12-01T09:00:00.000Z"), ("completed", later)],
+          f"{first} {unsure} {cancelled} {at_timer} {second} {state(h)} {prov.instructions} {h.receipts}")
+
+    # ---- the timer runs within 60 seconds; a notification received in time is still being verified
+    def race(valid, received=before):
+        h, prov = holder("E1")
+        item = h.receive(notify("E1", received, by=ESC_PAYER if valid else ESC_OUTSIDER), None, received)
+        item["token"] = token(item["msg"], received)
+        h.timer("E1", in_30s)                                # the check, 30 s after timeout_at
+        mid = (state(h), len(prov.instructions))
+        code = h.decide(item, in_45s)                        # the verification ends afterwards
+        return mid, code, state(h), len(returns(prov)), [r[1] for r in h.receipts[1:]]
+    ok_race, bad_race, exact = race(True), race(False), race(True, received=at_t)
+    check("R30 order of events: the timeout check runs within 60 seconds and instructs nothing while a notification "
+          "received before timeout_at awaits verification; a valid one then gives DISPUTED with no financial "
+          "instruction; an invalid one is rejected and the return starts; a notification received exactly at "
+          "timeout_at is late — the timeout applies and it is rejected",
+          ok_race == (("ESCROWED", 0), None, "DISPUTED", 0, ["escrowed-disputed"])
+          and bad_race == (("ESCROWED", 0), "invalid_request", "RETURNED", 1, ["failed: Escrow timeout — funds returned to sender"])
+          and exact == (("RETURNED", 1), "invalid_request", "RETURNED", 1, ["failed: Escrow timeout — funds returned to sender"]),
+          f"{ok_race} {bad_race} {exact}")
+    h, prov = holder("E1")
+    n1 = h.receive(notify("E1", before, by=ESC_OUTSIDER, seed="first"), None, before)
+    n2 = h.receive(notify("E1", before, seed="second"), None, before)
+    for n in (n1, n2):
+        n["token"] = token(n["msg"], before)
+    h.timer("E1", in_30s)
+    h.decide(n1, in_30s)                                  # only the first has been decided so far
+    mid = (n1["code"], state(h), len(prov.instructions))
+    code2 = h.decide(n2, in_45s)
+    check("R30 start of the return: two notifications received in time, the first rejected while the second still "
+          "awaits verification — the rejection starts no return, the second gives DISPUTED, and the provider "
+          "receives no instruction; the conditions are evaluated at the instant the return would start, not when "
+          "the timer ran", mid == ("invalid_request", "ESCROWED", 0) and code2 is None and state(h) == "DISPUTED"
+          and prov.instructions == [], f"{mid} {code2} {state(h)} {prov.instructions}")
+    h, prov = holder("E1", "E2")
+    other = h.receive(notify("E2", before), None, before)                 # pending, for another escrow
+    h.timer("E1", in_30s)
+    check("R30 another escrow: a message pending for another escrow does not delay this one's timeout",
+          state(h, "E1") == "RETURNED" and state(h, "E2") == "ESCROWED" and not other["decided"])
+    h, prov = holder("E1")
+    info = message(ESC_OUTSIDER, "com.example.escrow/inquiry", {"payment_reference": "E1"}, before, caps=("com.example.escrow.inquire",))
+    stray = h.receive(info, token(info, before), before)                  # names the escrow, is no transition of it
+    h.timer("E1", in_30s)
+    at_timer = (state(h), len(returns(prov)), stray["decided"])
+    check("R30 a message of another type: received before timeout_at and naming the escrow, it is no candidate for "
+          "a transition of it and does not delay the timeout; decided afterwards it is invalid_request and changes "
+          "nothing", at_timer == ("RETURNED", 1, False) and h.decide(stray, in_45s) == "invalid_request"
+          and state(h) == "RETURNED" and len(prov.effects) == 1 and len(h.records) == 1, f"{at_timer} {stray['code']}")
+
+    # ---- release and same-instant order
+    def release_case(received):
+        h, prov = holder("E1")
+        item = h.receive(release("E1", received), None, received)
+        item["token"] = token(item["msg"], received)
+        h.timer("E1", in_30s)
+        code = h.decide(item, in_45s)
+        rec = h.records[-1]
+        linked = rec["original_audit_id"] == h.escrows["E1"]["creation_record_id"] and rec["message_id"] == \
+            (item["msg"]["id"] if rec["sub_type"] == "escrow_released" else h.escrows["E1"]["request"]["id"])
+        return code, state(h), [e[1] for e in prov.effects], [r[1].split(":")[0] for r in h.receipts], rec["sub_type"], linked
+    in_time, late_rel = release_case(before), release_case(at_t)
+    check("R30 release: received before timeout_at and verified afterwards it is applied (RELEASED, no return) — "
+          "the escrowed receipt is followed by a completed one and the escrow_released record documents the release "
+          "message and links to the creation record; received at timeout_at while the escrow is ESCROWED it is late "
+          "and the timeout applies",
+          in_time == (None, "RELEASED", ["release"], ["escrowed", "completed"], "escrow_released", True)
+          and late_rel[1:] == ("RETURNED", ["return"], ["escrowed", "failed"], "escrow_returned", True) and late_rel[0] is not None,
+          f"{in_time} {late_rel}")
+
+    def tie(first):
+        h, prov = holder("E1")
+        msgs = {"release": release("E1", before), "notification": notify("E1", before)}
+        items = {}
+        for name in (first, "release" if first == "notification" else "notification"):
+            items[name] = h.receive(msgs[name], token(msgs[name], before), before)
+        h.decide(items["release" if first == "notification" else "notification"], in_30s)   # asked out of order
+        return state(h), items["release"]["code"], items["notification"]["code"]
+    check("R30 two messages of one escrow received in the same millisecond keep the order in which the holder "
+          "received them, whichever is submitted for verification first",
+          tie("release") == ("RELEASED", None, "invalid_request") and tie("notification")[0] == "DISPUTED"
+          and tie("notification")[2] is None and tie("notification")[1] is not None, f"{tie('release')} {tie('notification')}")
+
+    # ---- DISPUTED: the timeout is suspended and the arbitration agent resolves after the original timeout_at
+    h, prov = holder("E1", "E2")
+    for ref in ("E1", "E2"):
+        n = notify(ref, before, seed=ref)
+        h.decide(h.receive(n, token(n, before), before), before)
+    h.timer("E1", later); h.timer("E2", later)
+    frozen = (state(h, "E1"), state(h, "E2"), list(prov.instructions))
+    r_arb, c_arb = release("E1", later, sender=ESC_ARB), cancel("E2", later, sender=ESC_ARB)
+    codes = [h.decide(h.receive(m, token(m, later), later), later) for m in (r_arb, c_arb)]
+    r_plain = release("E1", later)
+    check("R30 DISPUTED: the timer returns nothing while the escrow is disputed; a release and, on another escrow, a "
+          "cancellation of the arbitration agent received after the original timeout_at are accepted",
+          frozen == ("DISPUTED", "DISPUTED", []) and codes == [None, None]
+          and (state(h, "E1"), state(h, "E2")) == ("RELEASED", "RETURNED")
+          and [e[1] for e in prov.effects] == ["release", "return"], f"{frozen} {codes} {prov.effects}")
+
+    # ---- the dispute message at the arbitration agent
+    def arbiter_accepts(msg, payer=ESC_PAYER, payee=ESC_PAYEE):
+        if not verify_signed(msg, harness_dir, msg["ts"])[0]:
+            return "unauthorized"
+        if msg["from"] not in (payer, payee):
+            return "forbidden"
+        return None if msg["payload"]["args"]["disputed_by"] == msg["from"] else "invalid_request"
+    first_hop = lambda sender, by: message(sender, DISPUTE_TYPE, {"payment_reference": "E1", "dispute_reason": "Not delivered",
+                                                                   "disputed_by": by}, before, to=ESC_ARB)
+    got = [arbiter_accepts(first_hop(ESC_PAYER, ESC_PAYER)), arbiter_accepts(first_hop(ESC_PAYEE, ESC_PAYEE)),
+           arbiter_accepts(first_hop(ESC_OUTSIDER, ESC_OUTSIDER)), arbiter_accepts(first_hop(ESC_PAYER, ESC_PAYEE))]
+    check("R30 dispute message at the arbitration agent: the payer and the payee are accepted; an agent that is not "
+          "a party is forbidden; disputed_by other than the sender is rejected",
+          got == [None, None, "forbidden", "invalid_request"], f"{got}")
+
+    # ---- the notification at the holder: the Core §5.2 order, then the precedence of the checks
+    def deliver(msg, tok="valid", refs=("E1", "E2"), at=before, arbitration=None, prepare=None):
+        h, prov = holder(*refs, arbitration=arbitration)
+        if prepare:
+            prepare(h)
+        t = token(msg, at) if tok == "valid" else (token(msg, at, tamper=True) if tok == "invalid" else
+                                                    (token(msg, at, scope=tok[6:]) if (tok or "").startswith("scope:") else None))
+        snap = json.dumps({r: (e["state"], e["reserved"] is None) for r, e in h.escrows.items()}, sort_keys=True)
+        item, reads = h.receive(msg, t, at), h.escrows.reads
+        code = h.decide(item, at)
+        reads = h.escrows.reads - reads                  # every read of the registry made while deciding
+        same = json.dumps({r: (e["state"], e["reserved"] is None) for r, e in h.escrows.items()}, sort_keys=True) == snap
+        return code, reads, same and not h.records and not prov.instructions
+    no_ref_bad_sig = deliver(notify(None, before, break_sig=True))
+    no_ref = deliver(notify(None, before))
+    check("R30 notification, the order of Core §5.2: without payment_reference and with an invalid signature it is "
+          "unauthorized; the same absence with a valid signature is invalid_request; no escrow is looked up in "
+          "either case", no_ref_bad_sig == ("unauthorized", 0, True) and no_ref == ("invalid_request", 0, True),
+          f"{no_ref_bad_sig} {no_ref}")
+    unknown = [deliver(notify("E9", before, break_sig=True)), deliver(notify("E9", before), tok="invalid"),
+               deliver(notify("E9", before))]
+    arbitration = {"E1": ESC_ARB, "E2": ESC_ARB2}
+    wrong_arbiter = deliver(notify("E1", before, sender=ESC_ARB2), arbitration=arbitration)
+    not_party = deliver(notify("E1", before, by=ESC_OUTSIDER))
+    terminal = deliver(notify("E1", before), prepare=lambda h: h.escrows["E1"].update(state="RELEASED"))
+    too_late = deliver(notify("E1", at_t), at=at_t)
+    accepted = deliver(notify("E1", before))
+    check("R30 notification, precedence: one unknown reference — invalid signature unauthorized, valid signature "
+          "with an invalid token unauthorized, both with no lookup; authenticated, not_found. An escrow found and an "
+          "authenticated sender that is the arbitration agent of another escrow, forbidden. The right arbitration "
+          "agent with disputed_by that is no party, with a terminal escrow, or received at timeout_at, "
+          "invalid_request. The state is intact in every rejection",
+          unknown == [("unauthorized", 0, True), ("unauthorized", 0, True), ("not_found", 1, True)]
+          and wrong_arbiter == ("forbidden", 1, True) and not_party == ("invalid_request", 1, True)
+          and terminal == ("invalid_request", 1, True) and too_late == ("invalid_request", 1, True)
+          and accepted[0] is None and accepted[2] is False,
+          f"{unknown} {wrong_arbiter} {not_party} {terminal} {too_late} {accepted}")
+    known = [deliver(notify("E1", before, break_sig=True)), deliver(notify("E1", before), tok="invalid"),
+             deliver(notify("E1", before), tok=None)]
+    check("R30 no read of the registry before the pipeline has completed: a notification that names an escrow the "
+          "holder holds, with an invalid signature, with an invalid token or with no token, is unauthorized, and "
+          "the registry of escrows is not read at all — by any access — while it is decided",
+          known == [("unauthorized", 0, True)] * 3, f"{known}")
+    # ---- after an earlier timer: what a rejection reads, and the timer that has to proceed
+    def measured(h, item, now):
+        m, sch = h.escrows.reads, h.escrows.scheduler_reads
+        return h.decide(item, now), h.escrows.reads - m, h.escrows.scheduler_reads - sch
+    h, prov = holder("E1", "E2", "E3")
+    h.timer("E1", in_30s)                                 # E1 is returned: its timer work is over
+    stray_type = h.receive(message(ESC_OUTSIDER, "com.example.escrow/inquiry", {"payment_reference": "E2"}, before,
+                                   caps=("com.example.escrow.inquire",), break_sig=True), None, before)
+    held = h.receive(notify("E2", before, seed="held"), None, before)
+    held["token"] = token(held["msg"], before, tamper=True)               # received in time; its token will fail
+    h.timer("E2", in_30s)                                 # E2 waits for that candidate
+    waits = (sorted(h.waiting), state(h, "E1"), state(h, "E2"), len(returns(prov)))
+    rejected = [measured(h, item, in_45s) for item in (
+        h.receive(notify("E1", before, break_sig=True), None, before),    # names the escrow already returned
+        h.receive(notify("E3", before, break_sig=True), None, before),    # names an open escrow no timer has run for
+        stray_type)]                                      # names the waiting escrow, is no transition of it
+    untouched = (sorted(h.waiting), state(h, "E2"), len(returns(prov)))
+    last = measured(h, held, in_45s)                      # the candidate the timer waited for is rejected
+    check("R30 a rejection after an earlier timer: with one escrow returned and another whose timeout check waits "
+          "for a candidate, the finished check is no longer noted as waiting, and an unauthorized message — naming "
+          "the returned escrow, an open one, or the waiting one with a type that is no transition of it "
+          "— reads the registry neither for the message nor for the scheduler; when the candidate the check waited "
+          "for is rejected as unauthorized, the message still reads nothing and the scheduler starts the return, "
+          "once, and no check remains waiting",
+          waits == (["E2"], "RETURNED", "ESCROWED", 1) and rejected == [("unauthorized", 0, 0)] * 3
+          and untouched == (["E2"], "ESCROWED", 1) and last[:2] == ("unauthorized", 0) and last[2] > 0
+          and state(h, "E2") == "RETURNED" and state(h, "E3") == "ESCROWED" and h.waiting == {}
+          and [e[0] for e in prov.effects] == ["return/E1", "return/E2"] and len(h.records) == 2,
+          f"{waits} {rejected} {untouched} {last} {dict(h.waiting)} {prov.effects}")
+    narrow = deliver(notify("E1", before), tok="scope:escrow.dispute.read")
+    rel_narrow = deliver(release("E1", before), tok="scope:escrow.dispute.notify")
+    rel_undeclared = deliver(message(ESC_RELEASE, RELEASE_TRIGGER, {"payment_reference": "E1"}, before, caps=("com.example.delivery.confirm",)))
+    cancel_undeclared = deliver(message(ESC_PAYER, CANCEL_TYPE, {"payment_reference": "E1", "cancellation_reason": "Cancelled"}, before, caps=("com.example.orders.cancel",)))
+    elsewhere = notify("E1", before, to=ESC_CORPUS_HOLDER)               # signed, with a token valid for that holder
+    bound = verify_token(token(elsewhere, before), elsewhere, before, DEFAULT_SKEW) is not None
+    misdirected = deliver(elsewhere)
+    check("R30 granted scope and recipient (Core §6.4): an authentic token whose scope does not satisfy the declared "
+          "capabilities is forbidden — a notification and a release — before any escrow is read; a release or a "
+          "cancellation that does not declare its own capability is forbidden; a notification addressed to another "
+          "holder, with a token valid for that holder, is unauthorized here and the local escrow is intact",
+          narrow == ("forbidden", 0, True) and rel_narrow == ("forbidden", 0, True)
+          and rel_undeclared == ("forbidden", 1, True) and cancel_undeclared == ("forbidden", 1, True)
+          and bound and misdirected == ("unauthorized", 0, True),
+          f"{narrow} {rel_narrow} {rel_undeclared} {cancel_undeclared} {bound} {misdirected}")
+
+    # ---- the record the holder emits for the corpus notification (ITV-746 -> ITV-91)
+    note, expected = by_id["ITV-746"]["message"], by_id["ITV-91"]["data"]
+    creation = by_id["ITV-88"]["data"]
+    fx = ESC_CORPUS_FX
+    catalog = strict_load("test-vectors/keypairs.json")["keypairs"]
+    entry = next(e for e in catalog.values() if e["kid"] == note["security"]["kid"])
+
+    def catalog_verify(msg, now):
+        try:
+            vv._verify_signature(msg["security"]["alg"], bytes.fromhex(entry["public_key_hex"]),
+                                 vv._base64url_decode(msg["security"]["sig"]), signing_input_v2(msg))
+        except Exception:
+            return False, None, None
+        return msg["security"]["kid"].split("#")[0] == msg["from"], msg["security"]["kid"], fx["jwks_fetched_at"]
+    ch = EscrowHolder(ESC_CORPUS_HOLDER, EscrowProvider(), catalog_verify, authorize_message)
+    ch.escrows[creation["payment_reference"]] = {
+        "state": "ESCROWED", "request": None, "payer": creation["payer_agent"], "payee": creation["payee_agent"],
+        "release_agent": creation["release_agent"], "release_trigger": RELEASE_TRIGGER,
+        "arbitration_agent": fx["arbitration_agent"], "timeout_at": creation["timeout_at"], "reserved": None,
+        "creation_record_id": creation["record_id"]}
+    code = ch.decide(ch.receive(note, token(note, fx["received_at"]), fx["received_at"]), fx["processed_at"])
+    emitted = ch.records[-1] if ch.records else {}
+    diff = sorted(k for k in set(emitted) | set(expected) if emitted.get(k) != expected.get(k))
+    forged = json.loads(json.dumps(note)); forged["payload"]["args"]["disputed_by"] = creation["payee_agent"]
+    check("R30 the corpus notification: the holder verifies ITV-746 — the signature under the arbitration agent's "
+          "catalog key, the message, the token — and the escrow_disputed record it emits equals ITV-91 field by "
+          "field, verified_kid and jwks_fetched_at included; the record documents the notification (message_id, "
+          "agents, payload_hash) and links to the creation record ITV-88; the notification altered after signing "
+          "is unauthorized",
+          code is None and diff == [] and expected["message_id"] == note["id"]
+          and (expected["from_agent"], expected["to_agent"]) == (note["from"], note["to"]) == (fx["arbitration_agent"], ESC_CORPUS_HOLDER)
+          and expected["payload_hash"] == payload_hash(note) != creation["payload_hash"]
+          and expected["disputed_by"] == note["payload"]["args"]["disputed_by"] == creation["payer_agent"]
+          and expected["original_audit_id"] == creation["record_id"] and expected["verified_kid"] == note["security"]["kid"]
+          and expected["jwks_fetched_at"] == fx["jwks_fetched_at"] and iso(fx["received_at"]) < iso(creation["timeout_at"])
+          and catalog_verify(forged, fx["processed_at"])[0] is False and not escrow_dispute_record_problems(expected, creation),
+          f"{code} {diff}", executed=["ITV-746", "ITV-91", "ITV-88"])
+    neg = by_id["INV-274"]
+    got = escrow_dispute_record_problems(neg["data"], creation)
+    outsider = escrow_dispute_record_problems(dict(expected, disputed_by=note["from"]), creation)
+    only = sorted(k for k in set(neg["data"]) | set(expected) if neg["data"].get(k) != expected.get(k))
+    check("R30 INV-274: the record differs from ITV-91 only in record_id and from_agent, and the comparison reports "
+          "that from_agent is not the arbitration_agent",
+          got == [neg["test_metadata"]["expect"]["diagnostic"]] == ["from_agent is not the arbitration_agent"]
+          and only == ["from_agent", "record_id"], f"{got} {only}", executed=["INV-274"])
+    check("R30 disputed_by against the parties of the creation record: ITV-91 with the arbitration agent as "
+          "disputed_by is reported — it is neither the payer nor the payee of ITV-88",
+          outsider == ["disputed_by is neither the payer nor the payee of the escrow"], f"{outsider}")
+
+
 def main() -> int:
     vectors = strict_load("test-vectors/arsia-test-vectors.json")["vectors"]
     r1(); r2(vectors); r3(); r5(); r6(); r7(); r8(); r9(); r10(vectors); r11(); r12(); r13(vectors); r14(vectors)
     r15(vectors)
     r16(vectors); r17(vectors); r18(vectors); r19(vectors); r20(vectors); r20_presentation(); r21(vectors); r22(vectors); r23(vectors)
-    r24(vectors); r25(vectors); r26(vectors); r27(vectors); r28(vectors)
+    r24(vectors); r25(vectors); r26(vectors); r27(vectors); r28(vectors); r29(vectors); r30(vectors)
     print()
     print("ALL RUNTIME RULES PASSED" if not FAIL else f"{len(FAIL)} FAILURES: {FAIL}")
     return 1 if FAIL else 0

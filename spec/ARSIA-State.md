@@ -1346,11 +1346,26 @@ QUERY respects the same access control rules as GET:
   (without a grant covering the matching entries), the result MUST be empty — not an
   error.
 
-**Ordering:**
+**Ordering and pagination:**
 
-Results MUST be ordered by `created_at` in ascending order (oldest first). This
-provides deterministic pagination. Implementations MAY support additional ordering
-options in future versions of this specification.
+Results MUST be ordered by `created_at` in ascending order (oldest first) and, among
+entries with equal `created_at`, by `key` in ascending lexicographic order of its ASCII
+bytes — a case-sensitive comparison, independent of any locale or collation. A key has
+at most one live entry and QUERY returns live entries only (§2.4), so the two fields
+give a total order.
+
+For each request the implementation MUST compute `total` and `entries` over one and the
+same set: the entries the requesting agent is authorised to access that match the
+filters, as that set stands when the request is processed. It MUST order that set first
+and apply `offset` and `limit` afterwards.
+
+Each request is evaluated on its own. A later request may observe another state, so
+pages obtained by successive requests are consistent with each other only while the set
+does not change: if an entry of the first page is deleted before the second request,
+the same `offset` skips an entry. An agent that needs a reading at one fixed instant
+uses SNAPSHOT with `as_of` (§3.2.1), under that operation's own capability. This
+ordering is that of QUERY only. Implementations MAY support additional ordering options
+in future versions of this specification.
 
 **Performance considerations:**
 
@@ -4253,9 +4268,17 @@ An agent that never needs to purge data SHOULD NOT be granted
 ### 10.2 Injection and Abuse
 
 **Key injection.** The key format (§2.1.1) restricts allowed characters to
-`[a-zA-Z0-9:._/\-]`. This prevents directory traversal attacks, null byte injection,
-and other key manipulation attacks. Implementations MUST validate keys against the
-pattern before processing any operation.
+`[a-zA-Z0-9:._/\-]`, which excludes control characters, the null byte and white space.
+Implementations MUST validate keys against the pattern before processing any operation.
+The pattern does not make a key safe to use as a path: dots and slashes are allowed, and
+`agent:acme.echo-client/agent/../../other/secret` is a valid key. A key is a logical
+identifier. It has the meaning this specification gives it — the agent-id prefix, the
+scope segment and the reserved local prefixes (§2.1.1, §2.2) — and no segment has a
+meaning for a file system or for any other storage namespace: `.` and `..` are ordinary
+segments. An implementation whose backend maps keys to paths, object names or another
+hierarchical namespace MUST treat every segment as data, MUST keep each operation
+confined to the storage space authorised for that operation, whatever the key contains,
+and MUST preserve the identity of keys: different keys map to different stored objects.
 
 **Value injection.** State values are opaque JSON. Implementations MUST NOT interpret
 or execute value contents. Values MUST be treated as data, not as code or commands.

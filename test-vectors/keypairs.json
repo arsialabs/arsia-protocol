@@ -1,6 +1,6 @@
 {
   "$comment": "Copyright 2025-2026 Arsia Labs (Arsia Tecnologia Unipessoal Lda). Licensed under Apache 2.0. See licenses/LICENSE-ARTIFACTS.md.",
-  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; the main reconciliation imports one more under the same rule, agent:acme.state-extension#key1 for ITV-266 (35 imported in all); an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Two keys no catalog had are generated: agent:contoso.crm#key1 (Ed25519, derived from the kid as the coverage SC1 keys) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425: ITV-425 carries a mathematically valid signature that a conformant verifier rejects for insufficient key size. The provenance member records the three sets and their digests. One encryption keypair is published apart from the signature keypairs, in encryption_keypairs: agent:acme.echo-client#enc1 (X25519, use enc; private key = SHA-256 of the UTF-8 string 'arsia-test-vectors encryption keypair ' followed by the kid), the recipient key of the encrypted-payload vectors (ARSIA-Core.md §5.3). It is declared by use, kty and crv, is never used for signing, and no signature path reads it.",
+  "description": "Test-only keypairs (Ed25519, ES256, RS256) for ARSIA Protocol test vectors. NOT secrets. The six Ed25519 keypairs added in the vector cycle are derived deterministically: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the agent-id; kid = agent-id + '#key1'. Two Ed25519 keypairs added in coverage SC1 are derived from the kid: private key = SHA-256 of the UTF-8 string 'arsia-test-vectors keypair ' followed by the kid. An agent's first key is indexed by its agent-id; an additional key of the same agent is indexed by its kid (agent:acme.echo-client#other-key), so the existing entries are unchanged. Draft-01.1 port: 34 entries are imported unchanged from origin/main 17dcf33 (the Draft-01.1 test keys), only those whose kid a Draft-02 vector uses and this catalog lacked; the main reconciliation imports one more under the same rule, agent:acme.state-extension#key1 for ITV-266 (35 imported in all); an existing entry is never overwritten, and the five kids whose public key differs between the two catalogs keep their Draft-02 key. Three keys no catalog had are generated: agent:contoso.crm#key1 and agent:arsialabs.demo.arbitrator#key1 (Ed25519, derived from the kid as the coverage SC1 keys; the second signs the escrow dispute notification ITV-746) and agent:acme.legacy-system#rsa1024, an RSA key of 1024 bits deliberately BELOW the 2048-bit minimum of ARSIA-Core.md §5.1, which exists only for the key-size negative ITV-425: ITV-425 carries a mathematically valid signature that a conformant verifier rejects for insufficient key size. The provenance member records the three sets and the digest of each. One encryption keypair is published apart from the signature keypairs, in encryption_keypairs: agent:acme.echo-client#enc1 (X25519, use enc; private key = SHA-256 of the UTF-8 string 'arsia-test-vectors encryption keypair ' followed by the kid), the recipient key of the encrypted-payload vectors (ARSIA-Core.md §5.3). It is declared by use, kty and crv, is never used for signing, and no signature path reads it.",
   "keypairs": {
     "agent:acme.echo-client": {
       "private_key_hex": "8f475f7ab003e3b2c944813336136484b22520dc93a7e52f68b08c3e661501ea",
@@ -271,6 +271,11 @@
       "private_key_hex": "486e0ee2cc9b1e36993ecdce654f50541977cb3a6c647b45a2d12b398a7d0b2d",
       "public_key_hex": "899ead3157deabaedecdb7331d5855790926da655b53b01e7a1990961b6eec38",
       "kid": "agent:acme.state-extension#key1"
+    },
+    "agent:arsialabs.demo.arbitrator": {
+      "private_key_hex": "3cac515a0b6046b4b25e60775b9c5fa5f0d78b7b0210d4600f833de95856c14b",
+      "public_key_hex": "ab4fc88469abfa14a9885c06c3448fc536a9bdc79baf476bf0da18ed7813dbf4",
+      "kid": "agent:arsialabs.demo.arbitrator#key1"
     }
   },
   "encryption_keypairs": {
@@ -350,11 +355,13 @@
     "generated": {
       "kids": [
         "agent:acme.legacy-system#rsa1024",
-        "agent:contoso.crm#key1"
+        "agent:contoso.crm#key1",
+        "agent:arsialabs.demo.arbitrator#key1"
       ],
       "below_minimum": [
         "agent:acme.legacy-system#rsa1024"
-      ]
+      ],
+      "sha256": "sha-256:b33a73ac3f3c596eb1366489fdd0e4875645d729a3a653e9eed696c0435fb9c1"
     },
     "encryption": {
       "kids": [

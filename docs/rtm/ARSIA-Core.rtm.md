@@ -54,10 +54,14 @@
 | CORE-§4.2-01 | 4.2 | REQUIRED | sdk | structural | Conditional fields (correlation_id, expires_at, capabilities) are REQUIRED when their condition holds | arsia-message | — | schema-ref:arsia-message |
 | CORE-§4.2-02 | 4.2 | MUST | sdk | behavioural_negative | Messages missing a conditionally required field MUST be rejected with error invalid_request | arsia-message | — | schema-ref:arsia-message; untested(structural-only) |
 | CORE-§4.2.1-01 | 4.2.1 | REQUIRED | sdk | structural | correlation_id is REQUIRED when intent is response, error, pending_approval, or approval_decision | arsia-message | CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14 | schema-ref:arsia-message; struct:CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14; crypto:CTV-04, CTV-05, CTV-08, CTV-09, CTV-10, INV-14 |
-| CORE-§4.2.1-02 | 4.2.1 | MUST | sdk | behavioural_positive | correlation_id MUST equal the original request message id | — | CTV-04, CTV-10 | struct:CTV-04, CTV-10; crypto:CTV-04, CTV-10 |
-| CORE-§4.2.1-03 | 4.2.1 | SHOULD | sdk_enabled | behavioural_positive | Agents SHOULD log unmatched correlation_id in response/error messages | — | — | — |
-| CORE-§4.2.1-04 | 4.2.1 | MAY | sdk_enabled | behavioural_negative | Agents MAY discard response/error messages with unmatched correlation_id | — | — | — |
-| CORE-§4.2.1-05 | 4.2.1 | MUST | sdk | procedural | For an approval_decision or a post-execution review decision, the log that correlation rules 1–3 require is the decision_rejected audit record | arsia-audit-record | INV-136, INV-138, ITV-656 | schema-ref:arsia-audit-record; struct:INV-136, INV-138, ITV-656; exec:R15:INV-136, INV-138, ITV-656 |
+| CORE-§4.2.1-02 | 4.2.1 | MUST | sdk | behavioural_positive | correlation_id MUST equal the id of the message this message directly replies to — its immediate causal parent, not necessarily the request that initiated the interaction nor the message most recently exchanged | — | CTV-04, CTV-10 | struct:CTV-04, CTV-10; crypto:CTV-04, CTV-10; check:`R29 prior approval at the requester: the pending_approval and, later, the terminal response both reply to the request and both are applied; one result is recorded`; check:`R29 asynchronous execution at the requester: the accepted acknowledgement and the terminal result both name the request — the terminal result correlates to the request, not to the acknowledgement — and both are applied; an acknowledgement after the terminal result is late` |
+| CORE-§4.2.1-03 | 4.2.1 | MUST_NOT | sdk | behavioural_negative | Rule 1: a message of a reply intent whose correlation_id matches no message the receiving agent sent and still tracks MUST NOT be processed as a reply; the receiver MUST log the discrepancy, and MUST reject an approval_decision with invalid_request | — | — | check:`R29 unknown correlation (rule 1): a message of a reply intent whose parent the agent did not send, or no longer tracks, is not processed as a reply and is logged` |
+| CORE-§4.2.1-04 | 4.2.1 | MAY | sdk_enabled | behavioural_negative | Rule 1: a response or error with an unknown correlation_id MAY be discarded silently | — | — | — |
+| CORE-§4.2.1-05 | 4.2.1 | MUST | sdk | procedural | For an approval_decision, the log that correlation rules 1–3 require is the decision_rejected audit record; a review decision after the first verified one does not reopen the review and is logged as decision_rejected | arsia-audit-record | INV-136, INV-138, ITV-656 | schema-ref:arsia-audit-record; struct:INV-136, INV-138, ITV-656; exec:R15:INV-136, INV-138, ITV-656; exec:R29:INV-138, ITV-656, ITV-696; check:`R29 reviewers: the first verified decision resolves an overdue review, as completed_late; a later decision of another reviewer does not reopen it — decision_rejected, invalid_request — and the terminal result of the execution is unchanged` |
+| CORE-§4.2.1-06 | 4.2.1 | MUST_NOT | sdk | behavioural_negative | Rule 2: a delivered reply whose id the receiver has already accepted is a redelivery and MUST NOT apply its transition again | — | — | check:`R29 repeated and late replies: a redelivery of an accepted id does not apply its transition again; a terminal result with a new id does not replace the recorded one; a pending_approval after the terminal result is late; each is logged and answered invalid_request, and the recorded outcome is unchanged` |
+| CORE-§4.2.1-07 | 4.2.1 | MUST_NOT | sdk | behavioural_negative | Rule 2: a reply with a new id MUST NOT take effect when the state of the flow no longer permits its transition — it MUST NOT record a second terminal result nor count a second decision of an approver whose decision was admitted; the recorded outcome MUST NOT change and the receiver MUST log the reply | — | INV-138, ITV-656, ITV-696 | exec:R29:INV-138, ITV-656, ITV-696; check:`R29 repeated and late replies: a redelivery of an accepted id does not apply its transition again; a terminal result with a new id does not replace the recorded one; a pending_approval after the terminal result is late; each is logged and answered invalid_request, and the recorded outcome is unchanged`; check:`R29 approvers: the decisions of two distinct approvers reply to one pending_approval and both are admitted; a second decision of an approver already admitted is rejected with invalid_request and is not counted` |
+| CORE-§4.2.1-08 | 4.2.1 | SHOULD | sdk_enabled | behavioural_negative | Rule 2: the receiver SHOULD answer a repeated reply, where a response channel exists, with error code invalid_request | — | — | — |
+| CORE-§4.2.1-09 | 4.2.1 | MUST_NOT | sdk | behavioural_negative | Rule 3: a reply delivered after its flow reached a terminal state MUST NOT alter that state; the receiver MUST log the late arrival | — | INV-138 | exec:R29:INV-138, ITV-656, ITV-696; check:`R29 repeated and late replies: a redelivery of an accepted id does not apply its transition again; a terminal result with a new id does not replace the recorded one; a pending_approval after the terminal result is late; each is logged and answered invalid_request, and the recorded outcome is unchanged` |
 | CORE-§4.2.2-01 | 4.2.2 | REQUIRED | sdk | structural | expires_at is REQUIRED when intent is request or pending_approval | arsia-message | CTV-01, CTV-08, INV-05 | schema-ref:arsia-message; struct:CTV-01, CTV-08, INV-05; crypto:CTV-01, CTV-08, INV-05 |
 | CORE-§4.2.2-02 | 4.2.2 | MUST_NOT | sdk | behavioural_negative | Messages MUST NOT be processed after their expires_at timestamp | — | — | check:`R16 expiry honours the tolerance: 300 s after expires_at is not expired`; untested(no-reference-model) |
 | CORE-§4.2.2-03 | 4.2.2 | MUST | sdk | structural | expires_at value MUST be strictly greater than the message ts value | — | CTV-01 | struct:CTV-01; crypto:CTV-01 |
@@ -441,11 +445,11 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 
 | Metric | Count |
 |--------|------:|
-| Total requirements | 426 |
+| Total requirements | 430 |
 | Schema ≠ — | 194 |
-| Vector ≠ — | 178 |
+| Vector ≠ — | 180 |
 | Both ≠ — | 100 |
-| Both = — (gaps) | 154 |
+| Both = — (gaps) | 156 |
 
 ### Per-section breakdown
 
@@ -454,7 +458,7 @@ Generated: 2026-07-22 (Draft-02 regeneration — header-driven parser, reproduci
 | 1 | 1 | 0 | 0 | 0 | 1 |
 | 2 | 13 | 7 | 5 | 3 | 4 |
 | 3 | 12 | 7 | 3 | 3 | 5 |
-| 4 | 141 | 85 | 85 | 52 | 23 |
+| 4 | 145 | 85 | 87 | 52 | 25 |
 | 5 | 47 | 11 | 34 | 8 | 10 |
 | 6 | 42 | 26 | 19 | 12 | 9 |
 | 7 | 46 | 25 | 10 | 7 | 18 |

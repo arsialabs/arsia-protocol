@@ -2882,3 +2882,237 @@ since a document 100000 levels deep is now rejected by the depth check before an
 signature outside a crypto block (INV-265); keypairs unchanged; consistency checks 169 → 174;
 harness checks 1015 → 1046; RTM 2083 → 2090 rows (MUST + MUST_NOT 1278 → 1284; with REQUIRED
 1480 → 1486); findings register 146 rows (open 10 → 8, closed 136 → 138).
+
+## 38. Flow contracts cycle closure evidence
+
+Effective parent `5adaa0d`. Third of three cycles for A-132..A-143; decisions of the owner on
+2026-11-25, in the planning questions and three plan reviews (flow contracts cycle addendum).
+No key material was printed.
+
+| Finding | Contract | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-138 | State §10.2; `state-key` description | ITV-745 | R29 (keys); cycle check | (f1)–(f8) |
+| A-140 | Identity §7.8 (informative) | — | cycle check | (f9)–(f11) |
+| A-141 | Core §2.2, §4.2.1; `correlation_id` description | ITV-656, ITV-696, INV-138 (existing) | R29 (requester, executor); cycle check | (f12)–(f23), (f64)–(f71) |
+| A-142 | Assets §4.1, §4.2, §4.2.1–§4.2.3, §4.3.4, ASSETS-05; escrow-conditions and audit-record descriptions; `keypairs.json` | ITV-746; ITV-91, INV-242 (rebuilt); INV-274 | validator; R30; cycle check and self-test; catalog guard | (f24)–(f51), (f72)–(f88), (f90)–(f97), (f99)–(f111) |
+| A-143 | State §3.1.4; `query-result` description | ITV-747, INV-275; ITV-226 (description) | R29 (QUERY); cycle check | (f52)–(f63), (f89), (f98) |
+
+**Keys and storage.** State §10.2 no longer says that the character set prevents directory
+traversal: the pattern allows dots and slashes, and the key of the finding is a valid key
+(ITV-745). A key is a logical identifier with the meaning the specification gives it — the
+agent-id prefix, the scope segment, the reserved local prefixes — and no segment has a meaning
+for storage. Three conditional requirements bind a backend that maps keys to a hierarchical
+namespace: every segment is data, each operation stays in the storage space authorised for that
+operation, and different keys map to different stored objects. R29 shows them on a reference
+mapping and on a path-joining control: the key of the finding, a key that names another agent's
+space and a key that climbs above the space all stay in the operation's space under the
+reference; under the control the first two leave that space while staying inside the global
+root; `a/b/../c` and `a/c` are one object under the control and two under the reference, which
+is injective over dot segments, an empty last segment and letter case, also when case is
+ignored.
+
+**The auditor example.** Identity §7.8 is informative. Its gateway is explicitly configured with
+a minimum trust level of 2 and with the authority it admits; it computes the level, verifies as
+a separate check that the legal entity the validated certificate binds to the agent is that
+authority, and only then evaluates the policy. `conditions` describes that configuration and the
+procedure of §8.3 does not read it. No field and no RTM row were added; the default of §6.4.2 is
+unchanged.
+
+**Replies.** `correlation_id` names the message a reply directly answers, not the message most
+recently exchanged (Core §2.2, §4.2.1, the schema description). Rules 1–3 apply to delivered
+messages of intent `response`, `error`, `pending_approval` or `approval_decision`; rule 1
+decides a parent the agent did not send; an `event` follows its own section. A reply takes
+effect only as a transition its flow permits. At the requester (R29): a `pending_approval` and
+the terminal result are both applied, as are an `accepted` acknowledgement and the terminal
+result, which correlates to the request; a redelivered `id`, a terminal result with a new `id`
+and a `pending_approval` or an acknowledgement after the terminal result change nothing, are
+logged and answered `invalid_request`; an authorised reading of the persisted result and its
+repetition return the same envelope with signature and binding verified, make no transition and
+log nothing, while an unauthorised reading and an altered envelope are refused; a reply with an
+unknown parent is not processed. At the executor, which holds that state: two distinct approvers
+are admitted and a second decision of one of them is not counted; a rejected attempt does not
+consume its approver (ITV-696); a later decision leaves a completed review (ITV-656) and an
+admitted denial (INV-138); the first verified decision resolves an overdue review as
+`completed_late` and a later decision of another reviewer is `decision_rejected`, the terminal
+result of the execution unchanged; the review notice is accepted by an endpoint that never sent
+its parent. The verification order, the records and the codes of Actions §3.4 and §3.9.3 are
+unchanged.
+
+**Escrow timeout.** The return on timeout is an operation of the holder with its provider, not
+an AssetTransferReversal. It starts by one decision in which the escrow is `ESCROWED`,
+`timeout_at` was reached, every candidate message received before it was decided and no financial
+operation is reserved; the state found when the timer ran is not sufficient. R30: with the provider's
+answer lost the escrow is not `RETURNED` and no receipt exists; a release handled after the
+return started is rejected; the repeated timer confirms that same return; one financial effect
+and one `failed` receipt, issued after the confirmation, also later than 60 seconds after
+`timeout_at`; the `escrow_returned` record documents the creating request; no message is emitted
+and no reversal capability consulted. The 60 seconds bound the timeout check (ASSETS-05
+adjusted).
+
+**Reservation of the release (owner decision, 2026-11-25).** Assets §4.2.1 requires the holder
+to reserve the release as the escrow's financial operation before it instructs the provider, to
+reconcile that same operation while its outcome is uncertain, to cause no second financial
+effect by a retry, a cancellation or the timeout, and to issue the `completed` receipt only
+after the provider confirms the release (ASSETS-§4.2.1-05..08); §4.2.2 starts a return only when
+no financial operation is reserved for the escrow. R30: the provider credits the payee and its
+answer is lost; the escrow is still `ESCROWED` with the release reserved and no `completed`
+receipt; a cancellation of the payer is rejected; the timer that runs after `timeout_at`, with
+the answer lost again, starts no return and repeats that release; another release meanwhile is
+rejected; when the confirmation arrives the escrow is `RELEASED` with one credit, no return and
+one terminal record.
+
+**Order of events.** While an escrow is `ESCROWED` the holder orders the candidate messages of
+that escrow by the instant of reception and the timeout by `timeout_at`; the release check uses
+that instant too (§4.2.1 check 5). R30: the check runs 30 seconds after `timeout_at` and
+instructs nothing while a notification received one millisecond before the deadline is still
+being verified — a valid one gives `DISPUTED` with no instruction, an invalid one is rejected
+and the return starts, one received exactly at `timeout_at` is late; with two notifications
+received in time, the rejection of the first starts no return while the second awaits
+verification, and the second gives `DISPUTED`; a message pending for another escrow delays
+nothing, and neither does a message of another type that names the escrow, which is no
+candidate for a transition of it; a release received in time and verified later is applied, one received at the deadline
+is late; two messages of one millisecond keep the order of reception whichever is submitted
+first; while `DISPUTED` the timer returns nothing and the arbitration agent's release, and on
+another escrow its cancellation, are accepted after the original `timeout_at`.
+
+**Dispute notification.** The party's dispute goes to the arbitration agent (signature, party,
+`disputed_by` equal to the sender); the arbitration agent notifies the holder with a signed
+request of the same type. The holder runs the Core §5.2 pipeline and looks up no escrow before
+it: without `payment_reference`, an invalid signature is `unauthorized` and a valid one
+`invalid_request`, with no lookup in either case. For one unknown reference: invalid signature
+`unauthorized`, valid signature with an invalid token `unauthorized`, both without lookup;
+authenticated, `not_found`. Then the arbitration agent of another escrow is `forbidden`, and a
+`disputed_by` that is no party, a terminal escrow or a reception at `timeout_at` is
+`invalid_request`; the state is intact in every rejection. The registry of escrows counts every
+read, by whatever access: a notification that names an escrow the holder holds, with an invalid
+signature, an invalid token or no token, is `unauthorized` with no read at all while it is
+decided. Step 12 is Core §6.4 at the holder: the token's `aud` is the holder's own identifier
+and its scope satisfies the declared capabilities. An authentic token whose scope does not —
+for a notification and for a release — is `forbidden` before any read; a release or a
+cancellation that does not declare its own capability is `forbidden`; a notification addressed
+to another holder, with a token valid for that holder, is `unauthorized` and leaves the local
+escrow intact.
+
+**The corpus chain.** The escrow of ITV-88 is held by the agent that received and processed its
+request, `agent:arsialabs.demo.asset-registry`. ITV-746 is the notification the arbitration
+agent sends to it, signed with the generated catalog key `agent:arsialabs.demo.arbitrator#key1`.
+ITV-91 is the record the reference holder emits when it verifies ITV-746 at fixed instants
+(received `2026-04-28T09:00:00.250Z`, processed `2026-04-28T09:00:00.400Z`, key fetched
+`2026-04-28T08:30:00.000Z`): R30 compares the two field by field. Before the cycle ITV-91 named
+the requester of the escrow as `from_agent`, an agent that was no party as `disputed_by`, and
+repeated the `payload_hash` of the creation record. INV-242 is the new ITV-91 with its declared
+defect (`payload_type`) and its own `record_id`. INV-274 is ITV-91 with the holder as
+`from_agent`: the comparison reports it, in R30 and in the guard, which sets a declared negative
+apart only after the comparison produced its diagnostic (self-test). The comparison also takes
+the creation record a dispute record links to, when the corpus has it: `disputed_by` is its
+payer or its payee. The guard reads the dispute records at any depth of a vector
+(`escrow_records`); a record nested in a response and one disputed by an agent that is no party
+are reported (self-test).
+
+**Key catalog.** One Ed25519 pair was added, derived from its kid as the other generated
+Ed25519 key; `provenance.generated` lists three kids and now carries `sha256`, which the guard
+recomputes. The 54 earlier entries and the digests of `draft-02`, `imported` and `encryption`
+are unchanged.
+
+**QUERY.** Results are ordered by `created_at` and, at equal `created_at`, by `key` in ASCII
+byte order; `total` and `entries` come from one authorised, filtered set, ordered before
+`offset` and `limit`. R29, through one query path over two owners: an older entry whose key
+sorts last comes first and three entries of one millisecond, inserted out of order, follow as
+Alpha, Zeta, beta; pages of size one over an unchanged state rebuild the sequence; `total` is 4
+with another agent's matching entry and the requester's own entry of another scope left out.
+The `pii_classification` filter is applied before the count and the page: over entries
+classified `none`, the filter `personal` gives no entries and `total` 0. Controls: ordering by key alone, a comparison that ignores case, a limit before the ordering and
+a total that counts the unauthorised entry each give another answer. After an entry of the
+first page is deleted, the same `offset` skips an entry: the stated behaviour across requests.
+ITV-747 carries the order and INV-275 the tie in case-insensitive order, reported by R29 and by
+the guard.
+
+**Named tests.** STATE-04, ASSETS-04 and ASSETS-05 moved from `absent` to `partial`, each
+against the assertions R29 and R30 execute; the parts not executed are stated in
+`docs/draft-02-conformance-tests.md`.
+
+**Mutations (candidate copy identical to the final tree; 111 of 111 detected).** A
+mutation counts only when the expected check fails; a traceback is an error, not a detection.
+- (f1)–(f8) the reference mapping joining the key as a path; confinement measured against the
+  global root; keys colliding when case is ignored; each sentence of State §10.2 removed; the
+  traversal claim back; the `state-key` description → R29, the cycle check.
+- (f9)–(f11) the old `conditions` string; the separate check and the sentence on `conditions`
+  removed → the cycle check.
+- (f12)–(f23) at the requester: a redelivery applied again; a second terminal result replacing
+  the recorded one; a `pending_approval` or an acknowledgement taken as terminal; a repeated
+  retrieval logged as a duplicate, accepted without authorization or without its signature; an
+  unknown parent processed. At the executor: an admitted approver counted twice; a rejected
+  attempt consuming its approver; a later decision reopening a review; the review notice
+  rejected as a reply → R29.
+- (f24)–(f28) a second return on a repeated timer; a release accepted after the return started;
+  the receipt before the confirmation; a reversal message on timeout; the timeout record
+  documenting another message → R30.
+- (f29)–(f38) the timer starting the return with a candidate pending; the state not evaluated
+  again; a rejection starting the return with another candidate pending; a notification at
+  `timeout_at` accepted; a rejected notification blocking the timeout; another escrow's message
+  delaying it; a late release accepted; the arbitration agent's resolution refused after the
+  original deadline; a `DISPUTED` escrow returned; one instant decided out of reception order →
+  R30.
+- (f39)–(f51) a lookup before the signature; the message not validated before the lookup; the
+  token not validated; an unknown reference or a wrong sender answered `invalid_request`;
+  another sender, a non-party or a terminal escrow accepted; the record from the holder or
+  without the verification evidence; the comparison of the record removed; the guard setting a
+  negative apart without the comparison; the generated digest unchecked → R30, the cycle check
+  and its self-test.
+- (f52)–(f63) no tie-break; key alone; a case-insensitive tie-break; the limit before the
+  ordering; the unauthorised entry counted; the scope filter ignored; the order comparison
+  ignoring ties; the pagination claim back; each sentence of State §3.1.4 weakened; the
+  `query-result` description → R29, the cycle check.
+- (f64)–(f87) each new normative sentence of Core §4.2.1 and of Assets §4.2–§4.3.4 weakened;
+  "immediately preceding message" back in Core and in the schema; the reversal back; the
+  escrow-conditions description → the cycle check.
+- (f88), (f89) ITV-91 with the holder as `from_agent`; ITV-747 with the tie in case-insensitive
+  order → the cycle check, R30, R29.
+- (f90)–(f101), from the owner review: the release not reserved before the provider is
+  instructed; the timer starting a return while a release is reserved; the granted scope not
+  compared; the audience not bound to the holder; a release or a cancellation accepted without
+  declaring its capability; the registry read when a rejected item is closed; a message of
+  another type counted as a candidate; the `pii_classification` filter ignored; the record
+  comparison ignoring the parties; the guard reading only the root record or withholding the
+  creation record → R30, R29, the cycle self-test.
+- (f102)–(f111), from the second owner review: every noted timeout check run again after any
+  decision; a finished check left noted as waiting; timer work read as the message's; a message
+  of another type resuming the waiting check; a cancellation accepted while a release is
+  reserved; each of the four sentences of the reservation of the release weakened; §4.2.2 back
+  to a reserved return only → R30, the cycle check.
+
+**Owner review (2026-11-25).** The review of the candidate found, in the reference models: a
+release whose confirmation was lost left the escrow open to a return; R30 authenticated the
+token without comparing its scope or binding the recipient to the holder; the count of lookups
+did not observe every access and a message of any type naming the escrow delayed the timer;
+QUERY ignored the `pii_classification` filter; the record comparison did not use the parties of
+the creation record and the guard read only the root of `data`. Each is corrected as described
+above, with its control and its mutation (f90–f101); fifteen mutations of the cycle were
+rewritten for the corrected model (f24–f31, f34–f37, f39, f41, f46). No normative text changed
+in that review.
+
+**Second owner review (2026-11-25).** The owner approved the reservation of the release as
+normative text (Assets §4.2.1, and the condition of §4.2.2), recorded above. The review also
+found that the count of registry reads still included timer work: after any decision the holder
+ran every timeout check that had ever been noted, finished ones included, so a rejected message
+could read escrows again. The holder now notes a check as waiting only while candidates received
+in time are undecided, resumes it only when the decided message is such a candidate, and
+attributes its reads to the scheduler. R30: with one escrow returned and another whose check
+waits, an unauthorized message — naming the returned escrow, an open one, or the waiting one
+with a type that is no transition — reads nothing, for the message or for the scheduler; when
+the awaited candidate is rejected as unauthorized, the message reads nothing and the scheduler
+starts the return once. In the campaigns, (v25) of the validation cycle no longer applied — its
+needle now occurs in two functions — and is restricted to the decision verifier of R27;
+`run_all.sh` now fails when a campaign has a mutation not applied or not detected.
+
+**Regression.** The twelve earlier campaigns ran on the same candidate, each with a clean base
+and every mutation detected; redirected mutations, if any, are listed in the campaigns folder
+(`MANIFEST.changes.md`) and in the cycle report.
+
+**Counts.** Vectors 1055 → 1060 (ITV-745, ITV-746, ITV-747, INV-274, INV-275: 519
+schema-valid, 303 expected-invalid, 215 runtime-only, 23 raw); ITV-91 and INV-242 rebuilt,
+ITV-226's description edited; crypto blocks 170 (unchanged); one more signature outside a
+crypto block (ITV-746); signature keypairs 54 → 55; consistency checks 174 → 176; harness
+checks 1046 → 1081; RTM 2090 → 2111 rows (MUST + MUST_NOT 1284 → 1305; with REQUIRED 1486 →
+1507); named tests partial 43 → 46, absent 28 → 25; findings register 146 rows (open 8 → 3,
+closed 138 → 143).

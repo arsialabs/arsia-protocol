@@ -54,7 +54,7 @@
           "$ref": "arsia-common.schema.json#/$defs/agent-id"
         }
       ],
-      "description": "Agent-id of an agent that can be invoked if the escrow is disputed by either party. The arbitration process itself is OUT OF SCOPE for ARSIA. ARSIA defines only the signaling: either party can send a message to this agent to initiate a dispute, and the escrow transitions to DISPUTED (§4.2). When absent, no dispute mechanism exists and the escrow MUST timeout normally at timeout_at. Per ARSIA-Assets.md §4.1 'arbitration_agent'."
+      "description": "Agent-id of an agent that can be invoked if the escrow is disputed by either party. The arbitration process itself is OUT OF SCOPE for ARSIA. ARSIA defines only the signaling: either party can send a message to this agent to initiate a dispute; this agent notifies the escrow holder, and the escrow transitions to DISPUTED when the holder has verified that notification (§4.2.3). When absent, no dispute mechanism exists and the escrow MUST timeout normally at timeout_at. Per ARSIA-Assets.md §4.1 'arbitration_agent'."
     }
   }
 }
