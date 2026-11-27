@@ -3116,3 +3116,136 @@ crypto block (ITV-746); signature keypairs 54 → 55; consistency checks 174 →
 checks 1046 → 1081; RTM 2090 → 2111 rows (MUST + MUST_NOT 1284 → 1305; with REQUIRED 1486 →
 1507); named tests partial 43 → 46, absent 28 → 25; findings register 146 rows (open 8 → 3,
 closed 138 → 143).
+
+## 39. Corpus closure cycle closure evidence
+
+Effective parent `27cd71c`. The three findings open before the cycle; decisions of the owner on
+2026-11-26, in the planning questions and two plan reviews, and on 2026-11-27 in the review of
+the implementation (corpus closure cycle addendum). A-144 is registered, open, for a separate
+cycle. No normative
+text changed: two examples of the specification, the corpus and the guards. No key material was
+printed in the cycle's records; during the work a dry-run report showed the first ten hex
+characters of two public test keys, and the script was corrected to leave key fields out.
+
+| Finding | Specification | Vectors | Executed by | Mutation → failing check |
+|---|---|---|---|---|
+| A-129 | Actions §2.1 example; Identity §7.3 CHECK-01 | 54 + 6 dependents; ITV-477 | hygiene guard and self-test; examples check; documented hashes; delivered envelopes and self-test; `--check-crypto`; R22; DR-1 | (c1)–(c4), (c10)–(c24), (c43)–(c46), (c52), (c53), (c57)–(c59) |
+| A-130 | — (State §7.1, Actions §3.5 unchanged) | ITV-592..599, ITV-602, ITV-739, ITV-740, INV-51, INV-53, INV-235, INV-236 | oversight record guard and self-test; record copies and self-test; tamper relations; DR-5; R14 | (c25)–(c39), (c54)–(c56), (c60), (c61) |
+| A-131 | — (Actions §1.4 unchanged) | ITV-03, ITV-31, ITV-38, ITV-45, ITV-46, ITV-57, ITV-65, ITV-130, ITV-526, INV-61, INV-78 | capability guard and self-test; onboarding policy guard | (c5)–(c9), (c40)–(c42), (c47)–(c51) |
+
+**Examples.** Actions §2.1 gives `com.example.compliance/check` as an action defined by the
+application; "ARSIA-defined action" is gone. CHECK-01 of Identity §7.3 names
+`arsiaprotocol.echo`, which every agent at the Core level supports (Actions §1.4) and which
+Core A.1 shows as a `payload.type`; the items CHECK-01 verifies are unchanged. A check reads the
+two sections and reports either former name when it is restored. `arsiaprotocol.echo` is in the
+registry of defined payload types with Actions §1.4 as its source, and the example-only class
+is removed from the hygiene guard, whose self-test reports the two former names as undefined
+types.
+
+**The compliance check type in the corpus.** Every occurrence in the 54 vectors is renamed,
+texts that name the type included (the reference descriptors of CTV-08 and ITV-306). Signatures
+that verified verify again; the crypto blocks carry the canonical bytes of their envelope, also
+for INV-16, which has no signature. The six dependents carry the hash of their origin and are
+signed again; INV-68 and INV-69 keep the absence of `capabilities` and of `correlation_id`. The
+sixteen relay attestation scenarios are rebuilt on the corrected CTV-02: fifteen delivered
+envelopes verify with the catalog key, their `security.sig` decoded strictly (base64url
+without padding), and INV-115 is that envelope with only `payload.args.amount` altered and
+CTV-02's signature kept. The guard builds the expected envelope from CTV-02 with that one
+value changed and compares whole objects, so a member added with a null value is reported;
+under the scenario's own attestation it requires CTV-02 to be accepted and the delivered
+envelope to fail at step 4. A self-test applies each defect to a copy of the corpus. The six attestation headers are derived again in their own form (padding, alphabet,
+appended character, repeated member, extra member signed again); R22 accepts or rejects each at
+the same step, and its single-defect controls still recover an accepted attestation.
+
+**Oversight records.** The corpus has 23 audit records of `pending_approval`,
+`approval_decision` or `decision_rejected`, identified by `record_id` and their `event_type`;
+ten carried the request's type and now carry the type of the oversight message. The guard
+requires `intent` and `payload_type` of every such record — the audit record schema requires
+them too, but a record nested in a message is not validated against it: STV-07 `chain[1]`
+without the field, signed again, passes the validator — and the pair its event type admits; a rejected decision documents the message received, an approval decision or the review
+decision event. When the corpus holds the message of a record's `message_id` the pair is that
+message's; no record has its message in the corpus today, and the self-test covers the case. A
+projection of evidence without `record_id` (ITV-694) is not a record.
+
+**The chain.** ITV-592..596 is recomputed once, position by position; the tombstone ITV-595
+takes the chain value of the deleted record documented in §18 above, which reproduced the
+former value, over the new value of ITV-594. The four tampered vectors keep their defects:
+ITV-597 and ITV-602 differ from their base in the declared fields and keep the base's chain
+value, which is not the value of their own content; ITV-598 differs in `chain_id` and ITV-599
+in `previous_chain_value`. A check asserts those relations directly, because the chain
+verification gives the same reason when a failure moves to the next position. The responses
+ITV-739, ITV-740, INV-235 and INV-236 declare the source of each position — ITV-592..596 in
+order, ITV-592 alone, and for INV-236 the record of ITV-55 and the tombstone ITV-595 — and are
+compared as whole lists, length included, every entry equal to its source as a whole object;
+a self-test swaps, repeats, drops and alters entries on a copy of the corpus.
+
+**Capabilities.** The real inventory is 11 vectors: ITV-31 carries the name as a token of its
+`scope` string. The onboarding grants name `arsiaprotocol.assets.transfer.initiate`, with the
+reference policies, the derived lists and `policy_sha256` following (INV-78 keeps its absence);
+the other three names became application capabilities. The guard reads every value of the
+reserved grammar outside the payload-type keys and each token of a `scope`, against the
+registry it reads from Actions §1.4; ITV-281 and ITV-568 are excepted at their path, for their
+cause.
+
+**No regression of cause.** The error signatures of the 1060 vectors (validator, path and
+sub-errors of every error) are identical before and after the cycle, and so is the output of
+the runtime harness.
+
+**Mutations (candidate copy identical to the final tree; 61 of 61 detected).** A
+mutation counts only when the expected check fails; a traceback is an error, not a detection.
+- (c1)–(c4) a former payload type back in a message, in an `action_id`, in a delivered envelope
+  of `test_metadata` and in ITV-477 → the hygiene guard.
+- (c5)–(c9) a former capability back in a list, in a `scope` token, in a reference policy and
+  in ITV-65 and ITV-526 → the capability guard.
+- (c10)–(c12) "ARSIA-defined action" back, `onboarding/ping` back in CHECK-01, the detector
+  without the Identity section → the examples check and its self-test.
+- (c13), (c14) `arsiaprotocol.echo` out of the registry → the hygiene guard; the example-only
+  class back → its self-test.
+- (c15)–(c20) STV-06 and STV-07 `chain[0]` with the former `payload_hash`, signed again;
+  INV-16 with the former canonical bytes; CTV-09 with the former `request_payload_hash`, signed
+  again; ITV-629 and INV-68 with another `result_hash` and a valid signature → documented
+  hashes, `--check-crypto` and DR-1, never the signature.
+- (c21)–(c24) a delivered envelope whose signature does not verify; INV-115 with a second
+  field altered, with its envelope signed again, and without its alteration → delivered
+  envelopes.
+- (c25)–(c33) ITV-592 and ITV-593 with the request's type; a nested decision; STV-07
+  `chain[1]` without `payload_type`, signed again; a rejected approval decision with the review
+  type → the oversight guard. The guard without nested records, without the source message,
+  identifying a record by its `payload_type`, and accepting any intent on a rejected decision →
+  its self-test.
+- (c34)–(c39) only the `hash_chain` of a copied record altered and a copied tombstone with
+  another previous value → record copies; ITV-597 and ITV-602 carrying the chain value of their
+  own content and ITV-598 with a second field changed → tamper relations; ITV-594 with its
+  former chain value → DR-5.
+- (c40)–(c42) ITV-130 with the former `policy_sha256` and with a list the policy does not
+  derive → the onboarding policy guard; INV-78 with `policy_sha256` → the validator.
+- (c43)–(c46) ITV-569 with the former `envelope_hash`, signed again, and ITV-711 with the
+  former header → R22; INV-124 without its alteration and INV-18 with a valid signature →
+  `--check-crypto`.
+- (c47)–(c51) the capability guard without the tokens of a scope, without `test_metadata`, and
+  with an exception not bound to its path → its self-test; ITV-281 carrying a registered
+  capability and ITV-568 with a second unregistered name at another path → the capability
+  guard.
+- (c52)–(c56) from the owner's review of the implementation, each of which the first form of
+  the guards let pass: INV-115 with a second member whose value is null and a delivered
+  envelope whose signature carries padding → delivered envelopes; the first two records of
+  ITV-739 swapped, its decision replaced by a second copy of the first record, and the last
+  record of INV-235 dropped → record copies.
+- (c57)–(c61) the delivered envelope guard reading an absent member as a null one, with the
+  lenient decoder, and without the attestation control → its self-test; the record copy guard
+  accepting a source at any position and without the length of the list → its self-test.
+
+**Regression.** The thirteen earlier campaigns ran on the same candidate. Two mutations of the
+corpus hygiene campaign edited the line of the hygiene guard that named the example-only class:
+(h6) keeps its defect — an exception accepted for its vector at any path — on the new line, and
+(h3), which had lost its target, now has the registry of defined types accepted by prefix
+instead of the exact name, reported by the self-test. The targets of (h4) and (h5) — the guard
+without `test_metadata` and without nested lists — now occur twice in the file, since the
+capability guard walks the corpus the same way; both mutations are restricted to
+`payload_type_values`, with their defect and their detector unchanged. A first run of the
+regression stopped at (h4) for that reason, before applying it, and was repeated.
+
+**Counts.** Vectors 1060 (unchanged; 86 changed in place: 519 schema-valid, 303
+expected-invalid, 215 runtime-only, 23 raw); crypto blocks 170 (unchanged); signature keypairs
+55 (unchanged); consistency checks 176 → 187; harness checks 1081 (unchanged); RTM 2111 rows
+(unchanged); findings register 146 → 147 rows (open 3 → 1, closed 143 → 146; A-144 registered).

@@ -419,8 +419,12 @@ catalog edition via the new discovery field `iso4217_edition`.
   the Rule 8 basis and the `pii_special_categories` exclusion on a SET.
 - No vector uses an `arsiaprotocol.*` payload type that the specification does not
   define, apart from three declared negatives of the type itself (ITV-265, ITV-266,
-  ITV-480), the declared plaintext of the encrypted negative INV-251, and `arsiaprotocol.compliance/check` and `arsiaprotocol.onboarding/ping`,
-  which the specification names only in examples. Application payloads use
+  ITV-480) and the declared plaintext of the encrypted negative INV-251. `arsiaprotocol.compliance/check`
+  and `arsiaprotocol.onboarding/ping`, which appeared only in examples, are not protocol types: the
+  Actions §2.1 example is `com.example.compliance/check`, and CHECK-01 of Identity §7.3 names
+  `arsiaprotocol.echo`. An implementation that hard-coded either name as a protocol type drops it.
+  No vector uses an `arsiaprotocol.*` capability outside the registry of Actions §1.4, apart from
+  the declared negatives ITV-281 and ITV-568. Application payloads use
   non-reserved types (`com.example.*`, `eu.mifid.risk/assess`), and error responses
   carry the type of the original request (Core §11.1).
 

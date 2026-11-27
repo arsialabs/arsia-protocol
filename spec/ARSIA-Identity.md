@@ -1472,8 +1472,8 @@ only when its preconditions are not met (e.g., CHECK-04 when the agent exposes n
 endpoint).
 
 **CHECK-01 — Envelope validity.** The gateway sends a `request` message to the external
-agent with a known payload type (e.g., `"arsiaprotocol.onboarding/ping"`) and verifies the
-response:
+agent with a known payload type (e.g., `"arsiaprotocol.echo"`, which every agent at the
+Core conformance level supports, ARSIA-Actions.md §1.4) and verifies the response:
 
 - The response MUST have `intent` set to `"response"`.
 - The response MUST have `correlation_id` set to the request's `id`.

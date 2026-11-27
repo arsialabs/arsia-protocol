@@ -732,7 +732,8 @@ semantics.
 - **Pattern:** `^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*(\/[a-zA-Z][a-zA-Z0-9_-]*)*$`
 - **Examples:**
   - `"com.example.notes/delete"` — Delete a note in the example.com notes service.
-  - `"arsiaprotocol.compliance/check"` — Run a compliance check (ARSIA-defined action).
+  - `"com.example.compliance/check"` — Run a compliance check (an action defined by the
+    application).
   - `"eu.mifid.risk/assess"` — Perform a MiFID II risk assessment.
   - `"com.acme.billing/create-invoice"` — Create an invoice.
 - **Constraints:** The `action_id` uniquely identifies this action within the agent's

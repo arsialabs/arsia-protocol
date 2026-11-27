@@ -2961,12 +2961,8 @@ DEFINED_PAYLOAD_TYPES = {
     _AP + "broker/relay-error": ("spec/ARSIA-Routing.md", "§2.3.3"),
     _AP + "compliance/breach-notification": ("spec/ARSIA-State.md", "§5.7"),
     "arsiaprotocol.error": ("spec/ARSIA-Core.md", "§11.1"),
-}
-# A-129: named by the specification only in an example, without a contract. Accepted by exact name only, as a
-# documented corpus-hygiene exception, never counted as defined.
-EXAMPLE_ONLY_PAYLOAD_TYPES = {
-    _AP + "compliance/check": ("spec/ARSIA-Actions.md", "§2.1", "A-129"),
-    _AP + "onboarding/ping": ("spec/ARSIA-Identity.md", "§7.3", "A-129"),
+    # A-129: the echo, which every agent at the Core level supports; the type CHECK-01 of Identity §7.3 names.
+    _AP + "echo": ("spec/ARSIA-Actions.md", "§1.4"),
 }
 # Intentional negatives of the type itself: (vector, path) -> (text its expected_error names, cause).
 INTENTIONAL_PAYLOAD_TYPE_NEGATIVES = {
@@ -2997,12 +2993,11 @@ def payload_type_values(vectors):
                     yield v, path, value
 
 
-def payload_type_hygiene_problems(vectors, defined=None, example_only=None, intentional=None):
+def payload_type_hygiene_problems(vectors, defined=None, intentional=None):
     """A-127 (corpus hygiene): every arsiaprotocol.* payload type in the corpus is defined by the section its registry
-    entry cites, or is one of the two exact example-only names (A-129), or is a declared intentional negative at its
-    own path, the vector invalid and its expected_error naming the cause."""
+    entry cites, or is a declared intentional negative at its own path, the vector invalid and its expected_error
+    naming the cause. There is no example-only class: A-129 replaced the two names it held."""
     defined = DEFINED_PAYLOAD_TYPES if defined is None else defined
-    example_only = EXAMPLE_ONLY_PAYLOAD_TYPES if example_only is None else example_only
     intentional = INTENTIONAL_PAYLOAD_TYPE_NEGATIVES if intentional is None else intentional
     out, texts = [], {}
 
@@ -3013,16 +3008,11 @@ def payload_type_hygiene_problems(vectors, defined=None, example_only=None, inte
     for t, (f, sec) in defined.items():
         if not named_in(t, f, sec):
             out.append(f"registry: {t} is not named in {f} {sec}")
-    for t, (f, sec, finding) in example_only.items():
-        if t in defined:
-            out.append(f"registry: {t} is example-only ({finding}) and must not be counted as defined")
-        if not named_in(t, f, sec):
-            out.append(f"registry: example-only {t} is not cited in {f} {sec}")
     by_id = {v["id"]: v for v in vectors}
     seen = {}
     for v, path, value in payload_type_values(vectors):
         seen[(v["id"], path)] = value
-        if value in defined or value in example_only or (v["id"], path) in intentional:
+        if value in defined or (v["id"], path) in intentional:
             continue
         out.append(f"{v['id']} {path}: {value} is not a defined payload type")
     for (vid, path), (names, _cause) in intentional.items():
@@ -3044,15 +3034,15 @@ def payload_type_hygiene_problems(vectors, defined=None, example_only=None, inte
 
 
 def payload_type_hygiene_self_test():
-    """Synthetic: a sound set passes; a third undefined type in message, in nested records and in test_metadata, an
-    inexact example-only name, an exception at another path, for a valid vector or not naming its cause, and a
+    """Synthetic: a sound set passes; an undefined type in message, in nested records and in test_metadata, a name
+    that only extends a defined one, an exception at another path, for a valid vector or not naming its cause, and a
     registry entry whose section lacks the type are reported."""
     import copy as _copy
     neg = {("SYN-N", "message/payload/type"): ("forbidden", "synthetic")}
     sound = [
         {"id": "SYN-D", "valid": True, "message": {"payload": {"type": _AP + "state/set"}},
          "data": {"records": [{"payload_type": "com.example.notes/delete"}]},
-         "test_metadata": {"reference_request": {"payload": {"type": _AP + "compliance/check"}}}},
+         "test_metadata": {"reference_request": {"payload": {"type": _AP + "state/get"}}}},
         {"id": "SYN-N", "valid": False, "expected_error": "forbidden",
          "message": {"payload": {"type": _AP + "state/custom-x"}}},
     ]
@@ -3075,9 +3065,16 @@ def payload_type_hygiene_self_test():
         "third undefined type in test_metadata": (
             variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"].update(type=U)), None,
             f"SYN-D test_metadata/reference_request/payload/type: {U}"),
-        "example-only name not exact": (variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"]
-                                                .update(type=_AP + "compliance/checks")), None,
-                                        "compliance/checks is not a defined payload type"),
+        "defined name not exact": (variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"]
+                                           .update(type=_AP + "state/gets")), None,
+                                   "state/gets is not a defined payload type"),
+        # A-129: the two names once accepted as example-only are undefined types like any other
+        "former example-only name": (variant(lambda V: V["SYN-D"]["test_metadata"]["reference_request"]["payload"]
+                                             .update(type=_AP + "compliance/check")), None,
+                                     "compliance/check is not a defined payload type"),
+        "former example-only ping": (variant(lambda V: V["SYN-D"]["message"]["payload"]
+                                             .update(type=_AP + "onboarding/ping")), None,
+                                     "onboarding/ping is not a defined payload type"),
         "exception at another path": (variant(lambda V: V["SYN-N"]["message"].update(
             payload={"type": _AP + "state/set", "args": {"action_id": _AP + "state/custom-x"}})), None,
             f"SYN-N message/payload/args/action_id: {_AP}state/custom-x is not a defined payload type"),
@@ -3092,6 +3089,551 @@ def payload_type_hygiene_self_test():
     for name, (vs, defined, needle) in cases.items():
         if not any(needle in p for p in payload_type_hygiene_problems(vs, defined=defined, intentional=neg)):
             out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+# ---------------------------------------------------------------- corpus closure cycle (A-129, A-130, A-131)
+def corpus_closure_example_problems(actions=None, identity=None):
+    """A-129: Actions §2.1 gives the compliance check as an action defined by the application, and CHECK-01 of
+    Identity §7.3 names the echo type. The two names that were presented as protocol types are not back in those
+    sections (the ledger keeps their history and is not read here)."""
+    actions = open("spec/ARSIA-Actions.md", encoding="utf-8").read() if actions is None else actions
+    identity = open("spec/ARSIA-Identity.md", encoding="utf-8").read() if identity is None else identity
+    out = []
+    a, i = spec_section(actions, "§2.1"), spec_section(identity, "§7.3")
+    if a is None or i is None:
+        return ["Actions §2.1 or Identity §7.3 not found"]
+    if '`"com.example.compliance/check"`' not in a:
+        out.append("Actions §2.1: the application example com.example.compliance/check is missing")
+    for back in ("ARSIA-defined action", "arsiaprotocol.compliance/check"):
+        if back in a:
+            out.append(f"Actions §2.1: {back!r} is back")
+    m = re.search(r"^\*\*CHECK-01 .*?(?=\n\n)", i, re.M | re.S)
+    if not m or '`"arsiaprotocol.echo"`' not in m.group(0):
+        out.append("Identity §7.3: CHECK-01 does not name arsiaprotocol.echo")
+    if "arsiaprotocol.onboarding/ping" in i:
+        out.append("Identity §7.3: 'arsiaprotocol.onboarding/ping' is back")
+    return out
+
+
+def corpus_closure_example_self_test():
+    """Each restored text is reported by name; the present texts are not."""
+    actions = open("spec/ARSIA-Actions.md", encoding="utf-8").read()
+    identity = open("spec/ARSIA-Identity.md", encoding="utf-8").read()
+    new_a = ('`"com.example.compliance/check"` — Run a compliance check (an action defined by the\n    application).')
+    new_i = '`"arsiaprotocol.echo"`'
+    if actions.count(new_a) != 1 or new_i not in (spec_section(identity, "§7.3") or ""):
+        return ["the texts the self-test mutates are not present"]
+    old_a = '`"arsiaprotocol.compliance/check"` — Run a compliance check (ARSIA-defined action).'
+    cases = {
+        "ARSIA-defined action": (actions.replace(new_a, old_a), None),
+        "com.example.compliance/check is missing": (actions.replace(new_a, old_a), None),
+        "'arsiaprotocol.onboarding/ping' is back": (None, identity.replace(
+            'a known payload type (e.g., `"arsiaprotocol.echo"`', 'a known payload type (e.g., `"arsiaprotocol.onboarding/ping"`')),
+        "CHECK-01 does not name arsiaprotocol.echo": (None, identity.replace(
+            'a known payload type (e.g., `"arsiaprotocol.echo"`', 'a known payload type (e.g., `"arsiaprotocol.onboarding/ping"`')),
+    }
+    out = []
+    for needle, (a, i) in cases.items():
+        if not any(needle in p for p in corpus_closure_example_problems(a, i)):
+            out.append(f"not reported: {needle}")
+    return out
+
+
+# A-130: an oversight audit record documents the oversight message, not the request (State §7.1; Actions §3.5).
+# event_type -> the (intent, payload_type) pairs its record may carry. A rejected decision documents the message
+# received: an approval_decision, or the review decision event of Actions §3.9.3.
+OVERSIGHT_RECORD_TYPES = {
+    "pending_approval": {("pending_approval", _AP + "oversight/pending")},
+    "approval_decision": {("approval_decision", _AP + "oversight/decision")},
+    "decision_rejected": {("approval_decision", _AP + "oversight/decision"), ("event", _AP + "oversight/review-decision")},
+}
+OVERSIGHT_RECORD_FLOOR = 23   # the oversight records of the corpus when the guard was written: fewer means records lost
+
+
+def _walk_paths(node, path):
+    yield path, node
+    if isinstance(node, dict):
+        for k, x in node.items():
+            yield from _walk_paths(x, f"{path}/{k}")
+    elif isinstance(node, list):
+        for i, x in enumerate(node):
+            yield from _walk_paths(x, f"{path}/{i}")
+
+
+def oversight_typed_records(vectors):
+    """(vector, path, record) for every audit record of an oversight event_type at any depth of a vector's data,
+    message or test_metadata. A record is identified by record_id (State §7.1) with the event_type — never by the
+    presence of the fields the guard then requires."""
+    for v in vectors:
+        for root in ("data", "message", "test_metadata"):
+            for path, x in _walk_paths(v.get(root), root):
+                if isinstance(x, dict) and "record_id" in x and x.get("event_type") in OVERSIGHT_RECORD_TYPES:
+                    yield v, path, x
+
+
+def corpus_messages_by_id(vectors):
+    """id -> (intent, payload.type) of every envelope of the corpus (an object with id, intent and an object payload),
+    nested and reference envelopes included; an id carried by envelopes that disagree maps to None."""
+    seen = {}
+    for v in vectors:
+        for root in ("message", "data", "test_metadata"):
+            for _path, x in _walk_paths(v.get(root), root):
+                if isinstance(x, dict) and isinstance(x.get("id"), str) and isinstance(x.get("intent"), str) \
+                        and isinstance(x.get("payload"), dict) and "from" in x:
+                    pair = (x["intent"], x["payload"].get("type"))
+                    seen[x["id"]] = pair if seen.get(x["id"], pair) == pair else None
+    return seen
+
+
+def oversight_record_type_problems(vectors, floor=OVERSIGHT_RECORD_FLOOR):
+    """A-130: every pending_approval, approval_decision and decision_rejected record carries intent and payload_type,
+    the pair is one its event_type admits, and when the corpus holds the message of its message_id the pair is that
+    message's."""
+    out, n = [], 0
+    messages = corpus_messages_by_id(vectors)
+    for v, path, r in oversight_typed_records(vectors):
+        n += 1
+        missing = [f for f in ("intent", "payload_type") if f not in r]
+        if missing:
+            out.append(f"{v['id']} {path}: {r['event_type']} record without {' and '.join(missing)}")
+            continue
+        pair = (r["intent"], r["payload_type"])
+        if pair not in OVERSIGHT_RECORD_TYPES[r["event_type"]]:
+            out.append(f"{v['id']} {path}: {r['event_type']} record with intent {pair[0]} and payload_type {pair[1]}")
+        src = messages.get(r.get("message_id"))
+        if src is not None and src != pair:
+            out.append(f"{v['id']} {path}: record differs from its source message ({src[0]}, {src[1]})")
+    if n < floor:
+        out.append(f"only {n} oversight records seen (floor {floor})")
+    return out
+
+
+def oversight_record_type_self_test():
+    import copy as _copy
+    P, D, RV = _AP + "oversight/pending", _AP + "oversight/decision", _AP + "oversight/review-decision"
+    rec = lambda rid, ev, intent, ptype, mid="m": {"record_id": rid, "event_type": ev, "intent": intent,
+                                                   "payload_type": ptype, "message_id": mid}
+    sound = [
+        {"id": "SYN-P", "data": rec("r1", "pending_approval", "pending_approval", P, "m1")},
+        {"id": "SYN-C", "message": {"payload": {"data": {"chain": [rec("r2", "approval_decision", "approval_decision", D)]}}}},
+        {"id": "SYN-R", "data": rec("r3", "decision_rejected", "approval_decision", D)},
+        {"id": "SYN-V", "data": rec("r4", "decision_rejected", "event", RV)},
+        {"id": "SYN-M", "message": {"id": "m1", "from": "agent:a.b", "intent": "pending_approval", "payload": {"type": P}}},
+        # a projection of evidence, not a record: no record_id
+        {"id": "SYN-E", "test_metadata": {"expect": {"evidence": [{"event_type": "approval_decision"}]}}},
+    ]
+    out = []
+    if oversight_record_type_problems(sound, floor=4):
+        out.append(f"sound synthetic set reported: {oversight_record_type_problems(sound, floor=4)[:2]}")
+
+    def variant(fn):
+        s = _copy.deepcopy(sound)
+        fn({v["id"]: v for v in s})
+        return s
+    chain0 = lambda V: V["SYN-C"]["message"]["payload"]["data"]["chain"][0]
+    cases = {
+        "a pending with the request's type": (variant(lambda V: V["SYN-P"]["data"].update(payload_type="com.example.notes/delete")),
+                                              "SYN-P data: pending_approval record with intent pending_approval and payload_type com.example"),
+        "a nested decision with the request's type": (variant(lambda V: chain0(V).update(payload_type="com.example.notes/delete")),
+                                                      "SYN-C message/payload/data/chain/0: approval_decision record"),
+        "a record without payload_type": (variant(lambda V: chain0(V).pop("payload_type")),
+                                          "SYN-C message/payload/data/chain/0: approval_decision record without payload_type"),
+        "a record without intent": (variant(lambda V: V["SYN-P"]["data"].pop("intent")),
+                                    "SYN-P data: pending_approval record without intent"),
+        "a rejected review decision with the approval type": (variant(lambda V: V["SYN-V"]["data"].update(payload_type=D)),
+                                                              "SYN-V data: decision_rejected record with intent event"),
+        "a rejected decision with an incompatible intent": (variant(lambda V: V["SYN-R"]["data"].update(intent="request")),
+                                                            "SYN-R data: decision_rejected record with intent request"),
+        "a record that differs from its source message": (variant(lambda V: V["SYN-M"]["message"].update(intent="event")),
+                                                          "SYN-P data: record differs from its source message"),
+        "records lost": (sound[4:], "oversight records seen"),
+    }
+    for name, (vs, needle) in cases.items():
+        if not any(needle in p for p in oversight_record_type_problems(vs, floor=4)):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+# A-131: reserved capabilities. The grammar of a reserved capability name; values of payload-type keys are not
+# capabilities (arsiaprotocol.echo and arsiaprotocol.error are also payload types).
+RESERVED_CAPABILITY = re.compile(r"arsiaprotocol(\.[A-Za-z][A-Za-z0-9_-]*)+")   # fullmatch
+# Intentional negatives of the registry: (vector, path) -> (kind, text the vector names, cause). "invalid": the
+# vector is invalid and its expected_error names the text; "runtime": schema-valid, skip_schema, the description
+# names the text.
+INTENTIONAL_UNREGISTERED_CAPABILITIES = {
+    ("ITV-281", "data/optional_capabilities/0"): ("invalid", "registered system capability",
+                                                  "an ActionDescriptor requiring an unregistered reserved name (Actions §1.4)"),
+    ("ITV-568", "data/capabilities/0"): ("runtime", "MUST be rejected",
+                                         "an envelope declaring an unregistered reserved name (Actions §1.1 Rule 5)"),
+}
+
+
+def reserved_capability_values(vectors):
+    """(vector, path, name) for every value of a vector's message, data or test_metadata that has the grammar of a
+    reserved capability, outside the payload-type keys; a `scope` string is read token by token."""
+    def walk(node, path, key):
+        if isinstance(node, dict):
+            for k, x in node.items():
+                yield from walk(x, f"{path}/{k}", k)
+        elif isinstance(node, list):
+            for i, x in enumerate(node):
+                yield from walk(x, f"{path}/{i}", key)
+        elif isinstance(node, str) and key not in PAYLOAD_TYPE_KEYS:
+            for token in (node.split(" ") if key == "scope" else [node]):
+                if RESERVED_CAPABILITY.fullmatch(token):
+                    yield path, token
+    for v in vectors:
+        for root in ("message", "data", "test_metadata"):
+            if root in v:
+                for path, name in walk(v[root], root, None):
+                    yield v, path, name
+
+
+def capability_hygiene_problems(vectors, registry_caps, intentional=None):
+    """A-131: every reserved capability name in the corpus is registered in Actions §1.4, or is a declared
+    intentional negative at its own path."""
+    intentional = INTENTIONAL_UNREGISTERED_CAPABILITIES if intentional is None else intentional
+    out, seen, registered = [], {}, 0
+    by_id = {v["id"]: v for v in vectors}
+    for v, path, name in reserved_capability_values(vectors):
+        seen.setdefault((v["id"], path), []).append(name)
+        if name in registry_caps:
+            registered += 1
+        elif (v["id"], path) not in intentional:
+            out.append(f"{v['id']} {path}: {name} is not a registered capability")
+    for (vid, path), (kind, names, _cause) in intentional.items():
+        v = by_id.get(vid)
+        if v is None:
+            out.append(f"{vid}: declared intentional negative without a vector")
+            continue
+        if kind == "invalid":
+            if v.get("valid", v.get("expected") == "valid") is not False:
+                out.append(f"{vid}: declared intentional negative that is not invalid")
+            if names not in str(v.get("expected_error") or ""):
+                out.append(f"{vid}: expected_error does not name {names!r}")
+        elif not v.get("skip_schema") or names not in v.get("description", ""):
+            out.append(f"{vid}: declared runtime negative without skip_schema or not naming {names!r}")
+        if (vid, path) not in seen:
+            out.append(f"{vid}: no reserved capability at the declared path {path}")
+        elif all(n in registry_caps for n in seen[(vid, path)]):
+            out.append(f"{vid} {path}: a declared negative carries a registered capability")
+    if not registered:
+        out.append("no registered capability seen (guard dead?)")
+    return out
+
+
+def capability_hygiene_self_test():
+    import copy as _copy
+    reg = {_AP + "audit.read", _AP + "state.read"}
+    U = _AP + "zzz.unregistered"
+    neg = {("SYN-N", "data/optional_capabilities/0"): ("invalid", "registered", "synthetic"),
+           ("SYN-R", "data/capabilities/0"): ("runtime", "MUST be rejected", "synthetic")}
+    sound = [
+        {"id": "SYN-D", "valid": True, "message": {"capabilities": [_AP + "audit.read", "com.example.notes.read"],
+                                                   "payload": {"type": _AP + "echo"}},
+         "data": {"scope": f"{_AP}state.read com.example.x"},
+         "test_metadata": {"reference_policy": {"capabilities": [{"capability": _AP + "audit.read"}]}}},
+        {"id": "SYN-N", "expected": "invalid", "expected_error": "must be a registered capability",
+         "data": {"optional_capabilities": [U]}},
+        {"id": "SYN-R", "expected": "valid", "skip_schema": True, "description": "MUST be rejected at runtime",
+         "data": {"capabilities": [U]}},
+    ]
+    out = []
+    if capability_hygiene_problems(sound, reg, neg):
+        out.append(f"sound synthetic set reported: {capability_hygiene_problems(sound, reg, neg)[:2]}")
+
+    def variant(fn):
+        s = _copy.deepcopy(sound)
+        fn({v["id"]: v for v in s})
+        return s
+    cases = {
+        "an unregistered name in a list": (variant(lambda V: V["SYN-D"]["message"]["capabilities"].append(U)),
+                                           f"SYN-D message/capabilities/2: {U}"),
+        "an unregistered token of a scope": (variant(lambda V: V["SYN-D"]["data"].update(scope=f"{_AP}state.read {U}")),
+                                             f"SYN-D data/scope: {U}"),
+        "an unregistered name in test_metadata": (
+            variant(lambda V: V["SYN-D"]["test_metadata"]["reference_policy"]["capabilities"][0].update(capability=U)),
+            f"SYN-D test_metadata/reference_policy/capabilities/0/capability: {U}"),
+        "an exception at another path": (variant(lambda V: V["SYN-N"]["data"].update(required_capabilities=[U])),
+                                         f"SYN-N data/required_capabilities/0: {U}"),
+        "an exception that carries a registered name": (
+            variant(lambda V: V["SYN-N"]["data"].update(optional_capabilities=[_AP + "audit.read"])),
+            "SYN-N data/optional_capabilities/0: a declared negative carries a registered capability"),
+        "an exception for a valid vector": (variant(lambda V: V["SYN-N"].update(expected="valid")),
+                                            "SYN-N: declared intentional negative that is not invalid"),
+        "a runtime exception without skip_schema": (variant(lambda V: V["SYN-R"].pop("skip_schema")),
+                                                    "SYN-R: declared runtime negative"),
+        "no registered capability": (sound[1:], "guard dead"),
+    }
+    for name, (vs, needle) in cases.items():
+        if not any(needle in p for p in capability_hygiene_problems(vs, reg, neg)):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+# Derived values that follow their origin (corpus closure cycle, owner's review of the plan).
+# The audit records that document CTV-02: their payload_hash is the hash of its payload.
+DOCUMENTED_PAYLOAD_HASH = {("STV-06", "message/payload/data"): "CTV-02",
+                           ("STV-07", "message/payload/data/chain/0"): "CTV-02"}
+# The review messages of ITV-628's execution: result_hash is the digest of its reference terminal payload.
+RESULT_HASH_SOURCE = "ITV-628"
+RESULT_HASH_CARRIERS = ("ITV-628", "ITV-629", "INV-68", "INV-69", "INV-70", "INV-71")
+# The delivered envelope of a relay attestation scenario carries its sender's signature. INV-115 is the scenario in
+# which the delivered envelope was altered after the broker attested it: (base vector, the one path that differs).
+ALTERED_DELIVERED_ENVELOPES = {"INV-115": ("CTV-02", "payload/args/amount")}
+# Audit query responses whose entries are copies of audit record vectors: for each response, the source of each
+# position (vector, path), in order. The list is the whole response: its length is part of the declaration.
+_CHAIN_592 = tuple((vid, "data") for vid in ("ITV-592", "ITV-593", "ITV-594", "ITV-595", "ITV-596"))
+RECORD_COPIES = {"ITV-739": _CHAIN_592, "ITV-740": _CHAIN_592[:1], "INV-235": _CHAIN_592,
+                 "INV-236": (("ITV-55", "data/records/0"), ("ITV-595", "data"))}
+# A tampered chain vector is its base with exactly these fields changed; it keeps the base's chain value, which is
+# therefore not the value of its own content ("inherits"), or it is the tombstone with another previous value.
+CHAIN_TAMPERED_FIELDS = {"ITV-597": {"approver_id", "from_agent"}, "ITV-602": {"obligation_resolution"},
+                         "ITV-598": {"chain_id"}, "ITV-599": {"previous_chain_value"}}
+
+
+def _get_path(node, path):
+    for k in path.split("/"):
+        node = node[int(k)] if isinstance(node, list) else node[k]
+    return node
+
+
+def documented_hash_problems(vectors, rh, payload_pairs=None, carriers=RESULT_HASH_CARRIERS):
+    """The payload_hash of a record that documents a corpus message equals the hash of that message's payload, and
+    the result_hash of every review message of ITV-628's execution equals the digest of its terminal payload."""
+    payload_pairs = DOCUMENTED_PAYLOAD_HASH if payload_pairs is None else payload_pairs
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for (vid, path), src in payload_pairs.items():
+        try:
+            rec, msg = _get_path(by_id[vid], path), by_id[src]["message"]
+        except (KeyError, IndexError, TypeError):
+            out.append(f"{vid} {path}: record or {src} not found")
+            continue
+        if rec.get("message_id") != msg["id"]:
+            out.append(f"{vid} {path}: message_id is not {src}'s id")
+        if rec.get("payload_hash") != rh.payload_hash(msg):
+            out.append(f"{vid} {path}: payload_hash is not the hash of {src}'s payload")
+    try:
+        want = rh.jcs_sha256(by_id[RESULT_HASH_SOURCE]["test_metadata"]["reference_terminal_payload"])
+    except KeyError:
+        return out + [f"{RESULT_HASH_SOURCE}: no reference_terminal_payload"]
+    for vid in carriers:
+        got = by_id.get(vid, {}).get("message", {}).get("payload", {}).get("data", {}).get("result_hash")
+        if got != want:
+            out.append(f"{vid}: result_hash is not the digest of {RESULT_HASH_SOURCE}'s reference terminal payload")
+    return out
+
+
+def _same_json(a, b):
+    """Equality of two JSON values as JSON: member sets, order of arrays and types (1, 1.0 and true differ)."""
+    return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+
+
+def _leaf_diff(a, b):
+    """Paths at which two JSON values differ; a member absent on one side differs from a null one."""
+    absent = object()
+    la = {p: x for p, x in _walk_paths(a, "") if not isinstance(x, (dict, list)) or not x}
+    lb = {p: x for p, x in _walk_paths(b, "") if not isinstance(x, (dict, list)) or not x}
+    return sorted(p for p in set(la) | set(lb)
+                  if p not in la or p not in lb or not _same_json(la.get(p, absent), lb.get(p, absent)))
+
+
+def delivered_envelope_problems(vectors, catalog, rh, altered=None):
+    """Every delivered envelope of an attestation scenario (test_metadata.input.envelope) verifies with the catalog
+    key of its kid, its security.sig decoded strictly (base64url without padding, Core §5.1). A declared altered one
+    is its base with one path changed and nothing else — compared as whole objects —, keeps the base's signature and
+    for that reason does not verify; under the scenario's own attestation the base is accepted and the delivered
+    envelope is rejected at step 4 (Routing §7.4.1)."""
+    import copy
+    from regen_v2 import signing_input_v2
+    altered = ALTERED_DELIVERED_ENVELOPES if altered is None else altered
+    by_id = {v["id"]: v for v in vectors}
+    out, n = [], 0
+
+    def ok(env):
+        sec = env.get("security") or {}
+        e = catalog.get(sec.get("kid"))
+        sig = strict_b64url(sec.get("sig"))
+        if e is None or sig is None:
+            return False
+        try:
+            vv._verify_signature(sec.get("alg"), bytes.fromhex(e["public_key_hex"]), sig, signing_input_v2(env))
+            return True
+        except Exception:  # noqa: BLE001 - any failure is a signature that does not verify
+            return False
+    for v in vectors:
+        env = v.get("test_metadata", {}).get("input", {}).get("envelope")
+        if not isinstance(env, dict):
+            continue
+        n += 1
+        if v["id"] not in altered:
+            if not ok(env):
+                out.append(f"{v['id']}: the delivered envelope's signature does not verify")
+            continue
+        base_id, path = altered[v["id"]]
+        base = by_id[base_id]["message"]
+        try:
+            changed = _get_path(env, path)
+            unchanged = _same_json(changed, _get_path(base, path))
+        except (KeyError, IndexError, TypeError):
+            out.append(f"{v['id']}: the delivered envelope has no {path}")
+            continue
+        # the expected envelope: the base with only the declared path changed; whole objects compared
+        want = copy.deepcopy(base)
+        holder = _get_path(want, path.rsplit("/", 1)[0])
+        holder[path.rsplit("/", 1)[1]] = changed
+        if unchanged:
+            out.append(f"{v['id']}: {path} is not altered: the delivered envelope is {base_id}")
+        if not _same_json(env, want):
+            out.append(f"{v['id']}: the delivered envelope differs from {base_id} at {_leaf_diff(env, want)}, "
+                       f"besides {path}")
+        if ok(env):
+            out.append(f"{v['id']}: the altered envelope's signature verifies")
+        if not ok(base):
+            out.append(f"{v['id']}: the base {base_id} does not verify")
+        # the same attestation: the envelope the broker attested is accepted, the delivered one fails at step 4
+        inp = v["test_metadata"]["input"]
+        keys = {k: inp.get(k) for k in ("presented_token", "broker_entry", "jwks", "now", "seen")}
+        for what, e, want_result in (("base " + base_id, base, ("accept", None)),
+                                     ("delivered envelope", env, ("unauthorized", 4))):
+            try:
+                got = rh.verify_attestation(v["data"], e, **keys)
+            except Exception as exc:  # noqa: BLE001 - reported as a result that is not the expected one
+                got = ("exception", type(exc).__name__)
+            if got != want_result:
+                out.append(f"{v['id']}: under its attestation the {what} gives {got}, not {want_result}")
+    for vid in altered:
+        if not isinstance(by_id.get(vid, {}).get("test_metadata", {}).get("input", {}).get("envelope"), dict):
+            out.append(f"{vid}: declared altered envelope without a delivered envelope")
+    if n < 16:
+        out.append(f"only {n} delivered envelopes seen")
+    return out
+
+
+def _with_vector(vectors, vid, edit):
+    """The corpus with a deep copy of one vector edited; the other vectors are shared, not copied."""
+    import copy
+    out = []
+    for v in vectors:
+        if v["id"] == vid:
+            v = copy.deepcopy(v)
+            edit(v)
+        out.append(v)
+    return out
+
+
+def delivered_envelope_self_test(vectors, catalog, rh):
+    """Controls on copies of the corpus: each defect is reported for its vector, and the corpus itself is clean."""
+    env = lambda v: v["test_metadata"]["input"]["envelope"]
+
+    def pad(v): env(v)["security"]["sig"] += "=="
+    def null_member(v): env(v)["extra"] = None
+    def null_nested(v): env(v)["payload"]["args"]["extra"] = None
+    def second(v): env(v)["payload"]["args"]["currency"] = "USD"
+    def missing(v): del env(v)["compliance"]
+    def typed(v): env(v)["payload"]["args"]["amount"] = True
+    def unbound(v): v["data"]["envelope_hash"] = "sha-256:" + "0" * 64
+    cases = [("a padded signature", "ITV-724", pad, "signature does not verify"),
+             ("a second member with a null value", "INV-115", null_member, "besides payload/args/amount"),
+             ("a nested member with a null value", "INV-115", null_nested, "besides payload/args/amount"),
+             ("a second value altered", "INV-115", second, "besides payload/args/amount"),
+             ("a member removed", "INV-115", missing, "besides payload/args/amount"),
+             ("an attestation that does not accept the base", "INV-115", unbound, "under its attestation the base"),
+             ("another value at the declared path (positive control)", "INV-115", typed, None)]
+    by_id = {v["id"]: v for v in vectors}
+
+    def unaltered(v):
+        v["test_metadata"]["input"]["envelope"] = json.loads(json.dumps(by_id["CTV-02"]["message"]))
+    cases.append(("the alteration undone", "INV-115", unaltered, "is not altered"))
+    out = []
+    for name, vid, edit, needle in cases:
+        probs = delivered_envelope_problems(_with_vector(vectors, vid, edit), catalog, rh)
+        if needle is None:   # another altered value is still one path altered: nothing to report
+            if probs:
+                out.append(f"{name}: reported ({probs[0][:80]})")
+        elif not any(p.startswith(vid + ":") and needle in p for p in probs):
+            out.append(f"{name}: not reported ({needle!r})")
+    if delivered_envelope_problems(vectors, catalog, rh, altered={}) == []:
+        out.append("INV-115 without its declaration: not reported")
+    return out
+
+
+def record_copy_problems(vectors, copies=None):
+    """Each audit query response that copies audit record vectors is, position by position and as a whole list, the
+    declared sources: same length, same order, every entry equal to its source as a whole object."""
+    copies = RECORD_COPIES if copies is None else copies
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for hid, sources in copies.items():
+        try:
+            got = by_id[hid]["data"]["records"]
+            want = [_get_path(by_id[sid], path) for sid, path in sources]
+        except (KeyError, IndexError, TypeError):
+            out.append(f"{hid}: the response or one of its declared sources not found")
+            continue
+        if len(got) != len(want):
+            out.append(f"{hid}: {len(got)} records, {len(want)} declared")
+        for i, (r, (sid, path)) in enumerate(zip(got, sources)):
+            if not _same_json(r, want[i]):
+                fields = sorted(k for k in set(r) | set(want[i])
+                                if k not in r or k not in want[i] or not _same_json(r[k], want[i][k]))
+                out.append(f"{hid} records/{i}: differs from {sid} {path} in {', '.join(fields)}")
+    return out
+
+
+def record_copy_self_test(vectors):
+    """Controls on copies of the corpus: an order, a repetition, a length or a field that is not the declared one is
+    reported at its position."""
+    recs = lambda v: v["data"]["records"]
+
+    def swap(v): recs(v)[0], recs(v)[1] = recs(v)[1], recs(v)[0]
+    def repeat(v): recs(v)[1] = json.loads(json.dumps(recs(v)[0]))
+    def drop(v): recs(v).pop()
+    def extra(v): recs(v).append(json.loads(json.dumps(recs(v)[0])))
+    def field(v): recs(v)[0]["hash_chain"] = "0" * 64
+    def null_member(v): recs(v)[3]["extra"] = None
+    def other_entry(v): recs(v)[0], recs(v)[1] = recs(v)[1], recs(v)[0]
+    cases = [("the first two records swapped", "ITV-739", swap, "ITV-739 records/0: differs from ITV-592"),
+             ("the decision replaced by a second copy of the first record", "ITV-739", repeat,
+              "ITV-739 records/1: differs from ITV-593"),
+             ("the last record dropped", "INV-235", drop, "INV-235: 4 records, 5 declared"),
+             ("a record repeated at the end", "ITV-740", extra, "ITV-740: 2 records, 1 declared"),
+             ("one field of a copy altered", "ITV-739", field, "ITV-739 records/0: differs from ITV-592 data in hash_chain"),
+             ("a null member added to a copied tombstone", "INV-235", null_member,
+              "INV-235 records/3: differs from ITV-595 data in extra"),
+             ("the record and the tombstone of INV-236 swapped", "INV-236", other_entry,
+              "INV-236 records/0: differs from ITV-55")]
+    out = []
+    for name, vid, edit, needle in cases:
+        if not any(needle in p for p in record_copy_problems(_with_vector(vectors, vid, edit))):
+            out.append(f"{name}: not reported ({needle!r})")
+    return out
+
+
+def chain_tamper_relation_problems(vectors, rh):
+    """A tampered chain vector differs from its base in exactly its declared fields. One that keeps the base's
+    chain value does not carry the value of its own content: recomputing it would move the failure to the next
+    position, which the reason of the chain verification does not distinguish."""
+    by_id = {v["id"]: v for v in vectors}
+    out = []
+    for tid, (base_id, _reason) in CHAIN_TAMPERED.items():
+        t, b = by_id[tid]["data"], by_id[base_id]["data"]
+        fields = {k for k in set(t) | set(b) if t.get(k) != b.get(k)}
+        if fields != CHAIN_TAMPERED_FIELDS[tid]:
+            out.append(f"{tid}: differs from {base_id} in {sorted(fields)}, not in {sorted(CHAIN_TAMPERED_FIELDS[tid])}")
+        if rh.is_tombstone(t):
+            continue
+        chain = sorted((v["data"] for v in vectors if v.get("schema_ref", "").startswith("arsia-audit")
+                        and isinstance(v.get("data"), dict) and v["data"].get("chain_id") == b["chain_id"]
+                        and v["id"] not in CHAIN_TAMPERED), key=lambda d: d["chain_seq"])
+        prev = next((d["hash_chain"] for d in chain if d["chain_seq"] == b["chain_seq"] - 1), None)
+        if "chain_id" not in CHAIN_TAMPERED_FIELDS[tid]:
+            if t.get("hash_chain") != b.get("hash_chain"):
+                out.append(f"{tid}: hash_chain is not the one inherited from {base_id}")
+            if t.get("hash_chain") == rh.chain_value(t, prev):
+                out.append(f"{tid}: hash_chain is the value of its own content, so the record is not tampered")
     return out
 
 
@@ -4716,12 +5258,12 @@ def main() -> int:
     check("ITV-92, INV-47 and the escrow negatives fail for their declared cause only; INV-47's oneOf carries exactly "
           "the two presence errors", not probs, "; ".join(probs[:4]))
     probs = payload_type_hygiene_problems(corpus_vectors)
-    check("payload types: every arsiaprotocol.* type in the corpus is defined by its cited section, one of the two "
-          "example-only names (A-129) or a declared intentional negative at its path (A-127)", not probs,
+    check("payload types: every arsiaprotocol.* type in the corpus is defined by its cited section or is a declared "
+          "intentional negative at its path (A-127); no example-only class (A-129)", not probs,
           "; ".join(probs[:4]))
     probs = payload_type_hygiene_self_test()
-    check("payload type hygiene self-test: undefined types in message, nested records and test_metadata, an inexact "
-          "example-only name, misplaced or malformed exceptions and an unsupported registry entry are reported",
+    check("payload type hygiene self-test: undefined types in message, nested records and test_metadata, a name that "
+          "only extends a defined one, misplaced or malformed exceptions and an unsupported registry entry are reported",
           not probs, "; ".join(probs[:4]))
     probs = approval_expiry_link_problems(corpus_vectors)
     check("approval_expired records document their pending_approval: message_id, timestamp, agents, intent, "
@@ -4737,6 +5279,48 @@ def main() -> int:
     probs = corpus_hygiene_echo_problems()
     check("Corpus hygiene cycle anti-regression: the approval_expired contract in Actions §3.5, State §7.1 and the "
           "schema; RTV-01 not presented as the Routing §2.3 receipt", not probs, "; ".join(probs[:4]))
+
+    # Corpus closure cycle (A-129, A-130, A-131)
+    probs = corpus_closure_example_problems() + corpus_closure_example_self_test()
+    check("examples (A-129): Actions §2.1 gives the compliance check as an application action and CHECK-01 of "
+          "Identity §7.3 names arsiaprotocol.echo; the two former names are not back, and each is reported when "
+          "restored", not probs, "; ".join(probs[:4]))
+    probs = oversight_record_type_problems(corpus_vectors)
+    check("oversight audit records, nested ones included, carry the intent and payload_type of the oversight message "
+          "they document, and those of their source message when the corpus holds it (A-130)", not probs,
+          "; ".join(probs[:4]))
+    probs = oversight_record_type_self_test()
+    check("oversight record type self-test: the request's type on a pending and on a nested decision, a record without "
+          "payload_type or intent, a rejected review decision, an incompatible intent, a divergence from the source "
+          "message and lost records are reported", not probs, "; ".join(probs[:4]))
+    probs = capability_hygiene_problems(corpus_vectors, set(re.findall(
+        r"^#### `(arsiaprotocol\.[a-z0-9.]+)`", open("spec/ARSIA-Actions.md", encoding="utf-8").read(), re.M)))
+    check("capabilities: every reserved name in the corpus, each token of a scope included, is registered in Actions "
+          "§1.4 or is a declared intentional negative at its path (A-131)", not probs, "; ".join(probs[:4]))
+    probs = capability_hygiene_self_test()
+    check("capability hygiene self-test: an unregistered name in a list, in a scope token and in test_metadata, "
+          "misplaced or malformed exceptions and a dead guard are reported", not probs, "; ".join(probs[:4]))
+    import runtime_harness as _rh_closure
+    probs = documented_hash_problems(corpus_vectors, _rh_closure)
+    check("documented hashes: STV-06 and STV-07 chain[0] carry the payload hash of CTV-02, and the six review messages "
+          "of ITV-628's execution its terminal payload digest", not probs, "; ".join(probs[:4]))
+    probs = delivered_envelope_problems(corpus_vectors, catalog, _rh_closure)
+    check("delivered envelopes of the attestation scenarios verify with the catalog key, the signature decoded "
+          "strictly; INV-115 is CTV-02 with only payload.args.amount altered and CTV-02's signature kept, and under "
+          "its attestation CTV-02 is accepted and the delivered envelope fails at step 4", not probs,
+          "; ".join(probs[:4]))
+    probs = delivered_envelope_self_test(corpus_vectors, catalog, _rh_closure)
+    check("delivered envelope self-test: a padded signature, a null member, a second altered value, a removed member, "
+          "an attestation that rejects the base, the alteration undone and the lost declaration are reported", not probs, "; ".join(probs[:4]))
+    probs = record_copy_problems(corpus_vectors)
+    check("audit query responses ITV-739, ITV-740, INV-235 and INV-236 are their declared source records by position, "
+          "as whole lists, the tombstone included", not probs, "; ".join(probs[:4]))
+    probs = record_copy_self_test(corpus_vectors)
+    check("record copy self-test: swapped records, a repeated record in place of another, a shorter and a longer "
+          "list, an altered field and a null member are reported at their position", not probs, "; ".join(probs[:4]))
+    probs = chain_tamper_relation_problems(corpus_vectors, _rh_closure)
+    check("tampered chain vectors differ from their base in the declared fields only; ITV-597 and ITV-602 keep the "
+          "base's chain value, which is not the value of their own content", not probs, "; ".join(probs[:4]))
 
     # Security contracts cycle (A-132, A-133, A-135, A-136, A-139)
     probs = security_contract_echo_problems()

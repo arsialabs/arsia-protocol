@@ -911,6 +911,65 @@ The regulatory Open notes (C2, C2.1) are in the [regulatory file][reg8].
   - Vector error signatures were captured for the 1055 vectors before the cycle and compared
     after it: the only differences are ITV-91 and INV-242, rebuilt, with the same result and
     cause.
+- **Corpus closure cycle — inventory, method and limits:**
+  - Changed vectors, 86, none added or removed. The 54 that named
+    `arsiaprotocol.compliance/check`: CTV-02, CTV-08, STV-06, STV-07, INV-07, INV-08, ITV-53,
+    ITV-55, ITV-161, ITV-162, ITV-306, ITV-495, ITV-500, ITV-514, ITV-516, INV-16, ITV-551,
+    INV-18, ITV-569, ITV-570, ITV-628, ITV-630, ITV-631, INV-67, INV-70, INV-71, INV-112,
+    ITV-692, INV-113, INV-114, ITV-693, INV-115..INV-125, ITV-711, ITV-712, INV-172..INV-177,
+    ITV-724, INV-211, INV-212, INV-236. Six that carry a hash of one of them: CTV-09, CTV-10
+    (the `request_payload_hash` of CTV-08), ITV-314 (that of ITV-306), ITV-629, INV-68, INV-69
+    (the `result_hash` of ITV-628). ITV-477. The chain and the oversight records: ITV-592..599,
+    ITV-602, ITV-739, ITV-740, INV-51, INV-53, INV-235 (and INV-236, counted above). The
+    capabilities: ITV-03, ITV-31, ITV-38, ITV-45, ITV-46, ITV-57, ITV-65, ITV-130, ITV-526,
+    INV-61, INV-78.
+  - Method: the renames at exact values, then one rule for derived values — a relation that
+    held before holds after, and one that did not hold is left as it was apart from the
+    propagation of a value that changed elsewhere. A signature that verified is produced again;
+    a value that equalled the RFC 8785 digest of an object of the corpus equals it again; a copy
+    of a changed value follows it. A declared defect therefore stays the defect it was: the
+    delivered envelope of INV-115 is CTV-02 with `amount` altered and CTV-02's signature; INV-124
+    is the attestation of ITV-569 with `policy_ref` altered after signing; ITV-597 keeps the
+    chain value of ITV-593. Handled by name: the two ES256 negatives (INV-18, a fresh signature
+    with the first byte of R inverted; INV-112, a valid ES256 signature under a declared
+    `RS256`), the chain ITV-592..596 with the deleted record of [§18][ev18], and the two records
+    that document CTV-02. The script and the corpus before the cycle are kept with the campaigns.
+  - STV-06 and STV-07 `chain[0]` name CTV-02 by `message_id` and carried a `payload_hash` that
+    was not the hash of its payload before the cycle; they now carry it. RTV-02 holds the same
+    former digest but names another message and another type: it was not changed, since the
+    coincidence of a digest does not make it a copy.
+  - Digest-shaped values that no object of the corpus explains were not changed: the filler
+    hashes of the chain fixtures, the `payload_hash` of STV-07 `chain[1..3]` and of the record
+    of ITV-55 (their messages are not in the corpus), token hashes and source digests of the
+    resolutions.
+  - Registered as A-144, open, for a separate cycle (owner decision of 2026-11-27): outside
+    this cycle's inventory, eight audit records carry a `message_id` that equals the `id` of an
+    envelope of the corpus while their `payload_hash` is not the hash of that envelope's
+    payload. The inventory is by vector, record path and possible origin; a coincidence of
+    identifier does not establish the origin, and only ITV-337 coincides with its candidate in
+    every identifying field. No hash was changed. The check of this cycle stays limited to the
+    two declared records.
+
+    | Vector | Record path | Possible origin (same `id`) | Coincide | Differ |
+    |---|---|---|---|---|
+    | ITV-337 | `data` | ITV-336 `message` | `from`, `to`, `intent`, `payload.type` | `payload_hash` (the record has no `timestamp`) |
+    | ITV-16 | `data` | CTV-03 `message` | `intent` | `from`, `to`, `payload.type`, `ts`, `payload_hash` |
+    | ITV-43 | `data` | CTV-01 `message` | `from`, `intent` | `to`, `payload.type`, `ts`, `payload_hash` |
+    | ITV-44 | `data` | CTV-01 `message` | `from`, `intent` | `to`, `payload.type`, `ts`, `payload_hash` |
+    | INV-48 | `data` | CTV-01 `message` | `from`, `intent` | `to`, `payload.type`, `ts`, `payload_hash` |
+    | ITV-525 | `data` | CTV-01 `message` | `intent` | `from`, `to`, `payload.type`, `ts`, `payload_hash` |
+    | ITV-55 | `data/records/0` | CTV-04 `message`; ITV-135 `message`; ITV-549 `data` | `intent` (ITV-135 only) | `from`, `to`, `payload.type`, `ts`, `payload_hash`; `intent` for CTV-04 and ITV-549 |
+    | INV-236 | `data/records/0` | the same three (the entry is the copy of ITV-55 `records[0]`) | as ITV-55 | as ITV-55 |
+
+    The `id` of CTV-01 is also carried by the envelopes in `data` of INV-37..INV-40, which
+    are not copies of CTV-01; for ITV-43, ITV-44, INV-48 and ITV-525 they compare as CTV-01
+    does. STV-06 and STV-07 `chain[0]` also match the delivered envelope of INV-115 by `id`:
+    that envelope is CTV-02 altered in `amount`, and the two records are bound to CTV-02 by
+    the declared pairs.
+  - ITV-477 keeps `result: {"status": "ok"}`: the vector shows the `from` rule of CHECK-01 and
+    does not claim that the content of the request was echoed.
+  - Vector error signatures were captured for the 1060 vectors before the cycle and compared
+    after it: identical. The harness output is identical line by line.
 
 [ev17]: draft-02-remediation-ledger-evidence.md#17-lm3-closure-evidence
 [ev18]: draft-02-remediation-ledger-evidence.md#18-a-79-cycle-closure-evidence
